@@ -92,6 +92,130 @@ const Index = () => {
     },
   ];
 
+  const toolsProducts = [
+    {
+      id: "9",
+      name: "Chave de Fenda Magnética 6''",
+      price: 12.90,
+      image: productHammer,
+      category: "Ferramentas",
+    },
+    {
+      id: "10",
+      name: "Furadeira de Bancada 16mm",
+      price: 459.90,
+      image: productDrill,
+      category: "Ferramentas",
+    },
+    {
+      id: "11",
+      name: "Kit Alicate 3 Peças",
+      price: 89.90,
+      image: productHammer,
+      category: "Ferramentas",
+    },
+    {
+      id: "12",
+      name: "Parafusadeira Elétrica 12V",
+      price: 199.90,
+      image: productDrill,
+      category: "Ferramentas",
+    },
+  ];
+
+  const paintsProducts = [
+    {
+      id: "13",
+      name: "Tinta Acrílica Fosca 18L Branca",
+      price: 159.90,
+      image: productPaint,
+      category: "Tintas",
+    },
+    {
+      id: "14",
+      name: "Verniz Marítimo 3,6L",
+      price: 129.90,
+      image: productPaint,
+      category: "Tintas",
+    },
+    {
+      id: "15",
+      name: "Massa Corrida PVA 25kg",
+      price: 49.90,
+      image: productPaint,
+      category: "Tintas",
+    },
+    {
+      id: "16",
+      name: "Primer Universal 3,6L",
+      price: 79.90,
+      image: productPaint,
+      category: "Tintas",
+    },
+  ];
+
+  const constructionProducts = [
+    {
+      id: "17",
+      name: "Cimento CP III 40kg",
+      price: 22.90,
+      image: productCement,
+      category: "Cimento e Argamassa",
+    },
+    {
+      id: "18",
+      name: "Argamassa AC-III Exterior 20kg",
+      price: 24.90,
+      image: productCement,
+      category: "Cimento e Argamassa",
+    },
+    {
+      id: "19",
+      name: "Rejunte Flexível Cinza 1kg",
+      price: 8.90,
+      image: productCement,
+      category: "Cimento e Argamassa",
+    },
+    {
+      id: "20",
+      name: "Cal Hidratada CH-I 20kg",
+      price: 6.90,
+      image: productCement,
+      category: "Cimento e Argamassa",
+    },
+  ];
+
+  const electricProducts = [
+    {
+      id: "21",
+      name: "Cabo Flexível 2,5mm 100m",
+      price: 189.90,
+      image: productDrill,
+      category: "Materiais Elétricos",
+    },
+    {
+      id: "22",
+      name: "Disjuntor Bipolar 25A",
+      price: 34.90,
+      image: productHammer,
+      category: "Materiais Elétricos",
+    },
+    {
+      id: "23",
+      name: "Tomada 2P+T 10A Branca",
+      price: 12.90,
+      image: productHammer,
+      category: "Materiais Elétricos",
+    },
+    {
+      id: "24",
+      name: "Fita Isolante 19mm x 20m",
+      price: 4.90,
+      image: productDrill,
+      category: "Materiais Elétricos",
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -101,6 +225,10 @@ const Index = () => {
       <ProductSection title="Promoções Imperdíveis" products={promotions} />
       <PromoBanners />
       <ProductSection title="Novidades" products={newProducts} />
+      <ProductSection title="Ferramentas" products={toolsProducts} />
+      <ProductSection title="Tintas e Acessórios" products={paintsProducts} />
+      <ProductSection title="Cimento e Argamassa" products={constructionProducts} />
+      <ProductSection title="Materiais Elétricos" products={electricProducts} />
       <Footer />
     </div>
   );
