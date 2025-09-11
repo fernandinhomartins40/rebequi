@@ -47,6 +47,13 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Rebequi Brand Colors
+        brand: {
+          yellow: "hsl(var(--brand-yellow))",
+          red: "hsl(var(--brand-red))",
+          blue: "hsl(var(--brand-blue))",
+          gray: "hsl(var(--brand-gray))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -80,10 +87,26 @@ export default {
             height: "0",
           },
         },
+        "fade-in": {
+          "0%": {
+            opacity: "0",
+            transform: "translateY(10px)"
+          },
+          "100%": {
+            opacity: "1",
+            transform: "translateY(0)"
+          }
+        },
+        "marquee": {
+          from: { transform: "translateX(100%)" },
+          to: { transform: "translateX(-100%)" }
+        }
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "fade-in": "fade-in 0.3s ease-out",
+        "marquee": "marquee 30s linear infinite",
       },
     },
   },
