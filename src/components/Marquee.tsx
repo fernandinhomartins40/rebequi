@@ -11,14 +11,15 @@ const Marquee = () => {
   ];
 
   return (
-    <div className="bg-brand-yellow py-3 overflow-hidden">
+    <div className="py-3 overflow-hidden" style={{ backgroundColor: '#cc2227' }}>
       <div className="marquee">
         <div className="marquee-content">
           {/* Duplicate items to ensure continuous scroll */}
           {[...items, ...items, ...items].map((item, index) => (
             <div
               key={index}
-              className="flex items-center space-x-2 text-brand-blue font-semibold"
+              className="flex items-center space-x-2 font-semibold"
+              style={{ color: '#f9ef38' }}
             >
               <item.icon className="h-5 w-5" />
               <span className="whitespace-nowrap">{item.text}</span>
