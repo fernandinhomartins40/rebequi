@@ -18,13 +18,13 @@ const Header = () => {
     <header className="shadow-md sticky top-0 z-50" style={{ backgroundColor: '#f9ef38' }}>
       <div className="container mx-auto px-4">
         {/* Main Header */}
-        <div className="flex items-center justify-between h-[300px]">
+        <div className="flex items-center justify-between h-[150px]">
           {/* Logo */}
           <div className="flex-shrink-0">
             <img 
               src="/lovable-uploads/73f13341-b66a-4a9f-aa28-4bd40213b85f.png" 
               alt="Rebequi Logo" 
-              className="h-32 w-auto"
+              className="h-20 w-auto"
             />
           </div>
 
