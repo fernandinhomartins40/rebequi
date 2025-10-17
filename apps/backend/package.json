@@ -1,0 +1,19 @@
+{
+  "name": "@rebequi/backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "echo 'Backend not implemented yet. Configure your backend here.'",
+    "build": "echo 'Backend build not configured yet.'",
+    "start": "echo 'Backend start not configured yet.'",
+    "test": "echo 'Backend tests not configured yet.'"
+  },
+  "dependencies": {
+    "@rebequi/shared": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.16.5",
+    "typescript": "^5.8.3"
+  }
+}

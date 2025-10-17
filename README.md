@@ -1,73 +1,172 @@
-# Welcome to your Lovable project
+# Rebequi - E-commerce Platform (Monorepo)
 
-## Project info
+Monorepo para a plataforma de e-commerce Rebequi, estruturado com workspaces npm para máxima escalabilidade e manutenibilidade.
 
-**URL**: https://lovable.dev/projects/eaf3a9bb-8050-4729-9e85-fa7d2a1ffb43
+## 📁 Estrutura do Projeto
 
-## How can I edit this code?
-
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/eaf3a9bb-8050-4729-9e85-fa7d2a1ffb43) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+rebequi/
+├── apps/
+│   ├── frontend/         # Frontend React + Vite
+│   │   ├── src/
+│   │   ├── public/
+│   │   ├── package.json
+│   │   └── vite.config.ts
+│   └── backend/          # Backend (aguardando implementação)
+│       ├── src/
+│       ├── package.json
+│       └── README.md
+├── packages/
+│   ├── shared/           # Tipos e utilitários compartilhados
+│   │   ├── src/
+│   │   │   ├── types/
+│   │   │   └── index.ts
+│   │   ├── package.json
+│   │   └── tsconfig.json
+│   ├── ui/               # (Futuro) Componentes UI compartilhados
+│   └── config/           # (Futuro) Configurações compartilhadas
+├── package.json          # Workspace root
+└── README.md
 ```
 
-**Edit a file directly in GitHub**
+## 🚀 Como Usar
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Instalação
 
-**Use GitHub Codespaces**
+```bash
+# Instalar todas as dependências do monorepo
+npm install
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Desenvolvimento
 
-## What technologies are used for this project?
+```bash
+# Executar apenas o frontend
+npm run dev
 
-This project is built with:
+# Executar frontend
+npm run dev:frontend
 
-- Vite
+# Executar backend (quando implementado)
+npm run dev:backend
+```
+
+### Build
+
+```bash
+# Build de todos os apps
+npm run build
+
+# Build do frontend
+npm run build:frontend
+
+# Build do backend (quando implementado)
+npm run build:backend
+```
+
+### Outros Comandos
+
+```bash
+# Lint em todos os workspaces
+npm run lint
+
+# Executar testes
+npm run test
+
+# Limpar node_modules
+npm run clean
+```
+
+## 📦 Workspaces
+
+### `apps/frontend` - Frontend
+- **Stack**: React 18 + Vite + TypeScript
+- **UI**: Shadcn/ui + Tailwind CSS
+- **Estado**: React Query
+- **Roteamento**: React Router v6
+
+### `apps/backend` - Backend (Aguardando implementação)
+- Stack a ser definida
+- Estrutura preparada para qualquer framework
+- Documentação completa em `apps/backend/README.md`
+
+### `packages/shared` - Código Compartilhado
+- Tipos TypeScript compartilhados entre frontend e backend
+- Utilitários comuns
+- Constantes e configurações
+
+## 🔗 Importações entre Workspaces
+
+Use o prefixo `@rebequi/` para importar de outros workspaces:
+
+```typescript
+// No frontend ou backend
+import { Product, Category } from '@rebequi/shared/types';
+```
+
+## 🛠️ Tecnologias
+
+### Frontend
+- React 18
 - TypeScript
-- React
-- shadcn-ui
+- Vite
 - Tailwind CSS
+- Shadcn/ui
+- React Query
+- React Router
+- React Hook Form
+- Zod
 
-## How can I deploy this project?
+### Backend (A definir)
+Opções sugeridas:
+- Node.js + Express/Fastify/NestJS
+- Bun + Elysia
+- Python + FastAPI
+- Go + Fiber
 
-Simply open [Lovable](https://lovable.dev/projects/eaf3a9bb-8050-4729-9e85-fa7d2a1ffb43) and click on Share -> Publish.
+### Shared
+- TypeScript
+- Zod (validação)
 
-## Can I connect a custom domain to my Lovable project?
+## 📝 Próximos Passos
 
-Yes, you can!
+1. **Implementar Backend** (`apps/backend/`)
+   - Escolher stack
+   - Configurar banco de dados
+   - Implementar rotas API
+   - Configurar autenticação
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+2. **Evoluir Shared Package** (`packages/shared/`)
+   - Adicionar validações Zod
+   - Criar utilitários compartilhados
+   - Adicionar constantes
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+3. **Criar Package UI** (`packages/ui/`)
+   - Extrair componentes reutilizáveis
+   - Documentação Storybook
+
+4. **Configurações Compartilhadas** (`packages/config/`)
+   - ESLint config
+   - TypeScript config
+   - Prettier config
+
+## 🔒 Ambiente
+
+### Frontend
+Copie `apps/frontend/.env.example` para `apps/frontend/.env.local`
+
+### Backend
+Copie `apps/backend/.env.example` para `apps/backend/.env`
+
+## 📚 Documentação Adicional
+
+- [Backend Documentation](apps/backend/README.md)
+- [Shared Package](packages/shared/README.md)
+
+## 🤝 Contribuindo
+
+1. Clone o repositório
+2. Crie uma branch para sua feature
+3. Commit suas mudanças
+4. Push para a branch
+5. Abra um Pull Request
