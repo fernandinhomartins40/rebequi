@@ -10,38 +10,93 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// User model for authentication and authorization
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String   // Hashed password
+  role      UserRole @default(CUSTOMER)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  CUSTOMER
+}
+
+// Category model
 model Category {
   id          String    @id @default(cuid())
   name        String    @unique
   slug        String    @unique
   icon        String?
-  image       String?
-  description String?
+  image       String?   // Category image path
+  description String?   @db.Text
+  isActive    Boolean   @default(true)
   products    Product[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime? // Soft delete
 
+  @@index([slug])
+  @@index([isActive])
   @@map("categories")
 }
 
+// Product model
 model Product {
-  id            String   @id @default(cuid())
+  id            String         @id @default(cuid())
   name          String
+  slug          String         @unique
+  sku           String?        @unique
   price         Float
   originalPrice Float?
-  image         String
-  description   String?
-  isOffer       Boolean  @default(false)
-  isNew         Boolean  @default(false)
+  description   String?        @db.Text
+  shortDesc     String?        // Short description for cards
+  isOffer       Boolean        @default(false)
+  isNew         Boolean        @default(false)
+  isFeatured    Boolean        @default(false)
   discount      Int?
-  stock         Int      @default(0)
+  stock         Int            @default(0)
+  minStock      Int            @default(0) // Alert when stock is low
+  weight        Float?         // In kg
+  dimensions    String?        // e.g., "10x20x30 cm"
   categoryId    String
-  category      Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  category      Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  images        ProductImage[]
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  deletedAt     DateTime?      // Soft delete
 
   @@index([categoryId])
+  @@index([slug])
+  @@index([sku])
   @@index([isOffer])
   @@index([isNew])
+  @@index([isFeatured])
+  @@index([isActive])
   @@map("products")
+}
+
+// Product Images - Multiple images per product
+model ProductImage {
+  id        String   @id @default(cuid())
+  url       String   // Image URL or path
+  alt       String?  // Alt text for SEO
+  order     Int      @default(0) // Display order
+  isPrimary Boolean  @default(false) // Main product image
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+  @@index([isPrimary])
+  @@map("product_images")
 }
