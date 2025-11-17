@@ -70,6 +70,7 @@ RUN npm ci --only=production
 COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
 COPY --from=builder /app/apps/frontend/dist ./apps/frontend/dist
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
+COPY --from=builder /app/packages/shared/src ./packages/shared/src
 COPY --from=builder /app/packages/shared/package.json ./packages/shared/
 
 # Copiar arquivos necessários do backend
