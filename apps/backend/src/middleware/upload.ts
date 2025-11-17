@@ -19,7 +19,7 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024;
  * Configure multer storage
  */
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
+  destination: (_req, file, cb) => {
     // Determine destination based on field name
     let folder = 'uploads/temp';
 
@@ -31,7 +31,7 @@ const storage = multer.diskStorage({
 
     cb(null, folder);
   },
-  filename: (req, file, cb) => {
+  filename: (_req, file, cb) => {
     // Generate unique filename
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
     const ext = path.extname(file.originalname);
@@ -47,7 +47,7 @@ const storage = multer.diskStorage({
  * File filter to validate image types
  */
 const fileFilter = (
-  req: Request,
+  _req: Request,
   file: Express.Multer.File,
   cb: multer.FileFilterCallback
 ) => {
