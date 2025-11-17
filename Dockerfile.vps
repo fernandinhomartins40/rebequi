@@ -1,0 +1,204 @@
+# ============================================
+# Stage 1: Build Backend and Frontend
+# ============================================
+FROM node:20-alpine AS builder
+
+# Argumentos de build
+ARG BUILD_TIMESTAMP=0
+
+# Instalar dependências do sistema
+RUN apk add --no-cache python3 make g++ curl
+
+# Definir diretório de trabalho
+WORKDIR /app
+
+# Copiar arquivos de configuração do workspace
+COPY package*.json ./
+COPY apps/backend/package*.json ./apps/backend/
+COPY apps/frontend/package*.json ./apps/frontend/
+COPY packages/shared/package*.json ./packages/shared/
+
+# Instalar todas as dependências
+RUN npm ci
+
+# Copiar código-fonte
+COPY . .
+
+# Build do shared package primeiro
+WORKDIR /app/packages/shared
+RUN npm run build
+
+# Build do backend
+WORKDIR /app/apps/backend
+RUN npm run build
+
+# Build do frontend
+WORKDIR /app/apps/frontend
+RUN npm run build
+
+# Verificar builds
+RUN echo "=== Verificando builds ===" && \
+    ls -la /app/apps/backend/dist/ && \
+    ls -la /app/apps/frontend/dist/
+
+# ============================================
+# Stage 2: Production Runtime
+# ============================================
+FROM node:20-alpine
+
+# Instalar dependências do sistema necessárias
+RUN apk add --no-cache \
+    curl \
+    wget \
+    supervisor \
+    nginx \
+    postgresql-client
+
+# Criar diretório de trabalho
+WORKDIR /app
+
+# Copiar arquivos de configuração do workspace
+COPY package*.json ./
+COPY apps/backend/package*.json ./apps/backend/
+COPY apps/frontend/package*.json ./apps/frontend/
+COPY packages/shared/package*.json ./packages/shared/
+
+# Instalar apenas dependências de produção
+RUN npm ci --only=production
+
+# Copiar código compilado do builder
+COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
+COPY --from=builder /app/apps/frontend/dist ./apps/frontend/dist
+COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
+COPY --from=builder /app/packages/shared/package.json ./packages/shared/
+
+# Copiar arquivos necessários do backend
+COPY apps/backend/prisma ./apps/backend/prisma
+COPY apps/backend/.env.example ./apps/backend/.env
+
+# Criar estrutura de diretórios para uploads
+RUN mkdir -p /app/apps/backend/uploads/products \
+             /app/apps/backend/uploads/categories \
+             /app/apps/backend/uploads/temp && \
+    chmod -R 755 /app/apps/backend/uploads
+
+# Criar diretórios de logs
+RUN mkdir -p /var/log/supervisor /var/log/nginx
+
+# Configurar Nginx para servir frontend
+RUN rm -rf /etc/nginx/http.d/* && \
+    mkdir -p /etc/nginx/http.d
+
+COPY <<'EOF' /etc/nginx/http.d/default.conf
+server {
+    listen 8080;
+    server_name _;
+
+    root /app/apps/frontend/dist;
+    index index.html;
+
+    # Logs
+    access_log /var/log/nginx/access.log;
+    error_log /var/log/nginx/error.log;
+
+    # Gzip
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css text/xml text/javascript application/javascript application/xml+rss application/json;
+
+    # Cache de assets estáticos
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # SPA routing - todas as rotas vão para index.html
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Health check do nginx
+    location /nginx-health {
+        access_log off;
+        return 200 "healthy\n";
+        add_header Content-Type text/plain;
+    }
+}
+EOF
+
+# Configurar Supervisord
+COPY <<'EOF' /etc/supervisord.conf
+[supervisord]
+nodaemon=true
+user=root
+logfile=/var/log/supervisor/supervisord.log
+pidfile=/var/run/supervisord.pid
+childlogdir=/var/log/supervisor
+
+[program:nginx]
+command=nginx -g 'daemon off;'
+autostart=true
+autorestart=true
+stdout_logfile=/var/log/nginx/stdout.log
+stderr_logfile=/var/log/nginx/stderr.log
+priority=10
+
+[program:backend]
+command=node /app/apps/backend/dist/index.js
+directory=/app/apps/backend
+autostart=true
+autorestart=true
+stdout_logfile=/var/log/backend.stdout.log
+stderr_logfile=/var/log/backend.stderr.log
+environment=NODE_ENV=production,PORT=3000
+priority=20
+stopwaitsecs=30
+EOF
+
+# Expor portas
+EXPOSE 3000 8080
+
+# Health check script
+RUN echo '#!/bin/sh' > /healthcheck.sh && \
+    echo 'curl -f http://localhost:3000/health && curl -f http://localhost:8080/nginx-health' >> /healthcheck.sh && \
+    chmod +x /healthcheck.sh
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD /healthcheck.sh
+
+# Script de inicialização
+COPY <<'EOF' /docker-entrypoint.sh
+#!/bin/sh
+set -e
+
+echo "=== Rebequi VPS Container Starting ==="
+
+# Aguardar PostgreSQL estar pronto
+echo "Aguardando PostgreSQL..."
+until pg_isready -h postgres -U ${POSTGRES_USER:-rebequi}; do
+  echo "PostgreSQL não está pronto - aguardando..."
+  sleep 2
+done
+echo "✓ PostgreSQL está pronto"
+
+# Executar migrações do Prisma
+echo "Executando migrações do Prisma..."
+cd /app/apps/backend
+npx prisma migrate deploy || echo "⚠️ Migrações falharam ou não há migrações para executar"
+
+# Executar seed (opcional, apenas se necessário)
+# npx prisma db seed || echo "⚠️ Seed falhou ou não está configurado"
+
+echo "=== Iniciando serviços com Supervisord ==="
+
+# Iniciar supervisord
+exec /usr/bin/supervisord -c /etc/supervisord.conf
+EOF
+
+RUN chmod +x /docker-entrypoint.sh
+
+# Usuário não-root (opcional, comentado para facilitar debug)
+# USER node
+
+ENTRYPOINT ["/docker-entrypoint.sh"]
