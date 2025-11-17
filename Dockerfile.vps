@@ -89,7 +89,8 @@ RUN mkdir -p /var/log/supervisor /var/log/nginx
 RUN rm -rf /etc/nginx/http.d/* && \
     mkdir -p /etc/nginx/http.d
 
-COPY <<'EOF' /etc/nginx/http.d/default.conf
+# Criar configuração do Nginx
+RUN cat > /etc/nginx/http.d/default.conf << 'EOF'
 server {
     listen 8080;
     server_name _;
@@ -128,7 +129,7 @@ server {
 EOF
 
 # Configurar Supervisord
-COPY <<'EOF' /etc/supervisord.conf
+RUN cat > /etc/supervisord.conf << 'EOF'
 [supervisord]
 nodaemon=true
 user=root
@@ -168,7 +169,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD /healthcheck.sh
 
 # Script de inicialização
-COPY <<'EOF' /docker-entrypoint.sh
+RUN cat > /docker-entrypoint.sh << 'EOF'
 #!/bin/sh
 set -e
 
