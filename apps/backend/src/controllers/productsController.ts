@@ -207,7 +207,7 @@ export const getProductsByCategory = async (
  * GET /api/products/promotional
  */
 export const getPromotionalProducts = async (
-  req: Request,
+  _req: Request,
   res: Response,
   next: NextFunction
 ) => {
@@ -241,7 +241,7 @@ export const getPromotionalProducts = async (
  * GET /api/products/new
  */
 export const getNewProducts = async (
-  req: Request,
+  _req: Request,
   res: Response,
   next: NextFunction
 ) => {
@@ -319,8 +319,22 @@ export const createProduct = async (
     // Create product
     const product = await prisma.product.create({
       data: {
-        ...data,
+        name: data.name,
+        slug: data.slug!,
+        sku: data.sku,
+        price: data.price,
+        originalPrice: data.originalPrice,
+        description: data.description,
+        shortDesc: data.shortDesc,
+        categoryId: data.categoryId,
+        stock: data.stock,
         minStock: data.minStock || 0,
+        weight: data.weight,
+        dimensions: data.dimensions,
+        isOffer: data.isOffer,
+        isNew: data.isNew,
+        isFeatured: data.isFeatured,
+        discount: data.discount,
       },
       include: {
         category: true,

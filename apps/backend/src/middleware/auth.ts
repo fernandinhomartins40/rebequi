@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import jwt, { type Secret } from 'jsonwebtoken';
 import { AppError } from './errorHandler.js';
 
 export interface AuthRequest extends Request {
@@ -10,14 +10,14 @@ export interface AuthRequest extends Request {
   };
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const JWT_SECRET: Secret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
 /**
  * Middleware to authenticate JWT token
  */
 export const authenticateToken = (
   req: AuthRequest,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ) => {
   try {
@@ -50,7 +50,7 @@ export const authenticateToken = (
  */
 export const requireAdmin = (
   req: AuthRequest,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ) => {
   if (!req.user) {
@@ -69,7 +69,7 @@ export const requireAdmin = (
  */
 export const requireAuth = (
   req: AuthRequest,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ) => {
   if (!req.user) {
@@ -83,7 +83,7 @@ export const requireAuth = (
  */
 export const optionalAuth = (
   req: AuthRequest,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ) => {
   try {
@@ -109,7 +109,7 @@ export const optionalAuth = (
  */
 export const generateToken = (payload: { id: string; email: string; role: string }): string => {
   return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+    expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as any,
   });
 };
 

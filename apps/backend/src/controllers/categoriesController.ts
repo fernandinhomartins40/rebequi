@@ -19,7 +19,7 @@ function generateSlug(name: string): string {
 }
 
 export const getCategories = async (
-  req: Request,
+  _req: Request,
   res: Response,
   next: NextFunction
 ) => {
@@ -152,7 +152,13 @@ export const createCategory = async (
 
     // Create category
     const category = await prisma.category.create({
-      data,
+      data: {
+        name: data.name,
+        slug: data.slug!,
+        icon: data.icon,
+        image: data.image,
+        description: data.description,
+      },
       include: {
         _count: {
           select: {
@@ -162,10 +168,10 @@ export const createCategory = async (
       },
     });
 
+    const { _count, ...categoryData } = category;
     const formattedCategory = {
-      ...category,
-      productsCount: category._count.products,
-      _count: undefined,
+      ...categoryData,
+      productsCount: _count.products,
     };
 
     res.status(201).json(formattedCategory);
