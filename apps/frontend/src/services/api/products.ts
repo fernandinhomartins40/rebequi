@@ -1,8 +1,6 @@
 /**
  * Products API Service
  * Handles all product-related API calls
- *
- * TODO: Implement these functions when backend is ready
  */
 
 import { Product, ProductFilters, ProductResponse } from '@rebequi/shared/types';
@@ -14,21 +12,26 @@ import { apiFetch } from './client';
 export async function fetchProducts(
   filters?: ProductFilters
 ): Promise<ProductResponse> {
-  // TODO: Implement API call
-  // const queryParams = new URLSearchParams(filters as any).toString();
-  // return apiFetch<ProductResponse>(`/products?${queryParams}`);
+  const params = new URLSearchParams();
 
-  throw new Error('Backend not implemented yet');
+  if (filters?.category) params.append('category', filters.category);
+  if (filters?.minPrice) params.append('minPrice', filters.minPrice.toString());
+  if (filters?.maxPrice) params.append('maxPrice', filters.maxPrice.toString());
+  if (filters?.search) params.append('search', filters.search);
+  if (filters?.isOffer !== undefined) params.append('isOffer', filters.isOffer.toString());
+  if (filters?.isNew !== undefined) params.append('isNew', filters.isNew.toString());
+
+  const queryString = params.toString();
+  const url = queryString ? `/products?${queryString}` : '/products';
+
+  return apiFetch<ProductResponse>(url);
 }
 
 /**
  * Fetch a single product by ID
  */
 export async function fetchProductById(id: string): Promise<Product> {
-  // TODO: Implement API call
-  // return apiFetch<Product>(`/products/${id}`);
-
-  throw new Error('Backend not implemented yet');
+  return apiFetch<Product>(`/products/${id}`);
 }
 
 /**
@@ -39,30 +42,23 @@ export async function fetchProductsByCategory(
   page = 1,
   limit = 12
 ): Promise<ProductResponse> {
-  // TODO: Implement API call
-  // return apiFetch<ProductResponse>(`/products/category/${category}?page=${page}&limit=${limit}`);
-
-  throw new Error('Backend not implemented yet');
+  return apiFetch<ProductResponse>(
+    `/products/category/${category}?page=${page}&limit=${limit}`
+  );
 }
 
 /**
  * Fetch promotional products
  */
 export async function fetchPromotionalProducts(): Promise<Product[]> {
-  // TODO: Implement API call
-  // const response = await apiFetch<ProductResponse>('/products?isOffer=true');
-  // return response.products;
-
-  throw new Error('Backend not implemented yet');
+  const data = await apiFetch<Product[]>('/products/promotional');
+  return data;
 }
 
 /**
  * Fetch new products
  */
 export async function fetchNewProducts(): Promise<Product[]> {
-  // TODO: Implement API call
-  // const response = await apiFetch<ProductResponse>('/products?isNew=true');
-  // return response.products;
-
-  throw new Error('Backend not implemented yet');
+  const data = await apiFetch<Product[]>('/products/new');
+  return data;
 }
