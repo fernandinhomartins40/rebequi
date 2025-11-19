@@ -10,10 +10,8 @@
   "scripts": {
     "dev": "npm run dev --workspace=apps/frontend",
     "dev:frontend": "npm run dev --workspace=apps/frontend",
-    "dev:backend": "npm run dev --workspace=apps/backend",
     "build": "npm run build --workspaces --if-present",
     "build:frontend": "npm run build --workspace=apps/frontend",
-    "build:backend": "npm run build --workspace=apps/backend",
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "clean": "rm -rf apps/*/node_modules packages/*/node_modules node_modules"

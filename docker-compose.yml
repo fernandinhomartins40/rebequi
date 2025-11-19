@@ -22,30 +22,30 @@ services:
       timeout: 5s
       retries: 5
 
-  # Backend API
-  backend:
-    build:
-      context: .
-      dockerfile: apps/backend/Dockerfile
-    container_name: rebequi-backend
-    restart: unless-stopped
-    environment:
-      NODE_ENV: production
-      PORT: 3000
-      DATABASE_URL: postgresql://rebequi:rebequi123@postgres:5432/rebequi
-      ALLOWED_ORIGINS: http://localhost,http://localhost:80
-    ports:
-      - "3000:3000"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - rebequi-network
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+  # Backend API - Will be implemented later
+  # backend:
+  #   build:
+  #     context: .
+  #     dockerfile: apps/backend/Dockerfile
+  #   container_name: rebequi-backend
+  #   restart: unless-stopped
+  #   environment:
+  #     NODE_ENV: production
+  #     PORT: 3000
+  #     DATABASE_URL: postgresql://rebequi:rebequi123@postgres:5432/rebequi
+  #     ALLOWED_ORIGINS: http://localhost,http://localhost:80
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   networks:
+  #     - rebequi-network
+  #   healthcheck:
+  #     test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
 
   # Frontend Application
   frontend:
@@ -76,7 +76,6 @@ services:
     ports:
       - "80:80"
     depends_on:
-      - backend
       - frontend
     networks:
       - rebequi-network

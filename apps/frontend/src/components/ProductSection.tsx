@@ -1,17 +1,6 @@
 import ProductCard from "./ProductCard";
 import { Button } from "@/components/ui/button";
-
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  originalPrice?: number;
-  image: string;
-  category: string;
-  isNew?: boolean;
-  isOffer?: boolean;
-  discount?: number;
-}
+import type { Product } from "@/types";
 
 interface ProductSectionProps {
   title: string;
