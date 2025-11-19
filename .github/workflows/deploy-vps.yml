@@ -4,8 +4,12 @@ on:
   push:
     branches:
       - main
-      - 'claude/**'  # Permite deploy de branches claude/*
-  workflow_dispatch:  # Permite disparo manual via GitHub UI
+      - production
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: true
 
 jobs:
   deploy:
@@ -27,14 +31,13 @@ jobs:
           sudo apt-get update && sudo apt-get install -y sshpass rsync
 
           # Criar diretório no VPS
-          sshpass -f ~/.ssh/vps_password ssh -o StrictHostKeyChecking=no root@rebequi.com.br "mkdir -p /root/rebequi"
+          sshpass -f ~/.ssh/vps_password ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "mkdir -p /root/rebequi"
 
-          # Verificar estrutura do projeto localmente antes do rsync
-          echo "=== Verificando estrutura do projeto localmente ==="
-          ls -la apps/backend/src/ || echo "❌ backend/src não encontrado"
-          ls -la apps/frontend/src/ || echo "❌ frontend/src não encontrado"
-          ls -la apps/backend/prisma/ || echo "❌ prisma não encontrado"
-          ls -la packages/shared/ || echo "❌ shared não encontrado"
+          # Verificar estrutura do projeto antes do rsync
+          echo "=== Verificando estrutura localmente ==="
+          ls -la apps/backend/src/
+          ls -la apps/frontend/src/
+          ls -la packages/shared/
 
           # Sincronizar código via rsync
           sshpass -f ~/.ssh/vps_password rsync -avz --delete \
@@ -43,263 +46,255 @@ jobs:
             --exclude='dist' \
             --exclude='*.db' \
             --exclude='*.db-*' \
-            --exclude='apps/backend/uploads' \
+            --exclude='apps/backend/uploads/*' \
+            --exclude='apps/backend/logs/*' \
+            --exclude='apps/backend/.env' \
+            --exclude='apps/frontend/.env' \
             --exclude='.env' \
             -e "ssh -o StrictHostKeyChecking=no" \
-            ./ root@rebequi.com.br:/root/rebequi/
+            ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/root/rebequi/
 
-          # Verificar se estrutura foi copiada
+          # Verificar se código foi copiado
           echo "=== Verificando estrutura na VPS após rsync ==="
-          sshpass -f ~/.ssh/vps_password ssh -o StrictHostKeyChecking=no root@rebequi.com.br "ls -la /root/rebequi/apps/backend/src/ || echo '❌ backend/src não copiado'"
-          sshpass -f ~/.ssh/vps_password ssh -o StrictHostKeyChecking=no root@rebequi.com.br "ls -la /root/rebequi/apps/frontend/src/ || echo '❌ frontend/src não copiado'"
+          sshpass -f ~/.ssh/vps_password ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "ls -la /root/rebequi/apps/"
 
       - name: Deploy to VPS
         uses: appleboy/ssh-action@master
         with:
-          host: rebequi.com.br
-          username: root
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
           port: 22
-          timeout: 300s
-          command_timeout: 300s
+          timeout: 600s
+          command_timeout: 600s
           script: |
             set -e
 
-            echo "=== Iniciando Deploy Rebequi ==="
+            echo "=== Iniciando Deploy Rebequi E-commerce ==="
 
             # Diretório da aplicação
             APP_DIR="/root/rebequi"
-
-            # Parar containers existentes
-            echo "Parando containers existentes..."
             cd $APP_DIR
+
+            # Parar containers existentes (SEM -v para preservar volumes)
+            echo "Parando containers existentes..."
             docker-compose -f docker-compose.vps.yml down || true
 
-            echo "Verificando código sincronizado..."
-            ls -la
+            # Verificar e garantir que volumes críticos existam
+            echo "=== Verificando volumes Docker ==="
+            if ! docker volume ls | grep -q "rebequi.*postgres_data"; then
+              echo "⚠️ Volume postgres_data não existe, será criado no próximo docker-compose up"
+            else
+              echo "✓ Volume postgres_data encontrado"
+            fi
 
-            # Criar arquivo .env
-            echo "Criando arquivo .env..."
-            cat > .env << 'EOF'
-            # Node.js
+            # Criar arquivo .env para backend
+            echo "Criando arquivo .env para backend..."
+            cat > apps/backend/.env << 'EOF'
+            # Node Environment
             NODE_ENV=production
 
-            # Application
-            PORT=3100
+            # Server
+            PORT=3001
+            HOST=0.0.0.0
 
-            # PostgreSQL
-            POSTGRES_USER=rebequi
-            POSTGRES_PASSWORD=rebequi2024secure
-            POSTGRES_DB=rebequi
-
-            # Database URL (PostgreSQL)
-            DATABASE_URL=postgresql://rebequi:rebequi2024secure@postgres:5432/rebequi
+            # Database
+            DATABASE_URL="postgresql://rebequi:rebequi2024secure@postgres:5432/rebequi"
 
             # JWT
-            JWT_SECRET=rebequi-production-secret-$(date +%s)-$(openssl rand -hex 16)
+            JWT_SECRET=$(openssl rand -hex 32)
             JWT_EXPIRES_IN=7d
 
             # CORS
-            FRONTEND_URL=https://www.rebequi.com.br
-            CORS_ORIGIN=https://www.rebequi.com.br
-            ALLOWED_ORIGINS=https://www.rebequi.com.br,http://www.rebequi.com.br,https://rebequi.com.br,http://rebequi.com.br,http://72.60.10.108:3100,http://localhost:3100
+            ALLOWED_ORIGINS=*
 
-            # Logs
+            # File Upload
+            MAX_FILE_SIZE=5242880
+            UPLOAD_DIR=./uploads
+
+            # Logging
             LOG_LEVEL=info
             EOF
 
-            # Adicionar BUILD_TIMESTAMP ao .env
-            echo "BUILD_TIMESTAMP=$(date +%s)" >> .env
+            # Criar arquivo .env para frontend
+            echo "Criando arquivo .env para frontend..."
+            cat > apps/frontend/.env << 'EOF'
+            VITE_API_BASE_URL=/api
+            EOF
 
-            # Limpar containers e imagens antigas (PRESERVAR volumes do PostgreSQL)
+            # Adicionar BUILD_TIMESTAMP ao .env
+            echo "BUILD_TIMESTAMP=$(date +%s)" >> apps/backend/.env
+
+            # Limpar containers e imagens antigas (PRESERVAR volumes)
             echo "Limpando recursos antigos..."
             docker container prune -f || true
             docker image prune -af || true
 
-            # Garantir BUILD_TIMESTAMP como variável de ambiente ANTES do build
+            # Garantir BUILD_TIMESTAMP como variável de ambiente
             export BUILD_TIMESTAMP=$(date +%s)
             echo "BUILD_TIMESTAMP=${BUILD_TIMESTAMP}"
 
-            # ===== VALIDAÇÃO PRÉ-BUILD: Verificar estrutura do projeto =====
+            # ===== VALIDAÇÃO PRÉ-BUILD =====
             echo "=== Validando estrutura do projeto antes do build ==="
 
-            if [ ! -f "apps/backend/src/index.ts" ]; then
-              echo "❌ ERRO: index.ts não encontrado!"
+            if [ ! -f "apps/backend/package.json" ]; then
+              echo "❌ ERRO: apps/backend/package.json não encontrado!"
               exit 1
             fi
-            echo "✓ index.ts encontrado"
+            echo "✓ backend/package.json encontrado"
 
-            if [ ! -f "apps/backend/prisma/schema.prisma" ]; then
-              echo "❌ ERRO: schema.prisma não encontrado!"
+            if [ ! -f "apps/frontend/package.json" ]; then
+              echo "❌ ERRO: apps/frontend/package.json não encontrado!"
               exit 1
             fi
-            echo "✓ schema.prisma encontrado"
+            echo "✓ frontend/package.json encontrado"
+
+            if [ ! -d "apps/backend/src" ]; then
+              echo "❌ ERRO: diretório apps/backend/src não encontrado!"
+              exit 1
+            fi
+            echo "✓ Estrutura backend encontrada"
 
             if [ ! -d "apps/frontend/src" ]; then
-              echo "❌ ERRO: diretório frontend/src não encontrado!"
+              echo "❌ ERRO: diretório apps/frontend/src não encontrado!"
               exit 1
             fi
             echo "✓ Estrutura frontend encontrada"
 
-            # Validar controllers e rotas
-            if [ ! -f "apps/backend/src/controllers/productsController.ts" ]; then
-              echo "❌ ERRO: productsController.ts não encontrado!"
+            # Validar arquivos críticos do backend
+            if [ ! -f "apps/backend/src/index.ts" ]; then
+              echo "❌ ERRO: apps/backend/src/index.ts não encontrado!"
               exit 1
             fi
-            echo "✓ productsController encontrado"
+            echo "✓ backend index.ts encontrado"
 
-            if [ ! -f "apps/backend/src/controllers/categoriesController.ts" ]; then
-              echo "❌ ERRO: categoriesController.ts não encontrado!"
+            if [ ! -f "apps/backend/prisma/schema.prisma" ]; then
+              echo "❌ ERRO: prisma/schema.prisma não encontrado!"
               exit 1
             fi
-            echo "✓ categoriesController encontrado"
-
-            if [ ! -f "apps/backend/src/controllers/authController.ts" ]; then
-              echo "❌ ERRO: authController.ts não encontrado!"
-              exit 1
-            fi
-            echo "✓ authController encontrado"
-
-            if [ ! -f "apps/backend/src/routes/products.ts" ]; then
-              echo "❌ ERRO: products.ts routes não encontrado!"
-              exit 1
-            fi
-            echo "✓ products routes encontrado"
-
-            if [ ! -f "apps/backend/src/routes/categories.ts" ]; then
-              echo "❌ ERRO: categories.ts routes não encontrado!"
-              exit 1
-            fi
-            echo "✓ categories routes encontrado"
-
-            if [ ! -f "apps/backend/src/routes/auth.ts" ]; then
-              echo "❌ ERRO: auth.ts routes não encontrado!"
-              exit 1
-            fi
-            echo "✓ auth routes encontrado"
-
-            # Validar middleware
-            if [ ! -f "apps/backend/src/middleware/auth.ts" ]; then
-              echo "❌ ERRO: auth middleware não encontrado!"
-              exit 1
-            fi
-            echo "✓ auth middleware encontrado"
-
-            if [ ! -f "apps/backend/src/middleware/upload.ts" ]; then
-              echo "❌ ERRO: upload middleware não encontrado!"
-              exit 1
-            fi
-            echo "✓ upload middleware encontrado"
+            echo "✓ prisma schema encontrado"
 
             echo "=== Todos os arquivos críticos validados ==="
 
-            # Build da imagem sem cache (BUILD_TIMESTAMP vem do export acima)
-            echo "Construindo nova imagem..."
-            docker-compose -f docker-compose.vps.yml build --no-cache --pull
+            # Parar e remover containers antigos
+            echo "Parando e removendo containers antigos (preservando volumes)..."
+            docker-compose -f docker-compose.vps.yml down --remove-orphans || true
+            docker rm -f rebequi-backend rebequi-frontend rebequi-postgres rebequi-nginx 2>/dev/null || true
 
-            # Iniciar container
-            echo "Iniciando container..."
-            docker-compose -f docker-compose.vps.yml up -d
+            # Remover imagens antigas
+            echo "Removendo imagens antigas..."
+            docker rmi rebequi-backend rebequi-frontend 2>/dev/null || true
+            docker rmi $(docker images -q 'rebequi*') 2>/dev/null || true
 
-            # Aguardar PostgreSQL e aplicação iniciarem
+            # Build das imagens Docker
+            echo "Construindo imagens Docker..."
+            docker-compose -f docker-compose.vps.yml build --no-cache --pull || {
+              echo "❌ Erro ao construir imagens Docker"
+              exit 1
+            }
+            echo "✅ Imagens Docker construídas com sucesso"
+
+            # Iniciar containers
+            echo "Iniciando containers..."
+            docker-compose -f docker-compose.vps.yml up -d --remove-orphans || {
+              echo "❌ Erro ao iniciar containers"
+              exit 1
+            }
+            echo "✅ Containers iniciados"
+
+            # Aguardar containers iniciarem
             echo "Aguardando containers iniciarem..."
-            sleep 30
+            sleep 20
 
-            # ===== DIAGNÓSTICO: Verificar se aplicação está rodando =====
-            echo "=== Verificando status no supervisord ==="
-            docker exec rebequi-vps supervisorctl status || true
-
-            echo "=== Logs do backend ==="
-            docker exec rebequi-vps cat /var/log/backend.stdout.log || echo "Nenhum log stdout"
-            docker exec rebequi-vps cat /var/log/backend.stderr.log || echo "Nenhum log stderr"
-
-            echo "=== Logs do frontend ==="
-            docker exec rebequi-vps cat /var/log/frontend.stdout.log || echo "Nenhum log frontend stdout"
-            docker exec rebequi-vps cat /var/log/frontend.stderr.log || echo "Nenhum log frontend stderr"
-
-            # Verificar status
-            echo "Verificando status dos containers..."
+            # Verificar status dos containers
+            echo "=== Verificando status dos containers ==="
             docker-compose -f docker-compose.vps.yml ps
 
-            # Verificar logs do PostgreSQL
-            echo "=== Logs do PostgreSQL ==="
-            docker logs rebequi-postgres --tail=20
-
-            # Verificar logs da aplicação
-            echo "=== Logs da Aplicação ==="
-            docker logs rebequi-vps --tail=100
-
-            # Verificar se container está rodando
-            if ! docker ps | grep -q rebequi-vps; then
-              echo "❌ Container rebequi-vps não está rodando!"
-              echo "=== Logs completos do container ==="
-              docker logs rebequi-vps
+            # Verificar se containers estão rodando
+            if ! docker ps | grep -q rebequi-postgres; then
+              echo "❌ Container rebequi-postgres não está rodando!"
+              echo "=== Logs do PostgreSQL ==="
+              docker logs rebequi-postgres --tail=50
               exit 1
             fi
+            echo "✓ Container rebequi-postgres está rodando"
 
-            # ===== VALIDAÇÃO PÓS-BUILD: Verificar compilação =====
-            echo "=== Validando compilação no container ==="
-
-            # Verificar se o backend foi compilado
-            if ! docker exec rebequi-vps test -f /app/apps/backend/dist/index.js; then
-              echo "❌ ERRO: Backend não foi compilado no container!"
-              echo "=== Listando arquivos em backend/dist ==="
-              docker exec rebequi-vps ls -la /app/apps/backend/dist/ || true
+            if ! docker ps | grep -q rebequi-backend; then
+              echo "❌ Container rebequi-backend não está rodando!"
+              echo "=== Logs do Backend ==="
+              docker logs rebequi-backend --tail=100
               exit 1
             fi
-            echo "✓ Backend compilado no container"
+            echo "✓ Container rebequi-backend está rodando"
 
-            # Verificar se o frontend foi compilado
-            if ! docker exec rebequi-vps test -f /app/apps/frontend/dist/index.html; then
-              echo "❌ ERRO: Frontend não foi compilado no container!"
-              echo "=== Listando arquivos em frontend/dist ==="
-              docker exec rebequi-vps ls -la /app/apps/frontend/dist/ || true
+            if ! docker ps | grep -q rebequi-frontend; then
+              echo "❌ Container rebequi-frontend não está rodando!"
+              echo "=== Logs do Frontend ==="
+              docker logs rebequi-frontend --tail=50
               exit 1
             fi
-            echo "✓ Frontend compilado no container"
+            echo "✓ Container rebequi-frontend está rodando"
 
-            # Aguardar aplicação inicializar completamente
-            echo "=== Aguardando aplicação inicializar 10s ==="
-            sleep 10
+            if ! docker ps | grep -q rebequi-nginx; then
+              echo "❌ Container rebequi-nginx não está rodando!"
+              echo "=== Logs do Nginx ==="
+              docker logs rebequi-nginx --tail=50
+              exit 1
+            fi
+            echo "✓ Container rebequi-nginx está rodando"
 
-            # ===== CONFIGURAR NGINX PRIMEIRO =====
-            echo "=== Configurando Nginx para portas 80, 443 e 3100 ==="
+            # Aguardar backend inicializar
+            echo "Aguardando backend inicializar (30s)..."
+            sleep 30
+
+            # Executar migrations do Prisma
+            echo "=== Executando migrations do Prisma ==="
+            docker exec rebequi-backend sh -c "cd /app && npx prisma migrate deploy" || {
+              echo "⚠️ Migrations falharam, tentando gerar Prisma client..."
+              docker exec rebequi-backend sh -c "cd /app && npx prisma generate"
+              docker exec rebequi-backend sh -c "cd /app && npx prisma migrate deploy"
+            }
+            echo "✅ Migrations executadas"
+
+            # Executar seed (se necessário, pode falhar se já tiver dados)
+            echo "=== Executando seed do banco de dados ==="
+            docker exec rebequi-backend sh -c "cd /app && npm run prisma:seed" || {
+              echo "⚠️ Seed falhou (pode já ter dados no banco)"
+            }
+
+            # ===== LOGS DE DIAGNÓSTICO =====
+            echo "=== Logs do backend ==="
+            docker logs rebequi-backend --tail=50
+
+            echo "=== Logs do frontend ==="
+            docker logs rebequi-frontend --tail=30
+
+            echo "=== Logs do Nginx ==="
+            docker logs rebequi-nginx --tail=30
+
+            # ===== CONFIGURAR NGINX DO HOST =====
+            echo "=== Configurando Nginx do host para porta 3120 ==="
 
             # Criar configuração do Nginx
             cat > /etc/nginx/sites-available/rebequi.conf << 'NGINX_EOF'
-            # Redirecionar HTTP para HTTPS
+            # HTTP - Rebequi E-commerce na porta 3120
             server {
-                listen 80;
-                listen [::]:80;
+                listen 3120;
+                listen [::]:3120;
 
-                server_name rebequi.com.br www.rebequi.com.br;
-
-                return 301 https://$server_name$request_uri;
-            }
-
-            # HTTPS - Servidor principal
-            server {
-                listen 443 ssl http2;
-                listen [::]:443 ssl http2;
-
-                server_name rebequi.com.br www.rebequi.com.br;
-
-                # SSL - Let's Encrypt
-                ssl_certificate /etc/letsencrypt/live/rebequi.com.br/fullchain.pem;
-                ssl_certificate_key /etc/letsencrypt/live/rebequi.com.br/privkey.pem;
-                include /etc/letsencrypt/options-ssl-nginx.conf;
-                ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+                server_name _;
 
                 # Logs
                 access_log /var/log/nginx/rebequi-access.log;
                 error_log /var/log/nginx/rebequi-error.log;
 
-                # Limite de upload
+                # Limite de upload (para uploads de imagens de produtos)
                 client_max_body_size 10M;
+                client_body_timeout 60s;
 
-                # API Backend
-                location /api/ {
-                    proxy_pass http://127.0.0.1:3101/api/;
+                # Proxy para o container Nginx interno (porta 8080)
+                location / {
+                    proxy_pass http://127.0.0.1:8080;
                     proxy_http_version 1.1;
                     proxy_set_header Upgrade $http_upgrade;
                     proxy_set_header Connection 'upgrade';
@@ -309,95 +304,10 @@ jobs:
                     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
                     proxy_set_header X-Forwarded-Proto $scheme;
 
+                    # Timeouts
                     proxy_connect_timeout 60s;
                     proxy_send_timeout 60s;
                     proxy_read_timeout 60s;
-                }
-
-                # Uploads estáticos
-                location /uploads/ {
-                    proxy_pass http://127.0.0.1:3101/uploads/;
-                    proxy_http_version 1.1;
-                    proxy_set_header Host $host;
-                }
-
-                # Health check
-                location /health {
-                    proxy_pass http://127.0.0.1:3101/health;
-                    proxy_http_version 1.1;
-                    proxy_set_header Host $host;
-                }
-
-                # Frontend
-                location / {
-                    proxy_pass http://127.0.0.1:8080/;
-                    proxy_http_version 1.1;
-                    proxy_set_header Upgrade $http_upgrade;
-                    proxy_set_header Connection 'upgrade';
-                    proxy_set_header Host $host;
-                    proxy_cache_bypass $http_upgrade;
-                    proxy_set_header X-Real-IP $remote_addr;
-                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                    proxy_set_header X-Forwarded-Proto $scheme;
-                }
-            }
-
-            # Porta 3100 - Acesso direto por IP
-            server {
-                listen 3100;
-                listen [::]:3100;
-
-                server_name _;
-
-                # Logs
-                access_log /var/log/nginx/rebequi-3100-access.log;
-                error_log /var/log/nginx/rebequi-3100-error.log;
-
-                # Limite de upload
-                client_max_body_size 10M;
-
-                # API Backend
-                location /api/ {
-                    proxy_pass http://127.0.0.1:3101/api/;
-                    proxy_http_version 1.1;
-                    proxy_set_header Upgrade $http_upgrade;
-                    proxy_set_header Connection 'upgrade';
-                    proxy_set_header Host $host;
-                    proxy_cache_bypass $http_upgrade;
-                    proxy_set_header X-Real-IP $remote_addr;
-                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                    proxy_set_header X-Forwarded-Proto $scheme;
-
-                    proxy_connect_timeout 60s;
-                    proxy_send_timeout 60s;
-                    proxy_read_timeout 60s;
-                }
-
-                # Uploads estáticos
-                location /uploads/ {
-                    proxy_pass http://127.0.0.1:3101/uploads/;
-                    proxy_http_version 1.1;
-                    proxy_set_header Host $host;
-                }
-
-                # Health check
-                location /health {
-                    proxy_pass http://127.0.0.1:3101/health;
-                    proxy_http_version 1.1;
-                    proxy_set_header Host $host;
-                }
-
-                # Frontend
-                location / {
-                    proxy_pass http://127.0.0.1:8080/;
-                    proxy_http_version 1.1;
-                    proxy_set_header Upgrade $http_upgrade;
-                    proxy_set_header Connection 'upgrade';
-                    proxy_set_header Host $host;
-                    proxy_cache_bypass $http_upgrade;
-                    proxy_set_header X-Real-IP $remote_addr;
-                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                    proxy_set_header X-Forwarded-Proto $scheme;
                 }
             }
             NGINX_EOF
@@ -407,72 +317,68 @@ jobs:
 
             # Testar e recarregar Nginx
             nginx -t && systemctl reload nginx
-            echo "✅ Nginx configurado com sucesso nas portas 80, 443 e 3100"
+            echo "✅ Nginx do host configurado com sucesso na porta 3120"
 
             # Aguardar Nginx iniciar
-            sleep 3
+            sleep 5
 
-            # Verificar se está escutando nas portas corretas
-            echo ""
+            # Verificar se está escutando nas portas
             echo "=== Verificando portas em uso ==="
-            netstat -tulpn | grep nginx | grep -E ":80 |:443 |:3100 "
+            netstat -tulpn | grep nginx | grep ":3120 " || echo "⚠️ Nginx não encontrado na porta 3120"
+            netstat -tulpn | grep nginx | grep ":8080 " || echo "⚠️ Container Nginx não encontrado na porta 8080"
 
             # ===== VERIFICAR HEALTH CHECK =====
             echo "=== Verificando health check ==="
-            for i in {1..15}; do
-              if curl -f http://localhost:3100/health; then
-                echo "✅ Rebequi está rodando na porta 3100!"
-
-                # Validar rota de produtos está acessível
-                echo "=== Validando rota /api/products ==="
-                if curl -f http://localhost:3100/api/products; then
-                  echo "✅ Rota /api/products está acessível!"
-                else
-                  echo "⚠️ Rota /api/products retornou erro - pode ser normal se não houver produtos"
-                fi
-
-                # Validar rota de categorias
-                echo "=== Validando rota /api/categories ==="
-                if curl -f http://localhost:3100/api/categories; then
-                  echo "✅ Rota /api/categories está acessível!"
-                else
-                  echo "⚠️ Rota /api/categories retornou erro"
-                fi
+            for i in {1..30}; do
+              if curl -f http://localhost:3120/api/health 2>/dev/null; then
+                echo "✅ Rebequi está rodando na porta 3120!"
 
                 echo ""
-                echo "=== Testando frontend porta 3100 ==="
-                curl -I http://localhost:3100 | head -5
+                echo "=== Testando frontend na porta 3120 ==="
+                curl -I http://localhost:3120 2>/dev/null | head -5
 
                 echo ""
-                echo "=== Testando HTTPS ==="
-                curl -Ik https://rebequi.com.br | head -5
+                echo "=== Testando API ==="
+                curl http://localhost:3120/api/health 2>/dev/null | head -10
 
                 echo ""
                 echo "✅ Deploy concluído - aplicação está rodando!"
-                echo "📍 Domínio: https://rebequi.com.br"
-                echo "📍 IP:Porta: http://72.60.10.108:3100"
+                echo "📍 Porta externa: 3120"
+                echo "📍 Frontend interno: 3000"
+                echo "📍 Backend interno: 3001"
+                echo "📍 Nginx interno: 8080"
+                echo "📦 Volumes persistentes:"
+                echo "   - postgres_data: PostgreSQL database"
+                echo "   - backend_uploads: Arquivos enviados"
+                echo "   - backend_logs: Logs da aplicação"
                 exit 0
               fi
-              echo "Tentativa $i/15 falhou, aguardando 10s..."
+              echo "Tentativa $i/30 falhou, aguardando 10s..."
 
-              # Mostrar logs a cada 3 tentativas
-              if [ $((i % 3)) -eq 0 ]; then
-                echo "=== Logs recentes ==="
-                docker logs rebequi-vps --tail=30
+              # Mostrar logs a cada 5 tentativas
+              if [ $((i % 5)) -eq 0 ]; then
+                echo "=== Logs recentes do backend ==="
+                docker logs rebequi-backend --tail=20
+                echo "=== Logs recentes do nginx ==="
+                docker logs rebequi-nginx --tail=10
               fi
 
               sleep 10
             done
 
-            echo "⚠️ Health check falhou após 15 tentativas"
-            echo "Logs completos:"
-            docker-compose -f docker-compose.vps.yml logs
+            echo "⚠️ Health check falhou após 30 tentativas"
+            echo "=== Logs completos ==="
+            docker-compose -f docker-compose.vps.yml logs --tail=100
             exit 1
 
       - name: Verify Deployment
         if: success()
         run: |
           echo "✅ Deploy concluído com sucesso!"
-          echo "🌐 Rebequi disponível em: https://www.rebequi.com.br"
-          echo "🌐 Acesso alternativo: http://72.60.10.108:3100"
-          echo "📊 Health check: http://72.60.10.108:3100/health"
+          echo "🌐 Rebequi E-commerce disponível na porta 3120"
+          echo "📊 Health check: /api/health"
+          echo "🐳 Containers rodando:"
+          echo "   - rebequi-nginx (reverse proxy - 8080)"
+          echo "   - rebequi-frontend (React SPA - 3000)"
+          echo "   - rebequi-backend (Node.js API - 3001)"
+          echo "   - rebequi-postgres (PostgreSQL - 5432)"
