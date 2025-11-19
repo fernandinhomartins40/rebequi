@@ -7,79 +7,97 @@ services:
     container_name: rebequi-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-rebequi}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rebequi2024secure}
-      POSTGRES_DB: ${POSTGRES_DB:-rebequi}
-    ports:
-      - "5433:5432"  # Porta externa diferente para evitar conflitos
+      POSTGRES_USER: rebequi
+      POSTGRES_PASSWORD: rebequi2024secure
+      POSTGRES_DB: rebequi
+      PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
-      - rebequi_postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data/pgdata
     networks:
       - rebequi-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rebequi} -d ${POSTGRES_DB:-rebequi}"]
+      test: ['CMD-SHELL', 'pg_isready -U rebequi']
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # Aplicação Rebequi (Backend + Frontend em um único container)
-  app:
+  # Backend API (Node.js + Express + Prisma)
+  backend:
     build:
       context: .
-      dockerfile: Dockerfile.vps
+      dockerfile: apps/backend/Dockerfile.vps
       args:
         BUILD_TIMESTAMP: ${BUILD_TIMESTAMP:-0}
-    container_name: rebequi-vps
+    image: rebequi-backend:latest
+    container_name: rebequi-backend
     restart: unless-stopped
     environment:
-      # Node.js
       NODE_ENV: production
-
-      # Application
-      PORT: ${PORT:-3100}
-
-      # Database
-      DATABASE_URL: ${DATABASE_URL}
-      POSTGRES_USER: ${POSTGRES_USER:-rebequi}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rebequi2024secure}
-      POSTGRES_DB: ${POSTGRES_DB:-rebequi}
-
-      # JWT
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
-
-      # CORS
-      FRONTEND_URL: ${FRONTEND_URL:-https://www.rebequi.com.br}
-      CORS_ORIGIN: ${CORS_ORIGIN:-https://www.rebequi.com.br}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
-
-      # Logs
-      LOG_LEVEL: ${LOG_LEVEL:-info}
-
-    ports:
-      - "3101:3000"  # Backend interno na porta 3000, exposto como 3101
-      - "8080:8080"  # Frontend
+      PORT: 3001
+      DATABASE_URL: postgresql://rebequi:rebequi2024secure@postgres:5432/rebequi
+    env_file:
+      - apps/backend/.env
+    volumes:
+      - ./apps/backend/uploads:/app/uploads
+      - ./apps/backend/logs:/app/logs
+    networks:
+      - rebequi-network
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      # Persistir uploads
-      - rebequi_uploads:/app/apps/backend/uploads
-    networks:
-      - rebequi-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:3001/api/health']
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      start_period: 40s
+
+  # Frontend (React + Vite)
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile.vps
+      args:
+        BUILD_TIMESTAMP: ${BUILD_TIMESTAMP:-0}
+        VITE_API_BASE_URL: /api
+    image: rebequi-frontend:latest
+    container_name: rebequi-frontend
+    restart: unless-stopped
+    networks:
+      - rebequi-network
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:3000']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: rebequi-nginx
+    restart: unless-stopped
+    ports:
+      - '8080:80'
+    volumes:
+      - ./nginx/nginx.vps.conf:/etc/nginx/nginx.conf:ro
+      - ./apps/backend/uploads:/usr/share/nginx/html/uploads:ro
+    networks:
+      - rebequi-network
+    depends_on:
+      - backend
+      - frontend
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:80/api/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
-  rebequi_postgres_data:
+  postgres_data:
     driver: local
-  rebequi_uploads:
-    driver: local
+    name: rebequi_postgres_data
 
 networks:
   rebequi-network:
     driver: bridge
+    name: rebequi-network

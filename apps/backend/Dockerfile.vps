@@ -1,0 +1,59 @@
+# Multi-stage build for Rebequi Backend (Production VPS)
+# Stage 1: Builder
+FROM node:20-alpine AS builder
+
+WORKDIR /build
+
+# Copy root package files
+COPY package*.json ./
+
+# Copy workspace packages
+COPY packages/ ./packages/
+COPY apps/backend/package*.json ./apps/backend/
+
+# Install dependencies (including dev dependencies for build)
+RUN npm ci --workspaces
+
+# Copy backend source code
+COPY apps/backend/ ./apps/backend/
+
+# Generate Prisma Client
+RUN cd apps/backend && npx prisma generate
+
+# Build TypeScript
+RUN cd apps/backend && npm run build
+
+# Stage 2: Production
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install wget for healthcheck
+RUN apk add --no-cache wget
+
+# Copy package files
+COPY package*.json ./
+COPY packages/ ./packages/
+COPY apps/backend/package*.json ./
+
+# Install production dependencies only
+RUN npm ci --production --workspaces
+
+# Copy built files from builder
+COPY --from=builder /build/apps/backend/dist ./dist
+COPY --from=builder /build/apps/backend/prisma ./prisma
+COPY --from=builder /build/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /build/node_modules/.prisma ./node_modules/.prisma
+
+# Create directories for uploads and logs
+RUN mkdir -p uploads logs
+
+# Expose port
+EXPOSE 3001
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD wget --spider -q http://localhost:3001/api/health || exit 1
+
+# Start application
+CMD ["node", "dist/index.js"]
