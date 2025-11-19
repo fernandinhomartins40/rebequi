@@ -39,3 +39,5 @@ coverage/
 # Prisma
 prisma/migrations/*
 !prisma/migrations/.gitkeep
+prisma/*.db
+prisma/*.db-journal

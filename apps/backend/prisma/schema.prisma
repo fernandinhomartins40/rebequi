@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -43,7 +43,7 @@ model Category {
   slug        String    @unique
   icon        String?   // Lucide icon name (e.g., "Wrench", "Package")
   image       String?   // URL or path to category image
-  description String?   @db.Text
+  description String?
   isActive    Boolean   @default(true)
   products    Product[]
   createdAt   DateTime  @default(now())
@@ -66,8 +66,8 @@ model Product {
   sku           String?        @unique
   price         Float          // Current price in BRL
   originalPrice Float?         // Original price (before discount)
-  description   String?        @db.Text
-  shortDesc     String?        @db.VarChar(500) // Short description for cards
+  description   String?
+  shortDesc     String?        // Short description for cards
   isOffer       Boolean        @default(false) // Is in promotional offer
   isNew         Boolean        @default(false) // Is a new product
   isFeatured    Boolean        @default(false) // Featured on homepage
