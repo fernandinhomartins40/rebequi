@@ -1,0 +1,117 @@
+// Prisma Schema for Rebequi E-commerce
+// learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// USER MODEL - Authentication & Authorization
+// ============================================================================
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String   // Hashed with bcrypt
+  role      UserRole @default(CUSTOMER)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([role])
+  @@index([isActive])
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  CUSTOMER
+}
+
+// ============================================================================
+// CATEGORY MODEL - Product Categories
+// ============================================================================
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  slug        String    @unique
+  icon        String?   // Lucide icon name (e.g., "Wrench", "Package")
+  image       String?   // URL or path to category image
+  description String?   @db.Text
+  isActive    Boolean   @default(true)
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime? // Soft delete timestamp
+
+  @@index([slug])
+  @@index([isActive])
+  @@index([deletedAt])
+  @@map("categories")
+}
+
+// ============================================================================
+// PRODUCT MODEL - E-commerce Products
+// ============================================================================
+model Product {
+  id            String         @id @default(cuid())
+  name          String
+  slug          String         @unique
+  sku           String?        @unique
+  price         Float          // Current price in BRL
+  originalPrice Float?         // Original price (before discount)
+  description   String?        @db.Text
+  shortDesc     String?        @db.VarChar(500) // Short description for cards
+  isOffer       Boolean        @default(false) // Is in promotional offer
+  isNew         Boolean        @default(false) // Is a new product
+  isFeatured    Boolean        @default(false) // Featured on homepage
+  discount      Int?           // Discount percentage (0-100)
+  stock         Int            @default(0) // Current stock quantity
+  minStock      Int            @default(0) // Alert when stock is low
+  weight        Float?         // Weight in kg
+  dimensions    String?        // Dimensions (e.g., "10x20x30 cm")
+  categoryId    String
+  category      Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  images        ProductImage[]
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  deletedAt     DateTime?      // Soft delete timestamp
+
+  @@index([categoryId])
+  @@index([slug])
+  @@index([sku])
+  @@index([isOffer])
+  @@index([isNew])
+  @@index([isFeatured])
+  @@index([isActive])
+  @@index([deletedAt])
+  @@index([price])
+  @@map("products")
+}
+
+// ============================================================================
+// PRODUCT IMAGE MODEL - Multiple images per product
+// ============================================================================
+model ProductImage {
+  id        String   @id @default(cuid())
+  url       String   // Image URL or path
+  alt       String?  // Alt text for SEO
+  order     Int      @default(0) // Display order (0 = first)
+  isPrimary Boolean  @default(false) // Main product image
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+  @@index([isPrimary])
+  @@index([order])
+  @@map("product_images")
+}
