@@ -6,6 +6,15 @@ on:
       - main
       - production
   workflow_dispatch:
+    inputs:
+      vps_host:
+        description: 'VPS Host (IP or domain)'
+        required: false
+        default: ''
+      vps_user:
+        description: 'VPS SSH User'
+        required: false
+        default: 'root'
 
 concurrency:
   group: deploy-vps
@@ -14,10 +23,45 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Skip deploy if secrets not configured (for non-main branches)
+    if: ${{ secrets.VPS_PASSWORD != '' || github.event_name == 'workflow_dispatch' }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set VPS variables
+        id: vps_vars
+        run: |
+          # Use workflow inputs if provided, otherwise use secrets
+          if [ -n "${{ github.event.inputs.vps_host }}" ]; then
+            echo "VPS_HOST=${{ github.event.inputs.vps_host }}" >> $GITHUB_ENV
+            echo "VPS_USER=${{ github.event.inputs.vps_user }}" >> $GITHUB_ENV
+          else
+            echo "VPS_HOST=${{ secrets.VPS_HOST }}" >> $GITHUB_ENV
+            echo "VPS_USER=${{ secrets.VPS_USER || 'root' }}" >> $GITHUB_ENV
+          fi
+
+      - name: Validate VPS configuration
+        run: |
+          if [ -z "${{ secrets.VPS_PASSWORD }}" ]; then
+            echo "⚠️ VPS_PASSWORD secret não configurado"
+            echo "Para configurar, vá em Settings → Secrets and variables → Actions"
+            echo "Adicione os seguintes secrets:"
+            echo "  - VPS_HOST: IP ou domínio do servidor"
+            echo "  - VPS_USER: Usuário SSH (geralmente root)"
+            echo "  - VPS_PASSWORD: Senha SSH"
+            exit 1
+          fi
+
+          if [ -z "$VPS_HOST" ]; then
+            echo "❌ VPS_HOST não configurado"
+            exit 1
+          fi
+
+          echo "✅ Configuração VPS válida"
+          echo "Host: $VPS_HOST"
+          echo "User: $VPS_USER"
 
       - name: Setup SSH key
         run: |
@@ -30,16 +74,18 @@ jobs:
           # Instalar sshpass para autenticação com senha
           sudo apt-get update && sudo apt-get install -y sshpass rsync
 
-          # Criar diretório no VPS
-          sshpass -f ~/.ssh/vps_password ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "mkdir -p /root/rebequi"
-
           # Verificar estrutura do projeto antes do rsync
           echo "=== Verificando estrutura localmente ==="
           ls -la apps/backend/src/
           ls -la apps/frontend/src/
           ls -la packages/shared/
 
+          # Criar diretório no VPS
+          echo "=== Criando diretório no VPS ==="
+          sshpass -f ~/.ssh/vps_password ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} "mkdir -p /root/rebequi"
+
           # Sincronizar código via rsync
+          echo "=== Sincronizando código ==="
           sshpass -f ~/.ssh/vps_password rsync -avz --delete \
             --exclude='.git' \
             --exclude='node_modules' \
@@ -52,17 +98,17 @@ jobs:
             --exclude='apps/frontend/.env' \
             --exclude='.env' \
             -e "ssh -o StrictHostKeyChecking=no" \
-            ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/root/rebequi/
+            ./ ${VPS_USER}@${VPS_HOST}:/root/rebequi/
 
           # Verificar se código foi copiado
           echo "=== Verificando estrutura na VPS após rsync ==="
-          sshpass -f ~/.ssh/vps_password ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "ls -la /root/rebequi/apps/"
+          sshpass -f ~/.ssh/vps_password ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} "ls -la /root/rebequi/apps/"
 
       - name: Deploy to VPS
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
+          host: ${{ env.VPS_HOST }}
+          username: ${{ env.VPS_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
           port: 22
           timeout: 600s
