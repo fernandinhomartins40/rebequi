@@ -6,6 +6,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '../services/auth.service.js';
 import { successResponse } from '../utils/response.util.js';
+import { setAuthCookie, clearAuthCookie } from '../utils/cookie.util.js';
 import type { LoginInput, RegisterInput } from '@rebequi/shared/schemas';
 
 export class AuthController {
@@ -22,8 +23,9 @@ export class AuthController {
   register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const data: RegisterInput = req.body;
-      const result = await this.authService.register(data);
-      successResponse(res, result, 201, 'User registered successfully');
+      const { user, token } = await this.authService.register(data);
+      setAuthCookie(res, token);
+      successResponse(res, { user }, 201, 'User registered successfully');
     } catch (error) {
       next(error);
     }
@@ -36,8 +38,22 @@ export class AuthController {
   login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const data: LoginInput = req.body;
-      const result = await this.authService.login(data);
-      successResponse(res, result, 200, 'Login successful');
+      const { user, token } = await this.authService.login(data);
+      setAuthCookie(res, token);
+      successResponse(res, { user }, 200, 'Login successful');
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * Logout user (clear auth cookie)
+   * POST /api/auth/logout
+   */
+  logout = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      clearAuthCookie(res);
+      successResponse(res, null, 200, 'Logout successful');
     } catch (error) {
       next(error);
     }

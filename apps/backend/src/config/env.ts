@@ -22,6 +22,16 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
   JWT_EXPIRES_IN: z.string().default('7d'),
 
+  // Auth cookies
+  AUTH_COOKIE_NAME: z.string().default('rebequi_token'),
+  AUTH_COOKIE_SECURE: z
+    .enum(['true', 'false', '1', '0'])
+    .default('false')
+    .transform((value) => value === 'true' || value === '1'),
+  AUTH_COOKIE_SAMESITE: z.enum(['lax', 'strict', 'none']).default('lax'),
+  AUTH_COOKIE_MAX_AGE_MS: z.string().transform(Number).pipe(z.number().positive()).default('604800000'), // 7 days
+  AUTH_COOKIE_PATH: z.string().default('/'),
+
   // CORS
   ALLOWED_ORIGINS: z.string().transform((str) => str.split(',')).default('http://localhost:8080'),
 

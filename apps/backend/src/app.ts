@@ -6,6 +6,7 @@
 import express, { Application } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import { corsOptions } from './config/cors.js';
 import { loggerMiddleware } from './middleware/logger.middleware.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.middleware.js';
@@ -16,6 +17,11 @@ import { env } from './config/env.js';
 // Create Express application
 const app: Application = express();
 
+// Trust proxy in production for secure cookies (when behind load balancers)
+if (env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 // ============================================================================
 // MIDDLEWARE
 // ============================================================================
@@ -25,6 +31,9 @@ app.use(helmet());
 
 // CORS
 app.use(cors(corsOptions));
+
+// Cookie parser (for HttpOnly auth cookies)
+app.use(cookieParser());
 
 // Body parsing
 app.use(express.json({ limit: '10mb' }));

@@ -32,7 +32,7 @@ export interface RegisterDTO {
 
 export interface AuthResponse {
   user: User;
-  token: string;
+  token?: string;
 }
 
 export interface CreateUserDTO {

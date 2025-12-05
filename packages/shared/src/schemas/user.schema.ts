@@ -10,36 +10,52 @@ export const userRoleSchema = z.enum(['ADMIN', 'CUSTOMER']);
 
 // Login Schema
 export const loginSchema = z.object({
-  email: z.string().email('Email inválido'),
-  password: z.string().min(8, 'Senha deve ter no mínimo 8 caracteres'),
+  email: z.string().email('Email invalido'),
+  password: z.string().min(8, 'Senha deve ter no minimo 8 caracteres'),
 });
 
 // Register Schema
 export const registerSchema = z.object({
-  email: z.string().email('Email inválido'),
-  name: z.string().min(1, 'Nome é obrigatório').max(255, 'Nome muito longo'),
+  email: z.string().email('Email invalido'),
+  name: z.string().min(1, 'Nome e obrigatorio').max(255, 'Nome muito longo'),
   password: z
     .string()
-    .min(8, 'Senha deve ter no mínimo 8 caracteres')
+    .min(8, 'Senha deve ter no minimo 8 caracteres')
     .max(100, 'Senha muito longa')
-    .regex(/[A-Z]/, 'Senha deve conter pelo menos uma letra maiúscula')
-    .regex(/[a-z]/, 'Senha deve conter pelo menos uma letra minúscula')
-    .regex(/[0-9]/, 'Senha deve conter pelo menos um número'),
+    .regex(/[A-Z]/, 'Senha deve conter pelo menos uma letra maiuscula')
+    .regex(/[a-z]/, 'Senha deve conter pelo menos uma letra minuscula')
+    .regex(/[0-9]/, 'Senha deve conter pelo menos um numero')
+    .regex(/[^A-Za-z0-9]/, 'Senha deve conter pelo menos um caractere especial'),
 });
 
 // Create User Schema
 export const createUserSchema = z.object({
-  email: z.string().email('Email inválido'),
-  name: z.string().min(1, 'Nome é obrigatório').max(255, 'Nome muito longo'),
-  password: z.string().min(8, 'Senha deve ter no mínimo 8 caracteres'),
+  email: z.string().email('Email invalido'),
+  name: z.string().min(1, 'Nome e obrigatorio').max(255, 'Nome muito longo'),
+  password: z
+    .string()
+    .min(8, 'Senha deve ter no minimo 8 caracteres')
+    .max(100, 'Senha muito longa')
+    .regex(/[A-Z]/, 'Senha deve conter pelo menos uma letra maiuscula')
+    .regex(/[a-z]/, 'Senha deve conter pelo menos uma letra minuscula')
+    .regex(/[0-9]/, 'Senha deve conter pelo menos um numero')
+    .regex(/[^A-Za-z0-9]/, 'Senha deve conter pelo menos um caractere especial'),
   role: userRoleSchema.default('CUSTOMER'),
 });
 
 // Update User Schema
 export const updateUserSchema = z.object({
-  email: z.string().email('Email inválido').optional(),
+  email: z.string().email('Email invalido').optional(),
   name: z.string().min(1).max(255).optional(),
-  password: z.string().min(8).max(100).optional(),
+  password: z
+    .string()
+    .min(8, 'Senha deve ter no minimo 8 caracteres')
+    .max(100, 'Senha muito longa')
+    .regex(/[A-Z]/, 'Senha deve conter pelo menos uma letra maiuscula')
+    .regex(/[a-z]/, 'Senha deve conter pelo menos uma letra minuscula')
+    .regex(/[0-9]/, 'Senha deve conter pelo menos um numero')
+    .regex(/[^A-Za-z0-9]/, 'Senha deve conter pelo menos um caractere especial')
+    .optional(),
   role: userRoleSchema.optional(),
   isActive: z.boolean().optional(),
 });

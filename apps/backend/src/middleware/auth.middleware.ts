@@ -6,20 +6,23 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../utils/jwt.util.js';
 import { UnauthorizedError, ForbiddenError } from '../utils/errors.util.js';
+import { env } from '../config/env.js';
 
 /**
  * Authenticate user from JWT token
  */
 export function authenticate(req: Request, _res: Response, next: NextFunction): void {
   try {
-    // Get token from Authorization header
+    // Get token from HttpOnly cookie or Authorization header
+    const cookieToken = req.cookies?.[env.AUTH_COOKIE_NAME];
     const authHeader = req.headers.authorization;
+    const headerToken =
+      authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7) : undefined;
+    const token = cookieToken || headerToken;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!token) {
       throw new UnauthorizedError('No token provided');
     }
-
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
     // Verify token
     const payload = verifyToken(token);
@@ -59,10 +62,13 @@ export function authorize(...allowedRoles: string[]) {
  */
 export function optionalAuthenticate(req: Request, _res: Response, next: NextFunction): void {
   try {
+    const cookieToken = req.cookies?.[env.AUTH_COOKIE_NAME];
     const authHeader = req.headers.authorization;
+    const headerToken =
+      authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7) : undefined;
+    const token = cookieToken || headerToken;
 
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.substring(7);
+    if (token) {
       const payload = verifyToken(token);
       req.user = payload;
     }

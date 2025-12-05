@@ -16,6 +16,7 @@ const authController = new AuthController();
 // Public routes
 router.post('/register', authLimiter, validateBody(registerSchema), authController.register);
 router.post('/login', authLimiter, validateBody(loginSchema), authController.login);
+router.post('/logout', authenticate, authController.logout);
 
 // Protected routes
 router.get('/me', authenticate, authController.getProfile);

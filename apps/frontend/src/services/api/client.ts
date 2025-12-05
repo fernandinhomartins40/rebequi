@@ -30,6 +30,7 @@ export async function apiFetch<T>(
 
   const config: RequestInit = {
     ...options,
+    credentials: options.credentials || 'include',
     headers: {
       ...defaultHeaders,
       ...options.headers,
