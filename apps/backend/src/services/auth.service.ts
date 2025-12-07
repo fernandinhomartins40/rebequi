@@ -8,7 +8,7 @@ import { UserRepository } from '../repositories/user.repository.js';
 import { hashPassword, comparePassword } from '../utils/hash.util.js';
 import { generateToken, JwtPayload } from '../utils/jwt.util.js';
 import { UnauthorizedError, ConflictError } from '../utils/errors.util.js';
-import type { LoginInput, RegisterInput } from '@rebequi/shared/schemas';
+import type { LoginInput, RegisterInput, UpdateAdminCredentialsInput } from '@rebequi/shared/schemas';
 
 export class AuthService {
   private userRepository: UserRepository;
@@ -50,6 +50,43 @@ export class AuthService {
         isActive: user.isActive,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
+      },
+      token,
+    };
+  }
+
+  /**
+   * Update default admin credentials (email/password) using current admin login
+   */
+  async updateAdminCredentials(data: UpdateAdminCredentialsInput) {
+    const user = await this.userRepository.findByEmail(data.currentEmail);
+    if (!user || user.role !== UserRole.ADMIN) {
+      throw new UnauthorizedError('Admin not found');
+    }
+
+    const isPasswordValid = await comparePassword(data.currentPassword, user.password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedError('Invalid credentials');
+    }
+
+    const hashedPassword = await hashPassword(data.newPassword);
+
+    const updatedUser = await this.userRepository.update(user.id, {
+      email: data.newEmail,
+      password: hashedPassword,
+    });
+
+    const token = this.generateUserToken(updatedUser.id, updatedUser.email, updatedUser.role);
+
+    return {
+      user: {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        name: updatedUser.name,
+        role: updatedUser.role,
+        isActive: updatedUser.isActive,
+        createdAt: updatedUser.createdAt,
+        updatedAt: updatedUser.updatedAt,
       },
       token,
     };

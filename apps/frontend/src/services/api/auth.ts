@@ -1,4 +1,4 @@
-import { LoginInput, RegisterInput } from '@rebequi/shared/schemas';
+import { LoginInput, RegisterInput, UpdateAdminCredentialsInput } from '@rebequi/shared/schemas';
 import { AuthResponse } from '@rebequi/shared/types';
 import { apiFetch } from './client';
 
@@ -44,4 +44,15 @@ export async function logout(): Promise<void> {
   await apiFetch('/auth/logout', {
     method: 'POST',
   });
+}
+
+export async function updateAdminCredentials(payload: UpdateAdminCredentialsInput): Promise<AuthResponse> {
+  const response = await apiFetch<ApiResponse<AuthResponse> | AuthResponse>(
+    '/auth/admin/update-credentials',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }
+  );
+  return unwrapResponse<AuthResponse>(response);
 }

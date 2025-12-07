@@ -1,5 +1,6 @@
 import { MapPin, Phone, Mail, Clock, Facebook, Instagram, Twitter } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 const Footer = () => {
   return (
@@ -79,8 +80,8 @@ const Footer = () => {
 
         {/* Painel do Lojista Button */}
         <div className="border-t border-background/20 mt-8 pt-8 flex flex-col sm:flex-row items-center justify-between">
-          <Button className="bg-brand-red hover:bg-brand-red/80 text-white mb-4 sm:mb-0">
-            Painel do Lojista
+          <Button asChild className="bg-brand-red hover:bg-brand-red/80 text-white mb-4 sm:mb-0">
+            <Link to="/painel-lojista">Painel do Lojista</Link>
           </Button>
           <p className="text-sm text-background/80">
             © 2024 Rebequi. Todos os direitos reservados.

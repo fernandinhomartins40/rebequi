@@ -60,9 +60,24 @@ export const updateUserSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
+export const updateAdminCredentialsSchema = z.object({
+  currentEmail: z.string().email('Email atual invalido'),
+  currentPassword: z.string().min(8, 'Senha atual deve ter no minimo 8 caracteres'),
+  newEmail: z.string().email('Novo email invalido'),
+  newPassword: z
+    .string()
+    .min(8, 'Senha deve ter no minimo 8 caracteres')
+    .max(100, 'Senha muito longa')
+    .regex(/[A-Z]/, 'Senha deve conter pelo menos uma letra maiuscula')
+    .regex(/[a-z]/, 'Senha deve conter pelo menos uma letra minuscula')
+    .regex(/[0-9]/, 'Senha deve conter pelo menos um numero')
+    .regex(/[^A-Za-z0-9]/, 'Senha deve conter pelo menos um caractere especial'),
+});
+
 // Export types inferred from schemas
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
 export type UserRoleType = z.infer<typeof userRoleSchema>;
+export type UpdateAdminCredentialsInput = z.infer<typeof updateAdminCredentialsSchema>;

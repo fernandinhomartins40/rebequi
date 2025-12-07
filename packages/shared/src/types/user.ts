@@ -35,6 +35,13 @@ export interface AuthResponse {
   token?: string;
 }
 
+export interface UpdateAdminCredentialsDTO {
+  currentEmail: string;
+  currentPassword: string;
+  newEmail: string;
+  newPassword: string;
+}
+
 export interface CreateUserDTO {
   email: string;
   name: string;

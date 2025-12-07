@@ -20,9 +20,27 @@ const ProductSection = ({ title, products, showViewAll = true }: ProductSectionP
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {products.map((product) => (
-            <ProductCard key={product.id} {...product} />
-          ))}
+          {products.map((product) => {
+            const primaryImage =
+              (product.images && product.images.length > 0 && product.images[0].url) ||
+              "https://via.placeholder.com/400x300?text=Produto";
+            const categoryName = product.category?.name || "Categoria";
+
+            return (
+              <ProductCard
+                key={product.id}
+                id={product.id}
+                name={product.name}
+                price={product.price}
+                originalPrice={product.originalPrice}
+                image={primaryImage}
+                category={categoryName}
+                isNew={product.isNew}
+                isOffer={product.isOffer}
+                discount={product.discount}
+              />
+            );
+          })}
         </div>
       </div>
     </section>

@@ -16,10 +16,12 @@ const Login = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isPrefilling, setIsPrefilling] = useState(false);
 
   const {
     register: registerField,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
@@ -37,7 +39,7 @@ const Login = () => {
         title: 'Login realizado',
         description: 'Bem-vindo de volta!',
       });
-      navigate('/');
+      navigate('/painel-cliente');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erro ao fazer login';
       toast({
@@ -58,8 +60,22 @@ const Login = () => {
             <LogIn className="h-6 w-6 text-primary" />
             Entrar
           </CardTitle>
-          <CardDescription>
-            Acesse sua conta para acompanhar pedidos e aproveitar ofertas exclusivas.
+          <CardDescription className="flex items-center justify-between">
+            <span>Acesse sua conta para acompanhar pedidos.</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={isPrefilling}
+              onClick={() => {
+                setIsPrefilling(true);
+                setValue('email', 'cliente@example.com');
+                setValue('password', 'Customer@123');
+                setTimeout(() => setIsPrefilling(false), 400);
+              }}
+            >
+              Autopreencher
+            </Button>
           </CardDescription>
         </CardHeader>
         <CardContent>

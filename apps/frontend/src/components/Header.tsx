@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Menu, X, Search, ShoppingCart, User } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -69,8 +70,10 @@ const Header = () => {
             </Button>
 
             {/* User Account */}
-            <Button variant="ghost" size="icon">
-              <User className="h-5 w-5" />
+            <Button variant="ghost" size="icon" asChild>
+              <Link to="/login" aria-label="Ir para o painel do cliente">
+                <User className="h-5 w-5" />
+              </Link>
             </Button>
 
             {/* Mobile Menu Button */}
