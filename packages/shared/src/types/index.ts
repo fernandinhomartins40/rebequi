@@ -2,6 +2,6 @@
  * Export all types from a central location
  */
 
-export * from './product';
-export * from './category';
-export * from './user';
+export * from './product.js';
+export * from './category.js';
+export * from './user.js';

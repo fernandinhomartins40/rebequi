@@ -19,6 +19,10 @@ COPY apps/backend ./apps/backend
 COPY packages/shared ./packages/shared
 COPY tsconfig.json ./
 
+# Build shared workspace for runtime-compatible ESM output
+WORKDIR /app
+RUN npm run build --workspace=packages/shared
+
 # Generate Prisma Client
 WORKDIR /app/apps/backend
 RUN npx prisma generate
@@ -50,7 +54,7 @@ COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
 COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/packages/shared ./packages/shared
+COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 
 # Create directories
 RUN mkdir -p /app/uploads /app/logs && chown -R node:node /app

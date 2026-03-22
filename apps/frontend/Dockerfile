@@ -15,6 +15,10 @@ COPY packages/shared ./packages/shared
 # Install dependencies
 RUN npm ci
 
+# Build shared workspace first so frontend resolves package exports from dist
+WORKDIR /app
+RUN npm run build --workspace=packages/shared
+
 # Build frontend
 WORKDIR /app/apps/frontend
 RUN npm run build
