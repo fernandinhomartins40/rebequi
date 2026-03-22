@@ -8,6 +8,7 @@ WORKDIR /app
 # Copy workspace files
 COPY package*.json ./
 COPY apps/backend/package*.json ./apps/backend/
+COPY apps/frontend/package*.json ./apps/frontend/
 COPY packages/shared/package*.json ./packages/shared/
 
 # Install dependencies
@@ -38,6 +39,7 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 COPY apps/backend/package*.json ./apps/backend/
+COPY apps/frontend/package*.json ./apps/frontend/
 COPY packages/shared/package*.json ./packages/shared/
 
 # Install production dependencies only

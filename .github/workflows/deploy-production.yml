@@ -1,0 +1,261 @@
+name: Deploy Production
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/deploy-production.yml"
+      - ".dockerignore"
+      - "docker-compose.production.yml"
+      - "apps/backend/**"
+      - "apps/frontend/**"
+      - "packages/**"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.json"
+  workflow_dispatch:
+
+env:
+  VPS_HOST: rebequi.com.br
+  VPS_USER: root
+  APP_ROOT: /opt/rebequi
+  RELEASE_DIR: /opt/rebequi/current
+  DEPLOY_PORT: "3190"
+  PRIMARY_DOMAIN: rebequi.com.br
+  SECONDARY_DOMAIN: www.rebequi.com.br
+  SSL_EMAIL: admin@rebequi.com.br
+
+jobs:
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+
+    environment:
+      name: production
+      url: https://www.rebequi.com.br
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install SSH tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sshpass
+
+      - name: Create deploy archive
+        run: |
+          tar \
+            --exclude=.git \
+            --exclude=.github \
+            --exclude=node_modules \
+            --exclude=apps/frontend/dist \
+            --exclude=apps/backend/dist \
+            --exclude=apps/backend/node_modules \
+            --exclude=packages/shared/node_modules \
+            -czf /tmp/rebequi-release.tar.gz .
+
+      - name: Upload release to VPS
+        env:
+          SSHPASS: ${{ secrets.VPS_PASSWORD }}
+        run: |
+          sshpass -e scp -o StrictHostKeyChecking=no \
+            /tmp/rebequi-release.tar.gz \
+            "${VPS_USER}@${VPS_HOST}:/tmp/rebequi-release.tar.gz"
+
+      - name: Deploy on VPS
+        env:
+          SSHPASS: ${{ secrets.VPS_PASSWORD }}
+        run: |
+          sshpass -e ssh -o StrictHostKeyChecking=no "${VPS_USER}@${VPS_HOST}" <<'REMOTE'
+          set -euo pipefail
+
+          APP_ROOT="/opt/rebequi"
+          RELEASE_DIR="/opt/rebequi/current"
+          DEPLOY_PORT="3190"
+          PRIMARY_DOMAIN="rebequi.com.br"
+          SECONDARY_DOMAIN="www.rebequi.com.br"
+          SSL_EMAIL="admin@rebequi.com.br"
+          ARCHIVE="/tmp/rebequi-release.tar.gz"
+          SITE_CONF="/etc/nginx/sites-available/rebequi"
+
+          compose() {
+            if docker compose version >/dev/null 2>&1; then
+              docker compose "$@"
+              return
+            fi
+
+            if command -v docker-compose >/dev/null 2>&1; then
+              docker-compose "$@"
+              return
+            fi
+
+            echo "docker compose nao encontrado." >&2
+            exit 1
+          }
+
+          require_command() {
+            if ! command -v "$1" >/dev/null 2>&1; then
+              echo "Dependencia obrigatoria ausente: $1" >&2
+              exit 1
+            fi
+          }
+
+          wait_for_container_health() {
+            local container_name="$1"
+            local timeout_seconds="${2:-120}"
+            local elapsed="0"
+
+            while [ "$elapsed" -lt "$timeout_seconds" ]; do
+              local status
+              status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container_name" 2>/dev/null || true)"
+
+              if [ "$status" = "healthy" ] || [ "$status" = "running" ]; then
+                return 0
+              fi
+
+              sleep 5
+              elapsed=$((elapsed + 5))
+            done
+
+            echo "Container $container_name nao ficou saudavel a tempo." >&2
+            docker logs "$container_name" --tail 100 || true
+            exit 1
+          }
+
+          require_command docker
+          require_command nginx
+          require_command certbot
+          require_command curl
+          require_command openssl
+          require_command tar
+
+          mkdir -p "$APP_ROOT" "$RELEASE_DIR" /var/www/certbot
+
+          find "$RELEASE_DIR" -mindepth 1 -maxdepth 1 ! -name '.env.production' -exec rm -rf {} +
+          tar -xzf "$ARCHIVE" -C "$RELEASE_DIR"
+          rm -f "$ARCHIVE"
+
+          cd "$RELEASE_DIR"
+
+          if [ ! -f "$RELEASE_DIR/.env.production" ]; then
+            POSTGRES_PASSWORD="$(openssl rand -hex 24)"
+            JWT_SECRET="$(openssl rand -hex 32)"
+
+            printf '%s\n' \
+              "NODE_ENV=production" \
+              "PORT=3000" \
+              "HOST=0.0.0.0" \
+              "DATABASE_URL=postgresql://rebequi:${POSTGRES_PASSWORD}@postgres:5432/rebequi" \
+              "POSTGRES_DB=rebequi" \
+              "POSTGRES_USER=rebequi" \
+              "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}" \
+              "JWT_SECRET=${JWT_SECRET}" \
+              "JWT_EXPIRES_IN=7d" \
+              "AUTH_COOKIE_NAME=rebequi_token" \
+              "AUTH_COOKIE_SECURE=true" \
+              "AUTH_COOKIE_SAMESITE=lax" \
+              "AUTH_COOKIE_MAX_AGE_MS=604800000" \
+              "AUTH_COOKIE_PATH=/" \
+              "ALLOWED_ORIGINS=https://rebequi.com.br,https://www.rebequi.com.br" \
+              "MAX_FILE_SIZE=5242880" \
+              "UPLOAD_DIR=./uploads" \
+              "LOG_LEVEL=info" \
+              > "$RELEASE_DIR/.env.production"
+            chmod 600 "$RELEASE_DIR/.env.production"
+          fi
+
+          compose -f docker-compose.production.yml build
+          compose -f docker-compose.production.yml up -d postgres
+
+          wait_for_container_health "rebequi-postgres" 120
+
+          compose -f docker-compose.production.yml run --rm migrator
+          compose -f docker-compose.production.yml up -d api web
+
+          wait_for_container_health "rebequi-api" 120
+          wait_for_container_health "rebequi-web" 120
+
+          cat > "$SITE_CONF" <<NGINX_HTTP
+          server {
+              listen 80;
+              server_name ${PRIMARY_DOMAIN} ${SECONDARY_DOMAIN};
+
+              location /.well-known/acme-challenge/ {
+                  root /var/www/certbot;
+              }
+
+              location / {
+                  proxy_pass http://127.0.0.1:${DEPLOY_PORT};
+                  proxy_http_version 1.1;
+                  proxy_set_header Host \$host;
+                  proxy_set_header X-Real-IP \$remote_addr;
+                  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto \$scheme;
+              }
+          }
+          NGINX_HTTP
+
+          ln -sf "$SITE_CONF" /etc/nginx/sites-enabled/rebequi
+          rm -f /etc/nginx/sites-enabled/default
+          nginx -t
+          systemctl reload nginx
+
+          if [ ! -f "/etc/letsencrypt/live/${PRIMARY_DOMAIN}/fullchain.pem" ]; then
+            certbot certonly \
+              --webroot \
+              -w /var/www/certbot \
+              -d "${PRIMARY_DOMAIN}" \
+              -d "${SECONDARY_DOMAIN}" \
+              --non-interactive \
+              --agree-tos \
+              --email "${SSL_EMAIL}"
+          fi
+
+          if [ -f "/etc/letsencrypt/live/${PRIMARY_DOMAIN}/fullchain.pem" ]; then
+          cat > "$SITE_CONF" <<NGINX_HTTPS
+          server {
+              listen 80;
+              server_name ${PRIMARY_DOMAIN} ${SECONDARY_DOMAIN};
+
+              location /.well-known/acme-challenge/ {
+                  root /var/www/certbot;
+              }
+
+              location / {
+                  return 301 https://\$host\$request_uri;
+              }
+          }
+
+          server {
+              listen 443 ssl http2;
+              server_name ${PRIMARY_DOMAIN} ${SECONDARY_DOMAIN};
+
+              ssl_certificate /etc/letsencrypt/live/${PRIMARY_DOMAIN}/fullchain.pem;
+              ssl_certificate_key /etc/letsencrypt/live/${PRIMARY_DOMAIN}/privkey.pem;
+
+              location / {
+                  proxy_pass http://127.0.0.1:${DEPLOY_PORT};
+                  proxy_http_version 1.1;
+                  proxy_set_header Host \$host;
+                  proxy_set_header X-Real-IP \$remote_addr;
+                  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto \$scheme;
+              }
+          }
+          NGINX_HTTPS
+            nginx -t
+            systemctl reload nginx
+          fi
+
+          curl -fsS "http://127.0.0.1:${DEPLOY_PORT}/health" >/dev/null
+          curl -fsS "http://127.0.0.1:${DEPLOY_PORT}/api/health" >/dev/null
+
+          echo "Deploy concluido em ${PRIMARY_DOMAIN} e ${SECONDARY_DOMAIN}"
+          REMOTE
+
+      - name: Deployment summary
+        run: |
+          echo "Deploy concluido."
+          echo "Frontend exposto internamente em 127.0.0.1:${DEPLOY_PORT}"
+          echo "Dominios: https://${PRIMARY_DOMAIN} e https://${SECONDARY_DOMAIN}"
