@@ -128,32 +128,75 @@ jobs:
 
           cd "$RELEASE_DIR"
 
-          if [ ! -f "$RELEASE_DIR/.env.production" ]; then
-            POSTGRES_PASSWORD="$(openssl rand -hex 24)"
-            JWT_SECRET="$(openssl rand -hex 32)"
+          read_env_value() {
+            local key="$1"
+            sed -n "s/^${key}=//p" "$RELEASE_DIR/.env.production" | tail -n 1
+          }
 
-            printf '%s\n' \
-              "NODE_ENV=production" \
-              "PORT=3000" \
-              "HOST=0.0.0.0" \
-              "DATABASE_URL=postgresql://rebequi:${POSTGRES_PASSWORD}@postgres:5432/rebequi" \
-              "POSTGRES_DB=rebequi" \
-              "POSTGRES_USER=rebequi" \
-              "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}" \
-              "JWT_SECRET=${JWT_SECRET}" \
-              "JWT_EXPIRES_IN=7d" \
-              "AUTH_COOKIE_NAME=rebequi_token" \
-              "AUTH_COOKIE_SECURE=true" \
-              "AUTH_COOKIE_SAMESITE=lax" \
-              "AUTH_COOKIE_MAX_AGE_MS=604800000" \
-              "AUTH_COOKIE_PATH=/" \
-              "ALLOWED_ORIGINS=https://rebequi.com.br,https://www.rebequi.com.br" \
-              "MAX_FILE_SIZE=5242880" \
-              "UPLOAD_DIR=./uploads" \
-              "LOG_LEVEL=info" \
-              > "$RELEASE_DIR/.env.production"
-            chmod 600 "$RELEASE_DIR/.env.production"
-          fi
+          ensure_env_value() {
+            local key="$1"
+            local value="$2"
+            local current_value
+            current_value="$(read_env_value "$key")"
+
+            if [ -n "$current_value" ]; then
+              return
+            fi
+
+            if grep -q "^${key}=" "$RELEASE_DIR/.env.production"; then
+              sed -i "s|^${key}=.*|${key}=${value}|" "$RELEASE_DIR/.env.production"
+            else
+              printf '%s=%s\n' "$key" "$value" >> "$RELEASE_DIR/.env.production"
+            fi
+          }
+
+          require_env_value() {
+            local key="$1"
+            if [ -z "$(read_env_value "$key")" ]; then
+              echo "Variavel obrigatoria ausente em .env.production: $key" >&2
+              exit 1
+            fi
+          }
+
+          touch "$RELEASE_DIR/.env.production"
+          chmod 600 "$RELEASE_DIR/.env.production"
+
+          POSTGRES_DB_VALUE="$(read_env_value POSTGRES_DB)"
+          [ -n "$POSTGRES_DB_VALUE" ] || POSTGRES_DB_VALUE="rebequi"
+
+          POSTGRES_USER_VALUE="$(read_env_value POSTGRES_USER)"
+          [ -n "$POSTGRES_USER_VALUE" ] || POSTGRES_USER_VALUE="rebequi"
+
+          POSTGRES_PASSWORD_VALUE="$(read_env_value POSTGRES_PASSWORD)"
+          [ -n "$POSTGRES_PASSWORD_VALUE" ] || POSTGRES_PASSWORD_VALUE="$(openssl rand -hex 24)"
+
+          JWT_SECRET_VALUE="$(read_env_value JWT_SECRET)"
+          [ -n "$JWT_SECRET_VALUE" ] || JWT_SECRET_VALUE="$(openssl rand -hex 32)"
+
+          ensure_env_value "NODE_ENV" "production"
+          ensure_env_value "PORT" "3000"
+          ensure_env_value "HOST" "0.0.0.0"
+          ensure_env_value "POSTGRES_DB" "$POSTGRES_DB_VALUE"
+          ensure_env_value "POSTGRES_USER" "$POSTGRES_USER_VALUE"
+          ensure_env_value "POSTGRES_PASSWORD" "$POSTGRES_PASSWORD_VALUE"
+          ensure_env_value "DATABASE_URL" "postgresql://${POSTGRES_USER_VALUE}:${POSTGRES_PASSWORD_VALUE}@postgres:5432/${POSTGRES_DB_VALUE}"
+          ensure_env_value "JWT_SECRET" "$JWT_SECRET_VALUE"
+          ensure_env_value "JWT_EXPIRES_IN" "7d"
+          ensure_env_value "AUTH_COOKIE_NAME" "rebequi_token"
+          ensure_env_value "AUTH_COOKIE_SECURE" "true"
+          ensure_env_value "AUTH_COOKIE_SAMESITE" "lax"
+          ensure_env_value "AUTH_COOKIE_MAX_AGE_MS" "604800000"
+          ensure_env_value "AUTH_COOKIE_PATH" "/"
+          ensure_env_value "ALLOWED_ORIGINS" "https://rebequi.com.br,https://www.rebequi.com.br"
+          ensure_env_value "MAX_FILE_SIZE" "5242880"
+          ensure_env_value "UPLOAD_DIR" "./uploads"
+          ensure_env_value "LOG_LEVEL" "info"
+
+          require_env_value "POSTGRES_DB"
+          require_env_value "POSTGRES_USER"
+          require_env_value "POSTGRES_PASSWORD"
+          require_env_value "DATABASE_URL"
+          require_env_value "JWT_SECRET"
 
           compose -f docker-compose.production.yml build
           compose -f docker-compose.production.yml up -d postgres
