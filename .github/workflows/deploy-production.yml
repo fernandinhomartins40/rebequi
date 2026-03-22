@@ -3,16 +3,6 @@ name: Deploy Production
 on:
   push:
     branches: [main]
-    paths:
-      - ".github/workflows/deploy-production.yml"
-      - ".dockerignore"
-      - "docker-compose.production.yml"
-      - "apps/backend/**"
-      - "apps/frontend/**"
-      - "packages/**"
-      - "package.json"
-      - "package-lock.json"
-      - "tsconfig.json"
   workflow_dispatch:
 
 env:
