@@ -246,7 +246,7 @@ jobs:
           require_env_value "DATABASE_URL"
           require_env_value "JWT_SECRET"
 
-          compose -f docker-compose.production.yml build
+          compose -f docker-compose.production.yml build --no-cache migrator api web
           compose -f docker-compose.production.yml up -d postgres
 
           wait_for_container_health "rebequi-postgres" 120
