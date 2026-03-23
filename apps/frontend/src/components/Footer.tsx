@@ -9,11 +9,13 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Company Info */}
           <div>
-            <h3 className="text-xl font-bold mb-4">
-              <span className="text-brand-blue">Re</span>
-              <span className="text-brand-yellow">be</span>
-              <span className="text-brand-red">qui</span>
-            </h3>
+            <div className="mb-4">
+              <img
+                src="/lovable-uploads/73f13341-b66a-4a9f-aa28-4bd40213b85f.png"
+                alt="Rebequi Logo"
+                className="h-10 w-auto"
+              />
+            </div>
             <div className="space-y-3">
               <div className="flex items-start space-x-2">
                 <MapPin className="h-5 w-5 mt-0.5 text-brand-yellow" />
