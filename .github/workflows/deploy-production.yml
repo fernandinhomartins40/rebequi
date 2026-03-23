@@ -5,6 +5,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: deploy-production
+  cancel-in-progress: true
+
 env:
   VPS_HOST: rebequi.com.br
   VPS_USER: root
@@ -19,6 +23,7 @@ jobs:
   deploy:
     name: Deploy to VPS
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     environment:
       name: production
@@ -91,6 +96,29 @@ jobs:
             fi
           }
 
+          dump_diagnostics() {
+            echo "=== docker compose ps ==="
+            compose -f docker-compose.production.yml ps || true
+            echo "=== rebequi-postgres logs ==="
+            docker logs rebequi-postgres --tail 100 || true
+            echo "=== rebequi-api logs ==="
+            docker logs rebequi-api --tail 100 || true
+            echo "=== rebequi-web logs ==="
+            docker logs rebequi-web --tail 100 || true
+            echo "=== nginx site config ==="
+            cat "$SITE_CONF" || true
+            echo "=== listeners ==="
+            ss -tulpn | grep -E ':80 |:443 |:3190 ' || true
+          }
+
+          verify_json_health() {
+            local url="$1"
+            shift
+            local body
+            body="$(curl -fsSL "$@" "$url")"
+            printf '%s' "$body" | grep -q '"status":"ok"'
+          }
+
           wait_for_container_health() {
             local container_name="$1"
             local timeout_seconds="${2:-120}"
@@ -118,7 +146,10 @@ jobs:
           require_command certbot
           require_command curl
           require_command openssl
+          require_command ss
           require_command tar
+
+          trap 'dump_diagnostics' ERR
 
           mkdir -p "$APP_ROOT" "$RELEASE_DIR" /var/www/certbot
 
@@ -208,6 +239,7 @@ jobs:
 
           wait_for_container_health "rebequi-api" 120
           wait_for_container_health "rebequi-web" 120
+          verify_json_health "http://127.0.0.1:${DEPLOY_PORT}/api/health"
 
           cat > "$SITE_CONF" <<NGINX_HTTP
           server {
@@ -233,6 +265,10 @@ jobs:
           rm -f /etc/nginx/sites-enabled/default
           nginx -t
           systemctl reload nginx
+
+          verify_json_health "http://127.0.0.1:${DEPLOY_PORT}/api/health"
+          verify_json_health "http://127.0.0.1/api/health" --header "Host: ${PRIMARY_DOMAIN}"
+          verify_json_health "http://127.0.0.1/api/health" --header "Host: ${SECONDARY_DOMAIN}"
 
           if [ ! -f "/etc/letsencrypt/live/${PRIMARY_DOMAIN}/fullchain.pem" ]; then
             certbot certonly \
@@ -282,7 +318,14 @@ jobs:
           fi
 
           curl -fsS "http://127.0.0.1:${DEPLOY_PORT}/health" >/dev/null
-          curl -fsS "http://127.0.0.1:${DEPLOY_PORT}/api/health" >/dev/null
+          verify_json_health "http://127.0.0.1:${DEPLOY_PORT}/api/health"
+          curl -fsSI -H "Host: ${PRIMARY_DOMAIN}" "http://127.0.0.1/" >/dev/null
+          curl -fsSI -H "Host: ${SECONDARY_DOMAIN}" "http://127.0.0.1/" >/dev/null
+
+          if [ -f "/etc/letsencrypt/live/${PRIMARY_DOMAIN}/fullchain.pem" ]; then
+            verify_json_health "https://${PRIMARY_DOMAIN}/api/health" --resolve "${PRIMARY_DOMAIN}:443:127.0.0.1"
+            verify_json_health "https://${SECONDARY_DOMAIN}/api/health" --resolve "${SECONDARY_DOMAIN}:443:127.0.0.1"
+          fi
 
           echo "Deploy concluido em ${PRIMARY_DOMAIN} e ${SECONDARY_DOMAIN}"
           REMOTE
