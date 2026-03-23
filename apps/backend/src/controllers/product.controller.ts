@@ -1,12 +1,19 @@
 /**
- * Product Controller
- * Handle product HTTP requests
+ * Product controller.
  */
 
 import { Request, Response, NextFunction } from 'express';
 import { ProductService } from '../services/product.service.js';
 import { successResponse, paginatedResponse } from '../utils/response.util.js';
 import type { CreateProductInput, UpdateProductInput, ProductFiltersInput } from '@rebequi/shared/schemas';
+
+function getRouteParam(value: string | string[] | undefined): string {
+  if (Array.isArray(value)) {
+    return value[0] || '';
+  }
+
+  return value || '';
+}
 
 export class ProductController {
   private productService: ProductService;
@@ -15,10 +22,6 @@ export class ProductController {
     this.productService = new ProductService();
   }
 
-  /**
-   * Get all products with filters
-   * GET /api/products
-   */
   getAll = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const filters: ProductFiltersInput = {
@@ -41,13 +44,9 @@ export class ProductController {
     }
   };
 
-  /**
-   * Get product by ID
-   * GET /api/products/:id
-   */
   getById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { id } = req.params;
+      const id = getRouteParam(req.params.id);
       const result = await this.productService.getById(id);
       successResponse(res, result, 200);
     } catch (error) {
@@ -55,13 +54,9 @@ export class ProductController {
     }
   };
 
-  /**
-   * Get product by slug
-   * GET /api/products/slug/:slug
-   */
   getBySlug = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { slug } = req.params;
+      const slug = getRouteParam(req.params.slug);
       const result = await this.productService.getBySlug(slug);
       successResponse(res, result, 200);
     } catch (error) {
@@ -69,10 +64,6 @@ export class ProductController {
     }
   };
 
-  /**
-   * Get promotional products
-   * GET /api/products/promotional
-   */
   getPromotional = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const result = await this.productService.getPromotional();
@@ -82,10 +73,6 @@ export class ProductController {
     }
   };
 
-  /**
-   * Get new products
-   * GET /api/products/new
-   */
   getNew = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const result = await this.productService.getNew();
@@ -95,10 +82,6 @@ export class ProductController {
     }
   };
 
-  /**
-   * Get featured products
-   * GET /api/products/featured
-   */
   getFeatured = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const result = await this.productService.getFeatured();
@@ -108,13 +91,9 @@ export class ProductController {
     }
   };
 
-  /**
-   * Get products by category
-   * GET /api/products/category/:categorySlug
-   */
   getByCategory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { categorySlug } = req.params;
+      const categorySlug = getRouteParam(req.params.categorySlug);
       const page = req.query.page ? Number(req.query.page) : 1;
       const limit = req.query.limit ? Number(req.query.limit) : 12;
 
@@ -125,10 +104,6 @@ export class ProductController {
     }
   };
 
-  /**
-   * Create product
-   * POST /api/products
-   */
   create = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const data: CreateProductInput = req.body;
@@ -139,13 +114,9 @@ export class ProductController {
     }
   };
 
-  /**
-   * Update product
-   * PUT /api/products/:id
-   */
   update = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { id } = req.params;
+      const id = getRouteParam(req.params.id);
       const data: UpdateProductInput = req.body;
       const result = await this.productService.update(id, data);
       successResponse(res, result, 200, 'Product updated successfully');
@@ -154,13 +125,9 @@ export class ProductController {
     }
   };
 
-  /**
-   * Delete product
-   * DELETE /api/products/:id
-   */
   delete = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { id } = req.params;
+      const id = getRouteParam(req.params.id);
       const result = await this.productService.delete(id);
       successResponse(res, result, 200);
     } catch (error) {

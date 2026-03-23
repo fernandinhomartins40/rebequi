@@ -1,12 +1,19 @@
 /**
- * Category Controller
- * Handle category HTTP requests
+ * Category controller.
  */
 
 import { Request, Response, NextFunction } from 'express';
 import { CategoryService } from '../services/category.service.js';
 import { successResponse } from '../utils/response.util.js';
 import type { CreateCategoryInput, UpdateCategoryInput } from '@rebequi/shared/schemas';
+
+function getRouteParam(value: string | string[] | undefined): string {
+  if (Array.isArray(value)) {
+    return value[0] || '';
+  }
+
+  return value || '';
+}
 
 export class CategoryController {
   private categoryService: CategoryService;
@@ -15,10 +22,6 @@ export class CategoryController {
     this.categoryService = new CategoryService();
   }
 
-  /**
-   * Get all categories
-   * GET /api/categories
-   */
   getAll = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const includeInactive = req.query.includeInactive === 'true';
@@ -29,13 +32,9 @@ export class CategoryController {
     }
   };
 
-  /**
-   * Get category by ID
-   * GET /api/categories/:id
-   */
   getById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { id } = req.params;
+      const id = getRouteParam(req.params.id);
       const result = await this.categoryService.getById(id);
       successResponse(res, result, 200);
     } catch (error) {
@@ -43,13 +42,9 @@ export class CategoryController {
     }
   };
 
-  /**
-   * Get category by slug
-   * GET /api/categories/slug/:slug
-   */
   getBySlug = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { slug } = req.params;
+      const slug = getRouteParam(req.params.slug);
       const result = await this.categoryService.getBySlug(slug);
       successResponse(res, result, 200);
     } catch (error) {
@@ -57,10 +52,6 @@ export class CategoryController {
     }
   };
 
-  /**
-   * Create category
-   * POST /api/categories
-   */
   create = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const data: CreateCategoryInput = req.body;
@@ -71,13 +62,9 @@ export class CategoryController {
     }
   };
 
-  /**
-   * Update category
-   * PUT /api/categories/:id
-   */
   update = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { id } = req.params;
+      const id = getRouteParam(req.params.id);
       const data: UpdateCategoryInput = req.body;
       const result = await this.categoryService.update(id, data);
       successResponse(res, result, 200, 'Category updated successfully');
@@ -86,13 +73,9 @@ export class CategoryController {
     }
   };
 
-  /**
-   * Delete category
-   * DELETE /api/categories/:id
-   */
   delete = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { id } = req.params;
+      const id = getRouteParam(req.params.id);
       const result = await this.categoryService.delete(id);
       successResponse(res, result, 200);
     } catch (error) {

@@ -16,7 +16,7 @@ const authController = new AuthController();
 // Public routes
 router.post('/register', authLimiter, validateBody(registerSchema), authController.register);
 router.post('/login', authLimiter, validateBody(loginSchema), authController.login);
-router.post('/logout', authenticate, authController.logout);
+router.post('/logout', authController.logout);
 router.post(
   '/admin/update-credentials',
   authLimiter,

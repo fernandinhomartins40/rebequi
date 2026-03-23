@@ -1,6 +1,5 @@
 /**
- * Products API Service
- * Handles all product-related API calls
+ * Products API service.
  */
 
 import { Product, ProductFilters, ProductResponse } from '@rebequi/shared/types';
@@ -19,40 +18,41 @@ type ApiResponse<T> = {
   };
 };
 
-const unwrapData = <T>(payload: any): T => {
-  if (payload && typeof payload === 'object' && 'success' in payload) {
-    const res = payload as ApiResponse<T>;
-    if (!res.success) {
-      throw new Error(res.error || res.message || 'Erro na API');
-    }
-    return (res.data as T) ?? ([] as unknown as T);
-  }
-  return payload as T;
-};
+function isApiResponse<T>(payload: unknown): payload is ApiResponse<T> {
+  return typeof payload === 'object' && payload !== null && 'success' in payload;
+}
 
-const unwrapPaginatedProducts = (payload: any): ProductResponse => {
-  if (payload && typeof payload === 'object' && 'success' in payload) {
-    const res = payload as ApiResponse<Product[]>;
-    if (!res.success) {
-      throw new Error(res.error || res.message || 'Erro na API');
+function unwrapData<T>(payload: unknown): T {
+  if (isApiResponse<T>(payload)) {
+    if (!payload.success) {
+      throw new Error(payload.error || payload.message || 'Erro na API');
     }
+
+    return (payload.data as T) ?? ([] as unknown as T);
+  }
+
+  return payload as T;
+}
+
+function unwrapPaginatedProducts(payload: unknown): ProductResponse {
+  if (isApiResponse<Product[]>(payload)) {
+    if (!payload.success) {
+      throw new Error(payload.error || payload.message || 'Erro na API');
+    }
+
     return {
-      products: (res.data as Product[]) ?? [],
-      total: res.pagination?.total ?? ((res.data as Product[])?.length ?? 0),
-      page: res.pagination?.page ?? 1,
-      limit: res.pagination?.limit ?? ((res.data as Product[])?.length ?? 0),
-      totalPages: res.pagination?.totalPages ?? 1,
+      products: (payload.data as Product[]) ?? [],
+      total: payload.pagination?.total ?? ((payload.data as Product[])?.length ?? 0),
+      page: payload.pagination?.page ?? 1,
+      limit: payload.pagination?.limit ?? ((payload.data as Product[])?.length ?? 0),
+      totalPages: payload.pagination?.totalPages ?? 1,
     };
   }
-  return payload as ProductResponse;
-};
 
-/**
- * Fetch all products with optional filters
- */
-export async function fetchProducts(
-  filters?: ProductFilters
-): Promise<ProductResponse> {
+  return payload as ProductResponse;
+}
+
+export async function fetchProducts(filters?: ProductFilters): Promise<ProductResponse> {
   const params = new URLSearchParams();
 
   if (filters?.category) params.append('category', filters.category);
@@ -69,16 +69,10 @@ export async function fetchProducts(
   return unwrapPaginatedProducts(response);
 }
 
-/**
- * Fetch a single product by ID
- */
 export async function fetchProductById(id: string): Promise<Product> {
   return apiFetch<Product>(`/products/${id}`);
 }
 
-/**
- * Fetch products by category
- */
 export async function fetchProductsByCategory(
   category: string,
   page = 1,
@@ -90,17 +84,11 @@ export async function fetchProductsByCategory(
   return unwrapPaginatedProducts(response);
 }
 
-/**
- * Fetch promotional products
- */
 export async function fetchPromotionalProducts(): Promise<Product[]> {
   const data = await apiFetch<ApiResponse<Product[]> | Product[]>('/products/promotional');
   return unwrapData<Product[]>(data);
 }
 
-/**
- * Fetch new products
- */
 export async function fetchNewProducts(): Promise<Product[]> {
   const data = await apiFetch<ApiResponse<Product[]> | Product[]>('/products/new');
   return unwrapData<Product[]>(data);

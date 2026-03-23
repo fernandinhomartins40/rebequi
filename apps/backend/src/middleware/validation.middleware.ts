@@ -1,13 +1,12 @@
 /**
- * Validation Middleware
- * Validate request body, params, and query using Zod schemas
+ * Request validation middleware powered by Zod.
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { AnyZodObject, ZodError } from 'zod';
+import { ZodError, ZodTypeAny } from 'zod';
 import { ValidationError } from '../utils/errors.util.js';
 
-export function validate(schema: AnyZodObject) {
+export function validate(schema: ZodTypeAny) {
   return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
     try {
       await schema.parseAsync({
@@ -26,10 +25,7 @@ export function validate(schema: AnyZodObject) {
   };
 }
 
-/**
- * Validate request body only
- */
-export function validateBody(schema: AnyZodObject) {
+export function validateBody(schema: ZodTypeAny) {
   return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
     try {
       req.body = await schema.parseAsync(req.body);
@@ -44,10 +40,7 @@ export function validateBody(schema: AnyZodObject) {
   };
 }
 
-/**
- * Validate request params only
- */
-export function validateParams(schema: AnyZodObject) {
+export function validateParams(schema: ZodTypeAny) {
   return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
     try {
       req.params = await schema.parseAsync(req.params);
@@ -62,10 +55,7 @@ export function validateParams(schema: AnyZodObject) {
   };
 }
 
-/**
- * Validate request query only
- */
-export function validateQuery(schema: AnyZodObject) {
+export function validateQuery(schema: ZodTypeAny) {
   return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
     try {
       req.query = await schema.parseAsync(req.query);

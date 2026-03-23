@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { registerSchema } from '@rebequi/shared/schemas';
 import type { RegisterInput } from '@rebequi/shared/schemas';
-import { register as registerUser } from '@/services/api/auth';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,6 +28,7 @@ type FormValues = z.infer<typeof formSchema>;
 const Register = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { register: registerUser } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -49,7 +50,6 @@ const Register = () => {
 
   const passwordValue = watch('password');
   const confirmPasswordValue = watch('confirmPassword');
-
   const passwordStrength = useMemo(() => calculatePasswordStrength(passwordValue), [passwordValue]);
 
   const onSubmit = async (values: FormValues) => {
@@ -63,9 +63,9 @@ const Register = () => {
       await registerUser(payload);
       toast({
         title: 'Conta criada',
-        description: 'Cadastro realizado com sucesso! Voce ja esta autenticado.',
+        description: 'Cadastro realizado com sucesso. Sua sessao ja esta ativa.',
       });
-      navigate('/');
+      navigate('/painel-cliente');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erro ao registrar';
       toast({
@@ -79,7 +79,7 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center px-4 py-12">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 px-4 py-12">
       <Card className="w-full max-w-2xl shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-2xl">
@@ -89,14 +89,14 @@ const Register = () => {
           <CardDescription>Cadastre-se para acompanhar pedidos e ofertas.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="grid grid-cols-1 md:grid-cols-2 gap-6" onSubmit={handleSubmit(onSubmit)}>
-            <div className="md:col-span-2 space-y-2">
+          <form className="grid grid-cols-1 gap-6 md:grid-cols-2" onSubmit={handleSubmit(onSubmit)}>
+            <div className="space-y-2 md:col-span-2">
               <Label htmlFor="name">Nome completo</Label>
               <Input id="name" placeholder="Seu nome" autoComplete="name" {...registerField('name')} />
               {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
             </div>
 
-            <div className="md:col-span-2 space-y-2">
+            <div className="space-y-2 md:col-span-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
@@ -219,12 +219,12 @@ function calculatePasswordStrength(password: string): PasswordStrength {
 }
 
 const PasswordChecklist = () => (
-  <ul className="text-xs text-muted-foreground space-y-1">
-    <li>• Minimo 8 caracteres</li>
-    <li>• Pelo menos uma letra maiuscula</li>
-    <li>• Pelo menos uma letra minuscula</li>
-    <li>• Pelo menos um numero</li>
-    <li>• Pelo menos um caractere especial</li>
+  <ul className="space-y-1 text-xs text-muted-foreground">
+    <li>Minimo 8 caracteres</li>
+    <li>Pelo menos uma letra maiuscula</li>
+    <li>Pelo menos uma letra minuscula</li>
+    <li>Pelo menos um numero</li>
+    <li>Pelo menos um caractere especial</li>
   </ul>
 );
 

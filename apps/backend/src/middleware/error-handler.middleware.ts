@@ -61,6 +61,11 @@ export function errorHandler(
     statusCode = 400;
     message = 'Invalid data provided';
   }
+  // Handle malformed JSON bodies sent to Express body-parser
+  else if (err instanceof SyntaxError && 'body' in err) {
+    statusCode = 400;
+    message = 'Invalid JSON payload';
+  }
 
   // Send response
   res.status(statusCode).json({

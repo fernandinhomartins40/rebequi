@@ -1,5 +1,5 @@
 import { LoginInput, RegisterInput, UpdateAdminCredentialsInput } from '@rebequi/shared/schemas';
-import { AuthResponse } from '@rebequi/shared/types';
+import { AuthResponse, User } from '@rebequi/shared/types';
 import { apiFetch } from './client';
 
 type ApiResponse<T> = {
@@ -14,7 +14,7 @@ function unwrapResponse<T>(response: ApiResponse<T> | T): T {
   if (typeof response === 'object' && response !== null && 'success' in response) {
     const apiResponse = response as ApiResponse<T>;
     if (!apiResponse.success) {
-      throw new Error(apiResponse.error || 'Erro na requisição');
+      throw new Error(apiResponse.error || 'Erro na requisicao');
     }
     if (apiResponse.data === undefined) {
       throw new Error('Resposta inesperada da API');
@@ -55,4 +55,9 @@ export async function updateAdminCredentials(payload: UpdateAdminCredentialsInpu
     }
   );
   return unwrapResponse<AuthResponse>(response);
+}
+
+export async function getCurrentUser(): Promise<User> {
+  const response = await apiFetch<ApiResponse<User> | User>('/auth/me');
+  return unwrapResponse<User>(response);
 }

@@ -7,6 +7,7 @@ import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '../services/auth.service.js';
 import { successResponse } from '../utils/response.util.js';
 import { setAuthCookie, clearAuthCookie } from '../utils/cookie.util.js';
+import { UnauthorizedError } from '../utils/errors.util.js';
 import type { LoginInput, RegisterInput, UpdateAdminCredentialsInput } from '@rebequi/shared/schemas';
 
 export class AuthController {
@@ -81,7 +82,7 @@ export class AuthController {
   getProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       if (!req.user) {
-        throw new Error('User not authenticated');
+        throw new UnauthorizedError('User not authenticated');
       }
       const result = await this.authService.getProfile(req.user.userId);
       successResponse(res, result, 200);

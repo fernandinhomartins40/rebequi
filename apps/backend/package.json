@@ -7,15 +7,16 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "npm run prisma:generate && tsc",
     "start": "node dist/index.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
+    "prisma:bootstrap": "tsx prisma/bootstrap.ts",
     "prisma:seed": "tsx prisma/seed.ts",
     "prisma:reset": "prisma migrate reset --force",
-    "lint": "tsc --noEmit",
+    "lint": "npm run prisma:generate && tsc --noEmit",
     "test": "echo 'Tests not configured yet'"
   },
   "dependencies": {

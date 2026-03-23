@@ -4,7 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { loginSchema, type LoginInput } from '@rebequi/shared/schemas';
-import { login } from '@/services/api/auth';
+import { UserRole } from '@rebequi/shared/types';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,14 +15,13 @@ import { useToast } from '@/components/ui/use-toast';
 const Login = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isPrefilling, setIsPrefilling] = useState(false);
 
   const {
     register: registerField,
     handleSubmit,
-    setValue,
     formState: { errors },
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
@@ -34,12 +34,12 @@ const Login = () => {
   const onSubmit = async (values: LoginInput) => {
     try {
       setIsLoading(true);
-      await login(values);
+      const user = await login(values);
       toast({
         title: 'Login realizado',
-        description: 'Bem-vindo de volta!',
+        description: 'Sessao autenticada com sucesso.',
       });
-      navigate('/painel-cliente');
+      navigate(user.role === UserRole.ADMIN ? '/painel-lojista/painel' : '/painel-cliente');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erro ao fazer login';
       toast({
@@ -53,30 +53,14 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center px-4 py-12">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 px-4 py-12">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-2xl">
             <LogIn className="h-6 w-6 text-primary" />
             Entrar
           </CardTitle>
-          <CardDescription className="flex items-center justify-between">
-            <span>Acesse sua conta para acompanhar pedidos.</span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={isPrefilling}
-              onClick={() => {
-                setIsPrefilling(true);
-                setValue('email', 'cliente@example.com');
-                setValue('password', 'Customer@123');
-                setTimeout(() => setIsPrefilling(false), 400);
-              }}
-            >
-              Autopreencher
-            </Button>
-          </CardDescription>
+          <CardDescription>Acesse sua conta para continuar com a sessao real da aplicacao.</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
@@ -113,7 +97,7 @@ const Login = () => {
           </form>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            Ainda não tem conta?{' '}
+            Ainda nao tem conta?{' '}
             <Link to="/registrar" className="font-semibold text-primary hover:underline">
               Criar conta
             </Link>

@@ -3,6 +3,9 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { UserRole } from "@rebequi/shared/types";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { GuestRoute, ProtectedRoute } from "@/components/auth/RouteGuards";
 import Index from "./pages/Index";
 import MerchantPanel from "./pages/MerchantPanel";
 import MerchantDashboard from "./pages/MerchantDashboard";
@@ -15,22 +18,37 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/painel-lojista" element={<MerchantPanel />} />
-          <Route path="/painel-lojista/painel" element={<MerchantDashboard />} />
-          <Route path="/painel-cliente" element={<CustomerDashboard />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/registrar" element={<Register />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+
+            <Route element={<GuestRoute />}>
+              <Route path="/painel-lojista" element={<MerchantPanel />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/registrar" element={<Register />} />
+            </Route>
+
+            <Route
+              element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]} redirectTo="/painel-lojista" />}
+            >
+              <Route path="/painel-lojista/painel" element={<MerchantDashboard />} />
+            </Route>
+
+            <Route
+              element={<ProtectedRoute allowedRoles={[UserRole.CUSTOMER]} redirectTo="/login" />}
+            >
+              <Route path="/painel-cliente" element={<CustomerDashboard />} />
+            </Route>
+
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
