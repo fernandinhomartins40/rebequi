@@ -1,28 +1,44 @@
-/**
- * Categories API Service
- * Handles all category-related API calls
- */
-
 import { Category, CategoryResponse } from '@rebequi/shared/types';
 import { apiFetch } from './client';
 
-/**
- * Fetch all categories
- */
+type ApiResponse<T> = {
+  success: boolean;
+  data?: T;
+  message?: string;
+  error?: string;
+};
+
+function isApiResponse<T>(payload: unknown): payload is ApiResponse<T> {
+  return typeof payload === 'object' && payload !== null && 'success' in payload;
+}
+
+function unwrapData<T>(payload: unknown): T {
+  if (isApiResponse<T>(payload)) {
+    if (!payload.success) {
+      throw new Error(payload.error || payload.message || 'Erro na API');
+    }
+
+    if (payload.data === undefined) {
+      throw new Error('Resposta inesperada da API');
+    }
+
+    return payload.data;
+  }
+
+  return payload as T;
+}
+
 export async function fetchCategories(): Promise<CategoryResponse> {
-  return apiFetch<CategoryResponse>('/categories');
+  const response = await apiFetch<ApiResponse<CategoryResponse> | CategoryResponse>('/categories');
+  return unwrapData<CategoryResponse>(response);
 }
 
-/**
- * Fetch a single category by ID
- */
 export async function fetchCategoryById(id: string): Promise<Category> {
-  return apiFetch<Category>(`/categories/${id}`);
+  const response = await apiFetch<ApiResponse<Category> | Category>(`/categories/${id}`);
+  return unwrapData<Category>(response);
 }
 
-/**
- * Fetch a category by slug
- */
 export async function fetchCategoryBySlug(slug: string): Promise<Category> {
-  return apiFetch<Category>(`/categories/slug/${slug}`);
+  const response = await apiFetch<ApiResponse<Category> | Category>(`/categories/slug/${slug}`);
+  return unwrapData<Category>(response);
 }

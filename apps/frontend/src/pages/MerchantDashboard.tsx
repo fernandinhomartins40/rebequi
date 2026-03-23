@@ -82,6 +82,9 @@ export default function MerchantDashboard() {
     queryFn: fetchCategories,
   });
 
+  const products = productSummary?.products ?? [];
+  const categories = categorySummary?.categories ?? [];
+
   const navItems = [
     {
       id: 'visao-geral' as SectionId,
@@ -365,7 +368,7 @@ export default function MerchantDashboard() {
                   <div className="space-y-3">
                     <p className="text-sm font-semibold text-foreground">Produtos em destaque nesta base</p>
                     <div className="grid gap-3">
-                      {productSummary?.products.slice(0, 4).map((product) => (
+                      {products.slice(0, 4).map((product) => (
                         <div key={product.id} className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-3">
                           <div className="flex items-start justify-between gap-3">
                             <div className="space-y-1">
@@ -380,7 +383,7 @@ export default function MerchantDashboard() {
                           </div>
                         </div>
                       ))}
-                      {productSummary?.products.length === 0 ? (
+                      {products.length === 0 ? (
                         <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-4 text-sm text-muted-foreground">
                           Nenhum produto ativo retornado pela API.
                         </div>
@@ -401,7 +404,7 @@ export default function MerchantDashboard() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {categorySummary?.categories.slice(0, 4).map((category, index) => (
+                  {categories.slice(0, 4).map((category, index) => (
                     <div key={category.id} className="rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-4">
                       <div className="flex items-center justify-between gap-3">
                         <div>
@@ -415,7 +418,7 @@ export default function MerchantDashboard() {
                       </div>
                     </div>
                   ))}
-                  {categorySummary?.categories.length === 0 ? (
+                  {categories.length === 0 ? (
                     <div className="rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-4 text-sm text-white/70">
                       Nenhuma categoria retornada pela API.
                     </div>
