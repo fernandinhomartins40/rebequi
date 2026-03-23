@@ -238,7 +238,7 @@ jobs:
           wait_for_container_health "rebequi-postgres" 120
 
           compose -f docker-compose.production.yml run --rm migrator
-          compose -f docker-compose.production.yml up -d api web
+          compose -f docker-compose.production.yml up -d --force-recreate --remove-orphans api web
 
           wait_for_container_health "rebequi-api" 120
           wait_for_container_health "rebequi-web" 120
