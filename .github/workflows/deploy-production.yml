@@ -181,6 +181,17 @@ jobs:
             fi
           }
 
+          set_env_value() {
+            local key="$1"
+            local value="$2"
+
+            if grep -q "^${key}=" "$RELEASE_DIR/.env.production"; then
+              sed -i "s|^${key}=.*|${key}=${value}|" "$RELEASE_DIR/.env.production"
+            else
+              printf '%s=%s\n' "$key" "$value" >> "$RELEASE_DIR/.env.production"
+            fi
+          }
+
           require_env_value() {
             local key="$1"
             if [ -z "$(read_env_value "$key")" ]; then
@@ -213,9 +224,12 @@ jobs:
           ensure_env_value "DATABASE_URL" "postgresql://${POSTGRES_USER_VALUE}:${POSTGRES_PASSWORD_VALUE}@postgres:5432/${POSTGRES_DB_VALUE}"
           ensure_env_value "JWT_SECRET" "$JWT_SECRET_VALUE"
           ensure_env_value "JWT_EXPIRES_IN" "7d"
-          ensure_env_value "BOOTSTRAP_ADMIN_EMAIL" "admin@rebequi.com.br"
-          ensure_env_value "BOOTSTRAP_ADMIN_PASSWORD" "$(openssl rand -hex 16)"
-          ensure_env_value "BOOTSTRAP_ADMIN_NAME" "Administrador Rebequi"
+          set_env_value "BOOTSTRAP_ADMIN_EMAIL" "admin@rebequi.com.br"
+          set_env_value "BOOTSTRAP_ADMIN_PASSWORD" "ChangeMe123!"
+          set_env_value "BOOTSTRAP_ADMIN_NAME" "Administrador Rebequi"
+          set_env_value "BOOTSTRAP_CUSTOMER_EMAIL" "cliente@rebequi.com.br"
+          set_env_value "BOOTSTRAP_CUSTOMER_PASSWORD" "Cliente123!"
+          set_env_value "BOOTSTRAP_CUSTOMER_NAME" "Cliente de Teste"
           ensure_env_value "AUTH_COOKIE_NAME" "rebequi_token"
           ensure_env_value "AUTH_COOKIE_SECURE" "true"
           ensure_env_value "AUTH_COOKIE_SAMESITE" "lax"
@@ -329,6 +343,58 @@ jobs:
             verify_json_health "https://${PRIMARY_DOMAIN}/api/health" --resolve "${PRIMARY_DOMAIN}:443:127.0.0.1"
             verify_json_health "https://${SECONDARY_DOMAIN}/api/health" --resolve "${SECONDARY_DOMAIN}:443:127.0.0.1"
           fi
+
+          verify_auth_flow() {
+            local domain="$1"
+            local email="$2"
+            local password="$3"
+            local expected_role="$4"
+            local cookie_file
+            local login_body
+            local profile_body
+            local status
+
+            cookie_file="$(mktemp)"
+            login_body="$(mktemp)"
+            profile_body="$(mktemp)"
+
+            status="$(curl -ksS -o "$login_body" -w "%{http_code}" \
+              --resolve "${domain}:443:127.0.0.1" \
+              --cookie-jar "$cookie_file" \
+              --header "Content-Type: application/json" \
+              --data "{\"email\":\"${email}\",\"password\":\"${password}\"}" \
+              "https://${domain}/api/auth/login")"
+            [ "$status" = "200" ]
+            grep -q "\"success\":true" "$login_body"
+            grep -q "\"email\":\"${email}\"" "$login_body"
+
+            status="$(curl -ksS -o "$profile_body" -w "%{http_code}" \
+              --resolve "${domain}:443:127.0.0.1" \
+              --cookie "$cookie_file" \
+              "https://${domain}/api/auth/me")"
+            [ "$status" = "200" ]
+            grep -q "\"email\":\"${email}\"" "$profile_body"
+            grep -q "\"role\":\"${expected_role}\"" "$profile_body"
+
+            status="$(curl -ksS -o /dev/null -w "%{http_code}" \
+              --resolve "${domain}:443:127.0.0.1" \
+              --cookie "$cookie_file" \
+              --cookie-jar "$cookie_file" \
+              --request POST \
+              "https://${domain}/api/auth/logout")"
+            [ "$status" = "200" ]
+
+            status="$(curl -ksS -o /dev/null -w "%{http_code}" \
+              --resolve "${domain}:443:127.0.0.1" \
+              --cookie "$cookie_file" \
+              "https://${domain}/api/auth/me")"
+            [ "$status" = "401" ]
+
+            rm -f "$cookie_file" "$login_body" "$profile_body"
+          }
+
+          verify_auth_flow "${PRIMARY_DOMAIN}" "$(read_env_value BOOTSTRAP_ADMIN_EMAIL)" "$(read_env_value BOOTSTRAP_ADMIN_PASSWORD)" "ADMIN"
+          verify_auth_flow "${PRIMARY_DOMAIN}" "$(read_env_value BOOTSTRAP_CUSTOMER_EMAIL)" "$(read_env_value BOOTSTRAP_CUSTOMER_PASSWORD)" "CUSTOMER"
 
           echo "Deploy concluido em ${PRIMARY_DOMAIN} e ${SECONDARY_DOMAIN}"
           REMOTE

@@ -210,6 +210,37 @@ function readEnv(name: string, fallback?: string): string | undefined {
   return value || fallback;
 }
 
+async function ensureManagedUser(params: {
+  email: string;
+  password: string;
+  name: string;
+  role: UserRole;
+  label: string;
+}) {
+  const { email, password, name, role, label } = params;
+  const passwordHash = await bcrypt.hash(password, 10);
+
+  const user = await prisma.user.upsert({
+    where: { email },
+    update: {
+      name,
+      password: passwordHash,
+      role,
+      isActive: true,
+    },
+    create: {
+      email,
+      name,
+      password: passwordHash,
+      role,
+      isActive: true,
+    },
+  });
+
+  console.log(`Ensured managed ${label} user: ${user.email}`);
+  return user;
+}
+
 async function ensureAdminUser() {
   const adminEmail = readEnv('BOOTSTRAP_ADMIN_EMAIL', 'admin@rebequi.com.br');
   const adminPassword = readEnv('BOOTSTRAP_ADMIN_PASSWORD', 'ChangeMe123!');
@@ -219,71 +250,31 @@ async function ensureAdminUser() {
     throw new Error('Admin bootstrap configuration is incomplete.');
   }
 
-  const existingAdmin = await prisma.user.findUnique({
-    where: { email: adminEmail },
+  return ensureManagedUser({
+    email: adminEmail,
+    password: adminPassword,
+    name: adminName,
+    role: UserRole.ADMIN,
+    label: 'admin',
   });
-
-  if (existingAdmin) {
-    console.log(`Admin user already exists: ${adminEmail}`);
-    return existingAdmin;
-  }
-
-  const passwordHash = await bcrypt.hash(adminPassword, 10);
-
-  const admin = await prisma.user.create({
-    data: {
-      email: adminEmail,
-      name: adminName,
-      password: passwordHash,
-      role: UserRole.ADMIN,
-      isActive: true,
-    },
-  });
-
-  console.log(`Created bootstrap admin user: ${admin.email}`);
-  return admin;
 }
 
 async function ensureDemoCustomer() {
-  const shouldCreateDemoCustomer =
-    process.env.NODE_ENV !== 'production' ||
-    (!!process.env.BOOTSTRAP_CUSTOMER_EMAIL && !!process.env.BOOTSTRAP_CUSTOMER_PASSWORD);
-
-  if (!shouldCreateDemoCustomer) {
-    console.log('Skipping demo customer bootstrap in production.');
-    return;
-  }
-
-  const customerEmail = readEnv('BOOTSTRAP_CUSTOMER_EMAIL', 'cliente@example.com');
-  const customerPassword = readEnv('BOOTSTRAP_CUSTOMER_PASSWORD', 'Customer@123');
-  const customerName = readEnv('BOOTSTRAP_CUSTOMER_NAME', 'Cliente de Exemplo');
+  const customerEmail = readEnv('BOOTSTRAP_CUSTOMER_EMAIL', 'cliente@rebequi.com.br');
+  const customerPassword = readEnv('BOOTSTRAP_CUSTOMER_PASSWORD', 'Cliente123!');
+  const customerName = readEnv('BOOTSTRAP_CUSTOMER_NAME', 'Cliente de Teste');
 
   if (!customerEmail || !customerPassword || !customerName) {
-    return;
+    throw new Error('Customer bootstrap configuration is incomplete.');
   }
 
-  const existingCustomer = await prisma.user.findUnique({
-    where: { email: customerEmail },
+  await ensureManagedUser({
+    email: customerEmail,
+    password: customerPassword,
+    name: customerName,
+    role: UserRole.CUSTOMER,
+    label: 'customer',
   });
-
-  if (existingCustomer) {
-    console.log(`Demo customer already exists: ${customerEmail}`);
-    return;
-  }
-
-  const passwordHash = await bcrypt.hash(customerPassword, 10);
-
-  await prisma.user.create({
-    data: {
-      email: customerEmail,
-      name: customerName,
-      password: passwordHash,
-      role: UserRole.CUSTOMER,
-      isActive: true,
-    },
-  });
-
-  console.log(`Created demo customer user: ${customerEmail}`);
 }
 
 async function ensureSampleCatalog() {
