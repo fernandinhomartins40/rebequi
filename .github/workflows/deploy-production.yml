@@ -119,6 +119,28 @@ jobs:
             printf '%s' "$body" | grep -q '"status":"ok"'
           }
 
+          verify_frontend_cache_headers() {
+            local origin="$1"
+            local html_headers
+            local html_body
+            local asset_path
+            local asset_headers
+
+            html_headers="$(curl -fsSI "$origin/")"
+            printf '%s' "$html_headers" | grep -qi '^Cache-Control: no-store, no-cache, must-revalidate'
+
+            html_body="$(curl -fsSL "$origin/")"
+            asset_path="$(printf '%s' "$html_body" | grep -oE '/assets/[^"]+\.(js|css)' | head -n 1)"
+
+            if [ -z "$asset_path" ]; then
+              echo "Nao foi possivel localizar asset versionado no HTML." >&2
+              exit 1
+            fi
+
+            asset_headers="$(curl -fsSI "${origin}${asset_path}")"
+            printf '%s' "$asset_headers" | grep -qi 'Cache-Control: .*immutable'
+          }
+
           wait_for_container_health() {
             local container_name="$1"
             local timeout_seconds="${2:-120}"
@@ -246,7 +268,7 @@ jobs:
           require_env_value "DATABASE_URL"
           require_env_value "JWT_SECRET"
 
-          compose -f docker-compose.production.yml build --no-cache migrator api web
+          compose -f docker-compose.production.yml build --pull --no-cache migrator api web
           compose -f docker-compose.production.yml up -d postgres
 
           wait_for_container_health "rebequi-postgres" 120
@@ -257,6 +279,7 @@ jobs:
           wait_for_container_health "rebequi-api" 120
           wait_for_container_health "rebequi-web" 120
           verify_json_health "http://127.0.0.1:${DEPLOY_PORT}/api/health"
+          verify_frontend_cache_headers "http://127.0.0.1:${DEPLOY_PORT}"
 
           cat > "$SITE_CONF" <<NGINX_HTTP
           server {
@@ -340,6 +363,7 @@ jobs:
           curl -fsSI -H "Host: ${SECONDARY_DOMAIN}" "http://127.0.0.1/" >/dev/null
 
           if [ -f "/etc/letsencrypt/live/${PRIMARY_DOMAIN}/fullchain.pem" ]; then
+            verify_frontend_cache_headers "https://${PRIMARY_DOMAIN}"
             verify_json_health "https://${PRIMARY_DOMAIN}/api/health" --resolve "${PRIMARY_DOMAIN}:443:127.0.0.1"
             verify_json_health "https://${SECONDARY_DOMAIN}/api/health" --resolve "${SECONDARY_DOMAIN}:443:127.0.0.1"
           fi
