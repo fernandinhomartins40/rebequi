@@ -141,6 +141,23 @@ jobs:
             printf '%s' "$asset_headers" | grep -qi 'Cache-Control: .*immutable'
           }
 
+          assert_container_uses_latest_image() {
+            local container_name="$1"
+            local image_ref="$2"
+            local container_image
+            local latest_image
+
+            container_image="$(docker inspect --format '{{.Image}}' "$container_name")"
+            latest_image="$(docker image inspect --format '{{.Id}}' "$image_ref")"
+
+            if [ "$container_image" != "$latest_image" ]; then
+              echo "Container $container_name nao esta usando a imagem mais recente de $image_ref." >&2
+              echo "container_image=$container_image" >&2
+              echo "latest_image=$latest_image" >&2
+              exit 1
+            fi
+          }
+
           wait_for_container_health() {
             local container_name="$1"
             local timeout_seconds="${2:-120}"
@@ -273,11 +290,14 @@ jobs:
 
           wait_for_container_health "rebequi-postgres" 120
 
+          docker rm -f rebequi-api rebequi-web rebequi-migrator >/dev/null 2>&1 || true
           compose -f docker-compose.production.yml run --rm migrator
           compose -f docker-compose.production.yml up -d --force-recreate --remove-orphans api web
 
           wait_for_container_health "rebequi-api" 120
           wait_for_container_health "rebequi-web" 120
+          assert_container_uses_latest_image "rebequi-api" "current-api:latest"
+          assert_container_uses_latest_image "rebequi-web" "current-web:latest"
           verify_json_health "http://127.0.0.1:${DEPLOY_PORT}/api/health"
           verify_frontend_cache_headers "http://127.0.0.1:${DEPLOY_PORT}"
 
