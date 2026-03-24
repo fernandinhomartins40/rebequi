@@ -2,13 +2,18 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import { UserRole } from "@rebequi/shared/types";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { GuestRoute, ProtectedRoute } from "@/components/auth/RouteGuards";
 import Index from "./pages/Index";
 import MerchantPanel from "./pages/MerchantPanel";
-import MerchantDashboard from "./pages/MerchantDashboard";
+import MerchantDashboard, {
+  MerchantDashboardAccess,
+  MerchantDashboardCatalog,
+  MerchantDashboardLayout,
+  MerchantDashboardStability,
+} from "./pages/MerchantDashboard";
 import CustomerDashboard from "./pages/CustomerDashboard";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
@@ -35,7 +40,14 @@ const App = () => (
             <Route
               element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]} redirectTo="/painel-lojista" />}
             >
-              <Route path="/painel-lojista/painel" element={<MerchantDashboard />} />
+              <Route path="/painel-lojista/painel" element={<MerchantDashboardLayout />}>
+                <Route index element={<Navigate to="visao-geral" replace />} />
+                <Route path="visao-geral" element={<MerchantDashboard />} />
+                <Route path="catalogo" element={<MerchantDashboardCatalog />} />
+                <Route path="acesso" element={<MerchantDashboardAccess />} />
+                <Route path="estabilidade" element={<MerchantDashboardStability />} />
+                <Route path="*" element={<Navigate to="visao-geral" replace />} />
+              </Route>
             </Route>
 
             <Route

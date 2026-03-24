@@ -39,7 +39,7 @@ const Login = () => {
         title: 'Login realizado',
         description: 'Sessao autenticada com sucesso.',
       });
-      navigate(user.role === UserRole.ADMIN ? '/painel-lojista/painel' : '/painel-cliente');
+      navigate(user.role === UserRole.ADMIN ? '/painel-lojista/painel/visao-geral' : '/painel-cliente');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erro ao fazer login';
       toast({

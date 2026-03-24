@@ -31,7 +31,7 @@ export function ProtectedRoute({
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    const fallbackRoute = user.role === 'ADMIN' ? '/painel-lojista/painel' : '/painel-cliente';
+    const fallbackRoute = user.role === 'ADMIN' ? '/painel-lojista/painel/visao-geral' : '/painel-cliente';
     return <Navigate to={fallbackRoute} replace />;
   }
 
@@ -46,7 +46,7 @@ export function GuestRoute() {
   }
 
   if (isAuthenticated && user) {
-    const destination = user.role === 'ADMIN' ? '/painel-lojista/painel' : '/painel-cliente';
+    const destination = user.role === 'ADMIN' ? '/painel-lojista/painel/visao-geral' : '/painel-cliente';
     return <Navigate to={destination} replace />;
   }
 

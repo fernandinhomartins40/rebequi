@@ -189,6 +189,38 @@ All colors MUST be HSL.
   .bg-brand-gray {
     background-color: hsl(var(--brand-gray));
   }
+
+  .merchant-dashboard-scroll {
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(37, 99, 235, 0.82) rgba(255, 255, 255, 0.72);
+  }
+
+  .merchant-dashboard-scroll::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+
+  .merchant-dashboard-scroll::-webkit-scrollbar-track {
+    border-radius: 9999px;
+    border: 1px solid rgba(234, 223, 186, 0.9);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 248, 214, 0.92));
+  }
+
+  .merchant-dashboard-scroll::-webkit-scrollbar-thumb {
+    border: 2px solid rgba(255, 255, 255, 0.88);
+    border-radius: 9999px;
+    background: linear-gradient(180deg, rgba(37, 99, 235, 0.92), rgba(255, 215, 0, 0.94));
+    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.12);
+  }
+
+  .merchant-dashboard-scroll::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(220, 38, 38, 0.9), rgba(255, 215, 0, 0.96));
+  }
+
+  .merchant-dashboard-scroll::-webkit-scrollbar-corner {
+    background: transparent;
+  }
 }
 
 @layer base {

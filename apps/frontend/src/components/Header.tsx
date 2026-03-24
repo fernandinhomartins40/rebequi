@@ -18,7 +18,7 @@ const Header = () => {
     { name: "Contato", href: "/contato" },
   ];
 
-  const accountHref = user?.role === 'ADMIN' ? '/painel-lojista/painel' : '/painel-cliente';
+  const accountHref = user?.role === 'ADMIN' ? '/painel-lojista/painel/visao-geral' : '/painel-cliente';
 
   const handleLogout = async () => {
     await logout();
