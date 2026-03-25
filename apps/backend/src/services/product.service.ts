@@ -361,6 +361,10 @@ export class ProductService {
     return normalized;
   }
 
+  private normalizeNullableField<T>(value: T | null | undefined) {
+    return value ?? undefined;
+  }
+
   private formatProduct(product: any) {
     return {
       id: product.id,
@@ -393,15 +397,15 @@ export class ProductService {
         product.images?.map((image: any) => ({
           id: image.id,
           url: image.url,
-          alt: image.alt,
+          alt: this.normalizeNullableField(image.alt),
           order: image.order,
           isPrimary: image.isPrimary,
-          storageKey: image.storageKey,
-          filename: image.filename,
-          mimeType: image.mimeType,
-          size: image.size,
-          width: image.width,
-          height: image.height,
+          storageKey: this.normalizeNullableField(image.storageKey),
+          filename: this.normalizeNullableField(image.filename),
+          mimeType: this.normalizeNullableField(image.mimeType),
+          size: this.normalizeNullableField(image.size),
+          width: this.normalizeNullableField(image.width),
+          height: this.normalizeNullableField(image.height),
         })) || [],
       isActive: product.isActive,
       createdAt: product.createdAt,

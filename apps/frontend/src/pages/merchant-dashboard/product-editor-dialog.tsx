@@ -81,6 +81,12 @@ function createEmptyFormValues(): ProductFormFields {
 function createDraftImageFromProductImage(image: ProductImage, index: number): ProductDraftImage {
   return {
     ...image,
+    storageKey: image.storageKey ?? undefined,
+    filename: image.filename ?? undefined,
+    mimeType: image.mimeType ?? undefined,
+    size: image.size ?? undefined,
+    width: image.width ?? undefined,
+    height: image.height ?? undefined,
     localId: image.id || image.storageKey || `${image.url}-${index}`,
     source: 'stored',
     order: image.order ?? index,
@@ -151,6 +157,10 @@ function buildPayload(fields: ProductFormFields, images: ProductImage[]) {
   };
 }
 
+function normalizeOptionalImageMetadata<T>(value: T | null | undefined) {
+  return value ?? undefined;
+}
+
 async function resolveUploadedImages(images: ProductDraftImage[], productName: string) {
   const resolved: ProductImage[] = [];
 
@@ -185,12 +195,12 @@ async function resolveUploadedImages(images: ProductDraftImage[], productName: s
     alt: image.alt,
     order: image.order,
     isPrimary: image.isPrimary,
-    storageKey: image.storageKey,
-    filename: image.filename,
-    mimeType: image.mimeType,
-    size: image.size,
-    width: image.width,
-    height: image.height,
+    storageKey: normalizeOptionalImageMetadata(image.storageKey),
+    filename: normalizeOptionalImageMetadata(image.filename),
+    mimeType: normalizeOptionalImageMetadata(image.mimeType),
+    size: normalizeOptionalImageMetadata(image.size),
+    width: normalizeOptionalImageMetadata(image.width),
+    height: normalizeOptionalImageMetadata(image.height),
   }));
 }
 
