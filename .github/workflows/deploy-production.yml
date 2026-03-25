@@ -168,6 +168,21 @@ jobs:
             fi
           }
 
+          assert_container_image_ref() {
+            local container_name="$1"
+            local expected_image_ref="$2"
+            local actual_image_ref
+
+            actual_image_ref="$(docker inspect --format '{{.Config.Image}}' "$container_name")"
+
+            if [ "$actual_image_ref" != "$expected_image_ref" ]; then
+              echo "Container $container_name nao esta apontando para a imagem esperada." >&2
+              echo "expected_image_ref=$expected_image_ref" >&2
+              echo "actual_image_ref=$actual_image_ref" >&2
+              exit 1
+            fi
+          }
+
           assert_release_version() {
             local container_name="$1"
             local expected_release="$2"
@@ -284,6 +299,9 @@ jobs:
           [ -n "$JWT_SECRET_VALUE" ] || JWT_SECRET_VALUE="$(openssl rand -hex 32)"
 
           RELEASE_VERSION_VALUE="${{ github.sha }}"
+          MIGRATOR_IMAGE_REF="rebequi-migrator:${RELEASE_VERSION_VALUE}"
+          API_IMAGE_REF="rebequi-api:${RELEASE_VERSION_VALUE}"
+          WEB_IMAGE_REF="rebequi-web:${RELEASE_VERSION_VALUE}"
 
           ensure_env_value "NODE_ENV" "production"
           ensure_env_value "PORT" "3000"
@@ -319,18 +337,23 @@ jobs:
           require_env_value "JWT_SECRET"
 
           compose -f docker-compose.production.yml build --pull --no-cache migrator api web
+          docker image inspect "$MIGRATOR_IMAGE_REF" "$API_IMAGE_REF" "$WEB_IMAGE_REF" >/dev/null
           compose -f docker-compose.production.yml up -d postgres
 
           wait_for_container_health "rebequi-postgres" 120
 
           docker rm -f rebequi-migrator >/dev/null 2>&1 || true
+          docker rm -f rebequi-api >/dev/null 2>&1 || true
+          docker rm -f rebequi-web >/dev/null 2>&1 || true
           compose -f docker-compose.production.yml run --rm migrator
-          compose -f docker-compose.production.yml up -d --force-recreate --remove-orphans api web
+          compose -f docker-compose.production.yml up -d --force-recreate --renew-anon-volumes --remove-orphans api web
 
           wait_for_container_health "rebequi-api" 120
           wait_for_container_health "rebequi-web" 120
-          assert_container_uses_latest_image "rebequi-api" "current-api:latest"
-          assert_container_uses_latest_image "rebequi-web" "current-web:latest"
+          assert_container_image_ref "rebequi-api" "$API_IMAGE_REF"
+          assert_container_image_ref "rebequi-web" "$WEB_IMAGE_REF"
+          assert_container_uses_latest_image "rebequi-api" "$API_IMAGE_REF"
+          assert_container_uses_latest_image "rebequi-web" "$WEB_IMAGE_REF"
           assert_release_version "rebequi-api" "$RELEASE_VERSION_VALUE" "cat /app/.release-version"
           assert_release_version "rebequi-web" "$RELEASE_VERSION_VALUE" "cat /usr/share/nginx/html/release.txt"
           verify_json_health "http://127.0.0.1:${DEPLOY_PORT}/api/health"

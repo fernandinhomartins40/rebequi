@@ -19,6 +19,7 @@ services:
       - rebequi-network
 
   migrator:
+    image: rebequi-migrator:${RELEASE_VERSION:-dev}
     build:
       context: .
       dockerfile: apps/backend/Dockerfile
@@ -57,6 +58,7 @@ services:
       - rebequi-network
 
   api:
+    image: rebequi-api:${RELEASE_VERSION:-dev}
     build:
       context: .
       dockerfile: apps/backend/Dockerfile
@@ -81,6 +83,7 @@ services:
       - rebequi-network
 
   web:
+    image: rebequi-web:${RELEASE_VERSION:-dev}
     build:
       context: .
       dockerfile: apps/frontend/Dockerfile
