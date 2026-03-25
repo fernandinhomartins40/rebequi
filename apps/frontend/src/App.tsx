@@ -17,6 +17,7 @@ import MerchantDashboard, {
 import CustomerDashboard from "./pages/CustomerDashboard";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
+import ProductDetails from "./pages/ProductDetails";
 import Register from "./pages/Register";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,8 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/produto/:slug" element={<ProductDetails />} />
+            <Route path="/produtos/:slug" element={<ProductDetails />} />
 
             <Route element={<GuestRoute />}>
               <Route path="/painel-lojista" element={<MerchantPanel />} />

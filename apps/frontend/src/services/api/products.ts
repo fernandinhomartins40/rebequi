@@ -101,6 +101,11 @@ export async function fetchProductById(id: string): Promise<Product> {
   return unwrapData<Product>(response);
 }
 
+export async function fetchProductBySlug(slug: string): Promise<Product> {
+  const response = await apiFetch<ApiResponse<Product> | Product>(`/products/slug/${slug}`);
+  return unwrapData<Product>(response);
+}
+
 export async function fetchProductsByCategory(
   category: string,
   page = 1,
