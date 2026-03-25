@@ -105,7 +105,7 @@ model ProductImage {
   alt       String?  // Alt text for SEO
   order     Int      @default(0) // Display order (0 = first)
   isPrimary Boolean  @default(false) // Main product image
-  storageKey String? @unique // Relative key inside uploads storage
+  storageKey String? // Relative key inside uploads storage
   filename  String?  // Persisted file name
   mimeType  String?  // Stored mime type
   size      Int?     // File size in bytes
