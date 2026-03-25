@@ -43,7 +43,6 @@ const App = () => (
               <Route path="/painel-lojista/painel" element={<MerchantDashboardLayout />}>
                 <Route index element={<Navigate to="produtos" replace />} />
                 <Route path="visao-geral" element={<MerchantDashboard />} />
-                <Route path="catalogo" element={<Navigate to="/painel-lojista/painel/produtos" replace />} />
                 <Route path="produtos" element={<MerchantDashboardProducts />} />
                 <Route path="acesso" element={<MerchantDashboardAccess />} />
                 <Route path="estabilidade" element={<MerchantDashboardStability />} />
