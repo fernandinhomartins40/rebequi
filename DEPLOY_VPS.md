@@ -8,6 +8,7 @@ Use apenas:
 
 - [`.github/workflows/deploy-production.yml`](./.github/workflows/deploy-production.yml)
 - [`docker-compose.production.yml`](./docker-compose.production.yml)
+- [`docker-compose.vps.yml`](./docker-compose.vps.yml) apenas como alias manual compativel com a mesma topologia de producao
 
 ## Requisitos
 

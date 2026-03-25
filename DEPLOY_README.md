@@ -19,6 +19,7 @@ O workflow legado `deploy-vps.yml` foi removido porque continha uma expressao in
 - Workflow: [`.github/workflows/deploy-production.yml`](./.github/workflows/deploy-production.yml)
 - Compose: [`docker-compose.production.yml`](./docker-compose.production.yml)
 - Ponteiro raiz: [`deploy-production.yml`](./deploy-production.yml)
+- Alias manual compativel: [`docker-compose.vps.yml`](./docker-compose.vps.yml)
 
 ## Resumo operacional
 
