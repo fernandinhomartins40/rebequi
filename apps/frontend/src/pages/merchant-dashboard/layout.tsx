@@ -72,7 +72,7 @@ export function MerchantDashboardLayout() {
                 >
                   <Link to="/">
                     <Store className="h-4 w-4" />
-                    Ver vitrine publica
+                    Ver loja
                   </Link>
                 </Button>
               </div>

@@ -35,7 +35,7 @@ export function MerchantSidebarHeader() {
             className="h-10 w-auto shrink-0"
           />
           <div className="mt-3 space-y-1 group-data-[collapsible=icon]:hidden">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Backoffice</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Admin</p>
             <p className="text-sm font-semibold text-foreground">Painel administrativo</p>
           </div>
         </Link>

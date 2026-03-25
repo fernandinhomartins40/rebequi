@@ -128,11 +128,10 @@ export function ProductImageCropDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Scissors className="h-5 w-5 text-primary" />
-            Ajustar imagem do produto
+            Recortar imagem
           </DialogTitle>
           <DialogDescription>
-            Corte a imagem em {PRODUCT_IMAGE_WIDTH}x{PRODUCT_IMAGE_HEIGHT}px antes do upload. O arquivo final sera
-            comprimido no navegador para ocupar menos espaco.
+            Ajuste o enquadramento. A imagem sera salva em {PRODUCT_IMAGE_WIDTH}x{PRODUCT_IMAGE_HEIGHT}px.
           </DialogDescription>
         </DialogHeader>
 
@@ -162,14 +161,14 @@ export function ProductImageCropDialog({
               ) : null}
             </div>
             <p className="mt-4 text-center text-xs text-white/70">
-              Area visivel final do produto. Use os controles ao lado para enquadrar.
+              Pre-visualizacao final da imagem.
             </p>
           </div>
 
           <div className="space-y-5 rounded-3xl border border-[#eadfba] bg-white/90 p-5 shadow-[0_20px_55px_-40px_rgba(15,23,42,0.22)]">
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
               <SlidersHorizontal className="h-4 w-4 text-primary" />
-              Controles do recorte
+              Ajustes
             </div>
 
             <div className="space-y-2">
@@ -184,7 +183,7 @@ export function ProductImageCropDialog({
                 onChange={(event) => setCrop((current) => ({ ...current, zoom: Number(event.target.value) }))}
                 className="w-full"
               />
-              <p className="text-xs text-muted-foreground">Amplie ate o enquadramento ideal sem distorcer.</p>
+              <p className="text-xs text-muted-foreground">Defina a aproximacao da imagem.</p>
             </div>
 
             <div className="space-y-2">
@@ -216,7 +215,7 @@ export function ProductImageCropDialog({
             </div>
 
             <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-3 text-xs text-muted-foreground">
-              O upload final sera salvo com dimensao padronizada para toda a vitrine.
+              O arquivo final sera compactado antes do envio.
             </div>
           </div>
         </div>

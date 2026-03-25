@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 
-const MERCHANT_PANEL_URL = import.meta.env.VITE_MERCHANT_PANEL_URL || '/painel-lojista/painel/visao-geral';
+const MERCHANT_PANEL_URL = import.meta.env.VITE_MERCHANT_PANEL_URL || '/painel-lojista/painel/produtos';
 
 const MerchantPanel = () => {
   const { toast } = useToast();
@@ -65,28 +65,27 @@ const MerchantPanel = () => {
               <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm font-semibold text-primary">
                 <Shield className="h-4 w-4" /> Painel do Lojista
               </div>
-              <h1 className="text-3xl font-bold">Controle total da sua loja</h1>
+              <h1 className="text-3xl font-bold">Acesso administrativo</h1>
               <p className="text-muted-foreground">
-                Autentique-se com uma conta administrativa real para acessar a area interna da operacao.
-                As credenciais de bootstrap ficam no ambiente do servidor e nao sao exibidas publicamente.
+                Entre com uma conta ADMIN para acessar a area interna da operacao.
               </p>
             </header>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <FeatureCard
                 icon={<PackageSearch className="h-6 w-6 text-primary" />}
-                title="Catalogo"
-                description="Produtos e categorias carregados do banco persistente."
+                title="Produtos"
+                description="Cadastro, edicao e exclusao."
               />
               <FeatureCard
                 icon={<BarChart3 className="h-6 w-6 text-primary" />}
-                title="Acesso"
-                description="Sessao administrativa validada pelo backend e cookie seguro."
+                title="Sessao"
+                description="Autenticacao administrativa com controle de acesso."
               />
               <FeatureCard
                 icon={<Settings className="h-6 w-6 text-primary" />}
-                title="Proximo passo"
-                description="Expandir CRUD, pedidos e configuracoes a partir desta base estavel."
+                title="Plataforma"
+                description="Painel estruturado para expansao de novas areas."
               />
             </div>
           </div>

@@ -11,17 +11,17 @@ export function MerchantDashboardAccess() {
   return (
     <div className="space-y-6">
       <SectionLeadCard
-        badge="Acesso administrativo"
-        title="Pagina exclusiva da autenticacao"
-        description="Esta area documenta o contrato real de sessao que sustenta o painel, sem misturar esse assunto com catalogo ou roadmap."
+        badge="Acesso"
+        title="Controle de acesso"
+        description="Informacoes da sessao administrativa atual."
         tone="blue"
         actions={
           <>
             <Button asChild className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
-              <Link to={`${ADMIN_BASE_PATH}/visao-geral`}>Voltar ao resumo</Link>
+              <Link to={`${ADMIN_BASE_PATH}/visao-geral`}>Visao geral</Link>
             </Button>
             <Button asChild variant="outline" className="border-black/10 bg-white/80 text-foreground hover:bg-white">
-              <Link to={`${ADMIN_BASE_PATH}/catalogo`}>Ir para catalogo</Link>
+              <Link to={`${ADMIN_BASE_PATH}/produtos`}>Produtos</Link>
             </Button>
           </>
         }
@@ -30,8 +30,8 @@ export function MerchantDashboardAccess() {
       <section className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
         <Card className="border-[#f0d7d7] bg-white/90 shadow-[0_24px_60px_-44px_rgba(220,38,38,0.24)]">
           <CardHeader>
-            <CardTitle className="text-2xl">Sessao administrativa</CardTitle>
-            <CardDescription>Contrato real de acesso que esta sustentando este painel.</CardDescription>
+            <CardTitle className="text-2xl">Sessao atual</CardTitle>
+            <CardDescription>Dados recebidos da autenticacao.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <InfoRow label="Email autenticado" value={userEmail} />
@@ -44,28 +44,28 @@ export function MerchantDashboardAccess() {
 
         <Card className="border-[#dfe6f7] bg-white/90 shadow-[0_24px_60px_-44px_rgba(37,99,235,0.26)]">
           <CardHeader>
-            <CardTitle className="text-2xl">Garantias reais de autenticacao</CardTitle>
-            <CardDescription>O painel so existe porque o fluxo de login eh validado de ponta a ponta.</CardDescription>
+            <CardTitle className="text-2xl">Validacoes de acesso</CardTitle>
+            <CardDescription>Regras aplicadas para acesso ao painel.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-2">
             <GuaranteeCard
               title="Login"
-              description="O backend valida email e senha antes de liberar o painel."
+              description="O backend valida email e senha antes de abrir a area administrativa."
               badgeClass="bg-primary/10 text-primary"
             />
             <GuaranteeCard
               title="Role"
-              description="A rota exige ADMIN; conta cliente nao atravessa esse gate."
+              description="Somente usuarios ADMIN acessam o painel."
               badgeClass="bg-accent/10 text-accent"
             />
             <GuaranteeCard
               title="Sessao"
-              description="A UI reidrata a autenticacao em /api/auth/me antes de decidir acesso."
+              description="A autenticacao e revalidada em /api/auth/me."
               badgeClass="bg-secondary/25 text-foreground"
             />
             <GuaranteeCard
               title="Deploy"
-              description="O workflow de producao valida login, me e logout com usuarios seed."
+              description="O deploy valida login, perfil e logout automaticamente."
               badgeClass="bg-primary/10 text-primary"
             />
           </CardContent>
@@ -73,9 +73,9 @@ export function MerchantDashboardAccess() {
       </section>
 
       <section className="grid gap-4 md:grid-cols-3">
-        <SummarySurface value="ADMIN" label="Papel exigido" description="rota administrativa protegida" />
-        <SummarySurface value="Cookie" label="Sessao" description="validacao server-side em /api/auth/me" />
-        <SummarySurface value="Logout real" label="Encerramento" description="sessao derrubada pela API" />
+        <SummarySurface value="ADMIN" label="Papel exigido" description="acesso restrito" />
+        <SummarySurface value="Cookie" label="Sessao" description="validacao server-side" />
+        <SummarySurface value="Logout" label="Encerramento" description="sessao encerrada pela API" />
       </section>
     </div>
   );

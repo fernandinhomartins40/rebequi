@@ -61,7 +61,7 @@ export function MerchantDashboardProducts() {
     onSuccess: async () => {
       toast({
         title: 'Produto excluido',
-        description: 'O produto foi removido da operacao ativa e nao aparecera mais na API publica.',
+        description: 'Produto removido com sucesso.',
       });
       await refreshQueries();
     },
@@ -106,9 +106,9 @@ export function MerchantDashboardProducts() {
   return (
     <div className="space-y-6">
       <SectionLeadCard
-        badge="CRUD persistente"
-        title="Cadastro operacional de produtos"
-        description="Aqui o admin cria, edita e exclui produtos com imagens tratadas no navegador, enviadas ao storage e persistidas com metadados no banco."
+        badge="Produtos"
+        title="Gestao de produtos"
+        description="Cadastre, edite e remova produtos com persistencia de dados e imagens."
         tone="blue"
         actions={
           <>
@@ -122,10 +122,10 @@ export function MerchantDashboardProducts() {
               className="gap-2 border-black/10 bg-white/80 text-foreground hover:bg-white"
             >
               <RefreshCcw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
-              Atualizar listagem
+              Atualizar
             </Button>
             <Button asChild variant="outline" className="border-black/10 bg-white/80 text-foreground hover:bg-white">
-              <Link to={ADMIN_BASE_PATH}>Voltar ao painel</Link>
+              <Link to={ADMIN_BASE_PATH}>Visao geral</Link>
             </Button>
           </>
         }
@@ -136,36 +136,34 @@ export function MerchantDashboardProducts() {
           icon={<Boxes className="h-5 w-5 text-primary" />}
           label="Produtos cadastrados"
           value={`${adminProducts?.total ?? 0}`}
-          delta="Lidos da rota admin autenticada"
+          delta="Base administrativa"
         />
         <StatCard
           icon={<Boxes className="h-5 w-5 text-primary" />}
           label="Produtos ativos"
           value={`${activeProducts.length}`}
-          delta="Expostos na API publica"
+          delta="Visiveis na vitrine"
         />
         <StatCard
           icon={<Boxes className="h-5 w-5 text-primary" />}
           label="Produtos inativos"
           value={`${inactiveProducts.length}`}
-          delta="Mantidos no banco sem publicar"
+          delta="Nao publicados"
         />
         <StatCard
           icon={<Boxes className="h-5 w-5 text-primary" />}
           label="Destaques"
           value={`${featuredProducts.length}`}
-          delta="Prontos para a vitrine principal"
+          delta="Marcados como destaque"
         />
       </section>
 
       <Card className="border-[#eadfba] bg-white/92 shadow-[0_20px_55px_-40px_rgba(15,23,42,0.22)]">
         <CardHeader className="space-y-3">
-          <Badge className="w-fit border-none bg-accent text-accent-foreground">Consulta autenticada</Badge>
+          <Badge className="w-fit border-none bg-accent text-accent-foreground">Admin</Badge>
           <div>
-            <CardTitle className="text-2xl">Operar cadastro, estoque e imagens</CardTitle>
-            <CardDescription>
-              A vitrine publica continua lendo produtos sem login, mas a manutencao fica concentrada aqui.
-            </CardDescription>
+            <CardTitle className="text-2xl">Produtos cadastrados</CardTitle>
+            <CardDescription>Consulta administrativa da base de produtos.</CardDescription>
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -199,7 +197,7 @@ export function MerchantDashboardProducts() {
           {isLoading ? (
             <div className="flex items-center justify-center gap-2 rounded-3xl border border-black/5 bg-slate-50 px-5 py-16 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Carregando produtos persistidos...
+              Carregando produtos...
             </div>
           ) : null}
 
@@ -258,7 +256,7 @@ export function MerchantDashboardProducts() {
                           </div>
 
                           <p className="text-sm leading-6 text-muted-foreground">
-                            {product.shortDesc || product.description || 'Produto sem descricao resumida.'}
+                            {product.shortDesc || product.description || 'Sem descricao.'}
                           </p>
                         </div>
 

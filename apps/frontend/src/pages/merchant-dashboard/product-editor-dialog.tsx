@@ -398,9 +398,7 @@ export function ProductEditorDialog({
         <DialogContent className="max-h-[92vh] overflow-y-auto border-[#eadfba] bg-[linear-gradient(180deg,#fffef8,#ffffff)] sm:max-w-5xl">
           <DialogHeader>
             <DialogTitle>{isEditing ? 'Editar produto' : 'Novo produto'}</DialogTitle>
-            <DialogDescription>
-              Cadastre o produto com imagem persistida no storage e metadados gravados no banco.
-            </DialogDescription>
+            <DialogDescription>Preencha os dados do produto e salve as imagens.</DialogDescription>
           </DialogHeader>
 
           <form
@@ -485,8 +483,8 @@ export function ProductEditorDialog({
             <section className="rounded-3xl border border-[#eadfba] bg-white/92 p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-lg font-semibold text-foreground">Imagens persistidas</h3>
-                  <p className="text-sm text-muted-foreground">Crop e compressao rodam antes do upload para o storage.</p>
+                  <h3 className="text-lg font-semibold text-foreground">Imagens</h3>
+                  <p className="text-sm text-muted-foreground">As imagens sao tratadas antes do upload.</p>
                 </div>
 
                 <Button type="button" onClick={() => fileInputRef.current?.click()} className="gap-2">
@@ -523,7 +521,7 @@ export function ProductEditorDialog({
                 ))}
                 {images.length === 0 ? (
                   <div className="rounded-3xl border border-dashed border-black/10 bg-slate-50 px-5 py-10 text-center text-sm text-muted-foreground md:col-span-2 xl:col-span-3">
-                    Nenhuma imagem adicionada ainda.
+                    Nenhuma imagem selecionada.
                   </div>
                 ) : null}
               </div>

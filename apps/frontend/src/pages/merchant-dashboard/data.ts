@@ -50,7 +50,7 @@ export function useMerchantDashboardData(): MerchantDashboardOutletContext {
       return { ...item, badge: 'Agora' };
     }
 
-    if (item.id === 'catalogo' || item.id === 'produtos') {
+    if (item.id === 'produtos') {
       return { ...item, badge: `${productSummary?.total ?? 0}` };
     }
 

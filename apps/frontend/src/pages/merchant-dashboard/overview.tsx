@@ -29,17 +29,12 @@ export default function MerchantDashboardOverview() {
             }}
           />
           <CardContent className="relative space-y-6 p-8">
-            <Badge className="w-fit border-none bg-secondary text-secondary-foreground">
-              Sessao administrativa autentica
-            </Badge>
+            <Badge className="w-fit border-none bg-secondary text-secondary-foreground">Resumo</Badge>
 
             <div className="space-y-3">
-              <h2 className="max-w-3xl text-3xl font-bold leading-tight md:text-4xl">
-                O painel admin virou um shell real de backoffice.
-              </h2>
+              <h2 className="max-w-3xl text-3xl font-bold leading-tight md:text-4xl">Visao geral da operacao</h2>
               <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                Nada de hash ou bloco unico tentando fazer tudo ao mesmo tempo. Cada area do menu agora tem rota
-                propria, com a sidebar fixa sustentando a navegacao.
+                Indicadores principais do painel administrativo.
               </p>
             </div>
 
@@ -59,10 +54,10 @@ export default function MerchantDashboardOverview() {
 
             <div className="flex flex-wrap gap-3">
               <Button asChild className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
-                <Link to={`${ADMIN_BASE_PATH}/catalogo`}>Ver catalogo real</Link>
+                <Link to={`${ADMIN_BASE_PATH}/produtos`}>Produtos</Link>
               </Button>
               <Button asChild variant="outline" className="border-black/10 bg-white/80 text-foreground hover:bg-white">
-                <Link to={`${ADMIN_BASE_PATH}/estabilidade`}>Ler base estavel</Link>
+                <Link to={`${ADMIN_BASE_PATH}/estabilidade`}>Status da plataforma</Link>
               </Button>
             </div>
           </CardContent>
@@ -71,22 +66,22 @@ export default function MerchantDashboardOverview() {
         <Card className="border-[#dfe6f7] bg-white/88 shadow-[0_22px_55px_-38px_rgba(37,99,235,0.32)]">
           <CardHeader className="space-y-3">
             <Badge variant="outline" className="w-fit border-primary/20 bg-primary/5 text-primary">
-              Pulso do sistema
+              Monitoramento
             </Badge>
             <div>
-              <CardTitle className="text-2xl">O que esta vivo hoje</CardTitle>
-              <CardDescription>Leitura ancorada em dados que o backend realmente entrega.</CardDescription>
+              <CardTitle className="text-2xl">Indicadores principais</CardTitle>
+              <CardDescription>Dados carregados da API administrativa e publica.</CardDescription>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <PulseLine title="Autenticacao" value="Cookie seguro + role ADMIN" toneClass="bg-primary/10 text-primary" />
+            <PulseLine title="Autenticacao" value="Sessao ADMIN ativa" toneClass="bg-primary/10 text-primary" />
             <PulseLine
-              title="Catalogo"
-              value={`${productSummary?.total ?? 0} produtos e ${categorySummary?.total ?? 0} categorias`}
+              title="Produtos"
+              value={`${productSummary?.total ?? 0} itens ativos e ${categorySummary?.total ?? 0} categorias publicas`}
               toneClass="bg-secondary/25 text-foreground"
             />
             <PulseLine
-              title="Promocoes e novidades"
+              title="Vitrine"
               value={`${promotionalProducts.length} ofertas e ${newProducts.length} novidades`}
               toneClass="bg-accent/10 text-accent"
             />
@@ -99,41 +94,41 @@ export default function MerchantDashboardOverview() {
           icon={<Store className="h-5 w-5 text-primary" />}
           label="Administrador"
           value={userEmail}
-          delta="Sessao atual"
+          delta="Usuario autenticado"
         />
         <StatCard
           icon={<Package className="h-5 w-5 text-primary" />}
           label="Produtos ativos"
           value={`${productSummary?.total ?? 0}`}
-          delta="Persistidos no banco"
+          delta="Base publica"
         />
         <StatCard
           icon={<ShieldCheck className="h-5 w-5 text-primary" />}
           label="Produtos em oferta"
           value={`${promotionalProducts.length}`}
-          delta="Lidos via API real"
+          delta="Ofertas ativas"
         />
         <StatCard
           icon={<BarChart3 className="h-5 w-5 text-primary" />}
           label="Novidades"
           value={`${newProducts.length}`}
-          delta="Catalogo carregado do backend"
+          delta="Produtos sinalizados"
         />
       </section>
 
       <section className="grid gap-5 lg:grid-cols-2">
         <SectionLeadCard
-          badge="Fluxo por paginas"
-          title="Cada menu abre uma area propria do admin"
-          description="A estrutura agora segue a logica de um backoffice: overview, catalogo, acesso e estabilidade em rotas independentes."
+          badge="Acesso rapido"
+          title="Atalhos do painel"
+          description="Links diretos para as areas administrativas."
           tone="blue"
           actions={
             <>
               <Button asChild variant="outline" className="border-black/10 bg-white/80 text-foreground hover:bg-white">
-                <Link to={`${ADMIN_BASE_PATH}/catalogo`}>Abrir catalogo</Link>
+                <Link to={`${ADMIN_BASE_PATH}/produtos`}>Produtos</Link>
               </Button>
               <Button asChild variant="outline" className="border-black/10 bg-white/80 text-foreground hover:bg-white">
-                <Link to={`${ADMIN_BASE_PATH}/acesso`}>Abrir acesso</Link>
+                <Link to={`${ADMIN_BASE_PATH}/acesso`}>Acesso</Link>
               </Button>
             </>
           }
@@ -141,20 +136,18 @@ export default function MerchantDashboardOverview() {
 
         <Card className="border-[#f0d7d7] bg-white/90 shadow-[0_24px_60px_-44px_rgba(220,38,38,0.18)]">
           <CardHeader>
-            <CardTitle className="text-2xl">Base segura para o proximo passo</CardTitle>
-            <CardDescription>
-              O shell administrativo continua o mesmo enquanto o conteudo muda por rota, sem desmontar a sessao.
-            </CardDescription>
+            <CardTitle className="text-2xl">Estrutura do painel</CardTitle>
+            <CardDescription>Navegacao lateral fixa e rotas separadas por area.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-2">
             <GuaranteeCard
-              title="Sidebar persistente"
-              description="A navegacao lateral permanece fixa enquanto o conteudo troca na area principal."
+              title="Navegacao"
+              description="A sidebar permanece visivel em todas as paginas do painel."
               badgeClass="bg-secondary/30 text-foreground"
             />
             <GuaranteeCard
-              title="Rotas reais"
-              description="Cada item do menu possui URL propria, pronto para crescer sem remendar uma pagina unica."
+              title="Rotas"
+              description="Cada area administrativa possui URL propria."
               badgeClass="bg-primary/10 text-primary"
             />
           </CardContent>

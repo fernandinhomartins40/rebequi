@@ -1,4 +1,4 @@
-import { BarChart3, CheckCircle2, PackageSearch, ShieldCheck, Boxes, type LucideIcon } from 'lucide-react';
+import { BarChart3, CheckCircle2, ShieldCheck, Boxes, type LucideIcon } from 'lucide-react';
 
 export const ADMIN_BASE_PATH = '/painel-lojista/painel';
 
@@ -13,7 +13,7 @@ export const SIDEBAR_THEME = {
   '--sidebar-ring': '217 91% 60%',
 } as const;
 
-export type MerchantSection = 'visao-geral' | 'catalogo' | 'produtos' | 'acesso' | 'estabilidade';
+export type MerchantSection = 'visao-geral' | 'produtos' | 'acesso' | 'estabilidade';
 
 export type MerchantNavItem = {
   id: MerchantSection;
@@ -32,50 +32,40 @@ export const NAV_SECTIONS: Omit<MerchantNavItem, 'badge'>[] = [
     id: 'visao-geral',
     href: `${ADMIN_BASE_PATH}/visao-geral`,
     label: 'Visao geral',
-    description: 'Resumo real do backoffice',
+    description: 'Indicadores da operacao',
     icon: BarChart3,
-    eyebrow: 'Panorama',
-    title: 'Visao geral da operacao',
-    intro: 'Leitura direta do que a plataforma administrativa consegue sustentar hoje com dados reais.',
-  },
-  {
-    id: 'catalogo',
-    href: `${ADMIN_BASE_PATH}/catalogo`,
-    label: 'Catalogo',
-    description: 'Dados persistidos no banco',
-    icon: PackageSearch,
-    eyebrow: 'Catalogo',
-    title: 'Catalogo conectado ao banco',
-    intro: 'Produtos e categorias carregados da API publica, sem inventar dados operacionais no frontend.',
+    eyebrow: 'Resumo',
+    title: 'Visao geral',
+    intro: 'Indicadores principais do painel administrativo.',
   },
   {
     id: 'produtos',
     href: `${ADMIN_BASE_PATH}/produtos`,
     label: 'Produtos',
-    description: 'CRUD com upload persistente',
+    description: 'Cadastro e manutencao',
     icon: Boxes,
     eyebrow: 'Produtos',
-    title: 'Gestao operacional de produtos',
-    intro: 'Cadastro, edicao e exclusao de produtos com imagem persistida em storage e banco.',
+    title: 'Gestao de produtos',
+    intro: 'Cadastre, edite e acompanhe produtos, estoque e imagens.',
   },
   {
     id: 'acesso',
     href: `${ADMIN_BASE_PATH}/acesso`,
     label: 'Acesso',
-    description: 'Sessao ADMIN autenticada',
+    description: 'Sessao e permissoes',
     icon: ShieldCheck,
     eyebrow: 'Acesso',
-    title: 'Autenticacao administrativa',
-    intro: 'Sessao, role e validacao do backend expostos como uma pagina propria do backoffice.',
+    title: 'Controle de acesso',
+    intro: 'Sessao atual, permissoes e validacoes de autenticacao.',
   },
   {
     id: 'estabilidade',
     href: `${ADMIN_BASE_PATH}/estabilidade`,
-    label: 'Base estavel',
-    description: 'O que existe e o que falta',
+    label: 'Plataforma',
+    description: 'Status tecnico',
     icon: CheckCircle2,
-    eyebrow: 'Base estavel',
-    title: 'Fundacao pronta para evoluir',
-    intro: 'Separacao clara entre o que ja existe com persistencia real e o que ainda segue pendente.',
+    eyebrow: 'Plataforma',
+    title: 'Status da plataforma',
+    intro: 'Implementacoes concluidas e pendencias do painel.',
   },
 ];
