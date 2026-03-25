@@ -1,25 +1,17 @@
+import imageCompression from 'browser-image-compression';
+import { centerCrop, makeAspectCrop, type PercentCrop } from 'react-image-crop';
+
 export const PRODUCT_IMAGE_WIDTH = 1200;
 export const PRODUCT_IMAGE_HEIGHT = 900;
 export const PRODUCT_IMAGE_ASPECT = PRODUCT_IMAGE_WIDTH / PRODUCT_IMAGE_HEIGHT;
 export const PRODUCT_IMAGE_QUALITY = 0.82;
-
-export type ProductCropState = {
-  zoom: number;
-  offsetX: number;
-  offsetY: number;
-};
+export const PRODUCT_IMAGE_MAX_SIZE_MB = 0.45;
+export const PRODUCT_IMAGE_INITIAL_CROP_WIDTH_PERCENT = 88;
 
 type LoadedImage = {
   image: HTMLImageElement;
   width: number;
   height: number;
-};
-
-export type CropPreviewMetrics = {
-  displayWidth: number;
-  displayHeight: number;
-  maxOffsetX: number;
-  maxOffsetY: number;
 };
 
 export function readFileAsDataUrl(file: File) {
@@ -57,25 +49,6 @@ async function loadImage(src: string): Promise<LoadedImage> {
   });
 }
 
-export function getCropPreviewMetrics(params: {
-  imageWidth: number;
-  imageHeight: number;
-  zoom: number;
-}) {
-  const { imageWidth, imageHeight, zoom } = params;
-  const baseScale = Math.max(PRODUCT_IMAGE_WIDTH / imageWidth, PRODUCT_IMAGE_HEIGHT / imageHeight);
-  const scale = baseScale * zoom;
-  const displayWidth = imageWidth * scale;
-  const displayHeight = imageHeight * scale;
-
-  return {
-    displayWidth,
-    displayHeight,
-    maxOffsetX: Math.max((displayWidth - PRODUCT_IMAGE_WIDTH) / 2, 0),
-    maxOffsetY: Math.max((displayHeight - PRODUCT_IMAGE_HEIGHT) / 2, 0),
-  } satisfies CropPreviewMetrics;
-}
-
 function sanitizeFileBaseName(name: string) {
   return name
     .replace(/\.[^.]+$/, '')
@@ -90,27 +63,36 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
+function roundPercent(value: number) {
+  return Math.round(value * 1000) / 1000;
+}
+
+export function createCenteredAspectCrop(imageWidth: number, imageHeight: number): PercentCrop {
+  return centerCrop(
+    makeAspectCrop(
+      {
+        unit: '%',
+        width: PRODUCT_IMAGE_INITIAL_CROP_WIDTH_PERCENT,
+      },
+      PRODUCT_IMAGE_ASPECT,
+      imageWidth,
+      imageHeight
+    ),
+    imageWidth,
+    imageHeight
+  );
+}
+
 export async function createCroppedProductImageFile(params: {
   sourceUrl: string;
   originalFileName: string;
-  crop: ProductCropState;
+  crop: PercentCrop;
 }) {
   const { image, width, height } = await loadImage(params.sourceUrl);
-  const metrics = getCropPreviewMetrics({
-    imageWidth: width,
-    imageHeight: height,
-    zoom: params.crop.zoom,
-  });
-
-  const scale = metrics.displayWidth / width;
-  const sourceX = clamp(((metrics.displayWidth - PRODUCT_IMAGE_WIDTH) / 2 - params.crop.offsetX) / scale, 0, width);
-  const sourceY = clamp(
-    ((metrics.displayHeight - PRODUCT_IMAGE_HEIGHT) / 2 - params.crop.offsetY) / scale,
-    0,
-    height
-  );
-  const sourceWidth = clamp(PRODUCT_IMAGE_WIDTH / scale, 1, width - sourceX);
-  const sourceHeight = clamp(PRODUCT_IMAGE_HEIGHT / scale, 1, height - sourceY);
+  const sourceX = clamp(Math.round((params.crop.x / 100) * width), 0, width - 1);
+  const sourceY = clamp(Math.round((params.crop.y / 100) * height), 0, height - 1);
+  const sourceWidth = clamp(Math.round((params.crop.width / 100) * width), 1, width - sourceX);
+  const sourceHeight = clamp(Math.round((params.crop.height / 100) * height), 1, height - sourceY);
 
   const canvas = document.createElement('canvas');
   canvas.width = PRODUCT_IMAGE_WIDTH;
@@ -135,21 +117,29 @@ export async function createCroppedProductImageFile(params: {
     PRODUCT_IMAGE_HEIGHT
   );
 
-  const blob = await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob(
-      (result) => {
-        if (!result) {
-          reject(new Error('Nao foi possivel gerar a imagem final'));
-          return;
-        }
-
-        resolve(result);
-      },
-      'image/webp',
-      PRODUCT_IMAGE_QUALITY
-    );
-  });
-
   const baseName = sanitizeFileBaseName(params.originalFileName);
-  return new File([blob], `${baseName}.webp`, { type: 'image/webp' });
+  const renderedFile = await imageCompression.canvasToFile(
+    canvas,
+    'image/webp',
+    `${baseName}.webp`,
+    Date.now(),
+    PRODUCT_IMAGE_QUALITY
+  );
+
+  return imageCompression(renderedFile, {
+    maxSizeMB: PRODUCT_IMAGE_MAX_SIZE_MB,
+    useWebWorker: true,
+    fileType: 'image/webp',
+    initialQuality: PRODUCT_IMAGE_QUALITY,
+    alwaysKeepResolution: true,
+    maxWidthOrHeight: Math.max(PRODUCT_IMAGE_WIDTH, PRODUCT_IMAGE_HEIGHT),
+  });
+}
+
+export function formatPercentCropValue(value?: number) {
+  if (value === undefined || Number.isNaN(value)) {
+    return '0';
+  }
+
+  return String(roundPercent(value));
 }
