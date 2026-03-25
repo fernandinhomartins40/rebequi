@@ -29,6 +29,7 @@ export interface CreateCategoryDTO {
   icon?: string;
   image?: string;
   description?: string;
+  isActive?: boolean;
 }
 
 export interface UpdateCategoryDTO {

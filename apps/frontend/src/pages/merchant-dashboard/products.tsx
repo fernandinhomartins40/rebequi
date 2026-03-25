@@ -1,23 +1,28 @@
 import { useDeferredValue, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Boxes, Loader2, Pencil, Plus, RefreshCcw, Search, Trash2 } from 'lucide-react';
-import type { Product } from '@rebequi/shared/types';
+import { Boxes, Loader2, Pencil, Plus, RefreshCcw, Search, Tags, Trash2 } from 'lucide-react';
+import type { Category, Product } from '@rebequi/shared/types';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
-import { fetchCategories } from '@/services/api/categories';
+import { deleteCategory, fetchCategories } from '@/services/api/categories';
 import { deleteProduct, fetchAdminProducts } from '@/services/api/products';
-import { ProductEditorDialog } from './product-editor-dialog';
+import { CategoryEditorDialog } from './category-editor-dialog';
 import { ADMIN_BASE_PATH } from './config';
 import { SectionLeadCard, StatCard } from './components';
+import { ProductEditorDialog } from './product-editor-dialog';
 
 type ProductStatusFilter = 'all' | 'active' | 'inactive';
 
 function getPrimaryImage(product: Product) {
   return product.images?.find((image) => image.isPrimary) || product.images?.[0];
+}
+
+function trimText(value?: string | null) {
+  return value?.trim() || '';
 }
 
 export function MerchantDashboardProducts() {
@@ -27,11 +32,13 @@ export function MerchantDashboardProducts() {
   const [statusFilter, setStatusFilter] = useState<ProductStatusFilter>('all');
   const [editorOpen, setEditorOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [categoryEditorOpen, setCategoryEditorOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const deferredSearch = useDeferredValue(search);
 
-  const { data: categoriesData } = useQuery({
-    queryKey: ['merchant-dashboard', 'categories'],
-    queryFn: fetchCategories,
+  const { data: categoriesData, isLoading: isLoadingCategories } = useQuery({
+    queryKey: ['merchant-dashboard', 'categories', 'all'],
+    queryFn: () => fetchCategories({ includeInactive: true }),
   });
 
   const {
@@ -53,6 +60,7 @@ export function MerchantDashboardProducts() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['merchant-dashboard'] }),
       queryClient.invalidateQueries({ queryKey: ['products'] }),
+      queryClient.invalidateQueries({ queryKey: ['categories'] }),
     ]);
   };
 
@@ -74,18 +82,52 @@ export function MerchantDashboardProducts() {
     },
   });
 
+  const deleteCategoryMutation = useMutation({
+    mutationFn: deleteCategory,
+    onSuccess: async () => {
+      toast({
+        title: 'Categoria excluida',
+        description: 'Categoria removida com sucesso.',
+      });
+      await refreshQueries();
+    },
+    onError: (error) => {
+      toast({
+        variant: 'destructive',
+        title: 'Falha ao excluir categoria',
+        description: error instanceof Error ? error.message : 'Erro inesperado ao excluir a categoria.',
+      });
+    },
+  });
+
   const products = adminProducts?.products ?? [];
+  const managedCategories = categoriesData?.categories ?? [];
   const activeProducts = products.filter((product) => product.isActive);
   const inactiveProducts = products.filter((product) => !product.isActive);
   const featuredProducts = products.filter((product) => product.isFeatured);
-  const categories = (categoriesData?.categories ?? [])
-    .filter((category) => category.isActive)
+  const activeCategories = managedCategories.filter((category) => category.isActive);
+  const inactiveCategories = managedCategories.filter((category) => !category.isActive);
+  const categoriesInUse = managedCategories.filter((category) => (category.productsCount ?? 0) > 0);
+
+  const categories = managedCategories
+    .filter((category) => category.isActive || category.id === selectedProduct?.categoryId)
     .map((category) => ({
       id: category.id,
-      name: category.name,
+      name: category.isActive ? category.name : `${category.name} (inativa)`,
     }));
 
+  const canCreateProduct = activeCategories.length > 0;
+
   const openCreateDialog = () => {
+    if (!canCreateProduct) {
+      toast({
+        variant: 'destructive',
+        title: 'Cadastre uma categoria antes',
+        description: 'Crie pelo menos uma categoria ativa para cadastrar produtos.',
+      });
+      return;
+    }
+
     setSelectedProduct(null);
     setEditorOpen(true);
   };
@@ -93,6 +135,16 @@ export function MerchantDashboardProducts() {
   const openEditDialog = (product: Product) => {
     setSelectedProduct(product);
     setEditorOpen(true);
+  };
+
+  const openCreateCategoryDialog = () => {
+    setSelectedCategory(null);
+    setCategoryEditorOpen(true);
+  };
+
+  const openEditCategoryDialog = (category: Category) => {
+    setSelectedCategory(category);
+    setCategoryEditorOpen(true);
   };
 
   const handleDelete = async (product: Product) => {
@@ -103,18 +155,43 @@ export function MerchantDashboardProducts() {
     await deleteMutation.mutateAsync(product.id);
   };
 
+  const handleDeleteCategory = async (category: Category) => {
+    if ((category.productsCount ?? 0) > 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Categoria em uso',
+        description: 'Remova ou recategorize os produtos vinculados antes de excluir a categoria.',
+      });
+      return;
+    }
+
+    if (!window.confirm(`Excluir a categoria "${category.name}"?`)) {
+      return;
+    }
+
+    await deleteCategoryMutation.mutateAsync(category.id);
+  };
+
   return (
     <div className="space-y-6">
       <SectionLeadCard
         badge="Produtos"
         title="Gestao de produtos"
-        description="Cadastre, edite e remova produtos com persistencia de dados e imagens."
+        description="Cadastre, edite e remova produtos com persistencia de dados e imagens. As categorias tambem sao administradas nesta tela."
         tone="blue"
         actions={
           <>
             <Button onClick={openCreateDialog} className="gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90">
               <Plus className="h-4 w-4" />
               Novo produto
+            </Button>
+            <Button
+              variant="outline"
+              onClick={openCreateCategoryDialog}
+              className="gap-2 border-black/10 bg-white/80 text-foreground hover:bg-white"
+            >
+              <Tags className="h-4 w-4" />
+              Nova categoria
             </Button>
             <Button
               variant="outline"
@@ -145,18 +222,124 @@ export function MerchantDashboardProducts() {
           delta="Visiveis na vitrine"
         />
         <StatCard
-          icon={<Boxes className="h-5 w-5 text-primary" />}
-          label="Produtos inativos"
-          value={`${inactiveProducts.length}`}
-          delta="Nao publicados"
+          icon={<Tags className="h-5 w-5 text-primary" />}
+          label="Categorias ativas"
+          value={`${activeCategories.length}`}
+          delta="Disponiveis no formulario"
         />
         <StatCard
-          icon={<Boxes className="h-5 w-5 text-primary" />}
-          label="Destaques"
-          value={`${featuredProducts.length}`}
-          delta="Marcados como destaque"
+          icon={<Tags className="h-5 w-5 text-primary" />}
+          label="Categorias em uso"
+          value={`${categoriesInUse.length}`}
+          delta="Com produtos vinculados"
         />
       </section>
+
+      <Card className="border-[#eadfba] bg-white/92 shadow-[0_20px_55px_-40px_rgba(15,23,42,0.22)]">
+        <CardHeader className="space-y-3">
+          <Badge className="w-fit border-none bg-accent text-accent-foreground">Categorias</Badge>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <CardTitle className="text-2xl">Gerenciamento de categorias</CardTitle>
+              <CardDescription>Crie, edite e remova categorias usadas no cadastro e na edicao de produtos.</CardDescription>
+            </div>
+            <Button onClick={openCreateCategoryDialog} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Cadastrar categoria
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {!canCreateProduct ? (
+            <div className="rounded-3xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+              Nenhuma categoria ativa disponivel. Cadastre uma categoria para liberar o cadastro de produtos.
+            </div>
+          ) : null}
+
+          {isLoadingCategories ? (
+            <div className="flex items-center justify-center gap-2 rounded-3xl border border-black/5 bg-slate-50 px-5 py-16 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Carregando categorias...
+            </div>
+          ) : null}
+
+          {!isLoadingCategories && managedCategories.length === 0 ? (
+            <div className="rounded-3xl border border-dashed border-black/10 bg-slate-50 px-5 py-16 text-center text-sm text-muted-foreground">
+              Nenhuma categoria cadastrada.
+            </div>
+          ) : null}
+
+          {!isLoadingCategories ? (
+            <div className="grid gap-4 xl:grid-cols-2">
+              {managedCategories.map((category) => {
+                const productsCount = category.productsCount ?? 0;
+                const canDeleteCategory = productsCount === 0 && !deleteCategoryMutation.isPending;
+
+                return (
+                  <article
+                    key={category.id}
+                    className="rounded-3xl border border-black/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.94))] p-5 shadow-[0_20px_55px_-44px_rgba(15,23,42,0.22)]"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-xl font-semibold text-foreground">{category.name}</h3>
+                          <Badge className={category.isActive ? 'bg-primary text-primary-foreground' : 'bg-slate-700 text-white'}>
+                            {category.isActive ? 'Ativa' : 'Inativa'}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">Slug: {category.slug}</p>
+                      </div>
+
+                      <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-3 text-right">
+                        <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Produtos</p>
+                        <p className="mt-1 text-xl font-bold text-foreground">{productsCount}</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-3">
+                        <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Icone</p>
+                        <p className="mt-1 font-semibold text-foreground">{trimText(category.icon) || 'Nao definido'}</p>
+                      </div>
+                      <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-3">
+                        <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Status no formulario</p>
+                        <p className="mt-1 font-semibold text-foreground">{category.isActive ? 'Disponivel para novos produtos' : 'Oculta para novos cadastros'}</p>
+                      </div>
+                    </div>
+
+                    <p className="mt-4 text-sm leading-6 text-muted-foreground">
+                      {trimText(category.description) || 'Sem descricao cadastrada para esta categoria.'}
+                    </p>
+
+                    {productsCount > 0 ? (
+                      <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                        Esta categoria possui produtos vinculados e nao pode ser excluida.
+                      </div>
+                    ) : null}
+
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      <Button onClick={() => openEditCategoryDialog(category)} className="gap-2">
+                        <Pencil className="h-4 w-4" />
+                        Editar categoria
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => void handleDeleteCategory(category)}
+                        disabled={!canDeleteCategory}
+                        className="gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Excluir categoria
+                      </Button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
 
       <Card className="border-[#eadfba] bg-white/92 shadow-[0_20px_55px_-40px_rgba(15,23,42,0.22)]">
         <CardHeader className="space-y-3">
@@ -188,7 +371,7 @@ export function MerchantDashboardProducts() {
               <option value="inactive">Somente inativos</option>
             </select>
 
-            <Button onClick={openCreateDialog} className="gap-2">
+            <Button onClick={openCreateDialog} className="gap-2" disabled={!canCreateProduct}>
               <Plus className="h-4 w-4" />
               Cadastrar
             </Button>
@@ -308,6 +491,20 @@ export function MerchantDashboardProducts() {
           setEditorOpen(nextOpen);
           if (!nextOpen) {
             setSelectedProduct(null);
+          }
+        }}
+        onSaved={() => {
+          void refreshQueries();
+        }}
+      />
+
+      <CategoryEditorDialog
+        open={categoryEditorOpen}
+        category={selectedCategory}
+        onOpenChange={(nextOpen) => {
+          setCategoryEditorOpen(nextOpen);
+          if (!nextOpen) {
+            setSelectedCategory(null);
           }
         }}
         onSaved={() => {

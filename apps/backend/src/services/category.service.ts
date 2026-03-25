@@ -80,6 +80,7 @@ export class CategoryService {
       icon: data.icon,
       image: data.image,
       description: data.description,
+      isActive: data.isActive,
     });
 
     return category;
@@ -120,6 +121,11 @@ export class CategoryService {
     const category = await this.categoryRepository.findById(id);
     if (!category) {
       throw new NotFoundError('Category not found');
+    }
+
+    const productsCount = (category as any)._count?.products || 0;
+    if (productsCount > 0) {
+      throw new ConflictError('Category cannot be deleted while products are linked to it');
     }
 
     await this.categoryRepository.softDelete(id);
