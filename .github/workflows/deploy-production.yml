@@ -343,8 +343,6 @@ jobs:
           wait_for_container_health "rebequi-postgres" 120
 
           docker rm -f rebequi-migrator >/dev/null 2>&1 || true
-          docker rm -f rebequi-api >/dev/null 2>&1 || true
-          docker rm -f rebequi-web >/dev/null 2>&1 || true
           compose -f docker-compose.production.yml run --rm migrator
           compose -f docker-compose.production.yml up -d --force-recreate --renew-anon-volumes --remove-orphans api web
 
@@ -497,6 +495,12 @@ jobs:
 
           verify_auth_flow "${PRIMARY_DOMAIN}" "$(read_env_value BOOTSTRAP_ADMIN_EMAIL)" "$(read_env_value BOOTSTRAP_ADMIN_PASSWORD)" "ADMIN"
           verify_auth_flow "${PRIMARY_DOMAIN}" "$(read_env_value BOOTSTRAP_CUSTOMER_EMAIL)" "$(read_env_value BOOTSTRAP_CUSTOMER_PASSWORD)" "CUSTOMER"
+          wait_for_container_health "rebequi-api" 120
+          wait_for_container_health "rebequi-web" 120
+          assert_container_image_ref "rebequi-api" "$API_IMAGE_REF"
+          assert_container_image_ref "rebequi-web" "$WEB_IMAGE_REF"
+          assert_release_version "rebequi-api" "$RELEASE_VERSION_VALUE" "cat /app/.release-version"
+          assert_release_version "rebequi-web" "$RELEASE_VERSION_VALUE" "cat /usr/share/nginx/html/release.txt"
 
           echo "Deploy concluido em ${PRIMARY_DOMAIN} e ${SECONDARY_DOMAIN}"
           REMOTE
