@@ -20,6 +20,8 @@ services:
       context: .
       dockerfile: apps/backend/Dockerfile
       target: builder
+      args:
+        RELEASE_VERSION: ${RELEASE_VERSION:-dev}
     container_name: rebequi-migrator
     env_file:
       - .env.production
@@ -35,6 +37,8 @@ services:
     build:
       context: .
       dockerfile: apps/backend/Dockerfile
+      args:
+        RELEASE_VERSION: ${RELEASE_VERSION:-dev}
     env_file:
       - .env.production
     depends_on:
@@ -58,6 +62,8 @@ services:
     build:
       context: .
       dockerfile: apps/frontend/Dockerfile
+      args:
+        RELEASE_VERSION: ${RELEASE_VERSION:-dev}
     depends_on:
       api:
         condition: service_healthy

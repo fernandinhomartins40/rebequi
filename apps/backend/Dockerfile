@@ -34,6 +34,9 @@ RUN npm run build
 # Production Stage
 # =============================================================================
 FROM node:20-alpine AS production
+ARG RELEASE_VERSION=dev
+LABEL org.opencontainers.image.revision=$RELEASE_VERSION
+ENV RELEASE_VERSION=$RELEASE_VERSION
 
 # Install dumb-init for proper signal handling
 RUN apk add --no-cache dumb-init
@@ -57,7 +60,9 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 
 # Create directories
-RUN mkdir -p /app/uploads /app/logs && chown -R node:node /app
+RUN mkdir -p /app/uploads /app/logs \
+  && printf '%s\n' "$RELEASE_VERSION" > /app/.release-version \
+  && chown -R node:node /app
 
 # Switch to non-root user
 USER node

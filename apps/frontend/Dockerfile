@@ -25,12 +25,15 @@ RUN npm run build
 
 # Stage 2: Production with Nginx
 FROM nginx:alpine AS runner
+ARG RELEASE_VERSION=dev
+LABEL org.opencontainers.image.revision=$RELEASE_VERSION
 
 # Copy built files to nginx
 COPY --from=builder /app/apps/frontend/dist /usr/share/nginx/html
 
 # Copy custom nginx configuration
 COPY apps/frontend/nginx.conf /etc/nginx/conf.d/default.conf
+RUN printf '%s\n' "$RELEASE_VERSION" > /usr/share/nginx/html/release.txt
 
 EXPOSE 80
 

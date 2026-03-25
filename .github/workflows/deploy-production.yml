@@ -168,6 +168,22 @@ jobs:
             fi
           }
 
+          assert_release_version() {
+            local container_name="$1"
+            local expected_release="$2"
+            local command="$3"
+            local actual_release
+
+            actual_release="$(docker exec "$container_name" sh -lc "$command" | tr -d '\r')"
+
+            if [ "$actual_release" != "$expected_release" ]; then
+              echo "Container $container_name nao esta com a release esperada." >&2
+              echo "expected_release=$expected_release" >&2
+              echo "actual_release=$actual_release" >&2
+              exit 1
+            fi
+          }
+
           wait_for_container_health() {
             local container_name="$1"
             local timeout_seconds="${2:-120}"
@@ -267,6 +283,8 @@ jobs:
           JWT_SECRET_VALUE="$(read_env_value JWT_SECRET)"
           [ -n "$JWT_SECRET_VALUE" ] || JWT_SECRET_VALUE="$(openssl rand -hex 32)"
 
+          RELEASE_VERSION_VALUE="${{ github.sha }}"
+
           ensure_env_value "NODE_ENV" "production"
           ensure_env_value "PORT" "3000"
           ensure_env_value "HOST" "0.0.0.0"
@@ -291,6 +309,8 @@ jobs:
           ensure_env_value "MAX_FILE_SIZE" "5242880"
           ensure_env_value "UPLOAD_DIR" "./uploads"
           ensure_env_value "LOG_LEVEL" "info"
+          set_env_value "RELEASE_VERSION" "$RELEASE_VERSION_VALUE"
+          export RELEASE_VERSION="$RELEASE_VERSION_VALUE"
 
           require_env_value "POSTGRES_DB"
           require_env_value "POSTGRES_USER"
@@ -311,6 +331,8 @@ jobs:
           wait_for_container_health "rebequi-web" 120
           assert_container_uses_latest_image "rebequi-api" "current-api:latest"
           assert_container_uses_latest_image "rebequi-web" "current-web:latest"
+          assert_release_version "rebequi-api" "$RELEASE_VERSION_VALUE" "cat /app/.release-version"
+          assert_release_version "rebequi-web" "$RELEASE_VERSION_VALUE" "cat /usr/share/nginx/html/release.txt"
           verify_json_health "http://127.0.0.1:${DEPLOY_PORT}/api/health"
           verify_frontend_cache_headers "http://127.0.0.1:${DEPLOY_PORT}"
 

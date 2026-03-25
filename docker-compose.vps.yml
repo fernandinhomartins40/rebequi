@@ -23,6 +23,8 @@ services:
       context: .
       dockerfile: apps/backend/Dockerfile
       target: builder
+      args:
+        RELEASE_VERSION: ${RELEASE_VERSION:-dev}
     container_name: rebequi-migrator
     restart: "no"
     environment: &backend-env
@@ -58,6 +60,8 @@ services:
     build:
       context: .
       dockerfile: apps/backend/Dockerfile
+      args:
+        RELEASE_VERSION: ${RELEASE_VERSION:-dev}
     container_name: rebequi-api
     restart: unless-stopped
     environment: *backend-env
@@ -80,6 +84,8 @@ services:
     build:
       context: .
       dockerfile: apps/frontend/Dockerfile
+      args:
+        RELEASE_VERSION: ${RELEASE_VERSION:-dev}
     container_name: rebequi-web
     restart: unless-stopped
     depends_on:
