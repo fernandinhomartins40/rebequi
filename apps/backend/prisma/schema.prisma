@@ -105,6 +105,12 @@ model ProductImage {
   alt       String?  // Alt text for SEO
   order     Int      @default(0) // Display order (0 = first)
   isPrimary Boolean  @default(false) // Main product image
+  storageKey String? @unique // Relative key inside uploads storage
+  filename  String?  // Persisted file name
+  mimeType  String?  // Stored mime type
+  size      Int?     // File size in bytes
+  width     Int?     // Stored image width
+  height    Int?     // Stored image height
   productId String
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
@@ -113,5 +119,6 @@ model ProductImage {
   @@index([productId])
   @@index([isPrimary])
   @@index([order])
+  @@index([storageKey])
   @@map("product_images")
 }

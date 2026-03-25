@@ -8,6 +8,7 @@ import { ProductController } from '../controllers/product.controller.js';
 import { validateBody } from '../middleware/validation.middleware.js';
 import { authenticate, authorize } from '../middleware/auth.middleware.js';
 import { createProductSchema, updateProductSchema } from '@rebequi/shared/schemas';
+import { upload } from '../config/multer.js';
 
 const router = Router();
 const productController = new ProductController();
@@ -19,9 +20,19 @@ router.get('/new', productController.getNew);
 router.get('/featured', productController.getFeatured);
 router.get('/category/:categorySlug', productController.getByCategory);
 router.get('/slug/:slug', productController.getBySlug);
-router.get('/:id', productController.getById);
+
+// Admin read routes
+router.get('/admin/list', authenticate, authorize('ADMIN'), productController.getAdminAll);
 
 // Admin routes
+router.post(
+  '/images/upload',
+  authenticate,
+  authorize('ADMIN'),
+  upload.single('image'),
+  productController.uploadImage
+);
+
 router.post(
   '/',
   authenticate,
@@ -39,5 +50,6 @@ router.put(
 );
 
 router.delete('/:id', authenticate, authorize('ADMIN'), productController.delete);
+router.get('/:id', productController.getById);
 
 export default router;

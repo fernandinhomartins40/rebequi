@@ -12,6 +12,7 @@ import MerchantDashboard, {
   MerchantDashboardAccess,
   MerchantDashboardCatalog,
   MerchantDashboardLayout,
+  MerchantDashboardProducts,
   MerchantDashboardStability,
 } from "./pages/MerchantDashboard";
 import CustomerDashboard from "./pages/CustomerDashboard";
@@ -44,6 +45,7 @@ const App = () => (
                 <Route index element={<Navigate to="visao-geral" replace />} />
                 <Route path="visao-geral" element={<MerchantDashboard />} />
                 <Route path="catalogo" element={<MerchantDashboardCatalog />} />
+                <Route path="produtos" element={<MerchantDashboardProducts />} />
                 <Route path="acesso" element={<MerchantDashboardAccess />} />
                 <Route path="estabilidade" element={<MerchantDashboardStability />} />
                 <Route path="*" element={<Navigate to="visao-geral" replace />} />

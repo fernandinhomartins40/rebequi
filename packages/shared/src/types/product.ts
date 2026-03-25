@@ -4,11 +4,17 @@
  */
 
 export interface ProductImage {
-  id: string;
+  id?: string;
   url: string;
   alt?: string;
   order: number;
   isPrimary: boolean;
+  storageKey?: string;
+  filename?: string;
+  mimeType?: string;
+  size?: number;
+  width?: number;
+  height?: number;
 }
 
 export interface Product {
@@ -82,7 +88,7 @@ export interface CreateProductDTO {
   weight?: number;
   dimensions?: string;
   categoryId: string;
-  images?: { url: string; alt?: string; order?: number; isPrimary?: boolean }[];
+  images?: ProductImage[];
 }
 
 export interface UpdateProductDTO {
@@ -103,5 +109,5 @@ export interface UpdateProductDTO {
   dimensions?: string;
   categoryId?: string;
   isActive?: boolean;
-  images?: { url: string; alt?: string; order?: number; isPrimary?: boolean }[];
+  images?: ProductImage[];
 }

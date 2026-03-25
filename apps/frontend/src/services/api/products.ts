@@ -2,7 +2,14 @@
  * Products API service.
  */
 
-import { Product, ProductFilters, ProductResponse } from '@rebequi/shared/types';
+import type {
+  CreateProductDTO,
+  Product,
+  ProductFilters,
+  ProductImage,
+  ProductResponse,
+  UpdateProductDTO,
+} from '@rebequi/shared/types';
 import { apiFetch } from './client';
 
 type ApiResponse<T> = {
@@ -28,7 +35,11 @@ function unwrapData<T>(payload: unknown): T {
       throw new Error(payload.error || payload.message || 'Erro na API');
     }
 
-    return (payload.data as T) ?? ([] as unknown as T);
+    if (payload.data === undefined) {
+      throw new Error('Resposta inesperada da API');
+    }
+
+    return payload.data;
   }
 
   return payload as T;
@@ -40,11 +51,13 @@ function unwrapPaginatedProducts(payload: unknown): ProductResponse {
       throw new Error(payload.error || payload.message || 'Erro na API');
     }
 
+    const products = (payload.data as Product[]) ?? [];
+
     return {
-      products: (payload.data as Product[]) ?? [],
-      total: payload.pagination?.total ?? ((payload.data as Product[])?.length ?? 0),
+      products,
+      total: payload.pagination?.total ?? products.length,
       page: payload.pagination?.page ?? 1,
-      limit: payload.pagination?.limit ?? ((payload.data as Product[])?.length ?? 0),
+      limit: payload.pagination?.limit ?? products.length,
       totalPages: payload.pagination?.totalPages ?? 1,
     };
   }
@@ -52,25 +65,40 @@ function unwrapPaginatedProducts(payload: unknown): ProductResponse {
   return payload as ProductResponse;
 }
 
-export async function fetchProducts(filters?: ProductFilters): Promise<ProductResponse> {
+function buildProductsQuery(filters?: ProductFilters) {
   const params = new URLSearchParams();
 
   if (filters?.category) params.append('category', filters.category);
-  if (filters?.minPrice) params.append('minPrice', filters.minPrice.toString());
-  if (filters?.maxPrice) params.append('maxPrice', filters.maxPrice.toString());
+  if (filters?.minPrice !== undefined) params.append('minPrice', filters.minPrice.toString());
+  if (filters?.maxPrice !== undefined) params.append('maxPrice', filters.maxPrice.toString());
   if (filters?.search) params.append('search', filters.search);
   if (filters?.isOffer !== undefined) params.append('isOffer', filters.isOffer.toString());
   if (filters?.isNew !== undefined) params.append('isNew', filters.isNew.toString());
+  if (filters?.isFeatured !== undefined) params.append('isFeatured', filters.isFeatured.toString());
+  if (filters?.isActive !== undefined) params.append('isActive', filters.isActive.toString());
+  if (filters?.page !== undefined) params.append('page', filters.page.toString());
+  if (filters?.limit !== undefined) params.append('limit', filters.limit.toString());
 
-  const queryString = params.toString();
+  return params.toString();
+}
+
+export async function fetchProducts(filters?: ProductFilters): Promise<ProductResponse> {
+  const queryString = buildProductsQuery(filters);
   const url = queryString ? `/products?${queryString}` : '/products';
+  const response = await apiFetch<ApiResponse<Product[]> | ProductResponse>(url);
+  return unwrapPaginatedProducts(response);
+}
 
+export async function fetchAdminProducts(filters?: ProductFilters): Promise<ProductResponse> {
+  const queryString = buildProductsQuery(filters);
+  const url = queryString ? `/products/admin/list?${queryString}` : '/products/admin/list';
   const response = await apiFetch<ApiResponse<Product[]> | ProductResponse>(url);
   return unwrapPaginatedProducts(response);
 }
 
 export async function fetchProductById(id: string): Promise<Product> {
-  return apiFetch<Product>(`/products/${id}`);
+  const response = await apiFetch<ApiResponse<Product> | Product>(`/products/${id}`);
+  return unwrapData<Product>(response);
 }
 
 export async function fetchProductsByCategory(
@@ -92,4 +120,57 @@ export async function fetchPromotionalProducts(): Promise<Product[]> {
 export async function fetchNewProducts(): Promise<Product[]> {
   const data = await apiFetch<ApiResponse<Product[]> | Product[]>('/products/new');
   return unwrapData<Product[]>(data);
+}
+
+export async function fetchFeaturedProducts(): Promise<Product[]> {
+  const data = await apiFetch<ApiResponse<Product[]> | Product[]>('/products/featured');
+  return unwrapData<Product[]>(data);
+}
+
+export async function createProduct(payload: CreateProductDTO): Promise<Product> {
+  const response = await apiFetch<ApiResponse<Product> | Product>('/products', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+
+  return unwrapData<Product>(response);
+}
+
+export async function updateProduct(id: string, payload: UpdateProductDTO): Promise<Product> {
+  const response = await apiFetch<ApiResponse<Product> | Product>(`/products/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+
+  return unwrapData<Product>(response);
+}
+
+export async function deleteProduct(id: string) {
+  const response = await apiFetch<ApiResponse<{ message: string }> | { message: string }>(`/products/${id}`, {
+    method: 'DELETE',
+  });
+
+  return unwrapData<{ message: string }>(response);
+}
+
+export async function uploadProductImage(params: {
+  file: File;
+  alt?: string;
+  width: number;
+  height: number;
+}): Promise<ProductImage> {
+  const body = new FormData();
+  body.append('image', params.file);
+  body.append('width', String(params.width));
+  body.append('height', String(params.height));
+  if (params.alt) {
+    body.append('alt', params.alt);
+  }
+
+  const response = await apiFetch<ApiResponse<ProductImage> | ProductImage>('/products/images/upload', {
+    method: 'POST',
+    body,
+  });
+
+  return unwrapData<ProductImage>(response);
 }

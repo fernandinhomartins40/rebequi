@@ -11,7 +11,7 @@ export class ProductRepository {
    * Find product by ID
    */
   async findById(id: string) {
-    return prisma.product.findUnique({
+    return prisma.product.findFirst({
       where: { id, deletedAt: null },
       include: {
         category: true,
@@ -26,7 +26,7 @@ export class ProductRepository {
    * Find product by slug
    */
   async findBySlug(slug: string) {
-    return prisma.product.findUnique({
+    return prisma.product.findFirst({
       where: { slug, deletedAt: null },
       include: {
         category: true,

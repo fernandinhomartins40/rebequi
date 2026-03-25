@@ -96,6 +96,16 @@ jobs:
             fi
           }
 
+          ensure_named_volume() {
+            local volume_name="$1"
+
+            if docker volume inspect "$volume_name" >/dev/null 2>&1; then
+              return
+            fi
+
+            docker volume create "$volume_name" >/dev/null
+          }
+
           dump_diagnostics() {
             echo "=== docker compose ps ==="
             compose -f docker-compose.production.yml ps || true
@@ -191,6 +201,9 @@ jobs:
           trap 'dump_diagnostics' ERR
 
           mkdir -p "$APP_ROOT" "$RELEASE_DIR" /var/www/certbot
+          ensure_named_volume "rebequi-postgres-data"
+          ensure_named_volume "rebequi-uploads"
+          ensure_named_volume "rebequi-logs"
 
           find "$RELEASE_DIR" -mindepth 1 -maxdepth 1 ! -name '.env.production' -exec rm -rf {} +
           tar -xzf "$ARCHIVE" -C "$RELEASE_DIR"

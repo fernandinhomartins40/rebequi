@@ -85,8 +85,8 @@ fi
 DEPLOY_PORT="${DEPLOY_PORT:-$(sed -n 's/^DEPLOY_PORT=//p' .env | tail -n 1)}"
 DEPLOY_PORT="${DEPLOY_PORT:-3190}"
 
-log_info "Parando stack anterior"
-compose down -v || true
+log_info "Parando stack anterior sem remover volumes persistentes"
+compose down --remove-orphans || true
 
 log_warning "Limpando imagens dangling"
 docker image prune -f >/dev/null

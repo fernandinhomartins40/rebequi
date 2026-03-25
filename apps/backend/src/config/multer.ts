@@ -3,22 +3,8 @@
  */
 
 import multer from 'multer';
-import path from 'path';
-import { env } from './env.js';
 import { AppError } from '../utils/errors.util.js';
-
-// Storage configuration
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, env.UPLOAD_DIR);
-  },
-  filename: (_req, file, cb) => {
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    const ext = path.extname(file.originalname);
-    const name = path.basename(file.originalname, ext);
-    cb(null, `${name}-${uniqueSuffix}${ext}`);
-  },
-});
+import { env } from './env.js';
 
 // File filter
 const fileFilter: multer.Options['fileFilter'] = (_req, file, cb) => {
@@ -40,7 +26,7 @@ const fileFilter: multer.Options['fileFilter'] = (_req, file, cb) => {
 
 // Multer configuration
 export const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   fileFilter,
   limits: {
     fileSize: env.MAX_FILE_SIZE,

@@ -1,4 +1,4 @@
-import { BarChart3, CheckCircle2, PackageSearch, ShieldCheck, type LucideIcon } from 'lucide-react';
+import { BarChart3, CheckCircle2, PackageSearch, ShieldCheck, Boxes, type LucideIcon } from 'lucide-react';
 
 export const ADMIN_BASE_PATH = '/painel-lojista/painel';
 
@@ -13,7 +13,7 @@ export const SIDEBAR_THEME = {
   '--sidebar-ring': '217 91% 60%',
 } as const;
 
-export type MerchantSection = 'visao-geral' | 'catalogo' | 'acesso' | 'estabilidade';
+export type MerchantSection = 'visao-geral' | 'catalogo' | 'produtos' | 'acesso' | 'estabilidade';
 
 export type MerchantNavItem = {
   id: MerchantSection;
@@ -47,6 +47,16 @@ export const NAV_SECTIONS: Omit<MerchantNavItem, 'badge'>[] = [
     eyebrow: 'Catalogo',
     title: 'Catalogo conectado ao banco',
     intro: 'Produtos e categorias carregados da API publica, sem inventar dados operacionais no frontend.',
+  },
+  {
+    id: 'produtos',
+    href: `${ADMIN_BASE_PATH}/produtos`,
+    label: 'Produtos',
+    description: 'CRUD com upload persistente',
+    icon: Boxes,
+    eyebrow: 'Produtos',
+    title: 'Gestao operacional de produtos',
+    intro: 'Cadastro, edicao e exclusao de produtos com imagem persistida em storage e banco.',
   },
   {
     id: 'acesso',
