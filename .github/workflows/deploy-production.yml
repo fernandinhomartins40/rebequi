@@ -76,12 +76,12 @@ jobs:
 
           compose() {
             if docker compose version >/dev/null 2>&1; then
-              docker compose "$@"
+              docker compose --env-file "$RELEASE_DIR/.env.production" "$@"
               return
             fi
 
             if command -v docker-compose >/dev/null 2>&1; then
-              docker-compose "$@"
+              docker-compose --env-file "$RELEASE_DIR/.env.production" "$@"
               return
             fi
 
@@ -335,6 +335,7 @@ jobs:
           require_env_value "POSTGRES_PASSWORD"
           require_env_value "DATABASE_URL"
           require_env_value "JWT_SECRET"
+          require_env_value "RELEASE_VERSION"
 
           compose -f docker-compose.production.yml build --pull --no-cache migrator api web
           docker image inspect "$MIGRATOR_IMAGE_REF" "$API_IMAGE_REF" "$WEB_IMAGE_REF" >/dev/null

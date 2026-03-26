@@ -21,11 +21,11 @@ log_warning() {
 
 compose() {
   if docker compose version >/dev/null 2>&1; then
-    docker compose -f docker-compose.vps.yml "$@"
+    docker compose --env-file .env -f docker-compose.vps.yml "$@"
     return
   fi
 
-  docker-compose -f docker-compose.vps.yml "$@"
+  docker-compose --env-file .env -f docker-compose.vps.yml "$@"
 }
 
 wait_for_url() {
@@ -54,6 +54,7 @@ fi
 if [ ! -f ".env" ]; then
   log_warning "Criando .env local compatível com a topologia de producao."
   cat > .env <<'EOF'
+RELEASE_VERSION=local-test
 NODE_ENV=production
 PORT=3000
 HOST=0.0.0.0
@@ -80,6 +81,10 @@ BOOTSTRAP_CUSTOMER_EMAIL=cliente@rebequi.com.br
 BOOTSTRAP_CUSTOMER_PASSWORD=Cliente123!
 BOOTSTRAP_CUSTOMER_NAME=Cliente de Teste
 EOF
+fi
+
+if ! grep -q '^RELEASE_VERSION=' .env; then
+  printf 'RELEASE_VERSION=local-test\n' >> .env
 fi
 
 DEPLOY_PORT="${DEPLOY_PORT:-$(sed -n 's/^DEPLOY_PORT=//p' .env | tail -n 1)}"

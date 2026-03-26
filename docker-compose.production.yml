@@ -16,13 +16,13 @@ services:
       - rebequi-network
 
   migrator:
-    image: rebequi-migrator:${RELEASE_VERSION:-dev}
+    image: rebequi-migrator:${RELEASE_VERSION:?RELEASE_VERSION is required}
     build:
       context: .
       dockerfile: apps/backend/Dockerfile
       target: builder
       args:
-        RELEASE_VERSION: ${RELEASE_VERSION:-dev}
+        RELEASE_VERSION: ${RELEASE_VERSION:?RELEASE_VERSION is required}
     container_name: rebequi-migrator
     env_file:
       - .env.production
@@ -35,12 +35,12 @@ services:
 
   api:
     container_name: rebequi-api
-    image: rebequi-api:${RELEASE_VERSION:-dev}
+    image: rebequi-api:${RELEASE_VERSION:?RELEASE_VERSION is required}
     build:
       context: .
       dockerfile: apps/backend/Dockerfile
       args:
-        RELEASE_VERSION: ${RELEASE_VERSION:-dev}
+        RELEASE_VERSION: ${RELEASE_VERSION:?RELEASE_VERSION is required}
     env_file:
       - .env.production
     depends_on:
@@ -61,12 +61,12 @@ services:
 
   web:
     container_name: rebequi-web
-    image: rebequi-web:${RELEASE_VERSION:-dev}
+    image: rebequi-web:${RELEASE_VERSION:?RELEASE_VERSION is required}
     build:
       context: .
       dockerfile: apps/frontend/Dockerfile
       args:
-        RELEASE_VERSION: ${RELEASE_VERSION:-dev}
+        RELEASE_VERSION: ${RELEASE_VERSION:?RELEASE_VERSION is required}
     depends_on:
       api:
         condition: service_healthy
