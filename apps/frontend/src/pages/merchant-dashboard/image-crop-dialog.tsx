@@ -90,7 +90,7 @@ export function ProductImageCropDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl border-[#e8dcc1] bg-[linear-gradient(180deg,#fffef8,#ffffff)]">
+      <DialogContent className="max-h-[calc(100dvh-1.5rem)] overflow-y-auto border-[#e8dcc1] bg-[linear-gradient(180deg,#fffef8,#ffffff)] sm:max-w-5xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Scissors className="h-5 w-5 text-primary" />
@@ -101,8 +101,8 @@ export function ProductImageCropDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="rounded-3xl border border-[#d9ceb0] bg-[#f7f3e7] p-4 shadow-inner">
+        <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr] lg:gap-6">
+          <div className="rounded-3xl border border-[#d9ceb0] bg-[#f7f3e7] p-3 shadow-inner sm:p-4">
             <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#2b241a] p-3">
               {sourceUrl ? (
                 <ReactCrop
@@ -120,7 +120,7 @@ export function ProductImageCropDialog({
                     src={sourceUrl}
                     alt="Imagem para recorte"
                     onLoad={handleImageLoad}
-                    className="max-h-[65vh] w-auto max-w-full object-contain"
+                    className="max-h-[50vh] w-auto max-w-full object-contain sm:max-h-[60vh]"
                   />
                 </ReactCrop>
               ) : null}
@@ -130,7 +130,7 @@ export function ProductImageCropDialog({
             </p>
           </div>
 
-          <div className="space-y-5 rounded-3xl border border-[#eadfba] bg-white/90 p-5 shadow-[0_20px_55px_-40px_rgba(15,23,42,0.22)]">
+          <div className="space-y-5 rounded-3xl border border-[#eadfba] bg-white/90 p-4 shadow-[0_20px_55px_-40px_rgba(15,23,42,0.22)] sm:p-5">
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
               <Crop className="h-4 w-4 text-primary" />
               Selecao
