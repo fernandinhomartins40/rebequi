@@ -221,6 +221,26 @@ jobs:
             exit 1
           }
 
+          ensure_release_running() {
+            local mismatch="0"
+
+            if [ "$(docker inspect --format '{{.Config.Image}}' rebequi-api 2>/dev/null || true)" != "$API_IMAGE_REF" ]; then
+              mismatch="1"
+            fi
+
+            if [ "$(docker inspect --format '{{.Config.Image}}' rebequi-web 2>/dev/null || true)" != "$WEB_IMAGE_REF" ]; then
+              mismatch="1"
+            fi
+
+            if [ "$mismatch" = "0" ]; then
+              return
+            fi
+
+            echo "Containers ainda nao refletiram a release esperada. Forcando recriacao final de api e web."
+            docker rm -f rebequi-api rebequi-web >/dev/null 2>&1 || true
+            compose -f docker-compose.production.yml up -d api web
+          }
+
           require_command docker
           require_command nginx
           require_command certbot
@@ -345,7 +365,10 @@ jobs:
 
           docker rm -f rebequi-migrator >/dev/null 2>&1 || true
           compose -f docker-compose.production.yml run --rm migrator
+          echo "Migracao concluida. Substituindo os containers da aplicacao pela release ${RELEASE_VERSION_VALUE}."
+          docker rm -f rebequi-api rebequi-web >/dev/null 2>&1 || true
           compose -f docker-compose.production.yml up -d --force-recreate --renew-anon-volumes --remove-orphans api web
+          ensure_release_running
 
           wait_for_container_health "rebequi-api" 120
           wait_for_container_health "rebequi-web" 120
@@ -511,3 +534,25 @@ jobs:
           echo "Deploy concluido."
           echo "Frontend exposto internamente em 127.0.0.1:${DEPLOY_PORT}"
           echo "Dominios: https://${PRIMARY_DOMAIN} e https://${SECONDARY_DOMAIN}"
+
+      - name: Verify release on VPS
+        env:
+          SSHPASS: ${{ secrets.VPS_PASSWORD }}
+          EXPECTED_RELEASE: ${{ github.sha }}
+        run: |
+          sshpass -e ssh -o StrictHostKeyChecking=no "${VPS_USER}@${VPS_HOST}" <<REMOTE
+          set -euo pipefail
+
+          api_image="\$(docker inspect --format '{{.Config.Image}}' rebequi-api)"
+          web_image="\$(docker inspect --format '{{.Config.Image}}' rebequi-web)"
+          api_release="\$(docker exec rebequi-api sh -lc 'cat /app/.release-version' | tr -d '\r')"
+          web_release="\$(docker exec rebequi-web sh -lc 'cat /usr/share/nginx/html/release.txt' | tr -d '\r')"
+
+          test "\$api_image" = "rebequi-api:${EXPECTED_RELEASE}"
+          test "\$web_image" = "rebequi-web:${EXPECTED_RELEASE}"
+          test "\$api_release" = "${EXPECTED_RELEASE}"
+          test "\$web_release" = "${EXPECTED_RELEASE}"
+
+          curl -fsS "http://127.0.0.1:${DEPLOY_PORT}/api/health" >/dev/null
+          curl -fsSI "http://127.0.0.1:${DEPLOY_PORT}/" >/dev/null
+          REMOTE
