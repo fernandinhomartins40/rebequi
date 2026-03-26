@@ -4,6 +4,11 @@
  */
 
 import rateLimit from 'express-rate-limit';
+import type { Request } from 'express';
+
+function isAdminRequest(req: Request) {
+  return req.user?.role === 'ADMIN';
+}
 
 /**
  * General API rate limiter
@@ -15,6 +20,7 @@ export const apiLimiter = rateLimit({
   message: 'Too many requests from this IP, please try again later',
   standardHeaders: true,
   legacyHeaders: false,
+  skip: isAdminRequest,
 });
 
 /**
@@ -36,7 +42,7 @@ export const authLimiter = rateLimit({
  */
 export const uploadLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 10,
+  max: 120,
   message: 'Too many file uploads, please try again later',
   standardHeaders: true,
   legacyHeaders: false,

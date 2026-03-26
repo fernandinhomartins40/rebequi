@@ -9,6 +9,7 @@ import { validateBody } from '../middleware/validation.middleware.js';
 import { authenticate, authorize } from '../middleware/auth.middleware.js';
 import { createProductSchema, updateProductSchema } from '@rebequi/shared/schemas';
 import { upload } from '../config/multer.js';
+import { uploadLimiter } from '../middleware/rate-limit.middleware.js';
 
 const router = Router();
 const productController = new ProductController();
@@ -29,6 +30,7 @@ router.post(
   '/images/upload',
   authenticate,
   authorize('ADMIN'),
+  uploadLimiter,
   upload.single('image'),
   productController.uploadImage
 );

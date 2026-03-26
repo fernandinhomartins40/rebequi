@@ -11,6 +11,7 @@ import { corsOptions } from './config/cors.js';
 import { loggerMiddleware } from './middleware/logger.middleware.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.middleware.js';
 import { apiLimiter } from './middleware/rate-limit.middleware.js';
+import { optionalAuthenticate } from './middleware/auth.middleware.js';
 import routes from './routes/index.js';
 import { env } from './config/env.js';
 
@@ -34,6 +35,10 @@ app.use(cors(corsOptions));
 
 // Cookie parser (for HttpOnly auth cookies)
 app.use(cookieParser());
+
+// Populate req.user when a valid token is present so middleware like rate limiting
+// can distinguish authenticated admin traffic from anonymous public traffic.
+app.use(optionalAuthenticate);
 
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
