@@ -2,7 +2,7 @@ import imageCompression from 'browser-image-compression';
 import { centerCrop, makeAspectCrop, type PercentCrop } from 'react-image-crop';
 
 export const PRODUCT_IMAGE_WIDTH = 1200;
-export const PRODUCT_IMAGE_HEIGHT = 900;
+export const PRODUCT_IMAGE_HEIGHT = 1200;
 export const PRODUCT_IMAGE_ASPECT = PRODUCT_IMAGE_WIDTH / PRODUCT_IMAGE_HEIGHT;
 export const PRODUCT_IMAGE_QUALITY = 0.82;
 export const PRODUCT_IMAGE_MAX_SIZE_MB = 0.45;

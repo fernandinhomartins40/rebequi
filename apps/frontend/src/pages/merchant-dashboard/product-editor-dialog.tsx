@@ -216,7 +216,7 @@ function ProductImageCard({
   return (
     <div className="rounded-3xl border border-black/5 bg-slate-50 p-3">
       <div className="overflow-hidden rounded-2xl border border-black/5 bg-white">
-        <img src={image.previewUrl || image.url} alt={image.alt || 'Imagem do produto'} className="h-44 w-full object-cover" />
+        <img src={image.previewUrl || image.url} alt={image.alt || 'Imagem do produto'} className="aspect-square w-full object-cover" />
       </div>
       <div className="mt-3 flex gap-2">
         <Button type="button" variant="outline" className="flex-1" onClick={onMakePrimary}>
@@ -494,7 +494,7 @@ export function ProductEditorDialog({
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h3 className="text-lg font-semibold text-foreground">Imagens</h3>
-                  <p className="text-sm text-muted-foreground">As imagens sao tratadas antes do upload.</p>
+                  <p className="text-sm text-muted-foreground">As imagens sao recortadas em 1:1 e comprimidas antes do upload.</p>
                 </div>
 
                 <Button type="button" onClick={() => fileInputRef.current?.click()} className="gap-2">

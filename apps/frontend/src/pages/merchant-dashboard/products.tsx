@@ -401,15 +401,15 @@ export function MerchantDashboardProducts() {
                     className="overflow-hidden rounded-3xl border border-black/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.94))] shadow-[0_20px_55px_-44px_rgba(15,23,42,0.22)]"
                   >
                     <div className="grid gap-0 md:grid-cols-[240px_1fr]">
-                      <div className="relative min-h-56 bg-slate-100">
+                      <div className="relative bg-slate-100">
                         {primaryImage ? (
                           <img
                             src={primaryImage.url}
                             alt={primaryImage.alt || product.name}
-                            className="h-full w-full object-cover"
+                            className="aspect-square w-full object-cover"
                           />
                         ) : (
-                          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                          <div className="flex aspect-square items-center justify-center text-sm text-muted-foreground">
                             Sem imagem
                           </div>
                         )}

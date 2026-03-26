@@ -97,7 +97,7 @@ export function ProductImageCropDialog({
             Recortar imagem
           </DialogTitle>
           <DialogDescription>
-            Defina a area de crop. A imagem final sera salva em {PRODUCT_IMAGE_WIDTH}x{PRODUCT_IMAGE_HEIGHT}px e comprimida antes do upload.
+            Defina a area de crop em formato 1:1. A imagem final sera salva em {PRODUCT_IMAGE_WIDTH}x{PRODUCT_IMAGE_HEIGHT}px e comprimida antes do upload.
           </DialogDescription>
         </DialogHeader>
 
@@ -109,7 +109,7 @@ export function ProductImageCropDialog({
                   crop={crop}
                   aspect={PRODUCT_IMAGE_ASPECT}
                   minWidth={180}
-                  minHeight={135}
+                  minHeight={180}
                   keepSelection
                   ruleOfThirds
                   onChange={(_, percentCrop) => setCrop(percentCrop)}
@@ -164,7 +164,7 @@ export function ProductImageCropDialog({
             </div>
 
             <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-3 text-xs text-muted-foreground">
-              O arquivo final sera recortado para 4:3, exportado em WebP e comprimido em background para reduzir armazenamento.
+              O arquivo final sera recortado em 1:1, exportado em WebP e comprimido em background para reduzir armazenamento.
             </div>
 
             <Button type="button" variant="outline" onClick={handleReset} disabled={!imageMeta || submitting}>
@@ -173,7 +173,7 @@ export function ProductImageCropDialog({
             </Button>
 
             <div className="rounded-2xl border border-dashed border-black/10 bg-white px-4 py-3 text-xs text-muted-foreground">
-              Use imagens com boa resolucao. O crop preserva a proporcao final usada nas vitrines publicas.
+              Use imagens com boa resolucao. O crop preserva o enquadramento quadrado usado nas vitrines publicas.
             </div>
           </div>
         </div>

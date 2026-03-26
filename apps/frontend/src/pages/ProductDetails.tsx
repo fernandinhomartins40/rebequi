@@ -32,7 +32,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { fetchProductBySlug, fetchProductsByCategory } from "@/services/api/products";
 import { ApiError } from "@/services/api/client";
 
-const PRODUCT_PLACEHOLDER = "https://via.placeholder.com/1200x900?text=Produto";
+const PRODUCT_PLACEHOLDER = "https://via.placeholder.com/1200x1200?text=Produto";
 
 function formatPrice(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -223,7 +223,7 @@ export default function ProductDetails() {
               <img
                 src={selectedImage.url}
                 alt={selectedImage.alt || product.name}
-                className="h-[320px] w-full object-cover sm:h-[420px] lg:h-[520px]"
+                className="aspect-square w-full object-cover"
               />
             </div>
 
@@ -243,7 +243,7 @@ export default function ProductDetails() {
                     <img
                       src={image.url}
                       alt={image.alt || `${product.name} ${index + 1}`}
-                      className="h-24 w-full object-cover"
+                      className="aspect-square w-full object-cover"
                     />
                   </button>
                 ))}
