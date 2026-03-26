@@ -57,21 +57,21 @@ const MerchantPanel = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center bg-gradient-to-br from-slate-50 to-slate-100 px-4 py-12">
+    <div className="flex min-h-screen items-center bg-gradient-to-br from-slate-50 to-slate-100 px-4 py-8 sm:px-6 sm:py-12">
       <div className="container mx-auto">
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 lg:[grid-template-columns:1.15fr_0.85fr] lg:items-center lg:gap-14">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 lg:[grid-template-columns:1.15fr_0.85fr] lg:items-center lg:gap-14">
           <div className="space-y-6">
             <header className="space-y-3">
               <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm font-semibold text-primary">
                 <Shield className="h-4 w-4" /> Painel do Lojista
               </div>
-              <h1 className="text-3xl font-bold">Acesso administrativo</h1>
+              <h1 className="text-2xl font-bold sm:text-3xl">Acesso administrativo</h1>
               <p className="text-muted-foreground">
                 Entre com uma conta ADMIN para acessar a area interna da operacao.
               </p>
             </header>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
               <FeatureCard
                 icon={<PackageSearch className="h-6 w-6 text-primary" />}
                 title="Produtos"

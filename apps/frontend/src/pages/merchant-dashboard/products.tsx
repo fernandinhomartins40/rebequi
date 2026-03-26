@@ -208,7 +208,7 @@ export function MerchantDashboardProducts() {
         }
       />
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
         <StatCard
           icon={<Boxes className="h-5 w-5 text-primary" />}
           label="Produtos cadastrados"
@@ -270,7 +270,7 @@ export function MerchantDashboardProducts() {
           ) : null}
 
           {!isLoadingCategories ? (
-            <div className="grid gap-4 xl:grid-cols-2">
+            <div className="grid gap-4 2xl:grid-cols-2">
               {managedCategories.map((category) => {
                 const productsCount = category.productsCount ?? 0;
                 const canDeleteCategory = productsCount === 0 && !deleteCategoryMutation.isPending;
@@ -350,7 +350,7 @@ export function MerchantDashboardProducts() {
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="grid gap-3 md:grid-cols-[1fr_220px_auto]">
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_auto]">
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -391,7 +391,7 @@ export function MerchantDashboardProducts() {
           ) : null}
 
           {!isLoading ? (
-            <div className="grid gap-4 xl:grid-cols-2">
+            <div className="grid gap-4 2xl:grid-cols-2">
               {products.map((product) => {
                 const primaryImage = getPrimaryImage(product);
 
@@ -400,7 +400,7 @@ export function MerchantDashboardProducts() {
                     key={product.id}
                     className="overflow-hidden rounded-3xl border border-black/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.94))] shadow-[0_20px_55px_-44px_rgba(15,23,42,0.22)]"
                   >
-                    <div className="grid gap-0 md:grid-cols-[240px_1fr]">
+                    <div className="grid gap-0 lg:grid-cols-[240px_1fr]">
                       <div className="relative bg-slate-100">
                         {primaryImage ? (
                           <img
@@ -432,7 +432,7 @@ export function MerchantDashboardProducts() {
                                 {product.category?.name ?? 'Sem categoria'}{product.sku ? ` | SKU ${product.sku}` : ''}
                               </p>
                             </div>
-                            <div className="text-right">
+                            <div className="sm:text-right">
                               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Preco</p>
                               <p className="text-2xl font-bold text-foreground">R$ {product.price.toFixed(2)}</p>
                             </div>

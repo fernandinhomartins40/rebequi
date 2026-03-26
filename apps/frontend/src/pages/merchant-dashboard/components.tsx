@@ -171,13 +171,17 @@ export function SectionLeadCard({
       <CardHeader className="space-y-3">
         <Badge className="w-fit border-none bg-secondary text-secondary-foreground">{badge}</Badge>
         <div className="space-y-2">
-          <CardTitle className="text-3xl leading-tight">{title}</CardTitle>
+          <CardTitle className="text-2xl leading-tight sm:text-3xl">{title}</CardTitle>
           <CardDescription className="max-w-3xl text-sm leading-6 text-muted-foreground">
             {description}
           </CardDescription>
         </div>
       </CardHeader>
-      {actions ? <CardContent className="flex flex-wrap gap-3">{actions}</CardContent> : null}
+      {actions ? (
+        <CardContent className="flex flex-col gap-3 sm:flex-row sm:flex-wrap [&>*]:w-full sm:[&>*]:w-auto">
+          {actions}
+        </CardContent>
+      ) : null}
     </Card>
   );
 }
@@ -186,7 +190,7 @@ export function SummaryTile({ label, value, detail }: { label: string; value: st
   return (
     <div className="rounded-2xl border border-black/5 bg-white/76 p-4 shadow-[0_18px_42px_-38px_rgba(15,23,42,0.25)]">
       <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
-      <p className="mt-3 break-all text-xl font-bold text-foreground">{value}</p>
+      <p className="mt-3 break-words text-lg font-bold text-foreground sm:text-xl">{value}</p>
       <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
     </div>
   );
@@ -222,7 +226,7 @@ export function StatCard({
         <div className="rounded-full bg-primary/10 p-2">{icon}</div>
       </CardHeader>
       <CardContent>
-        <div className="break-all text-2xl font-bold text-foreground">{value}</div>
+        <div className="break-words text-xl font-bold text-foreground sm:text-2xl">{value}</div>
         <p className="text-xs text-muted-foreground">{delta}</p>
       </CardContent>
     </Card>

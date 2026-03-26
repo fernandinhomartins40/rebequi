@@ -27,17 +27,17 @@ const Header = () => {
 
   return (
     <header className="sticky top-0 z-50 shadow-md" style={{ backgroundColor: '#f9ef38' }}>
-      <div className="container mx-auto px-4">
-        <div className="flex h-[115px] items-center justify-between">
+      <div className="container mx-auto px-4 sm:px-6">
+        <div className="flex min-h-[88px] items-center justify-between gap-3 py-3 lg:min-h-[104px] xl:h-[115px] xl:py-0">
           <div className="flex-shrink-0">
             <img
               src="/lovable-uploads/73f13341-b66a-4a9f-aa28-4bd40213b85f.png"
               alt="Rebequi Logo"
-              className="h-16 w-auto"
+              className="h-12 w-auto sm:h-14 xl:h-16"
             />
           </div>
 
-          <nav className="hidden space-x-8 md:flex">
+          <nav className="hidden items-center gap-5 xl:flex 2xl:gap-8">
             {navigation.map((item) => (
               <Link
                 key={item.name}
@@ -49,14 +49,14 @@ const Header = () => {
             ))}
           </nav>
 
-          <div className="mx-8 hidden max-w-md flex-1 items-center lg:flex">
+          <div className="hidden max-w-md flex-1 items-center lg:flex xl:max-w-lg">
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
               <Input type="search" placeholder="Buscar produtos..." className="pl-10 pr-4" />
             </div>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-1 sm:gap-2">
             <Button variant="ghost" size="icon" className="lg:hidden">
               <Search className="h-5 w-5" />
             </Button>
@@ -83,7 +83,7 @@ const Header = () => {
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden"
+              className="xl:hidden"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
               {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -99,7 +99,7 @@ const Header = () => {
         </div>
 
         {isMobileMenuOpen && (
-          <div className="border-t md:hidden">
+          <div className="border-t xl:hidden">
             <nav className="flex flex-col space-y-1 py-3">
               {navigation.map((item) => (
                 <Link

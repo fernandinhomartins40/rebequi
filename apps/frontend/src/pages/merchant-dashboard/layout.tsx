@@ -50,17 +50,17 @@ export function MerchantDashboardLayout() {
           <SidebarRail />
         </Sidebar>
 
-        <SidebarInset className="overflow-hidden bg-transparent">
+        <SidebarInset className="min-w-0 overflow-hidden bg-transparent">
           <header className="sticky top-0 z-20 border-b border-black/5 bg-white/78 backdrop-blur-md">
-            <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-4 md:px-8">
+            <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 md:px-8 md:py-4">
               <div className="flex items-center gap-3">
                 <SidebarTrigger className="h-9 w-9 rounded-full border border-black/10 bg-white shadow-sm" />
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
                     {activeItem.eyebrow}
                   </p>
-                  <h1 className="text-lg font-bold text-foreground">{activeItem.title}</h1>
-                  <p className="hidden text-sm text-muted-foreground lg:block">{activeItem.intro}</p>
+                  <h1 className="text-base font-bold text-foreground sm:text-lg">{activeItem.title}</h1>
+                  <p className="hidden text-sm text-muted-foreground xl:block">{activeItem.intro}</p>
                 </div>
               </div>
 

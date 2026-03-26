@@ -54,7 +54,7 @@ const Hero = () => {
 
   return (
     <section 
-      className="relative h-[600px] overflow-hidden"
+      className="relative h-[420px] overflow-hidden sm:h-[500px] xl:h-[600px]"
       onMouseEnter={() => setIsAutoPlaying(false)}
       onMouseLeave={() => setIsAutoPlaying(true)}
     >
@@ -78,15 +78,15 @@ const Hero = () => {
             </div>
 
             {/* Content */}
-            <div className="relative z-10 container mx-auto px-4 h-full flex items-center">
-              <div className="max-w-2xl text-white">
-                <h2 className="text-4xl md:text-6xl font-bold mb-4 animate-fade-in">
+            <div className="relative z-10 container mx-auto flex h-full items-center px-4 sm:px-6">
+              <div className="max-w-xl text-white lg:max-w-2xl">
+                <h2 className="mb-4 text-3xl font-bold animate-fade-in sm:text-4xl lg:text-6xl">
                   {slide.title}
                 </h2>
-                <p className="text-xl md:text-2xl mb-8 animate-fade-in">
+                <p className="mb-6 text-base animate-fade-in sm:text-xl lg:mb-8 lg:text-2xl">
                   {slide.subtitle}
                 </p>
-                <Button size="lg" className="animate-fade-in">
+                <Button size="lg" className="h-10 px-5 text-sm animate-fade-in sm:h-11 sm:px-8 sm:text-base">
                   {slide.cta}
                 </Button>
               </div>
@@ -99,7 +99,7 @@ const Hero = () => {
       <Button
         variant="ghost"
         size="icon"
-        className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:bg-white/20"
+        className="absolute left-4 top-1/2 hidden -translate-y-1/2 text-white hover:bg-white/20 sm:inline-flex"
         onClick={goToPrevious}
       >
         <ChevronLeft className="h-6 w-6" />
@@ -108,14 +108,14 @@ const Hero = () => {
       <Button
         variant="ghost"
         size="icon"
-        className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:bg-white/20"
+        className="absolute right-4 top-1/2 hidden -translate-y-1/2 text-white hover:bg-white/20 sm:inline-flex"
         onClick={goToNext}
       >
         <ChevronRight className="h-6 w-6" />
       </Button>
 
       {/* Dots Indicator */}
-      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+      <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 space-x-2 sm:bottom-4">
         {slides.map((_, index) => (
           <button
             key={index}

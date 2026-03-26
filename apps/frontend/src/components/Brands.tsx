@@ -11,22 +11,22 @@ const brands = [
 
 const Brands = () => {
   return (
-    <section className="py-16 bg-muted/60">
-      <div className="container mx-auto px-4 space-y-8">
+    <section className="bg-muted/60 py-12 sm:py-16">
+      <div className="container mx-auto space-y-6 px-4 sm:px-6 sm:space-y-8">
         <div className="flex flex-col gap-3 text-center">
-          <p className="text-sm font-semibold text-primary uppercase">Marcas parceiras</p>
-          <h2 className="text-3xl font-bold text-foreground">Quem constrói com a gente</h2>
-          <p className="text-muted-foreground">
-            Catálogo com fabricantes consolidados para garantir qualidade em cada etapa.
+          <p className="text-sm font-semibold uppercase text-primary">Marcas parceiras</p>
+          <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Quem constroi com a gente</h2>
+          <p className="mx-auto max-w-2xl text-sm text-muted-foreground sm:text-base">
+            Catalogo com fabricantes consolidados para garantir qualidade em cada etapa.
           </p>
         </div>
 
         <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
-          <div className="flex items-center gap-8 overflow-x-auto px-6 py-6 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent">
+          <div className="flex items-center gap-4 overflow-x-auto px-4 py-5 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent sm:gap-8 sm:px-6 sm:py-6">
             {brands.map((brand) => (
               <div
                 key={brand.name}
-                className="flex h-16 w-32 flex-shrink-0 items-center justify-center rounded-md border bg-white px-3 py-2 transition hover:shadow-sm"
+                className="flex h-16 w-28 flex-shrink-0 items-center justify-center rounded-md border bg-white px-3 py-2 transition hover:shadow-sm sm:w-32"
               >
                 <img src={brand.logo} alt={brand.name} className="max-h-12 object-contain" loading="lazy" />
               </div>

@@ -47,10 +47,10 @@ function ProductDetailsSkeleton() {
       <Header />
       <div className="container mx-auto px-4 py-10">
         <Skeleton className="h-5 w-48" />
-        <div className="mt-8 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="mt-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:gap-8">
           <div className="space-y-4">
-            <Skeleton className="h-[460px] w-full rounded-3xl" />
-            <div className="grid grid-cols-4 gap-3">
+            <Skeleton className="aspect-square w-full rounded-3xl" />
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
               {[1, 2, 3, 4].map((index) => (
                 <Skeleton key={index} className="h-24 w-full rounded-2xl" />
               ))}
@@ -217,7 +217,7 @@ export default function ProductDetails() {
           </BreadcrumbList>
         </Breadcrumb>
 
-        <div className="mt-8 grid gap-10 lg:grid-cols-[1.08fr_0.92fr]">
+        <div className="mt-8 grid gap-8 lg:grid-cols-[1.08fr_0.92fr] lg:gap-10">
           <section className="space-y-4">
             <div className="overflow-hidden rounded-[2rem] border border-[#e7dcc3] bg-white shadow-[0_35px_80px_-50px_rgba(15,23,42,0.35)]">
               <img
@@ -228,7 +228,7 @@ export default function ProductDetails() {
             </div>
 
             {images.length > 1 ? (
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
                 {images.map((image, index) => (
                   <button
                     key={image.id || `${image.url}-${index}`}
@@ -265,7 +265,7 @@ export default function ProductDetails() {
             </div>
 
             <div>
-              <h1 className="max-w-3xl text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+              <h1 className="max-w-3xl text-2xl font-semibold tracking-tight text-foreground sm:text-4xl">
                 {product.name}
               </h1>
               {product.shortDesc ? (
@@ -273,7 +273,7 @@ export default function ProductDetails() {
               ) : null}
             </div>
 
-            <div className="rounded-[2rem] border border-[#e7dcc3] bg-white px-6 py-5 shadow-[0_30px_70px_-50px_rgba(15,23,42,0.35)]">
+            <div className="rounded-[2rem] border border-[#e7dcc3] bg-white px-4 py-4 shadow-[0_30px_70px_-50px_rgba(15,23,42,0.35)] sm:px-6 sm:py-5">
               <div className="flex flex-wrap items-end gap-3">
                 <span className="text-3xl font-bold text-primary">{formatPrice(product.price)}</span>
                 {product.originalPrice ? (
@@ -340,7 +340,7 @@ export default function ProductDetails() {
               })}
             </div>
 
-            <div className="rounded-[2rem] border border-[#e7dcc3] bg-white px-6 py-5 shadow-[0_30px_70px_-50px_rgba(15,23,42,0.35)]">
+            <div className="rounded-[2rem] border border-[#e7dcc3] bg-white px-4 py-4 shadow-[0_30px_70px_-50px_rgba(15,23,42,0.35)] sm:px-6 sm:py-5">
               <h2 className="text-lg font-semibold text-foreground">Descricao</h2>
               <p className="mt-3 whitespace-pre-line text-sm leading-7 text-muted-foreground">
                 {product.description || product.shortDesc || "Sem descricao detalhada cadastrada para este produto."}

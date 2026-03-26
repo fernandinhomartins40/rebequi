@@ -3,13 +3,13 @@ import { ClipboardCheck, Hammer, Home, Truck } from "lucide-react";
 const services = [
   {
     title: "Entrega expressa",
-    description: "Frota e parceiros para chegar rápido na obra ou retirada agendada.",
+    description: "Frota e parceiros para chegar rapido na obra ou retirada agendada.",
     icon: Truck,
     accent: "from-brand-red/10 to-brand-red/5",
   },
   {
     title: "Projeto sob medida",
-    description: "Acompanhamento técnico para montar lista de materiais completa.",
+    description: "Acompanhamento tecnico para montar lista de materiais completa.",
     icon: ClipboardCheck,
     accent: "from-brand-blue/10 to-brand-blue/5",
   },
@@ -29,17 +29,17 @@ const services = [
 
 const Services = () => {
   return (
-    <section className="py-16 bg-white">
-      <div className="container mx-auto px-4 space-y-10">
+    <section className="bg-white py-12 sm:py-16">
+      <div className="container mx-auto space-y-8 px-4 sm:px-6 sm:space-y-10">
         <div className="flex flex-col gap-3 text-center">
-          <p className="text-sm font-semibold text-primary uppercase">Soluções para a obra</p>
-          <h2 className="text-3xl font-bold text-foreground">Serviços que aceleram seu projeto</h2>
-          <p className="text-muted-foreground">
+          <p className="text-sm font-semibold uppercase text-primary">Solucoes para a obra</p>
+          <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Servicos que aceleram seu projeto</h2>
+          <p className="mx-auto max-w-2xl text-sm text-muted-foreground sm:text-base">
             Combine entrega, consultoria e aluguel para manter o cronograma sem surpresas.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
           {services.map((item) => (
             <div
               key={item.title}
@@ -51,7 +51,7 @@ const Services = () => {
                   <item.icon className="h-5 w-5 text-primary" />
                 </div>
                 <h3 className="text-lg font-semibold text-foreground">{item.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{item.description}</p>
+                <p className="text-sm leading-relaxed text-muted-foreground">{item.description}</p>
               </div>
             </div>
           ))}

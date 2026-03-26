@@ -10,16 +10,16 @@ interface ProductSectionProps {
 
 const ProductSection = ({ title, products, showViewAll = true }: ProductSectionProps) => {
   return (
-    <section className="py-16">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-3xl font-bold text-foreground">{title}</h2>
+    <section className="py-12 sm:py-16">
+      <div className="container mx-auto px-4 sm:px-6">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-2xl font-bold text-foreground sm:text-3xl">{title}</h2>
           {showViewAll && (
-            <Button variant="outline">Ver Todos</Button>
+            <Button variant="outline" className="w-full sm:w-auto">Ver Todos</Button>
           )}
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
           {products.map((product) => {
             const primaryImage =
               (product.images && product.images.length > 0 && product.images[0].url) ||

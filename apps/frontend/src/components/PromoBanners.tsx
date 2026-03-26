@@ -2,31 +2,29 @@ import { Button } from "@/components/ui/button";
 
 const PromoBanners = () => {
   return (
-    <section className="py-16 bg-muted">
-      <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Banner 1 */}
-          <div className="relative bg-gradient-to-r from-brand-blue to-brand-blue/80 rounded-lg overflow-hidden h-64 group cursor-pointer">
-            <div className="absolute inset-0 p-8 flex flex-col justify-center text-white">
-              <h3 className="text-2xl font-bold mb-2">Ferramentas Profissionais</h3>
-              <p className="text-lg mb-4">Até 30% OFF em ferramentas selecionadas</p>
-              <Button variant="secondary" className="w-fit">
+    <section className="bg-muted py-12 sm:py-16">
+      <div className="container mx-auto px-4 sm:px-6">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
+          <div className="group relative min-h-[220px] overflow-hidden rounded-lg bg-gradient-to-r from-brand-blue to-brand-blue/80 sm:h-64">
+            <div className="absolute inset-0 flex flex-col justify-center p-5 text-white sm:p-8">
+              <h3 className="mb-2 text-xl font-bold sm:text-2xl">Ferramentas Profissionais</h3>
+              <p className="mb-4 text-sm sm:text-lg">Ate 30% OFF em ferramentas selecionadas</p>
+              <Button variant="secondary" className="w-full sm:w-fit">
                 Ver Ofertas
               </Button>
             </div>
-            <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors" />
+            <div className="absolute inset-0 bg-black/20 transition-colors group-hover:bg-black/30" />
           </div>
 
-          {/* Banner 2 */}
-          <div className="relative bg-gradient-to-r from-brand-red to-brand-red/80 rounded-lg overflow-hidden h-64 group cursor-pointer">
-            <div className="absolute inset-0 p-8 flex flex-col justify-center text-white">
-              <h3 className="text-2xl font-bold mb-2">Entrega Expressa</h3>
-              <p className="text-lg mb-4">Receba em até 24h na região metropolitana</p>
-              <Button variant="secondary" className="w-fit">
+          <div className="group relative min-h-[220px] overflow-hidden rounded-lg bg-gradient-to-r from-brand-red to-brand-red/80 sm:h-64">
+            <div className="absolute inset-0 flex flex-col justify-center p-5 text-white sm:p-8">
+              <h3 className="mb-2 text-xl font-bold sm:text-2xl">Entrega Expressa</h3>
+              <p className="mb-4 text-sm sm:text-lg">Receba em ate 24h na regiao metropolitana</p>
+              <Button variant="secondary" className="w-full sm:w-fit">
                 Saiba Mais
               </Button>
             </div>
-            <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors" />
+            <div className="absolute inset-0 bg-black/20 transition-colors group-hover:bg-black/30" />
           </div>
         </div>
       </div>
