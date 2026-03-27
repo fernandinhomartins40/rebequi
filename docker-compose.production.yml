@@ -29,7 +29,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    command: ["sh", "-lc", "cd /app/apps/backend && npx prisma migrate deploy && npm run prisma:bootstrap"]
+    command:
+      [
+        "sh",
+        "-lc",
+        "cd /app/apps/backend && if npx prisma migrate deploy; then echo 'Prisma migrate deploy concluido.'; else echo 'Fallback para prisma db push --accept-data-loss em banco legado.'; npx prisma db push --accept-data-loss; fi && npm run prisma:bootstrap",
+      ]
     networks:
       - rebequi-network
 
