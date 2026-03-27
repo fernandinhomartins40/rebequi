@@ -29,7 +29,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    command: ["sh", "-lc", "cd /app/apps/backend && npx prisma db push && npm run prisma:bootstrap"]
+    command: ["sh", "-lc", "cd /app/apps/backend && npx prisma migrate deploy && npm run prisma:bootstrap"]
     networks:
       - rebequi-network
 
