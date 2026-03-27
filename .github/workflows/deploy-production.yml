@@ -470,7 +470,7 @@ jobs:
 
           verify_auth_flow() {
             local domain="$1"
-            local email="$2"
+            local identifier="$2"
             local password="$3"
             local expected_role="$4"
             local cookie_file
@@ -486,18 +486,18 @@ jobs:
               --resolve "${domain}:443:127.0.0.1" \
               --cookie-jar "$cookie_file" \
               --header "Content-Type: application/json" \
-              --data "{\"email\":\"${email}\",\"password\":\"${password}\"}" \
+              --data "{\"identifier\":\"${identifier}\",\"password\":\"${password}\"}" \
               "https://${domain}/api/auth/login")"
             [ "$status" = "200" ]
             grep -q "\"success\":true" "$login_body"
-            grep -q "\"email\":\"${email}\"" "$login_body"
+            grep -q "\"email\":\"${identifier}\"" "$login_body"
 
             status="$(curl -ksS -o "$profile_body" -w "%{http_code}" \
               --resolve "${domain}:443:127.0.0.1" \
               --cookie "$cookie_file" \
               "https://${domain}/api/auth/me")"
             [ "$status" = "200" ]
-            grep -q "\"email\":\"${email}\"" "$profile_body"
+            grep -q "\"email\":\"${identifier}\"" "$profile_body"
             grep -q "\"role\":\"${expected_role}\"" "$profile_body"
 
             status="$(curl -ksS -o /dev/null -w "%{http_code}" \
