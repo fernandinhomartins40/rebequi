@@ -1,4 +1,4 @@
-import { LoginInput, RegisterInput, UpdateAdminCredentialsInput } from '@rebequi/shared/schemas';
+import { ChangePasswordInput, LoginInput, RegisterInput, UpdateAdminCredentialsInput } from '@rebequi/shared/schemas';
 import { AuthResponse, User } from '@rebequi/shared/types';
 import { apiFetch } from './client';
 
@@ -54,6 +54,14 @@ export async function updateAdminCredentials(payload: UpdateAdminCredentialsInpu
       body: JSON.stringify(payload),
     }
   );
+  return unwrapResponse<AuthResponse>(response);
+}
+
+export async function changePassword(payload: ChangePasswordInput): Promise<AuthResponse> {
+  const response = await apiFetch<ApiResponse<AuthResponse> | AuthResponse>('/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
   return unwrapResponse<AuthResponse>(response);
 }
 

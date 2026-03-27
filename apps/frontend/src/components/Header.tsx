@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LogOut, Menu, Search, ShoppingCart, User, X } from "lucide-react";
+import { FileScan, LogOut, Menu, Search, ShoppingCart, User, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -57,6 +57,13 @@ const Header = () => {
           </div>
 
           <div className="flex items-center gap-1 sm:gap-2">
+            <Button asChild className="hidden gap-2 lg:inline-flex">
+              <Link to="/solicitar-orcamento">
+                <FileScan className="h-4 w-4" />
+                Solicitar orcamento
+              </Link>
+            </Button>
+
             <Button variant="ghost" size="icon" className="lg:hidden">
               <Search className="h-5 w-5" />
             </Button>
@@ -111,6 +118,13 @@ const Header = () => {
                   {item.name}
                 </Link>
               ))}
+              <Link
+                to="/solicitar-orcamento"
+                className="rounded-md px-3 py-2 text-foreground transition-colors duration-200 hover:bg-muted hover:text-primary"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Solicitar orcamento
+              </Link>
               <Link
                 to={isAuthenticated ? accountHref : "/login"}
                 className="rounded-md px-3 py-2 text-foreground transition-colors duration-200 hover:bg-muted hover:text-primary"

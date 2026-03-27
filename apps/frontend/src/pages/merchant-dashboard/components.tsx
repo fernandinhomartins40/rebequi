@@ -196,6 +196,100 @@ export function SummaryTile({ label, value, detail }: { label: string; value: st
   );
 }
 
+export function DashboardPanel({
+  badge,
+  badgeClassName,
+  className,
+  contentClassName,
+  description,
+  title,
+  children,
+}: {
+  badge?: string;
+  badgeClassName?: string;
+  className?: string;
+  contentClassName?: string;
+  description: string;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <Card className={cn('border-black/5 bg-white/92 shadow-[0_20px_55px_-40px_rgba(15,23,42,0.22)]', className)}>
+      <CardHeader className="space-y-3">
+        {badge ? (
+          <Badge className={cn('w-fit border-none bg-secondary text-secondary-foreground', badgeClassName)}>{badge}</Badge>
+        ) : null}
+        <div>
+          <CardTitle className="text-xl sm:text-2xl">{title}</CardTitle>
+          <CardDescription className="mt-2 text-sm leading-6 text-muted-foreground">{description}</CardDescription>
+        </div>
+      </CardHeader>
+      <CardContent className={cn('space-y-4', contentClassName)}>{children}</CardContent>
+    </Card>
+  );
+}
+
+export function MetricChip({
+  label,
+  tone = 'neutral',
+  value,
+}: {
+  label: string;
+  tone?: 'blue' | 'green' | 'neutral' | 'red' | 'yellow';
+  value: string;
+}) {
+  const toneClass =
+    tone === 'blue'
+      ? 'border-primary/15 bg-primary/5 text-primary'
+      : tone === 'green'
+        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+        : tone === 'red'
+          ? 'border-red-200 bg-red-50 text-red-700'
+          : tone === 'yellow'
+            ? 'border-amber-200 bg-amber-50 text-amber-800'
+            : 'border-black/5 bg-slate-50 text-foreground';
+
+  return (
+    <div className={cn('rounded-full border px-3 py-2', toneClass)}>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] opacity-80">{label}</p>
+      <p className="mt-1 break-words text-sm font-semibold leading-snug">{value}</p>
+    </div>
+  );
+}
+
+export function SignalRow({
+  description,
+  status,
+  tone = 'neutral',
+  title,
+}: {
+  description: string;
+  status: string;
+  tone?: 'blue' | 'green' | 'neutral' | 'red' | 'yellow';
+  title: string;
+}) {
+  const toneClass =
+    tone === 'blue'
+      ? 'bg-primary/10 text-primary'
+      : tone === 'green'
+        ? 'bg-emerald-100 text-emerald-700'
+        : tone === 'red'
+          ? 'bg-red-100 text-red-700'
+          : tone === 'yellow'
+            ? 'bg-amber-100 text-amber-800'
+            : 'bg-slate-100 text-slate-700';
+
+  return (
+    <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="font-semibold text-foreground">{title}</p>
+        <div className={cn('rounded-full px-3 py-1 text-[11px] font-semibold', toneClass)}>{status}</div>
+      </div>
+      <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
+    </div>
+  );
+}
+
 export function PulseLine({ title, value, toneClass }: { title: string; value: string; toneClass: string }) {
   return (
     <div className="rounded-2xl border border-black/5 bg-slate-50 p-4">

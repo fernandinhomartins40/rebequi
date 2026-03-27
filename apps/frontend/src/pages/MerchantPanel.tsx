@@ -23,7 +23,7 @@ const MerchantPanel = () => {
     formState: { errors },
   } = useForm<LoginInput>({
     defaultValues: {
-      email: '',
+      identifier: '',
       password: '',
     },
   });
@@ -102,14 +102,14 @@ const MerchantPanel = () => {
               <CardContent>
                 <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email do administrador</Label>
+                    <Label htmlFor="identifier">Email do administrador</Label>
                     <Input
-                      id="email"
-                      type="email"
+                      id="identifier"
+                      type="text"
                       placeholder="admin@rebequi.com.br"
-                      {...register('email', { required: true })}
+                      {...register('identifier', { required: true })}
                     />
-                    {errors.email && <p className="text-sm text-red-500">Informe o email do admin.</p>}
+                    {errors.identifier && <p className="text-sm text-red-500">Informe o email do admin.</p>}
                   </div>
 
                   <div className="space-y-2">

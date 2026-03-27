@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 import hero1 from "@/assets/hero-1.jpg";
 import hero2 from "@/assets/hero-2.jpg";
 import hero3 from "@/assets/hero-3.jpg";
@@ -86,9 +87,14 @@ const Hero = () => {
                 <p className="mb-6 text-base animate-fade-in sm:text-xl lg:mb-8 lg:text-2xl">
                   {slide.subtitle}
                 </p>
-                <Button size="lg" className="h-10 px-5 text-sm animate-fade-in sm:h-11 sm:px-8 sm:text-base">
-                  {slide.cta}
-                </Button>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <Button size="lg" className="h-10 px-5 text-sm animate-fade-in sm:h-11 sm:px-8 sm:text-base">
+                    {slide.cta}
+                  </Button>
+                  <Button asChild size="lg" variant="secondary" className="h-10 px-5 text-sm animate-fade-in sm:h-11 sm:px-8 sm:text-base">
+                    <Link to="/solicitar-orcamento">Solicitar orcamento</Link>
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

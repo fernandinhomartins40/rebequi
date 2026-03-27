@@ -9,15 +9,16 @@ import PromoHighlights from "@/components/PromoHighlights";
 import Services from "@/components/Services";
 import Brands from "@/components/Brands";
 import Footer from "@/components/Footer";
-import { fetchPromotionalProducts, fetchNewProducts, fetchProductsByCategory } from "@/services/api/products";
+import { fetchNewProducts, fetchProductsByCategory } from "@/services/api/products";
+import { fetchPromotions } from "@/services/api/promotions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
 const Index = () => {
-  const { data: promotions, isLoading: isLoadingPromotions, error: errorPromotions } = useQuery({
-    queryKey: ['products', 'promotional'],
-    queryFn: fetchPromotionalProducts,
+  const { data: offerResponse, isLoading: isLoadingPromotions, error: errorPromotions } = useQuery({
+    queryKey: ['promotions', 'single-product-home'],
+    queryFn: () => fetchPromotions({ kind: 'single_product', page: 1, limit: 8 }),
   });
 
   const { data: newProducts, isLoading: isLoadingNew, error: errorNew } = useQuery({
@@ -72,6 +73,23 @@ const Index = () => {
     </div>
   );
 
+  const offerItems =
+    offerResponse?.promotions
+      ?.map((promotion) => {
+        const product = promotion.primaryProduct || promotion.products?.[0];
+
+        if (!product) {
+          return null;
+        }
+
+        return {
+          product,
+          href: `/ofertas/${promotion.slug}`,
+          promotion,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => Boolean(item)) ?? [];
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -83,8 +101,12 @@ const Index = () => {
         <ErrorAlert error={errorPromotions as Error} />
       ) : isLoadingPromotions ? (
         <ProductSectionSkeleton />
-      ) : promotions && promotions.length > 0 ? (
-        <ProductSection title="Promocoes imperdiveis" products={promotions} />
+      ) : offerItems.length > 0 ? (
+        <ProductSection
+          title="Promocoes imperdiveis"
+          items={offerItems}
+          showViewAll={false}
+        />
       ) : null}
 
       <PromoBanners />
@@ -104,7 +126,7 @@ const Index = () => {
       ) : isLoadingTools ? (
         <ProductSectionSkeleton />
       ) : toolsResponse?.products && toolsResponse.products.length > 0 ? (
-        <ProductSection title="Ferramentas" products={toolsResponse.products} />
+        <ProductSection title="Ferramentas" products={toolsResponse.products} viewAllHref="/categorias/ferramentas" />
       ) : null}
 
       {errorPaints ? (
@@ -112,7 +134,11 @@ const Index = () => {
       ) : isLoadingPaints ? (
         <ProductSectionSkeleton />
       ) : paintsResponse?.products && paintsResponse.products.length > 0 ? (
-        <ProductSection title="Tintas e acessorios" products={paintsResponse.products} />
+        <ProductSection
+          title="Tintas e acessorios"
+          products={paintsResponse.products}
+          viewAllHref="/categorias/tintas-acessorios"
+        />
       ) : null}
 
       {errorConstruction ? (
@@ -120,7 +146,11 @@ const Index = () => {
       ) : isLoadingConstruction ? (
         <ProductSectionSkeleton />
       ) : constructionResponse?.products && constructionResponse.products.length > 0 ? (
-        <ProductSection title="Cimento e argamassa" products={constructionResponse.products} />
+        <ProductSection
+          title="Cimento e argamassa"
+          products={constructionResponse.products}
+          viewAllHref="/categorias/cimento-argamassa"
+        />
       ) : null}
 
       {errorElectric ? (
@@ -128,7 +158,11 @@ const Index = () => {
       ) : isLoadingElectric ? (
         <ProductSectionSkeleton />
       ) : electricResponse?.products && electricResponse.products.length > 0 ? (
-        <ProductSection title="Materiais eletricos" products={electricResponse.products} />
+        <ProductSection
+          title="Materiais eletricos"
+          products={electricResponse.products}
+          viewAllHref="/categorias/materiais-eletricos"
+        />
       ) : null}
 
       <Brands />

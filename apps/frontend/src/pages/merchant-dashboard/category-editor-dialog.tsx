@@ -4,16 +4,10 @@ import { useMutation } from '@tanstack/react-query';
 import { Loader2, Save } from 'lucide-react';
 import type { Category } from '@rebequi/shared/types';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ModalBody, ModalContent, ModalDescription, ModalFooter, ModalHeader, ModalTitle } from '@/components/ui/modal';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { createCategory, updateCategory } from '@/services/api/categories';
@@ -118,56 +112,58 @@ export function CategoryEditorDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto border-[#eadfba] bg-[linear-gradient(180deg,#fffef8,#ffffff)] sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{isEditing ? 'Editar categoria' : 'Nova categoria'}</DialogTitle>
-          <DialogDescription>Cadastre e mantenha as categorias usadas no formulario de produtos.</DialogDescription>
-        </DialogHeader>
+      <ModalContent size="md">
+        <ModalHeader>
+          <ModalTitle>{isEditing ? 'Editar categoria' : 'Nova categoria'}</ModalTitle>
+          <ModalDescription>Cadastre e mantenha as categorias usadas no formulario de produtos.</ModalDescription>
+        </ModalHeader>
 
         <form
-          className="space-y-5"
+          className="flex min-h-0 flex-1 flex-col"
           onSubmit={handleSubmit((fields) => {
             void saveMutation.mutateAsync(fields);
           })}
         >
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="category-name">Nome</Label>
-              <Input id="category-name" placeholder="Ex.: Ferramentas" {...register('name', { required: true })} />
+          <ModalBody className="space-y-5">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="category-name">Nome</Label>
+                <Input id="category-name" placeholder="Ex.: Ferramentas" {...register('name', { required: true })} />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="category-slug">Slug</Label>
+                <Input id="category-slug" placeholder="ferramentas" {...register('slug')} />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="category-icon">Icone</Label>
+                <Input id="category-icon" placeholder="Hammer" {...register('icon')} />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="category-image">Imagem (URL)</Label>
+                <Input id="category-image" placeholder="https://..." {...register('image')} />
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="category-slug">Slug</Label>
-              <Input id="category-slug" placeholder="ferramentas" {...register('slug')} />
+              <Label htmlFor="category-description">Descricao</Label>
+              <Textarea
+                id="category-description"
+                rows={4}
+                placeholder="Descricao usada para organizar a catalogacao de produtos."
+                {...register('description')}
+              />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="category-icon">Icone</Label>
-              <Input id="category-icon" placeholder="Hammer" {...register('icon')} />
-            </div>
+            <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-slate-50/90 px-4 py-3 text-sm">
+              <input type="checkbox" {...register('isActive')} />
+              Categoria ativa
+            </label>
+          </ModalBody>
 
-            <div className="space-y-2">
-              <Label htmlFor="category-image">Imagem (URL)</Label>
-              <Input id="category-image" placeholder="https://..." {...register('image')} />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="category-description">Descricao</Label>
-            <Textarea
-              id="category-description"
-              rows={4}
-              placeholder="Descricao usada para organizar a catalogacao de produtos."
-              {...register('description')}
-            />
-          </div>
-
-          <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-slate-50 px-4 py-3 text-sm">
-            <input type="checkbox" {...register('isActive')} />
-            Categoria ativa
-          </label>
-
-          <DialogFooter>
+          <ModalFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
@@ -175,9 +171,9 @@ export function CategoryEditorDialog({
               {saveMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
               {isEditing ? 'Salvar categoria' : 'Cadastrar categoria'}
             </Button>
-          </DialogFooter>
+          </ModalFooter>
         </form>
-      </DialogContent>
+      </ModalContent>
     </Dialog>
   );
 }

@@ -11,13 +11,21 @@ import MerchantPanel from "./pages/MerchantPanel";
 import MerchantDashboard, {
   MerchantDashboardAccess,
   MerchantDashboardLayout,
+  MerchantDashboardOffers,
   MerchantDashboardProducts,
+  MerchantDashboardPromotions,
+  MerchantDashboardQuotes,
   MerchantDashboardStability,
 } from "./pages/MerchantDashboard";
 import CustomerDashboard from "./pages/CustomerDashboard";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
+import CategoriesPage from "./pages/Categories";
+import CategoryDetailsPage from "./pages/CategoryDetails";
 import ProductDetails from "./pages/ProductDetails";
+import PromotionDetailsPage from "./pages/PromotionDetails";
+import PromotionsPage from "./pages/Promotions";
+import RequestQuotePage from "./pages/RequestQuote";
 import Register from "./pages/Register";
 
 const queryClient = new QueryClient();
@@ -31,6 +39,12 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/solicitar-orcamento" element={<RequestQuotePage />} />
+            <Route path="/categorias" element={<CategoriesPage />} />
+            <Route path="/categorias/:slug" element={<CategoryDetailsPage />} />
+            <Route path="/ofertas/:slug" element={<PromotionDetailsPage />} />
+            <Route path="/promocoes" element={<PromotionsPage />} />
+            <Route path="/promocoes/:slug" element={<PromotionDetailsPage />} />
             <Route path="/produto/:slug" element={<ProductDetails />} />
             <Route path="/produtos/:slug" element={<ProductDetails />} />
 
@@ -47,6 +61,9 @@ const App = () => (
                 <Route index element={<Navigate to="produtos" replace />} />
                 <Route path="visao-geral" element={<MerchantDashboard />} />
                 <Route path="produtos" element={<MerchantDashboardProducts />} />
+                <Route path="promocoes" element={<MerchantDashboardPromotions />} />
+                <Route path="ofertas" element={<MerchantDashboardOffers />} />
+                <Route path="orcamentos" element={<MerchantDashboardQuotes />} />
                 <Route path="acesso" element={<MerchantDashboardAccess />} />
                 <Route path="estabilidade" element={<MerchantDashboardStability />} />
                 <Route path="*" element={<Navigate to="produtos" replace />} />

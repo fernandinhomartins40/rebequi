@@ -14,14 +14,14 @@ const MIME_EXTENSION_MAP: Record<string, string> = {
 type StoredProductImage = {
   url: string;
   alt?: string;
-  order?: number;
-  isPrimary?: boolean;
   storageKey: string;
   filename: string;
   mimeType: string;
   size: number;
   width?: number;
   height?: number;
+  order?: number;
+  isPrimary?: boolean;
 };
 
 function getUploadsRoot() {
@@ -50,15 +50,16 @@ function getFileExtension(file: Express.Multer.File) {
   return originalExt || '.bin';
 }
 
-export async function storeProductImage(params: {
+async function storeManagedImage(params: {
   file: Express.Multer.File;
+  folder: string;
   alt?: string;
   width?: number;
   height?: number;
   order?: number;
   isPrimary?: boolean;
 }): Promise<StoredProductImage> {
-  const { file, alt, width, height, order, isPrimary } = params;
+  const { file, folder, alt, width, height, order, isPrimary } = params;
 
   if (!file?.buffer?.length) {
     throw new ValidationError('Image file is required');
@@ -68,7 +69,7 @@ export async function storeProductImage(params: {
   const extension = getFileExtension(file);
   const filename = `${now.getTime()}-${crypto.randomBytes(6).toString('hex')}${extension}`;
   const storageKey = path.posix.join(
-    'products',
+    folder,
     `${now.getUTCFullYear()}`,
     `${String(now.getUTCMonth() + 1).padStart(2, '0')}`,
     filename
@@ -92,7 +93,45 @@ export async function storeProductImage(params: {
   };
 }
 
-export async function deleteStoredProductImages(images: Array<{ storageKey?: string | null }>) {
+export async function storeProductImage(params: {
+  file: Express.Multer.File;
+  alt?: string;
+  width?: number;
+  height?: number;
+  order?: number;
+  isPrimary?: boolean;
+}) {
+  return storeManagedImage({
+    ...params,
+    folder: 'products',
+  });
+}
+
+export async function storePromotionImage(params: {
+  file: Express.Multer.File;
+  alt?: string;
+  width?: number;
+  height?: number;
+}) {
+  return storeManagedImage({
+    ...params,
+    folder: 'promotions',
+  });
+}
+
+export async function storeQuoteDocumentImage(params: {
+  file: Express.Multer.File;
+  alt?: string;
+  width?: number;
+  height?: number;
+}) {
+  return storeManagedImage({
+    ...params,
+    folder: 'quotes',
+  });
+}
+
+export async function deleteStoredImages(images: Array<{ storageKey?: string | null }>) {
   await Promise.all(
     images.map(async (image) => {
       if (!image.storageKey) {
@@ -108,4 +147,16 @@ export async function deleteStoredProductImages(images: Array<{ storageKey?: str
       }
     })
   );
+}
+
+export async function deleteStoredProductImages(images: Array<{ storageKey?: string | null }>) {
+  return deleteStoredImages(images);
+}
+
+export async function deleteStoredPromotionImages(images: Array<{ storageKey?: string | null }>) {
+  return deleteStoredImages(images);
+}
+
+export async function deleteStoredQuoteDocuments(images: Array<{ storageKey?: string | null }>) {
+  return deleteStoredImages(images);
 }

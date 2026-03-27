@@ -9,7 +9,7 @@ import { validateBody } from '../middleware/validation.middleware.js';
 import { authenticate, authorize } from '../middleware/auth.middleware.js';
 import { createCategorySchema, updateCategorySchema } from '@rebequi/shared/schemas';
 
-const router = Router();
+const router: Router = Router();
 const categoryController = new CategoryController();
 
 // Public routes

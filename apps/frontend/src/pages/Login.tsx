@@ -26,7 +26,7 @@ const Login = () => {
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: '',
+      identifier: '',
       password: '',
     },
   });
@@ -65,9 +65,15 @@ const Login = () => {
         <CardContent>
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="seuemail@dominio.com" {...registerField('email')} />
-              {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
+              <Label htmlFor="identifier">WhatsApp ou email</Label>
+              <Input
+                id="identifier"
+                type="text"
+                placeholder="(11) 99999-0000 ou admin@rebequi.com.br"
+                autoComplete="username"
+                {...registerField('identifier')}
+              />
+              {errors.identifier && <p className="text-sm text-red-500">{errors.identifier.message}</p>}
             </div>
 
             <div className="space-y-2">
@@ -97,9 +103,9 @@ const Login = () => {
           </form>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            Ainda nao tem conta?{' '}
+            Ainda nao tem acesso?{' '}
             <Link to="/registrar" className="font-semibold text-primary hover:underline">
-              Criar conta
+              Cadastro rapido
             </Link>
           </p>
         </CardContent>

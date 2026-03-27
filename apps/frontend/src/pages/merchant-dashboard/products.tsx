@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/components/ui/use-toast';
 import { deleteCategory, fetchCategories } from '@/services/api/categories';
 import { deleteProduct, fetchAdminProducts } from '@/services/api/products';
@@ -236,20 +237,31 @@ export function MerchantDashboardProducts() {
       </section>
 
       <Card className="border-[#eadfba] bg-white/92 shadow-[0_20px_55px_-40px_rgba(15,23,42,0.22)]">
-        <CardHeader className="space-y-3">
+        <CardHeader className="space-y-2 pb-4">
           <Badge className="w-fit border-none bg-accent text-accent-foreground">Categorias</Badge>
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <CardTitle className="text-2xl">Gerenciamento de categorias</CardTitle>
+            <div className="space-y-2">
+              <CardTitle className="text-xl sm:text-2xl">Gerenciamento de categorias</CardTitle>
               <CardDescription>Crie, edite e remova categorias usadas no cadastro e na edicao de produtos.</CardDescription>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline" className="border-black/10 bg-white/70 text-foreground">
+                  {managedCategories.length} cadastradas
+                </Badge>
+                <Badge variant="outline" className="border-black/10 bg-white/70 text-foreground">
+                  {activeCategories.length} ativas
+                </Badge>
+                <Badge variant="outline" className="border-black/10 bg-white/70 text-foreground">
+                  {categoriesInUse.length} em uso
+                </Badge>
+              </div>
             </div>
-            <Button onClick={openCreateCategoryDialog} className="gap-2">
+            <Button onClick={openCreateCategoryDialog} size="sm" className="gap-2">
               <Plus className="h-4 w-4" />
               Cadastrar categoria
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="space-y-5">
+        <CardContent className="space-y-4">
           {!canCreateProduct ? (
             <div className="rounded-3xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
               Nenhuma categoria ativa disponivel. Cadastre uma categoria para liberar o cadastro de produtos.
@@ -269,74 +281,179 @@ export function MerchantDashboardProducts() {
             </div>
           ) : null}
 
-          {!isLoadingCategories ? (
-            <div className="grid gap-4 2xl:grid-cols-2">
-              {managedCategories.map((category) => {
-                const productsCount = category.productsCount ?? 0;
-                const canDeleteCategory = productsCount === 0 && !deleteCategoryMutation.isPending;
+          {!isLoadingCategories && managedCategories.length > 0 ? (
+            <>
+              <div className="hidden overflow-hidden rounded-2xl border border-black/5 bg-white md:block">
+                <div className="max-h-[28rem] overflow-auto">
+                  <Table>
+                    <TableHeader className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur supports-[backdrop-filter]:bg-slate-50/80">
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead className="w-[40%]">Categoria</TableHead>
+                        <TableHead>Detalhes</TableHead>
+                        <TableHead className="w-28 text-center">Produtos</TableHead>
+                        <TableHead className="w-[18rem] text-right">Acoes</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {managedCategories.map((category) => {
+                        const productsCount = category.productsCount ?? 0;
+                        const hasLinkedProducts = productsCount > 0;
+                        const canDeleteCategory = !hasLinkedProducts && !deleteCategoryMutation.isPending;
+                        const categoryDescription = trimText(category.description) || 'Sem descricao cadastrada para esta categoria.';
+                        const categoryIcon = trimText(category.icon) || 'Nao definido';
 
-                return (
-                  <article
-                    key={category.id}
-                    className="rounded-3xl border border-black/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.94))] p-5 shadow-[0_20px_55px_-44px_rgba(15,23,42,0.22)]"
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="space-y-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-xl font-semibold text-foreground">{category.name}</h3>
-                          <Badge className={category.isActive ? 'bg-primary text-primary-foreground' : 'bg-slate-700 text-white'}>
-                            {category.isActive ? 'Ativa' : 'Inativa'}
-                          </Badge>
+                        return (
+                          <TableRow key={category.id} className="bg-white/90">
+                            <TableCell>
+                              <div className="min-w-0 space-y-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <p className="font-semibold text-foreground">{category.name}</p>
+                                  <Badge className={category.isActive ? 'bg-primary text-primary-foreground' : 'bg-slate-700 text-white'}>
+                                    {category.isActive ? 'Ativa' : 'Inativa'}
+                                  </Badge>
+                                  {hasLinkedProducts ? (
+                                    <Badge className="border border-amber-200 bg-amber-50 text-amber-900">Em uso</Badge>
+                                  ) : null}
+                                </div>
+                                <p className="text-xs text-muted-foreground">Slug: {category.slug}</p>
+                                <p className="max-w-[30rem] truncate text-sm text-muted-foreground" title={categoryDescription}>
+                                  {categoryDescription}
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-wrap gap-2">
+                                <span className="inline-flex items-center rounded-full border border-black/5 bg-slate-50 px-3 py-1 text-xs text-foreground">
+                                  Icone:
+                                  <span className="ml-1 font-medium">{categoryIcon}</span>
+                                </span>
+                                <span
+                                  className={
+                                    category.isActive
+                                      ? 'inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs text-primary'
+                                      : 'inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs text-slate-700'
+                                  }
+                                >
+                                  {category.isActive ? 'Disponivel no formulario' : 'Oculta no formulario'}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <span className="inline-flex min-w-12 items-center justify-center rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-foreground">
+                                {productsCount}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center justify-end gap-2">
+                                <Button size="sm" onClick={() => openEditCategoryDialog(category)} className="gap-2">
+                                  <Pencil className="h-4 w-4" />
+                                  Editar
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => void handleDeleteCategory(category)}
+                                  disabled={!canDeleteCategory}
+                                  className="gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  Excluir
+                                </Button>
+                              </div>
+                              {hasLinkedProducts ? (
+                                <p className="mt-2 text-right text-xs text-amber-800">
+                                  Remova ou recategorize os produtos vinculados antes de excluir.
+                                </p>
+                              ) : null}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+
+              <div className="max-h-[30rem] space-y-3 overflow-y-auto pr-1 md:hidden">
+                {managedCategories.map((category) => {
+                  const productsCount = category.productsCount ?? 0;
+                  const hasLinkedProducts = productsCount > 0;
+                  const canDeleteCategory = !hasLinkedProducts && !deleteCategoryMutation.isPending;
+                  const categoryDescription = trimText(category.description) || 'Sem descricao cadastrada para esta categoria.';
+                  const categoryIcon = trimText(category.icon) || 'Nao definido';
+
+                  return (
+                    <article
+                      key={category.id}
+                      className="rounded-2xl border border-black/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.94))] p-4 shadow-[0_18px_45px_-42px_rgba(15,23,42,0.22)]"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="text-base font-semibold text-foreground">{category.name}</h3>
+                            <Badge className={category.isActive ? 'bg-primary text-primary-foreground' : 'bg-slate-700 text-white'}>
+                              {category.isActive ? 'Ativa' : 'Inativa'}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Slug: {category.slug}</p>
                         </div>
-                        <p className="text-sm text-muted-foreground">Slug: {category.slug}</p>
+
+                        <div className="rounded-xl border border-black/5 bg-slate-50 px-3 py-2 text-center">
+                          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Produtos</p>
+                          <p className="mt-1 text-lg font-bold text-foreground">{productsCount}</p>
+                        </div>
                       </div>
 
-                      <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-3 text-right">
-                        <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Produtos</p>
-                        <p className="mt-1 text-xl font-bold text-foreground">{productsCount}</p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <span className="inline-flex items-center rounded-full border border-black/5 bg-slate-50 px-3 py-1 text-xs text-foreground">
+                          Icone:
+                          <span className="ml-1 font-medium">{categoryIcon}</span>
+                        </span>
+                        <span
+                          className={
+                            category.isActive
+                              ? 'inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs text-primary'
+                              : 'inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs text-slate-700'
+                          }
+                        >
+                          {category.isActive ? 'Disponivel no formulario' : 'Oculta no formulario'}
+                        </span>
+                        {hasLinkedProducts ? (
+                          <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs text-amber-900">
+                            Em uso
+                          </span>
+                        ) : null}
                       </div>
-                    </div>
 
-                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                      <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-3">
-                        <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Icone</p>
-                        <p className="mt-1 font-semibold text-foreground">{trimText(category.icon) || 'Nao definido'}</p>
+                      <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">{categoryDescription}</p>
+
+                      {hasLinkedProducts ? (
+                        <p className="mt-3 text-xs text-amber-800">
+                          Remova ou recategorize os produtos vinculados antes de excluir.
+                        </p>
+                      ) : null}
+
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Button size="sm" onClick={() => openEditCategoryDialog(category)} className="gap-2">
+                          <Pencil className="h-4 w-4" />
+                          Editar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => void handleDeleteCategory(category)}
+                          disabled={!canDeleteCategory}
+                          className="gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Excluir
+                        </Button>
                       </div>
-                      <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-3">
-                        <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Status no formulario</p>
-                        <p className="mt-1 font-semibold text-foreground">{category.isActive ? 'Disponivel para novos produtos' : 'Oculta para novos cadastros'}</p>
-                      </div>
-                    </div>
-
-                    <p className="mt-4 text-sm leading-6 text-muted-foreground">
-                      {trimText(category.description) || 'Sem descricao cadastrada para esta categoria.'}
-                    </p>
-
-                    {productsCount > 0 ? (
-                      <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                        Esta categoria possui produtos vinculados e nao pode ser excluida.
-                      </div>
-                    ) : null}
-
-                    <div className="mt-4 flex flex-wrap gap-3">
-                      <Button onClick={() => openEditCategoryDialog(category)} className="gap-2">
-                        <Pencil className="h-4 w-4" />
-                        Editar categoria
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => void handleDeleteCategory(category)}
-                        disabled={!canDeleteCategory}
-                        className="gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Excluir categoria
-                      </Button>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </>
           ) : null}
         </CardContent>
       </Card>
@@ -394,26 +511,27 @@ export function MerchantDashboardProducts() {
             <div className="grid gap-4 2xl:grid-cols-2">
               {products.map((product) => {
                 const primaryImage = getPrimaryImage(product);
+                const productSummary = product.shortDesc || product.description || 'Sem descricao.';
 
                 return (
                   <article
                     key={product.id}
-                    className="overflow-hidden rounded-3xl border border-black/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.94))] shadow-[0_20px_55px_-44px_rgba(15,23,42,0.22)]"
+                    className="overflow-hidden rounded-2xl border border-black/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.94))] shadow-[0_18px_45px_-42px_rgba(15,23,42,0.2)]"
                   >
-                    <div className="grid gap-0 lg:grid-cols-[240px_1fr]">
+                    <div className="grid gap-0 sm:grid-cols-[180px_minmax(0,1fr)]">
                       <div className="relative bg-slate-100">
                         {primaryImage ? (
                           <img
                             src={primaryImage.url}
                             alt={primaryImage.alt || product.name}
-                            className="aspect-square w-full object-cover"
+                            className="aspect-[16/10] w-full object-cover sm:aspect-square sm:h-full"
                           />
                         ) : (
-                          <div className="flex aspect-square items-center justify-center text-sm text-muted-foreground">
+                          <div className="flex aspect-[16/10] items-center justify-center text-sm text-muted-foreground sm:aspect-square sm:h-full">
                             Sem imagem
                           </div>
                         )}
-                        <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+                        <div className="absolute left-3 top-3 flex flex-wrap gap-2">
                           <Badge className={product.isActive ? 'bg-primary text-primary-foreground' : 'bg-slate-700 text-white'}>
                             {product.isActive ? 'Ativo' : 'Inativo'}
                           </Badge>
@@ -423,47 +541,46 @@ export function MerchantDashboardProducts() {
                         </div>
                       </div>
 
-                      <div className="space-y-4 p-5">
-                        <div className="space-y-2">
-                          <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div>
-                              <h3 className="text-xl font-semibold text-foreground">{product.name}</h3>
-                              <p className="text-sm text-muted-foreground">
-                                {product.category?.name ?? 'Sem categoria'}{product.sku ? ` | SKU ${product.sku}` : ''}
-                              </p>
-                            </div>
-                            <div className="sm:text-right">
-                              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Preco</p>
-                              <p className="text-2xl font-bold text-foreground">R$ {product.price.toFixed(2)}</p>
-                            </div>
+                      <div className="space-y-3 p-4">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <h3 className="line-clamp-2 text-lg font-semibold leading-snug text-foreground">{product.name}</h3>
+                            <p className="truncate text-sm text-muted-foreground">
+                              {product.category?.name ?? 'Sem categoria'}{product.sku ? ` | SKU ${product.sku}` : ''}
+                            </p>
                           </div>
-
-                          <p className="text-sm leading-6 text-muted-foreground">
-                            {product.shortDesc || product.description || 'Sem descricao.'}
-                          </p>
-                        </div>
-
-                        <div className="grid gap-3 sm:grid-cols-3">
-                          <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-3">
-                            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Estoque</p>
-                            <p className="mt-1 font-semibold text-foreground">{product.stock}</p>
-                          </div>
-                          <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-3">
-                            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Minimo</p>
-                            <p className="mt-1 font-semibold text-foreground">{product.minStock}</p>
-                          </div>
-                          <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-3">
-                            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Imagens</p>
-                            <p className="mt-1 font-semibold text-foreground">{product.images?.length ?? 0}</p>
+                          <div className="rounded-xl border border-black/5 bg-slate-50 px-3 py-2 sm:text-right">
+                            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Preco</p>
+                            <p className="mt-1 text-xl font-bold leading-none text-foreground">R$ {product.price.toFixed(2)}</p>
                           </div>
                         </div>
 
-                        <div className="flex flex-wrap gap-3">
-                          <Button onClick={() => openEditDialog(product)} className="gap-2">
+                        <p className="line-clamp-2 text-sm leading-6 text-muted-foreground" title={productSummary}>
+                          {productSummary}
+                        </p>
+
+                        <div className="flex flex-wrap gap-2">
+                          <span className="inline-flex items-center rounded-full border border-black/5 bg-slate-50 px-3 py-1.5 text-xs text-foreground">
+                            Estoque:
+                            <span className="ml-1.5 font-semibold">{product.stock}</span>
+                          </span>
+                          <span className="inline-flex items-center rounded-full border border-black/5 bg-slate-50 px-3 py-1.5 text-xs text-foreground">
+                            Minimo:
+                            <span className="ml-1.5 font-semibold">{product.minStock}</span>
+                          </span>
+                          <span className="inline-flex items-center rounded-full border border-black/5 bg-slate-50 px-3 py-1.5 text-xs text-foreground">
+                            Imagens:
+                            <span className="ml-1.5 font-semibold">{product.images?.length ?? 0}</span>
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          <Button size="sm" onClick={() => openEditDialog(product)} className="gap-2">
                             <Pencil className="h-4 w-4" />
                             Editar
                           </Button>
                           <Button
+                            size="sm"
                             variant="outline"
                             onClick={() => void handleDelete(product)}
                             disabled={deleteMutation.isPending}

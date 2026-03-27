@@ -117,6 +117,30 @@ export async function fetchProductsByCategory(
   return unwrapPaginatedProducts(response);
 }
 
+export async function fetchAllProductsByCategory(category: string, batchSize = 24): Promise<ProductResponse> {
+  const firstPage = await fetchProductsByCategory(category, 1, batchSize);
+
+  if (firstPage.totalPages <= 1) {
+    return firstPage;
+  }
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: firstPage.totalPages - 1 }, (_, index) =>
+      fetchProductsByCategory(category, index + 2, batchSize),
+    ),
+  );
+
+  const products = [firstPage, ...remainingPages].flatMap((response) => response.products);
+
+  return {
+    products,
+    total: firstPage.total,
+    page: 1,
+    limit: products.length,
+    totalPages: firstPage.totalPages,
+  };
+}
+
 export async function fetchPromotionalProducts(): Promise<Product[]> {
   const data = await apiFetch<ApiResponse<Product[]> | Product[]>('/products/promotional');
   return unwrapData<Product[]>(data);

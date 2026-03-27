@@ -14,18 +14,25 @@ datasource db {
 // USER MODEL - Authentication & Authorization
 // ============================================================================
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String
-  password  String   // Hashed with bcrypt
-  role      UserRole @default(CUSTOMER)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 String         @id @default(cuid())
+  email              String         @unique
+  name               String
+  password           String         // Hashed with bcrypt
+  role               UserRole       @default(CUSTOMER)
+  whatsapp           String?        @unique
+  isActive           Boolean        @default(true)
+  isProvisional      Boolean        @default(false)
+  mustChangePassword Boolean        @default(false)
+  leads              LeadCapture[]
+  quoteRequests      QuoteRequest[]
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
 
   @@index([email])
+  @@index([whatsapp])
   @@index([role])
   @@index([isActive])
+  @@index([isProvisional])
   @@map("users")
 }
 
@@ -79,6 +86,8 @@ model Product {
   categoryId    String
   category      Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   images        ProductImage[]
+  promotions    PromotionProduct[]
+  quoteItems    QuoteItem[]
   isActive      Boolean        @default(true)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
@@ -121,4 +130,165 @@ model ProductImage {
   @@index([order])
   @@index([storageKey])
   @@map("product_images")
+}
+
+enum PromotionTheme {
+  GOLD
+  BLUE
+  GREEN
+  RED
+  SLATE
+}
+
+enum PromotionKind {
+  COLLECTION
+  SINGLE_PRODUCT
+}
+
+model Promotion {
+  id              String             @id @default(cuid())
+  name            String
+  slug            String             @unique
+  kind            PromotionKind      @default(COLLECTION)
+  eyebrow         String?
+  title           String
+  subtitle        String?
+  description     String?
+  badgeText       String?
+  ctaLabel        String?
+  disclaimer      String?
+  themeTone       PromotionTheme     @default(GOLD)
+  imageUrl        String
+  imageAlt        String?
+  imageStorageKey String?
+  imageFilename   String?
+  imageMimeType   String?
+  imageSize       Int?
+  imageWidth      Int?
+  imageHeight     Int?
+  startsAt        DateTime?
+  expiresAt       DateTime?
+  sortOrder       Int                @default(0)
+  products        PromotionProduct[]
+  isActive        Boolean            @default(true)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  deletedAt       DateTime?
+
+  @@index([slug])
+  @@index([kind])
+  @@index([themeTone])
+  @@index([sortOrder])
+  @@index([isActive])
+  @@index([startsAt])
+  @@index([expiresAt])
+  @@index([deletedAt])
+  @@map("promotions")
+}
+
+model PromotionProduct {
+  id          String    @id @default(cuid())
+  promotionId String
+  productId   String
+  order       Int       @default(0)
+  promotion   Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([promotionId, productId])
+  @@index([promotionId, order])
+  @@index([productId])
+  @@map("promotion_products")
+}
+
+enum LeadStatus {
+  STARTED
+  QUOTE_DRAFTED
+  QUOTE_SUBMITTED
+  CONTACTED
+  ARCHIVED
+}
+
+enum QuoteStatus {
+  DRAFT
+  SUBMITTED
+  IN_REVIEW
+  RESPONDED
+  ARCHIVED
+}
+
+model LeadCapture {
+  id           String         @id @default(cuid())
+  userId       String
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nameSnapshot String
+  whatsapp     String
+  source       String         @default("public_quote")
+  status       LeadStatus     @default(STARTED)
+  notes        String?
+  completedAt  DateTime?
+  quotes       QuoteRequest[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([userId])
+  @@index([whatsapp])
+  @@index([status])
+  @@map("lead_captures")
+}
+
+model QuoteRequest {
+  id                 String       @id @default(cuid())
+  referenceCode      String       @unique
+  userId             String
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leadId             String?
+  lead               LeadCapture? @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  status             QuoteStatus  @default(DRAFT)
+  source             String       @default("customer_dashboard")
+  title              String?
+  customerNote       String?
+  ocrText            String?
+  ocrConfidence      Float?
+  documentUrl        String
+  documentStorageKey String?
+  documentFilename   String?
+  documentMimeType   String?
+  documentSize       Int?
+  documentWidth      Int?
+  documentHeight     Int?
+  items              QuoteItem[]
+  submittedAt        DateTime?
+  reviewedAt         DateTime?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@index([referenceCode])
+  @@index([userId])
+  @@index([leadId])
+  @@index([status])
+  @@index([submittedAt])
+  @@map("quote_requests")
+}
+
+model QuoteItem {
+  id                    String       @id @default(cuid())
+  quoteRequestId        String
+  quoteRequest          QuoteRequest @relation(fields: [quoteRequestId], references: [id], onDelete: Cascade)
+  productId             String?
+  product               Product?     @relation(fields: [productId], references: [id], onDelete: SetNull)
+  name                  String
+  quantity              Float        @default(1)
+  unit                  String?
+  notes                 String?
+  confidence            Float?
+  recognitionSourceLine String?
+  position              Int          @default(0)
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  @@index([quoteRequestId, position])
+  @@index([productId])
+  @@map("quote_items")
 }

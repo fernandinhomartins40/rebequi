@@ -6,4 +6,6 @@
 export * from './client';
 export * from './products';
 export * from './categories';
+export * from './promotions';
 export * from './auth';
+export * from './quotes';

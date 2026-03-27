@@ -10,6 +10,7 @@ import {
 import type { LoginInput, RegisterInput } from '@rebequi/shared/schemas';
 import type { User } from '@rebequi/shared/types';
 import {
+  changePassword as changePasswordRequest,
   getCurrentUser,
   login as loginRequest,
   logout as logoutRequest,
@@ -26,6 +27,7 @@ type AuthContextValue = {
   isLoading: boolean;
   login: (payload: LoginInput) => Promise<User>;
   register: (payload: RegisterInput) => Promise<User>;
+  changePassword: (payload: { currentPassword: string; newPassword: string }) => Promise<User>;
   logout: () => Promise<void>;
   refreshSession: () => Promise<User | null>;
 };
@@ -85,6 +87,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const changePassword = useCallback(async (payload: { currentPassword: string; newPassword: string }) => {
+    const response = await changePasswordRequest(payload);
+    setUser(response.user);
+    setStatus('authenticated');
+    return response.user;
+  }, []);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -93,10 +102,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLoading: status === 'loading',
       login,
       register,
+      changePassword,
       logout,
       refreshSession,
     }),
-    [login, logout, refreshSession, register, status, user]
+    [changePassword, login, logout, refreshSession, register, status, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

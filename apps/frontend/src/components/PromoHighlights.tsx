@@ -1,78 +1,74 @@
-type Highlight = {
-  title: string;
-  discount: number;
-  image: string;
-  tag?: string;
-};
-
-const highlights: Highlight[] = [
-  {
-    title: "Kit de ferramentas",
-    discount: 30,
-    image: "https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=900&q=80",
-    tag: "Ferramentas",
-  },
-  {
-    title: "Tintas e acessorios",
-    discount: 25,
-    image: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=900&q=80",
-    tag: "Pintura",
-  },
-  {
-    title: "Cimento e argamassa",
-    discount: 18,
-    image: "https://images.unsplash.com/photo-1503389152951-9f343605f61e?auto=format&fit=crop&w=900&q=80",
-    tag: "Estrutura",
-  },
-  {
-    title: "Materiais eletricos",
-    discount: 22,
-    image: "https://images.unsplash.com/photo-1516116216624-53e697fedbea?auto=format&fit=crop&w=900&q=80",
-    tag: "Eletricos",
-  },
-];
+import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
+import { AlertCircle } from 'lucide-react';
+import { PromotionCard } from '@/components/PromotionCard';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { fetchPromotions } from '@/services/api/promotions';
 
 const PromoHighlights = () => {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['promotions', 'highlights'],
+    queryFn: () => fetchPromotions({ kind: 'collection', page: 1, limit: 4 }),
+  });
+
+  const promotions = data?.promotions ?? [];
+
+  if (!isLoading && promotions.length === 0 && !error) {
+    return null;
+  }
+
   return (
     <section className="bg-white py-12 sm:py-16">
       <div className="container mx-auto space-y-6 px-4 sm:px-6 sm:space-y-8">
-        <div className="flex flex-col gap-2 text-center">
-          <p className="text-sm font-semibold uppercase text-primary">Ofertas em destaque</p>
-          <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Selecoes com desconto</h2>
-          <p className="mx-auto max-w-2xl text-sm text-muted-foreground sm:text-base">
-            Escolhemos categorias e kits para acelerar seu carrinho com precos especiais.
-          </p>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-2 text-center lg:text-left">
+            <p className="text-sm font-semibold uppercase text-primary">Ofertas em destaque</p>
+            <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Campanhas promocionais</h2>
+            <p className="mx-auto max-w-2xl text-sm text-muted-foreground sm:text-base lg:mx-0">
+              Cards promocionais organizam colecoes especiais com produtos de uma ou mais categorias.
+            </p>
+          </div>
+
+          <Button asChild variant="outline" className="rounded-2xl">
+            <Link to="/promocoes">Ver todas as promocoes</Link>
+          </Button>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
-          {highlights.map((item) => (
-            <div
-              key={item.title}
-              className="group overflow-hidden rounded-xl border bg-gradient-to-b from-slate-50 to-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
-            >
-              <div className="relative h-44 w-full overflow-hidden sm:h-40">
-                <img
-                  src={item.image}
-                  alt={item.title}
-                  className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                  loading="lazy"
-                />
-                <div className="absolute left-3 top-3 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground shadow-sm">
-                  -{item.discount}%
+        {error ? (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Falha ao carregar promocoes</AlertTitle>
+            <AlertDescription>
+              {error instanceof Error ? error.message : 'Nao foi possivel carregar as ofertas em destaque.'}
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        {isLoading ? (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="overflow-hidden rounded-[1.75rem] border border-black/5 bg-white">
+                <Skeleton className="aspect-[16/10] w-full" />
+                <div className="space-y-3 p-5">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-7 w-3/4" />
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-10 w-full" />
                 </div>
               </div>
-              <div className="space-y-2 p-4">
-                {item.tag ? (
-                  <span className="inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
-                    {item.tag}
-                  </span>
-                ) : null}
-                <h3 className="text-lg font-semibold text-foreground">{item.title}</h3>
-                <p className="text-sm text-muted-foreground">Estoque limitado enquanto durar a campanha.</p>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : null}
+
+        {!isLoading && promotions.length > 0 ? (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+            {promotions.map((promotion) => (
+              <PromotionCard key={promotion.id} promotion={promotion} />
+            ))}
+          </div>
+        ) : null}
       </div>
     </section>
   );

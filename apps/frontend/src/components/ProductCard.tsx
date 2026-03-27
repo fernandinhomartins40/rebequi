@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
-import { Heart, Eye, Clock } from "lucide-react";
+import { useState } from "react";
+import { Heart, Eye } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { PromotionCountdown } from "@/components/PromotionCountdown";
 
 interface ProductCardProps {
   id: string;
@@ -12,9 +13,13 @@ interface ProductCardProps {
   originalPrice?: number;
   image: string;
   category: string;
+  href?: string;
   isNew?: boolean;
   isOffer?: boolean;
   discount?: number;
+  promotionBadge?: string;
+  countdownTo?: string | Date | null;
+  countdownLabel?: string;
 }
 
 const ProductCard = ({
@@ -25,42 +30,22 @@ const ProductCard = ({
   originalPrice,
   image,
   category,
+  href,
   isNew = false,
   isOffer = false,
   discount,
+  promotionBadge,
+  countdownTo,
+  countdownLabel,
 }: ProductCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(0);
-  const [offerEndsAt] = useState(() => Date.now() + 1000 * 60 * 60 * 24);
-  const productHref = `/produto/${slug}`;
+  const productHref = href || `/produto/${slug}`;
 
   const formatPrice = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
       currency: "BRL",
     }).format(value);
-  };
-
-  useEffect(() => {
-    if (!isOffer) return;
-
-    const tick = () => {
-      const diff = offerEndsAt - Date.now();
-      setTimeLeft(Math.max(diff, 0));
-    };
-
-    tick();
-    const interval = setInterval(tick, 1000);
-    return () => clearInterval(interval);
-  }, [isOffer, offerEndsAt]);
-
-  const formatCountdown = (ms: number) => {
-    const totalSeconds = Math.floor(ms / 1000);
-    const days = Math.floor(totalSeconds / 86400);
-    const hours = Math.floor((totalSeconds % 86400) / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = Math.floor(totalSeconds % 60);
-    return { days, hours, minutes, seconds };
   };
 
   return (
@@ -81,6 +66,7 @@ const ProductCard = ({
 
         <div className="absolute left-2 top-2 flex flex-col space-y-1">
           {isNew ? <Badge className="bg-primary text-primary-foreground">NOVO</Badge> : null}
+          {promotionBadge ? <Badge className="bg-accent text-accent-foreground">{promotionBadge}</Badge> : null}
           {isOffer && discount ? <Badge className="bg-accent text-accent-foreground">-{discount}%</Badge> : null}
         </div>
 
@@ -115,30 +101,8 @@ const ProductCard = ({
           ) : null}
         </div>
 
-        {isOffer ? (
-          <div className="mb-3 flex items-center gap-4 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-primary">
-            <Clock className="h-4 w-4 flex-shrink-0" />
-            <div className="flex items-center gap-4 font-semibold">
-              {(() => {
-                const { days, hours, minutes, seconds } = formatCountdown(timeLeft);
-                const unit = (value: number, label: string) => (
-                  <div className="min-w-[44px] text-center">
-                    <div className="text-base font-bold text-primary">{value.toString().padStart(2, "0")}</div>
-                    <div className="text-[10px] font-semibold uppercase text-primary/80">{label}</div>
-                  </div>
-                );
-
-                return (
-                  <>
-                    {unit(days, "Dias")}
-                    {unit(hours, "Hrs")}
-                    {unit(minutes, "Min")}
-                    {unit(seconds, "Seg")}
-                  </>
-                );
-              })()}
-            </div>
-          </div>
+        {countdownTo ? (
+          <PromotionCountdown expiresAt={countdownTo} label={countdownLabel || 'Termina em'} className="mb-3" />
         ) : null}
 
         <Button asChild className="w-full" size="sm">

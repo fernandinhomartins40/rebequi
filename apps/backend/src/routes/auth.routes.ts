@@ -8,9 +8,14 @@ import { AuthController } from '../controllers/auth.controller.js';
 import { validateBody } from '../middleware/validation.middleware.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 import { authLimiter } from '../middleware/rate-limit.middleware.js';
-import { loginSchema, registerSchema, updateAdminCredentialsSchema } from '@rebequi/shared/schemas';
+import {
+  changePasswordSchema,
+  loginSchema,
+  registerSchema,
+  updateAdminCredentialsSchema,
+} from '@rebequi/shared/schemas';
 
-const router = Router();
+const router: Router = Router();
 const authController = new AuthController();
 
 // Public routes
@@ -26,5 +31,6 @@ router.post(
 
 // Protected routes
 router.get('/me', authenticate, authController.getProfile);
+router.post('/change-password', authenticate, authLimiter, validateBody(changePasswordSchema), authController.changePassword);
 
 export default router;

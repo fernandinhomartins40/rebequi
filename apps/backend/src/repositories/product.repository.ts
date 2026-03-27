@@ -239,6 +239,64 @@ export class ProductRepository {
     });
   }
 
+  async findByIds(ids: string[]) {
+    return prisma.product.findMany({
+      where: {
+        id: { in: ids },
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+      },
+    });
+  }
+
+  async findCatalogForMatching() {
+    return prisma.product.findMany({
+      where: {
+        deletedAt: null,
+        isActive: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        sku: true,
+        categoryId: true,
+        price: true,
+        originalPrice: true,
+        isOffer: true,
+        isNew: true,
+        isFeatured: true,
+        discount: true,
+        stock: true,
+        minStock: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+        deletedAt: true,
+        description: true,
+        shortDesc: true,
+        weight: true,
+        dimensions: true,
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            icon: true,
+            image: true,
+          },
+        },
+        images: {
+          where: { isPrimary: true },
+          take: 1,
+        },
+      },
+      orderBy: { name: 'asc' },
+    });
+  }
+
   /**
    * Search products by name or description
    */

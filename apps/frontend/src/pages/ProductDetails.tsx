@@ -205,7 +205,7 @@ export default function ProductDetails() {
               <>
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
-                    <Link to="/">{product.category.name}</Link>
+                    <Link to={`/categorias/${product.category.slug}`}>{product.category.name}</Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
@@ -348,9 +348,9 @@ export default function ProductDetails() {
             </div>
 
             <Button asChild variant="outline" className="w-full sm:w-auto">
-              <Link to="/">
+              <Link to={product.category?.slug ? `/categorias/${product.category.slug}` : "/"}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Voltar para a vitrine
+                {product.category?.slug ? `Voltar para ${product.category.name}` : "Voltar para a vitrine"}
               </Link>
             </Button>
           </section>

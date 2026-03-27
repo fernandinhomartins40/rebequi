@@ -3,33 +3,30 @@ import { Crop, RefreshCw, Scissors } from 'lucide-react';
 import ReactCrop, { type PercentCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog } from '@/components/ui/dialog';
+import { ModalBody, ModalContent, ModalDescription, ModalFooter, ModalHeader, ModalPanel, ModalTitle } from '@/components/ui/modal';
 import {
   createCenteredAspectCrop,
-  createCroppedProductImageFile,
+  createCroppedImageFile,
   formatPercentCropValue,
-  PRODUCT_IMAGE_ASPECT,
-  PRODUCT_IMAGE_HEIGHT,
-  PRODUCT_IMAGE_WIDTH,
+  type ImageCropConfig,
+  PRODUCT_IMAGE_CONFIG,
 } from './image-tools';
 
-export function ProductImageCropDialog({
+export function ImageCropDialog({
+  config = PRODUCT_IMAGE_CONFIG,
   fileName,
   open,
   sourceUrl,
+  title = 'Recortar imagem',
   onConfirm,
   onOpenChange,
 }: {
+  config?: ImageCropConfig;
   fileName: string;
   open: boolean;
   sourceUrl?: string;
+  title?: string;
   onConfirm: (file: File) => Promise<void> | void;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -49,7 +46,12 @@ export function ProductImageCropDialog({
 
   const handleImageLoad = (event: SyntheticEvent<HTMLImageElement>) => {
     const { naturalWidth, naturalHeight } = event.currentTarget;
-    const nextCrop = createCenteredAspectCrop(naturalWidth, naturalHeight);
+    const nextCrop = createCenteredAspectCrop(
+      naturalWidth,
+      naturalHeight,
+      config.width / config.height,
+      config.initialCropWidthPercent,
+    );
 
     setImageMeta({
       width: naturalWidth,
@@ -64,7 +66,12 @@ export function ProductImageCropDialog({
       return;
     }
 
-    const nextCrop = createCenteredAspectCrop(imageMeta.width, imageMeta.height);
+    const nextCrop = createCenteredAspectCrop(
+      imageMeta.width,
+      imageMeta.height,
+      config.width / config.height,
+      config.initialCropWidthPercent,
+    );
     setCrop(nextCrop);
     setCompletedCrop(nextCrop);
   };
@@ -76,10 +83,11 @@ export function ProductImageCropDialog({
 
     try {
       setSubmitting(true);
-      const result = await createCroppedProductImageFile({
+      const result = await createCroppedImageFile({
         sourceUrl,
         originalFileName: fileName,
         crop: completedCrop,
+        config,
       });
       await onConfirm(result);
       onOpenChange(false);
@@ -90,95 +98,97 @@ export function ProductImageCropDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[calc(100dvh-1.5rem)] overflow-y-auto border-[#e8dcc1] bg-[linear-gradient(180deg,#fffef8,#ffffff)] sm:max-w-5xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+      <ModalContent size="2xl" className="border-[#e8dcc1]">
+        <ModalHeader>
+          <ModalTitle className="flex items-center gap-2">
             <Scissors className="h-5 w-5 text-primary" />
-            Recortar imagem
-          </DialogTitle>
-          <DialogDescription>
-            Defina a area de crop em formato 1:1. A imagem final sera salva em {PRODUCT_IMAGE_WIDTH}x{PRODUCT_IMAGE_HEIGHT}px e comprimida antes do upload.
-          </DialogDescription>
-        </DialogHeader>
+            {title}
+          </ModalTitle>
+          <ModalDescription>
+            Defina a area de crop no formato {config.width}x{config.height}px. A imagem final sera comprimida antes do upload.
+          </ModalDescription>
+        </ModalHeader>
 
-        <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr] lg:gap-6">
-          <div className="rounded-3xl border border-[#d9ceb0] bg-[#f7f3e7] p-3 shadow-inner sm:p-4">
-            <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#2b241a] p-3">
-              {sourceUrl ? (
-                <ReactCrop
-                  crop={crop}
-                  aspect={PRODUCT_IMAGE_ASPECT}
-                  minWidth={180}
-                  minHeight={180}
-                  keepSelection
-                  ruleOfThirds
-                  onChange={(_, percentCrop) => setCrop(percentCrop)}
-                  onComplete={(_, percentCrop) => setCompletedCrop(percentCrop)}
-                  className="rounded-xl"
-                >
-                  <img
-                    src={sourceUrl}
-                    alt="Imagem para recorte"
-                    onLoad={handleImageLoad}
-                    className="max-h-[50vh] w-auto max-w-full object-contain sm:max-h-[60vh]"
-                  />
-                </ReactCrop>
-              ) : null}
+        <ModalBody>
+          <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr] lg:gap-6">
+            <div className="rounded-3xl border border-[#d9ceb0] bg-[#f7f3e7] p-3 shadow-inner sm:p-4">
+              <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#2b241a] p-3">
+                {sourceUrl ? (
+                  <ReactCrop
+                    crop={crop}
+                    aspect={config.width / config.height}
+                    minWidth={180}
+                    minHeight={180}
+                    keepSelection
+                    ruleOfThirds
+                    onChange={(_, percentCrop) => setCrop(percentCrop)}
+                    onComplete={(_, percentCrop) => setCompletedCrop(percentCrop)}
+                    className="rounded-xl"
+                  >
+                    <img
+                      src={sourceUrl}
+                      alt="Imagem para recorte"
+                      onLoad={handleImageLoad}
+                      className="max-h-[50vh] w-auto max-w-full object-contain sm:max-h-[60vh]"
+                    />
+                  </ReactCrop>
+                ) : null}
+              </div>
+              <p className="mt-4 text-center text-xs text-[#473d2a]">
+                Arraste a selecao e ajuste pelos cantos para definir o enquadramento final.
+              </p>
             </div>
-            <p className="mt-4 text-center text-xs text-[#473d2a]">
-              Arraste a selecao e ajuste pelos cantos para definir o enquadramento final.
-            </p>
+
+            <ModalPanel className="space-y-5">
+              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <Crop className="h-4 w-4 text-primary" />
+                Selecao
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-3">
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Largura</div>
+                  <div className="mt-1 text-sm font-semibold text-foreground">
+                    {formatPercentCropValue(completedCrop?.width)}%
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-3">
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Altura</div>
+                  <div className="mt-1 text-sm font-semibold text-foreground">
+                    {formatPercentCropValue(completedCrop?.height)}%
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-3">
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Origem X</div>
+                  <div className="mt-1 text-sm font-semibold text-foreground">
+                    {formatPercentCropValue(completedCrop?.x)}%
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-3">
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Origem Y</div>
+                  <div className="mt-1 text-sm font-semibold text-foreground">
+                    {formatPercentCropValue(completedCrop?.y)}%
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-3 text-xs text-muted-foreground">
+                O arquivo final sera exportado em WebP com proporcao fixa e comprimido em background para reduzir armazenamento.
+              </div>
+
+              <Button type="button" variant="outline" onClick={handleReset} disabled={!imageMeta || submitting}>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Reposicionar selecao
+              </Button>
+
+              <div className="rounded-2xl border border-dashed border-black/10 bg-white px-4 py-3 text-xs text-muted-foreground">
+                Use imagens com boa resolucao. O crop preserva o enquadramento usado pelo componente visual vinculado a este upload.
+              </div>
+            </ModalPanel>
           </div>
+        </ModalBody>
 
-          <div className="space-y-5 rounded-3xl border border-[#eadfba] bg-white/90 p-4 shadow-[0_20px_55px_-40px_rgba(15,23,42,0.22)] sm:p-5">
-            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <Crop className="h-4 w-4 text-primary" />
-              Selecao
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-3">
-                <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Largura</div>
-                <div className="mt-1 text-sm font-semibold text-foreground">
-                  {formatPercentCropValue(completedCrop?.width)}%
-                </div>
-              </div>
-              <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-3">
-                <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Altura</div>
-                <div className="mt-1 text-sm font-semibold text-foreground">
-                  {formatPercentCropValue(completedCrop?.height)}%
-                </div>
-              </div>
-              <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-3">
-                <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Origem X</div>
-                <div className="mt-1 text-sm font-semibold text-foreground">
-                  {formatPercentCropValue(completedCrop?.x)}%
-                </div>
-              </div>
-              <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-3">
-                <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Origem Y</div>
-                <div className="mt-1 text-sm font-semibold text-foreground">
-                  {formatPercentCropValue(completedCrop?.y)}%
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-3 text-xs text-muted-foreground">
-              O arquivo final sera recortado em 1:1, exportado em WebP e comprimido em background para reduzir armazenamento.
-            </div>
-
-            <Button type="button" variant="outline" onClick={handleReset} disabled={!imageMeta || submitting}>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Reposicionar selecao
-            </Button>
-
-            <div className="rounded-2xl border border-dashed border-black/10 bg-white px-4 py-3 text-xs text-muted-foreground">
-              Use imagens com boa resolucao. O crop preserva o enquadramento quadrado usado nas vitrines publicas.
-            </div>
-          </div>
-        </div>
-
-        <DialogFooter>
+        <ModalFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
             Cancelar
           </Button>
@@ -188,8 +198,12 @@ export function ProductImageCropDialog({
           >
             {submitting ? 'Processando...' : 'Usar imagem recortada'}
           </Button>
-        </DialogFooter>
-      </DialogContent>
+        </ModalFooter>
+      </ModalContent>
     </Dialog>
   );
+}
+
+export function ProductImageCropDialog(props: Omit<Parameters<typeof ImageCropDialog>[0], 'config'>) {
+  return <ImageCropDialog {...props} config={PRODUCT_IMAGE_CONFIG} />;
 }

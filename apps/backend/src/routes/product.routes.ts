@@ -11,7 +11,7 @@ import { createProductSchema, updateProductSchema } from '@rebequi/shared/schema
 import { upload } from '../config/multer.js';
 import { uploadLimiter } from '../middleware/rate-limit.middleware.js';
 
-const router = Router();
+const router: Router = Router();
 const productController = new ProductController();
 
 // Public routes

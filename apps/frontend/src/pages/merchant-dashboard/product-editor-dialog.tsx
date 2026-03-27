@@ -4,16 +4,10 @@ import { useMutation } from '@tanstack/react-query';
 import { ImagePlus, Loader2, Save, Trash2 } from 'lucide-react';
 import type { Product, ProductImage } from '@rebequi/shared/types';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ModalBody, ModalContent, ModalDescription, ModalFooter, ModalHeader, ModalPanel, ModalTitle } from '@/components/ui/modal';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { createProduct, updateProduct, uploadProductImage } from '@/services/api/products';
@@ -405,158 +399,160 @@ export function ProductEditorDialog({
           onOpenChange(nextOpen);
         }}
       >
-        <DialogContent className="max-h-[92vh] overflow-y-auto border-[#eadfba] bg-[linear-gradient(180deg,#fffef8,#ffffff)] sm:max-w-5xl">
-          <DialogHeader>
-            <DialogTitle>{isEditing ? 'Editar produto' : 'Novo produto'}</DialogTitle>
-            <DialogDescription>Preencha os dados do produto e salve as imagens.</DialogDescription>
-          </DialogHeader>
+        <ModalContent size="2xl">
+          <ModalHeader>
+            <ModalTitle>{isEditing ? 'Editar produto' : 'Novo produto'}</ModalTitle>
+            <ModalDescription>Preencha os dados do produto e salve as imagens.</ModalDescription>
+          </ModalHeader>
 
           <form
-            className="space-y-6"
+            className="flex min-h-0 flex-1 flex-col"
             onSubmit={handleSubmit((fields) => {
               void saveMutation.mutateAsync(fields);
             })}
           >
-            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              <div className="space-y-2 xl:col-span-2">
-                <Label htmlFor="product-name">Nome</Label>
-                <Input id="product-name" placeholder="Ex.: Furadeira de Impacto 650W" {...register('name', { required: true })} />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="product-category">Categoria</Label>
-                <select
-                  id="product-category"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  {...register('categoryId', { required: true })}
-                >
-                  <option value="">Selecione</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="product-price">Preco</Label>
-                <Input id="product-price" inputMode="decimal" placeholder="299.90" {...register('price')} />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="product-original-price">Preco original</Label>
-                <Input id="product-original-price" inputMode="decimal" placeholder="349.90" {...register('originalPrice')} />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="product-discount">Desconto (%)</Label>
-                <Input id="product-discount" inputMode="numeric" placeholder="15" {...register('discount')} />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="product-stock">Estoque</Label>
-                <Input id="product-stock" inputMode="numeric" placeholder="12" {...register('stock')} />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="product-min-stock">Estoque minimo</Label>
-                <Input id="product-min-stock" inputMode="numeric" placeholder="3" {...register('minStock')} />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="product-sku">SKU</Label>
-                <Input id="product-sku" placeholder="FER-FUR-001" {...register('sku')} />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="product-weight">Peso (kg)</Label>
-                <Input id="product-weight" inputMode="decimal" placeholder="2.4" {...register('weight')} />
-              </div>
-
-              <div className="space-y-2 xl:col-span-2">
-                <Label htmlFor="product-dimensions">Dimensoes</Label>
-                <Input id="product-dimensions" placeholder="30x25x10 cm" {...register('dimensions')} />
-              </div>
-
-              <div className="space-y-2 xl:col-span-3">
-                <Label htmlFor="product-short-desc">Descricao curta</Label>
-                <Textarea id="product-short-desc" rows={3} placeholder="Resumo para cards e secoes publicas." {...register('shortDesc')} />
-              </div>
-
-              <div className="space-y-2 xl:col-span-3">
-                <Label htmlFor="product-description">Descricao completa</Label>
-                <Textarea id="product-description" rows={5} placeholder="Descricao detalhada do produto." {...register('description')} />
-              </div>
-            </section>
-
-            <section className="rounded-3xl border border-[#eadfba] bg-white/92 p-5">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-lg font-semibold text-foreground">Imagens</h3>
-                  <p className="text-sm text-muted-foreground">As imagens sao recortadas em 1:1 e comprimidas antes do upload.</p>
+            <ModalBody className="space-y-6">
+              <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div className="space-y-2 xl:col-span-2">
+                  <Label htmlFor="product-name">Nome</Label>
+                  <Input id="product-name" placeholder="Ex.: Furadeira de Impacto 650W" {...register('name', { required: true })} />
                 </div>
 
-                <Button type="button" onClick={() => fileInputRef.current?.click()} className="gap-2">
-                  <ImagePlus className="h-4 w-4" />
-                  Adicionar imagem
-                </Button>
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="product-category">Categoria</Label>
+                  <select
+                    id="product-category"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    {...register('categoryId', { required: true })}
+                  >
+                    <option value="">Selecione</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                className="hidden"
-                onChange={(event) => void handleFileChange(event)}
-              />
+                <div className="space-y-2">
+                  <Label htmlFor="product-price">Preco</Label>
+                  <Input id="product-price" inputMode="decimal" placeholder="299.90" {...register('price')} />
+                </div>
 
-              <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {images.map((image) => (
-                  <ProductImageCard
-                    key={image.localId}
-                    image={image}
-                    onMakePrimary={() =>
-                      setImages((current) =>
-                        normalizeDraftImages(
-                          current.map((item) => ({
-                            ...item,
-                            isPrimary: item.localId === image.localId,
-                          }))
-                        )
-                      )
-                    }
-                    onRemove={() => handleRemoveImage(image)}
-                  />
-                ))}
-                {images.length === 0 ? (
-                  <div className="rounded-3xl border border-dashed border-black/10 bg-slate-50 px-5 py-10 text-center text-sm text-muted-foreground md:col-span-2 xl:col-span-3">
-                    Nenhuma imagem selecionada.
+                <div className="space-y-2">
+                  <Label htmlFor="product-original-price">Preco original</Label>
+                  <Input id="product-original-price" inputMode="decimal" placeholder="349.90" {...register('originalPrice')} />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="product-discount">Desconto (%)</Label>
+                  <Input id="product-discount" inputMode="numeric" placeholder="15" {...register('discount')} />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="product-stock">Estoque</Label>
+                  <Input id="product-stock" inputMode="numeric" placeholder="12" {...register('stock')} />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="product-min-stock">Estoque minimo</Label>
+                  <Input id="product-min-stock" inputMode="numeric" placeholder="3" {...register('minStock')} />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="product-sku">SKU</Label>
+                  <Input id="product-sku" placeholder="FER-FUR-001" {...register('sku')} />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="product-weight">Peso (kg)</Label>
+                  <Input id="product-weight" inputMode="decimal" placeholder="2.4" {...register('weight')} />
+                </div>
+
+                <div className="space-y-2 xl:col-span-2">
+                  <Label htmlFor="product-dimensions">Dimensoes</Label>
+                  <Input id="product-dimensions" placeholder="30x25x10 cm" {...register('dimensions')} />
+                </div>
+
+                <div className="space-y-2 xl:col-span-3">
+                  <Label htmlFor="product-short-desc">Descricao curta</Label>
+                  <Textarea id="product-short-desc" rows={3} placeholder="Resumo para cards e secoes publicas." {...register('shortDesc')} />
+                </div>
+
+                <div className="space-y-2 xl:col-span-3">
+                  <Label htmlFor="product-description">Descricao completa</Label>
+                  <Textarea id="product-description" rows={5} placeholder="Descricao detalhada do produto." {...register('description')} />
+                </div>
+              </section>
+
+              <ModalPanel className="space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground">Imagens</h3>
+                    <p className="text-sm text-muted-foreground">As imagens sao recortadas em 1:1 e comprimidas antes do upload.</p>
                   </div>
-                ) : null}
-              </div>
-            </section>
 
-            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-slate-50 px-4 py-3 text-sm">
-                <input type="checkbox" {...register('isOffer')} />
-                Produto em oferta
-              </label>
-              <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-slate-50 px-4 py-3 text-sm">
-                <input type="checkbox" {...register('isNew')} />
-                Sinalizar como novidade
-              </label>
-              <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-slate-50 px-4 py-3 text-sm">
-                <input type="checkbox" {...register('isFeatured')} />
-                Exibir em destaque
-              </label>
-              <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-slate-50 px-4 py-3 text-sm">
-                <input type="checkbox" {...register('isActive')} />
-                Produto ativo
-              </label>
-            </section>
+                  <Button type="button" onClick={() => fileInputRef.current?.click()} className="gap-2">
+                    <ImagePlus className="h-4 w-4" />
+                    Adicionar imagem
+                  </Button>
+                </div>
 
-            <DialogFooter>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={(event) => void handleFileChange(event)}
+                />
+
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {images.map((image) => (
+                    <ProductImageCard
+                      key={image.localId}
+                      image={image}
+                      onMakePrimary={() =>
+                        setImages((current) =>
+                          normalizeDraftImages(
+                            current.map((item) => ({
+                              ...item,
+                              isPrimary: item.localId === image.localId,
+                            }))
+                          )
+                        )
+                      }
+                      onRemove={() => handleRemoveImage(image)}
+                    />
+                  ))}
+                  {images.length === 0 ? (
+                    <div className="rounded-3xl border border-dashed border-black/10 bg-slate-50 px-5 py-10 text-center text-sm text-muted-foreground md:col-span-2 xl:col-span-3">
+                      Nenhuma imagem selecionada.
+                    </div>
+                  ) : null}
+                </div>
+              </ModalPanel>
+
+              <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-slate-50 px-4 py-3 text-sm">
+                  <input type="checkbox" {...register('isOffer')} />
+                  Produto em oferta
+                </label>
+                <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-slate-50 px-4 py-3 text-sm">
+                  <input type="checkbox" {...register('isNew')} />
+                  Sinalizar como novidade
+                </label>
+                <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-slate-50 px-4 py-3 text-sm">
+                  <input type="checkbox" {...register('isFeatured')} />
+                  Exibir em destaque
+                </label>
+                <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-slate-50 px-4 py-3 text-sm">
+                  <input type="checkbox" {...register('isActive')} />
+                  Produto ativo
+                </label>
+              </section>
+            </ModalBody>
+
+            <ModalFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancelar
               </Button>
@@ -564,9 +560,9 @@ export function ProductEditorDialog({
                 {saveMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 {isEditing ? 'Salvar alteracoes' : 'Cadastrar produto'}
               </Button>
-            </DialogFooter>
+            </ModalFooter>
           </form>
-        </DialogContent>
+        </ModalContent>
       </Dialog>
 
       <ProductImageCropDialog

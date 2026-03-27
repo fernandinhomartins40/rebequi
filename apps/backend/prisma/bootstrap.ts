@@ -1,4 +1,4 @@
-import { PrismaClient, UserRole } from '@prisma/client';
+import { PrismaClient, PromotionKind, PromotionTheme, UserRole } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -27,6 +27,28 @@ type ProductSeed = {
   weight?: number;
   dimensions?: string;
   categorySlug: string;
+  image: {
+    url: string;
+    alt: string;
+  };
+};
+
+type PromotionSeed = {
+  name: string;
+  slug: string;
+  kind: PromotionKind;
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  badgeText: string;
+  ctaLabel: string;
+  disclaimer: string;
+  themeTone: PromotionTheme;
+  sortOrder: number;
+  startsAtOffsetDays?: number;
+  expiresAtOffsetDays?: number;
+  productSlugs: string[];
   image: {
     url: string;
     alt: string;
@@ -205,6 +227,93 @@ const products: ProductSeed[] = [
   },
 ];
 
+const promotions: PromotionSeed[] = [
+  {
+    name: 'Semana da Pintura',
+    slug: 'semana-da-pintura',
+    kind: PromotionKind.COLLECTION,
+    eyebrow: 'Ofertas em destaque',
+    title: 'Pintura com rendimento e acabamento',
+    subtitle: 'Tintas, pinceis e kits para renovar ambientes.',
+    description: 'Campanha promocional com itens para preparar superficies, aplicar tinta e finalizar a obra com mais agilidade.',
+    badgeText: 'Ate 25% OFF',
+    ctaLabel: 'Ver campanha',
+    disclaimer: 'Estoque sujeito a disponibilidade durante a campanha.',
+    themeTone: PromotionTheme.GOLD,
+    sortOrder: 0,
+    startsAtOffsetDays: -2,
+    expiresAtOffsetDays: 7,
+    productSlugs: ['tinta-acrilica-branca-18l', 'kit-pintura-profissional'],
+    image: {
+      url: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=1400',
+      alt: 'Ferramentas e materiais para pintura',
+    },
+  },
+  {
+    name: 'Eletrica Essencial',
+    slug: 'eletrica-essencial',
+    kind: PromotionKind.COLLECTION,
+    eyebrow: 'Promocao tecnica',
+    title: 'Infraestrutura eletrica com entrega rapida',
+    subtitle: 'Cabos e componentes para instalacoes residenciais.',
+    description: 'Colecao promocional focada em itens de instalacao eletrica para manutencao, reforma e novos projetos.',
+    badgeText: 'Curadoria tecnica',
+    ctaLabel: 'Explorar itens',
+    disclaimer: 'Consulte a equipe tecnica para compatibilidade entre componentes.',
+    themeTone: PromotionTheme.BLUE,
+    sortOrder: 1,
+    startsAtOffsetDays: -1,
+    expiresAtOffsetDays: 10,
+    productSlugs: ['fio-eletrico-flexivel-25mm-100m', 'disjuntor-monopolar-32a'],
+    image: {
+      url: 'https://images.unsplash.com/photo-1516116216624-53e697fedbea?w=1400',
+      alt: 'Componentes eletricos em promocao',
+    },
+  },
+  {
+    name: 'Oferta Furadeira de Impacto',
+    slug: 'oferta-furadeira-de-impacto',
+    kind: PromotionKind.SINGLE_PRODUCT,
+    eyebrow: 'Promocoes imperdiveis',
+    title: 'Furadeira com prazo relampago',
+    subtitle: 'Equipamento profissional com estoque limitado.',
+    description: 'Oferta individual criada para destacar uma furadeira de impacto com prazo curto e chamada dedicada.',
+    badgeText: 'Oferta relampago',
+    ctaLabel: 'Ver oferta',
+    disclaimer: 'Validade sujeita ao estoque disponivel.',
+    themeTone: PromotionTheme.RED,
+    sortOrder: 0,
+    startsAtOffsetDays: -1,
+    expiresAtOffsetDays: 4,
+    productSlugs: ['furadeira-impacto-650w'],
+    image: {
+      url: 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=1400',
+      alt: 'Furadeira de impacto em promocao',
+    },
+  },
+  {
+    name: 'Oferta Tinta Acrilica 18L',
+    slug: 'oferta-tinta-acrilica-18l',
+    kind: PromotionKind.SINGLE_PRODUCT,
+    eyebrow: 'Promocoes imperdiveis',
+    title: 'Tinta premium com desconto por tempo limitado',
+    subtitle: 'Cobertura uniforme para acelerar a etapa de acabamento.',
+    description: 'Oferta individual de tinta acrilica com prazo definido para destacar o item na vitrine principal.',
+    badgeText: 'Preco especial',
+    ctaLabel: 'Aproveitar oferta',
+    disclaimer: 'A promocao pode ser encerrada quando o prazo expirar.',
+    themeTone: PromotionTheme.GOLD,
+    sortOrder: 1,
+    startsAtOffsetDays: -1,
+    expiresAtOffsetDays: 6,
+    productSlugs: ['tinta-acrilica-branca-18l'],
+    image: {
+      url: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=1400',
+      alt: 'Tinta acrilica branca em oferta',
+    },
+  },
+];
+
 function readEnv(name: string, fallback?: string): string | undefined {
   const value = process.env[name]?.trim();
   return value || fallback;
@@ -214,10 +323,13 @@ async function ensureManagedUser(params: {
   email: string;
   password: string;
   name: string;
+  whatsapp?: string;
   role: UserRole;
+  isProvisional?: boolean;
+  mustChangePassword?: boolean;
   label: string;
 }) {
-  const { email, password, name, role, label } = params;
+  const { email, password, name, whatsapp, role, isProvisional = false, mustChangePassword = false, label } = params;
   const passwordHash = await bcrypt.hash(password, 10);
 
   const user = await prisma.user.upsert({
@@ -225,15 +337,21 @@ async function ensureManagedUser(params: {
     update: {
       name,
       password: passwordHash,
+      whatsapp,
       role,
       isActive: true,
+      isProvisional,
+      mustChangePassword,
     },
     create: {
       email,
       name,
       password: passwordHash,
+      whatsapp,
       role,
       isActive: true,
+      isProvisional,
+      mustChangePassword,
     },
   });
 
@@ -263,6 +381,7 @@ async function ensureDemoCustomer() {
   const customerEmail = readEnv('BOOTSTRAP_CUSTOMER_EMAIL', 'cliente@rebequi.com.br');
   const customerPassword = readEnv('BOOTSTRAP_CUSTOMER_PASSWORD', 'Cliente123!');
   const customerName = readEnv('BOOTSTRAP_CUSTOMER_NAME', 'Cliente de Teste');
+  const customerWhatsapp = readEnv('BOOTSTRAP_CUSTOMER_WHATSAPP', '11999990000');
 
   if (!customerEmail || !customerPassword || !customerName) {
     throw new Error('Customer bootstrap configuration is incomplete.');
@@ -272,6 +391,7 @@ async function ensureDemoCustomer() {
     email: customerEmail,
     password: customerPassword,
     name: customerName,
+    whatsapp: customerWhatsapp,
     role: UserRole.CUSTOMER,
     label: 'customer',
   });
@@ -351,23 +471,106 @@ async function ensureSampleCatalog() {
   console.log(`Sample catalog ready with ${products.length} products.`);
 }
 
+function createOffsetDate(days?: number) {
+  if (days === undefined) {
+    return undefined;
+  }
+
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date;
+}
+
+async function ensureSamplePromotions() {
+  const promotionCount = await prisma.promotion.count({
+    where: { deletedAt: null },
+  });
+
+  if (promotionCount > 0) {
+    console.log(`Promotions already populated with ${promotionCount} records. Skipping sample promotions bootstrap.`);
+    return;
+  }
+
+  const productSlugs = Array.from(new Set(promotions.flatMap((promotion) => promotion.productSlugs)));
+  const persistedProducts = await prisma.product.findMany({
+    where: {
+      slug: { in: productSlugs },
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      slug: true,
+    },
+  });
+
+  const productMap = new Map(persistedProducts.map((product) => [product.slug, product.id]));
+
+  for (const promotion of promotions) {
+    const productIds = promotion.productSlugs
+      .map((slug) => productMap.get(slug))
+      .filter((value): value is string => Boolean(value));
+
+    if (productIds.length !== promotion.productSlugs.length) {
+      console.log(`Skipping sample promotion ${promotion.slug} because not all reference products are available.`);
+      continue;
+    }
+
+    await prisma.promotion.upsert({
+      where: { slug: promotion.slug },
+      update: {},
+      create: {
+        name: promotion.name,
+        slug: promotion.slug,
+        kind: promotion.kind,
+        eyebrow: promotion.eyebrow,
+        title: promotion.title,
+        subtitle: promotion.subtitle,
+        description: promotion.description,
+        badgeText: promotion.badgeText,
+        ctaLabel: promotion.ctaLabel,
+        disclaimer: promotion.disclaimer,
+        themeTone: promotion.themeTone,
+        imageUrl: promotion.image.url,
+        imageAlt: promotion.image.alt,
+        startsAt: createOffsetDate(promotion.startsAtOffsetDays),
+        expiresAt: createOffsetDate(promotion.expiresAtOffsetDays),
+        sortOrder: promotion.sortOrder,
+        isActive: true,
+        products: {
+          create: productIds.map((productId, index) => ({
+            order: index,
+            product: {
+              connect: { id: productId },
+            },
+          })),
+        },
+      },
+    });
+  }
+
+  console.log(`Sample promotions ready with up to ${promotions.length} campaigns.`);
+}
+
 async function main() {
   console.log('Starting production-safe bootstrap...');
 
   await ensureAdminUser();
   await ensureDemoCustomer();
   await ensureSampleCatalog();
+  await ensureSamplePromotions();
 
-  const [users, categoriesCount, productsCount] = await Promise.all([
+  const [users, categoriesCount, productsCount, promotionsCount] = await Promise.all([
     prisma.user.count(),
     prisma.category.count({ where: { deletedAt: null } }),
     prisma.product.count({ where: { deletedAt: null } }),
+    prisma.promotion.count({ where: { deletedAt: null } }),
   ]);
 
   console.log('Bootstrap finished successfully.');
   console.log(`Users: ${users}`);
   console.log(`Categories: ${categoriesCount}`);
   console.log(`Products: ${productsCount}`);
+  console.log(`Promotions: ${promotionsCount}`);
 }
 
 main()

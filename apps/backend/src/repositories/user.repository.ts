@@ -26,6 +26,26 @@ export class UserRepository {
   }
 
   /**
+   * Find user by WhatsApp
+   */
+  async findByWhatsapp(whatsapp: string): Promise<User | null> {
+    return prisma.user.findUnique({
+      where: { whatsapp },
+    });
+  }
+
+  /**
+   * Find user by login identifier (email or WhatsApp)
+   */
+  async findByIdentifier(identifier: string): Promise<User | null> {
+    return prisma.user.findFirst({
+      where: {
+        OR: [{ email: identifier }, { whatsapp: identifier }],
+      },
+    });
+  }
+
+  /**
    * Create new user
    */
   async create(data: Prisma.UserCreateInput): Promise<User> {

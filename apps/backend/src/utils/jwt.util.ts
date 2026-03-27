@@ -8,7 +8,7 @@ import { UnauthorizedError } from './errors.util.js';
 
 export interface JwtPayload {
   userId: string;
-  email: string;
+  identifier: string;
   role: string;
 }
 

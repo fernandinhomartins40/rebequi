@@ -81,6 +81,63 @@ export function isValidEmail(email: string): boolean {
 }
 
 /**
+ * Normalize a Brazilian WhatsApp number to digits only.
+ * Accepts values with or without country code (+55).
+ */
+export function normalizeWhatsapp(value: string): string {
+  const digits = value.replace(/\D/g, '');
+
+  if (digits.length === 13 && digits.startsWith('55')) {
+    return digits.slice(2);
+  }
+
+  if (digits.length === 12 && digits.startsWith('55')) {
+    return digits.slice(2);
+  }
+
+  return digits;
+}
+
+/**
+ * Check if the normalized Brazilian WhatsApp number is valid with DDD.
+ */
+export function isValidWhatsapp(value: string): boolean {
+  const normalized = normalizeWhatsapp(value);
+  return normalized.length === 10 || normalized.length === 11;
+}
+
+/**
+ * Format normalized WhatsApp number for display.
+ */
+export function formatWhatsapp(value: string): string {
+  const normalized = normalizeWhatsapp(value);
+
+  if (normalized.length === 11) {
+    return normalized.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+  }
+
+  if (normalized.length === 10) {
+    return normalized.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+  }
+
+  return value;
+}
+
+/**
+ * Build a provisional password from the first 3 letters of the customer name.
+ */
+export function buildProvisionalPassword(name: string): string {
+  const lettersOnly = name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^A-Za-z]/g, '')
+    .toLowerCase();
+
+  const base = lettersOnly.slice(0, 3) || 'cli';
+  return base.padEnd(3, 'x');
+}
+
+/**
  * Sanitize string (remove HTML tags)
  */
 export function sanitize(text: string): string {
