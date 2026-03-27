@@ -47,9 +47,9 @@ const PromotionDetailsPage = () => {
         <main className="container mx-auto px-4 py-10 sm:px-6">
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Promocao indisponivel</AlertTitle>
+            <AlertTitle>Promoção indisponível</AlertTitle>
             <AlertDescription>
-              {error instanceof Error ? error.message : 'Nao foi possivel carregar esta promocao.'}
+              {error instanceof Error ? error.message : 'Não foi possível carregar esta promoção.'}
             </AlertDescription>
           </Alert>
         </main>
@@ -71,7 +71,7 @@ const PromotionDetailsPage = () => {
           <Button asChild variant="outline" className="rounded-2xl">
             <Link to={isSingleProductPromotion ? '/' : '/promocoes'}>
               <ArrowLeft className="mr-2 h-4 w-4" />
-              {isSingleProductPromotion ? 'Voltar para a loja' : 'Voltar para promocoes'}
+              {isSingleProductPromotion ? 'Voltar para a loja' : 'Voltar para promoções'}
             </Link>
           </Button>
 
@@ -89,7 +89,7 @@ const PromotionDetailsPage = () => {
                     {promotion.title}
                   </h1>
                   <p className="max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
-                    {promotion.description || promotion.subtitle || 'Colecao promocional com produtos selecionados para esta campanha.'}
+                    {promotion.description || promotion.subtitle || 'Coleção promocional com produtos selecionados para esta campanha.'}
                   </p>
                 </div>
 
@@ -161,11 +161,11 @@ const PromotionDetailsPage = () => {
                 {isSingleProductPromotion ? 'Produto em oferta' : 'Produtos vinculados'}
               </p>
               <h2 className="text-2xl font-bold text-foreground sm:text-3xl">
-                {isSingleProductPromotion ? 'Item destacado nesta oferta' : 'Tudo o que faz parte desta promocao'}
+                {isSingleProductPromotion ? 'Item destacado nesta oferta' : 'Tudo o que faz parte desta promoção'}
               </h2>
               <p className="text-sm leading-6 text-muted-foreground sm:text-base">
                 {isSingleProductPromotion
-                  ? 'Oferta individual tratada separadamente, com pagina dedicada e contador de encerramento.'
+                  ? 'Oferta individual tratada separadamente, com página dedicada e contador de encerramento.'
                   : 'Selecao completa de itens associados a este card promocional.'}
               </p>
             </div>

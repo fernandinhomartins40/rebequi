@@ -103,8 +103,8 @@ export default function ProductDetails() {
         <div className="container mx-auto px-4 py-16">
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Produto invalido</AlertTitle>
-            <AlertDescription>O identificador do produto nao foi informado.</AlertDescription>
+            <AlertTitle>Produto inválido</AlertTitle>
+            <AlertDescription>O identificador do produto não foi informado.</AlertDescription>
           </Alert>
         </div>
         <Footer />
@@ -125,20 +125,20 @@ export default function ProductDetails() {
         <div className="container mx-auto px-4 py-16">
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>{isNotFound ? "Produto nao encontrado" : "Falha ao carregar produto"}</AlertTitle>
+            <AlertTitle>{isNotFound ? "Produto não encontrado" : "Falha ao carregar produto"}</AlertTitle>
             <AlertDescription>
               {isNotFound
-                ? "O produto solicitado nao esta disponivel ou foi removido."
+                ? "O produto solicitado não está disponível ou foi removido."
                 : error instanceof Error
                   ? error.message
-                  : "Nao foi possivel carregar este produto agora."}
+                  : "Não foi possível carregar este produto agora."}
             </AlertDescription>
           </Alert>
 
           <Button asChild variant="outline" className="mt-6">
             <Link to="/">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Voltar para a pagina inicial
+              Voltar para a página inicial
             </Link>
           </Button>
         </div>
@@ -180,7 +180,7 @@ export default function ProductDetails() {
     {
       icon: Package,
       label: "Estoque",
-      value: hasStock ? `${product.stock} unidades disponiveis` : "Sem estoque no momento",
+      value: hasStock ? `${product.stock} unidades disponíveis` : "Sem estoque no momento",
     },
   ].filter(Boolean) as Array<{
     icon: typeof Tag;
@@ -197,7 +197,7 @@ export default function ProductDetails() {
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link to="/">Inicio</Link>
+                <Link to="/">Início</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
@@ -295,7 +295,7 @@ export default function ProductDetails() {
 
                 {product.minStock > 0 ? (
                   <div className="inline-flex items-center rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700">
-                    Estoque minimo: {product.minStock}
+                    Estoque mínimo: {product.minStock}
                   </div>
                 ) : null}
               </div>
@@ -309,7 +309,7 @@ export default function ProductDetails() {
                     Entrega local
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Consulte prazos e disponibilidade para a sua regiao.
+                    Consulte prazos e disponibilidade para a sua região.
                   </p>
                 </div>
                 <div className="rounded-2xl border border-black/5 bg-slate-50 p-4">
@@ -318,7 +318,7 @@ export default function ProductDetails() {
                     Produto catalogado
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Dados vindos da API publica, sem necessidade de login para consulta.
+                    Dados vindos da API pública, sem necessidade de login para consulta.
                   </p>
                 </div>
               </div>
@@ -341,9 +341,9 @@ export default function ProductDetails() {
             </div>
 
             <div className="rounded-[2rem] border border-[#e7dcc3] bg-white px-4 py-4 shadow-[0_30px_70px_-50px_rgba(15,23,42,0.35)] sm:px-6 sm:py-5">
-              <h2 className="text-lg font-semibold text-foreground">Descricao</h2>
+              <h2 className="text-lg font-semibold text-foreground">Descrição</h2>
               <p className="mt-3 whitespace-pre-line text-sm leading-7 text-muted-foreground">
-                {product.description || product.shortDesc || "Sem descricao detalhada cadastrada para este produto."}
+                {product.description || product.shortDesc || "Sem descrição detalhada cadastrada para este produto."}
               </p>
             </div>
 

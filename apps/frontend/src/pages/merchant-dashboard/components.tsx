@@ -118,7 +118,7 @@ export function MerchantSidebarFooter({
 
       <SidebarFooter className="gap-3 px-4 pb-4 pt-2">
         <div className="rounded-3xl border border-[#eadfba] bg-white/90 p-4 shadow-[0_16px_38px_-34px_rgba(37,99,235,0.25)] group-data-[collapsible=icon]:hidden">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Sessao ativa</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Sessão ativa</p>
           <p className="mt-3 break-all text-sm font-semibold text-foreground">{userEmail}</p>
           <p className="mt-1 text-xs text-muted-foreground">Role ADMIN validada pelo backend.</p>
         </div>

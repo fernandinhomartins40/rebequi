@@ -9,12 +9,12 @@ export function MerchantDashboardStability() {
       <SectionLeadCard
         badge="Plataforma"
         title="Status da plataforma"
-        description="Itens concluidos e pendencias atuais do painel."
+        description="Itens concluídos e pendências atuais do painel."
         tone="red"
         actions={
           <>
             <Button asChild className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
-              <Link to={`${ADMIN_BASE_PATH}/visao-geral`}>Visao geral</Link>
+              <Link to={`${ADMIN_BASE_PATH}/visao-geral`}>Visão geral</Link>
             </Button>
             <Button asChild variant="outline" className="border-black/10 bg-white/80 text-foreground hover:bg-white">
               <Link to={`${ADMIN_BASE_PATH}/acesso`}>Acesso</Link>
@@ -29,11 +29,11 @@ export function MerchantDashboardStability() {
           badgeClassName="bg-secondary text-secondary-foreground"
           description="Recursos ativos e validados."
           items={[
-            'Login administrativo com sessao persistida por cookie.',
+            'Login administrativo com sessão persistida por cookie.',
             'Protecao de rota por papel ADMIN no frontend.',
             'Seed idempotente de admin e cliente de teste no deploy.',
-            'Produtos publicos carregados da API sem exigir login.',
-            'Deploy que valida autenticacao real em producao.',
+            'Produtos públicos carregados da API sem exigir login.',
+            'Deploy que valida autenticação real em produção.',
           ]}
           itemClassName="border-black/5 bg-white/78 text-muted-foreground"
           title="Implementado"
@@ -42,12 +42,12 @@ export function MerchantDashboardStability() {
         <StateCard
           className="border-[#f0d7d7] bg-white/90 shadow-[0_24px_60px_-44px_rgba(220,38,38,0.24)]"
           badgeClassName="bg-accent text-accent-foreground"
-          description="Itens previstos e ainda nao entregues."
+          description="Itens previstos e ainda não entregues."
           items={[
             'CRUD administrativo completo de categorias.',
             'Pedidos, clientes, pagamentos e metricas operacionais.',
-            'Filtros avancados, busca administrativa e edicao em lote.',
-            'Configuracoes de loja, seguranca e rotacao de credenciais.',
+            'Filtros avançados, busca administrativa e edição em lote.',
+            'Configurações de loja, segurança e rotação de credenciais.',
             'Auditoria e trilha de atividades do painel administrativo.',
           ]}
           itemClassName="border-black/5 bg-slate-50 text-muted-foreground"
@@ -58,12 +58,12 @@ export function MerchantDashboardStability() {
       <section className="grid gap-4 md:grid-cols-2">
         <GuaranteeCard
           title="Escopo atual"
-          description="O painel cobre autenticacao, produtos e verificacoes basicas de plataforma."
+          description="O painel cobre autenticação, produtos e verificações básicas de plataforma."
           badgeClass="bg-primary/10 text-primary"
         />
         <GuaranteeCard
           title="Evolucao"
-          description="Novas areas podem ser adicionadas sem alterar a estrutura principal do painel."
+          description="Novas áreas podem ser adicionadas sem alterar a estrutura principal do painel."
           badgeClass="bg-secondary/25 text-foreground"
         />
       </section>

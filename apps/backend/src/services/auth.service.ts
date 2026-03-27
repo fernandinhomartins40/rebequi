@@ -31,7 +31,7 @@ export class AuthService {
     const existingUser = await this.userRepository.findByIdentifier(normalizedWhatsapp);
 
     if (existingUser) {
-      throw new ConflictError('Ja existe um acesso vinculado a este WhatsApp');
+      throw new ConflictError('Já existe um acesso vinculado a este WhatsApp');
     }
 
     const provisionalPassword = buildProvisionalPassword(data.name);
@@ -64,13 +64,13 @@ export class AuthService {
     const normalizedWhatsapp = normalizeWhatsapp(params.whatsapp);
 
     if (!isValidWhatsapp(normalizedWhatsapp)) {
-      throw new UnauthorizedError('WhatsApp invalido');
+      throw new UnauthorizedError('WhatsApp inválido');
     }
 
     const existingUser = await this.userRepository.findByIdentifier(normalizedWhatsapp);
     if (existingUser) {
       if (existingUser.role !== UserRole.CUSTOMER) {
-        throw new ConflictError('Ja existe um usuario administrativo vinculado a este identificador');
+        throw new ConflictError('Já existe um usuário administrativo vinculado a este identificador');
       }
 
       const activeUser = existingUser.isActive
@@ -147,7 +147,7 @@ export class AuthService {
     const normalizedIdentifier = this.normalizeIdentifier(data.identifier);
     const user = await this.userRepository.findByIdentifier(normalizedIdentifier);
     if (!user) {
-      throw new UnauthorizedError('Credenciais invalidas');
+      throw new UnauthorizedError('Credenciais inválidas');
     }
 
     if (!user.isActive) {
@@ -156,7 +156,7 @@ export class AuthService {
 
     const isPasswordValid = await comparePassword(data.password, user.password);
     if (!isPasswordValid) {
-      throw new UnauthorizedError('Credenciais invalidas');
+      throw new UnauthorizedError('Credenciais inválidas');
     }
 
     return this.createSessionForUser(user.id);
@@ -165,12 +165,12 @@ export class AuthService {
   async changePassword(userId: string, data: ChangePasswordInput) {
     const user = await this.userRepository.findById(userId);
     if (!user) {
-      throw new UnauthorizedError('Usuario nao encontrado');
+      throw new UnauthorizedError('Usuário não encontrado');
     }
 
     const isPasswordValid = await comparePassword(data.currentPassword, user.password);
     if (!isPasswordValid) {
-      throw new UnauthorizedError('Senha atual invalida');
+      throw new UnauthorizedError('Senha atual inválida');
     }
 
     const hashedPassword = await hashPassword(data.newPassword);

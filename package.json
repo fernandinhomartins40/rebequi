@@ -10,9 +10,10 @@
   "scripts": {
     "dev": "npm run dev --workspace=apps/frontend",
     "dev:frontend": "npm run dev --workspace=apps/frontend",
-    "build": "npm run build --workspaces --if-present",
+    "check:texts": "node scripts/check-ptbr-texts.mjs",
+    "build": "npm run check:texts && npm run build --workspaces --if-present",
     "build:frontend": "npm run build --workspace=apps/frontend",
-    "lint": "npm run lint --workspaces --if-present",
+    "lint": "npm run check:texts && npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "clean": "rm -rf apps/*/node_modules packages/*/node_modules node_modules"
   },

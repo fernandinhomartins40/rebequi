@@ -88,12 +88,12 @@ export function getPromotionStatusTone(status: PromotionStatus) {
 
 export function formatPromotionDate(value?: string | Date | null) {
   if (!value) {
-    return 'Nao definido';
+    return 'Não definido';
   }
 
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return 'Data invalida';
+    return 'Data inválida';
   }
 
   return dateFormatter.format(date);
@@ -104,18 +104,18 @@ export function formatPromotionWindow(params: {
   expiresAt?: string | Date | null;
 }) {
   if (params.startsAt && params.expiresAt) {
-    return `${formatPromotionDate(params.startsAt)} ate ${formatPromotionDate(params.expiresAt)}`;
+    return `${formatPromotionDate(params.startsAt)} até ${formatPromotionDate(params.expiresAt)}`;
   }
 
   if (params.expiresAt) {
-    return `Valida ate ${formatPromotionDate(params.expiresAt)}`;
+    return `Válida até ${formatPromotionDate(params.expiresAt)}`;
   }
 
   if (params.startsAt) {
     return `Disponivel desde ${formatPromotionDate(params.startsAt)}`;
   }
 
-  return 'Promocao por tempo indeterminado';
+  return 'Promoção por tempo indeterminado';
 }
 
 export function getPromotionHref(kind: PromotionKind, slug: string) {

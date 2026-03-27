@@ -37,7 +37,7 @@ const Login = () => {
       const user = await login(values);
       toast({
         title: 'Login realizado',
-        description: 'Sessao autenticada com sucesso.',
+        description: 'Sessão autenticada com sucesso.',
       });
       navigate(user.role === UserRole.ADMIN ? '/painel-lojista/painel/visao-geral' : '/painel-cliente');
     } catch (error) {
@@ -60,7 +60,7 @@ const Login = () => {
             <LogIn className="h-6 w-6 text-primary" />
             Entrar
           </CardTitle>
-          <CardDescription>Acesse sua conta para continuar com a sessao real da aplicacao.</CardDescription>
+          <CardDescription>Acesse sua conta para continuar com a sessão real da aplicação.</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
@@ -103,7 +103,7 @@ const Login = () => {
           </form>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            Ainda nao tem acesso?{' '}
+            Ainda não tem acesso?{' '}
             <Link to="/registrar" className="font-semibold text-primary hover:underline">
               Cadastro rapido
             </Link>

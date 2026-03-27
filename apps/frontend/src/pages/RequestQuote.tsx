@@ -63,8 +63,8 @@ export default function RequestQuotePage() {
     } catch (error) {
       toast({
         variant: 'destructive',
-        title: 'Falha ao iniciar a solicitacao',
-        description: error instanceof Error ? error.message : 'Nao foi possivel registrar seus dados agora.',
+        title: 'Falha ao iniciar a solicitação',
+        description: error instanceof Error ? error.message : 'Não foi possível registrar seus dados agora.',
       });
     }
   });
@@ -82,7 +82,7 @@ export default function RequestQuotePage() {
 
       await refreshSession();
       toast({
-        title: 'Orcamento em rascunho',
+        title: 'Orçamento em rascunho',
         description: 'Revise os itens reconhecidos no painel do cliente antes de enviar.',
       });
       navigate(`/painel-cliente?quoteId=${result.quote.id}`);
@@ -90,7 +90,7 @@ export default function RequestQuotePage() {
       toast({
         variant: 'destructive',
         title: 'Falha ao processar documento',
-        description: error instanceof Error ? error.message : 'Nao foi possivel processar a foto enviada.',
+        description: error instanceof Error ? error.message : 'Não foi possível processar a foto enviada.',
       });
     }
   };
@@ -110,7 +110,7 @@ export default function RequestQuotePage() {
         <section className="mt-6 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
           <Card className="border-[#e7dcc3] bg-white/95 shadow-[0_35px_80px_-50px_rgba(15,23,42,0.35)]">
             <CardHeader className="space-y-4">
-              <Badge className="w-fit border-none bg-accent text-accent-foreground">Solicitar orcamento</Badge>
+              <Badge className="w-fit border-none bg-accent text-accent-foreground">Solicitar orçamento</Badge>
               <div>
                 <CardTitle className="text-3xl leading-tight sm:text-4xl">
                   Envie a foto do documento e deixe o sistema montar o rascunho
@@ -123,7 +123,7 @@ export default function RequestQuotePage() {
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-3">
               <InfoPill icon={<PhoneCall className="h-4 w-4 text-primary" />} title="1. Identificacao" description="Nome e WhatsApp com DDD" />
-              <InfoPill icon={<FileScan className="h-4 w-4 text-primary" />} title="2. Foto" description="Camera do celular ou galeria" />
+              <InfoPill icon={<FileScan className="h-4 w-4 text-primary" />} title="2. Foto" description="Câmera do celular ou galeria" />
               <InfoPill icon={<CheckCircle2 className="h-4 w-4 text-primary" />} title="3. Revisao" description="Edite os itens no painel" />
             </CardContent>
           </Card>
@@ -132,7 +132,7 @@ export default function RequestQuotePage() {
             <CardHeader>
               <CardTitle>Seus dados para iniciar</CardTitle>
               <CardDescription>
-                Se voce sair no meio do processo, seu acesso provisório e seu lead continuam registrados.
+                Se você sair no meio do processo, seu acesso provisório e seu lead continuam registrados.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -174,7 +174,7 @@ export default function RequestQuotePage() {
                 <CheckCircle2 className="h-4 w-4 text-primary" />
                 <AlertTitle>Acesso provisório criado</AlertTitle>
                 <AlertDescription>
-                  Usuario: <strong>{leadData.provisionalCredentials.identifier}</strong> | senha provisória:{' '}
+                  Usuário: <strong>{leadData.provisionalCredentials.identifier}</strong> | senha provisória:{' '}
                   <strong>{leadData.provisionalCredentials.password}</strong>
                 </AlertDescription>
               </Alert>
@@ -182,8 +182,8 @@ export default function RequestQuotePage() {
 
             <QuoteDocumentCaptureCard
               title="Fotografe o documento do orçamento"
-              description="A imagem sera processada com OCR open source para identificar os itens e abrir um rascunho no painel do cliente."
-              helper="Se a camera nao abrir automaticamente no seu aparelho, o seletor tambem permite enviar a imagem da galeria."
+              description="A imagem será processada com OCR open source para identificar os itens e abrir um rascunho no painel do cliente."
+              helper="Se a câmera não abrir automaticamente no seu aparelho, o seletor também permite enviar a imagem da galeria."
               processing={quoteMutation.isPending}
               onSelectFile={handleProcessDocument}
             />

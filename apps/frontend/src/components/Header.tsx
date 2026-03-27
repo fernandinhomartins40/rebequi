@@ -13,7 +13,7 @@ const Header = () => {
   const navigation = [
     { name: "Home", href: "/" },
     { name: "Categorias", href: "/categorias" },
-    { name: "Promocoes", href: "/promocoes" },
+    { name: "Promoções", href: "/promocoes" },
     { name: "Novidades", href: "/novidades" },
     { name: "Contato", href: "/contato" },
   ];
@@ -60,7 +60,7 @@ const Header = () => {
             <Button asChild className="hidden gap-2 lg:inline-flex">
               <Link to="/solicitar-orcamento">
                 <FileScan className="h-4 w-4" />
-                Solicitar orcamento
+                Solicitar orçamento
               </Link>
             </Button>
 
@@ -76,7 +76,7 @@ const Header = () => {
             </Button>
 
             <Button variant="ghost" size="icon" asChild>
-              <Link to={isAuthenticated ? accountHref : "/login"} aria-label="Ir para a area da conta">
+              <Link to={isAuthenticated ? accountHref : "/login"} aria-label="Ir para a área da conta">
                 <User className="h-5 w-5" />
               </Link>
             </Button>
@@ -123,7 +123,7 @@ const Header = () => {
                 className="rounded-md px-3 py-2 text-foreground transition-colors duration-200 hover:bg-muted hover:text-primary"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                Solicitar orcamento
+                Solicitar orçamento
               </Link>
               <Link
                 to={isAuthenticated ? accountHref : "/login"}

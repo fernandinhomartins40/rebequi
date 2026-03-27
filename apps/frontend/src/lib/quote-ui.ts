@@ -8,7 +8,7 @@ export function getQuoteStatusLabel(status: QuoteStatus) {
     case 'SUBMITTED':
       return 'Enviado';
     case 'IN_REVIEW':
-      return 'Em analise';
+      return 'Em análise';
     case 'RESPONDED':
       return 'Respondido';
     case 'ARCHIVED':
@@ -42,7 +42,7 @@ export function getLeadStatusLabel(status: LeadStatus) {
     case 'QUOTE_DRAFTED':
       return 'Rascunho criado';
     case 'QUOTE_SUBMITTED':
-      return 'Concluido';
+      return 'Concluído';
     case 'CONTACTED':
       return 'Contatado';
     case 'ARCHIVED':

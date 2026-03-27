@@ -137,7 +137,7 @@ export class QuoteService {
   }) {
     const lead = await this.quoteRepository.findLeadById(params.leadId);
     if (!lead) {
-      throw new NotFoundError('Lead nao encontrado');
+      throw new NotFoundError('Lead não encontrado');
     }
 
     const storedDocument = await this.persistDocument({
@@ -154,7 +154,7 @@ export class QuoteService {
       referenceCode: this.generateReferenceCode(),
       source: 'public_camera',
       status: 'DRAFT',
-      title: 'Orcamento a partir de documento',
+      title: 'Orçamento a partir de documento',
       ocrText: recognized.text,
       ocrConfidence: recognized.confidence,
       documentUrl: storedDocument.url,
@@ -218,7 +218,7 @@ export class QuoteService {
       referenceCode: this.generateReferenceCode(),
       source: 'customer_dashboard',
       status: 'DRAFT',
-      title: 'Novo orcamento',
+      title: 'Novo orçamento',
       ocrText: recognized.text,
       ocrConfidence: recognized.confidence,
       documentUrl: storedDocument.url,
@@ -261,7 +261,7 @@ export class QuoteService {
     const quote = await this.ensureCustomerQuoteAccess(userId, quoteId);
 
     if (quote.status !== 'DRAFT') {
-      throw new ValidationError('Somente orcamentos em rascunho podem ser editados');
+      throw new ValidationError('Somente orçamentos em rascunho podem ser editados');
     }
 
     const normalizedItems = await this.normalizeManualItems(data.items);
@@ -286,7 +286,7 @@ export class QuoteService {
     );
 
     if (!updatedQuote) {
-      throw new NotFoundError('Orcamento nao encontrado');
+      throw new NotFoundError('Orçamento não encontrado');
     }
 
     return this.formatQuote(updatedQuote);
@@ -378,7 +378,7 @@ export class QuoteService {
   async updateQuoteStatus(quoteId: string, data: UpdateQuoteStatusInput) {
     const quote = await this.quoteRepository.findQuoteById(quoteId);
     if (!quote) {
-      throw new NotFoundError('Orcamento nao encontrado');
+      throw new NotFoundError('Orçamento não encontrado');
     }
 
     const updatedQuote = await this.quoteRepository.updateQuote(quoteId, {
@@ -392,7 +392,7 @@ export class QuoteService {
   async updateLeadStatus(leadId: string, data: UpdateLeadStatusInput) {
     const lead = await this.quoteRepository.findLeadById(leadId);
     if (!lead) {
-      throw new NotFoundError('Lead nao encontrado');
+      throw new NotFoundError('Lead não encontrado');
     }
 
     const updatedLead = await this.quoteRepository.updateLead(leadId, {
@@ -406,11 +406,11 @@ export class QuoteService {
   private async ensureCustomerQuoteAccess(userId: string, quoteId: string) {
     const quote = await this.quoteRepository.findQuoteById(quoteId);
     if (!quote) {
-      throw new NotFoundError('Orcamento nao encontrado');
+      throw new NotFoundError('Orçamento não encontrado');
     }
 
     if (quote.userId !== userId) {
-      throw new ForbiddenError('Voce nao tem acesso a este orçamento');
+      throw new ForbiddenError('Você não tem acesso a este orçamento');
     }
 
     return quote;

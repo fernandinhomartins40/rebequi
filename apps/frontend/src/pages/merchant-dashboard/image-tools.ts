@@ -137,7 +137,7 @@ export async function createCroppedImageFile(params: {
 
   const context = canvas.getContext('2d');
   if (!context) {
-    throw new Error('Nao foi possivel inicializar o editor de imagem');
+    throw new Error('Não foi possível inicializar o editor de imagem');
   }
 
   context.imageSmoothingEnabled = true;

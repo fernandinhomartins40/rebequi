@@ -7,8 +7,8 @@ import { z } from 'zod';
 
 const productImageUrlSchema = z
   .string()
-  .min(1, 'Caminho da imagem obrigatorio')
-  .refine((value) => value.startsWith('/') || /^https?:\/\//.test(value), 'URL ou caminho da imagem invalido');
+  .min(1, 'Caminho da imagem obrigatório')
+  .refine((value) => value.startsWith('/') || /^https?:\/\//.test(value), 'URL ou caminho da imagem inválido');
 
 // Product Image Schema
 export const productImageSchema = z.object({
@@ -26,10 +26,10 @@ export const productImageSchema = z.object({
 
 // Create Product Schema
 export const createProductSchema = z.object({
-  name: z.string().min(1, 'Nome e obrigatorio').max(255, 'Nome muito longo'),
+  name: z.string().min(1, 'Nome e obrigatório').max(255, 'Nome muito longo'),
   slug: z.string().optional(),
   sku: z.string().optional(),
-  price: z.number().positive('Preco deve ser positivo'),
+  price: z.number().positive('Preço deve ser positivo'),
   originalPrice: z.number().positive().optional(),
   description: z.string().optional(),
   shortDesc: z.string().max(500).optional(),
@@ -37,11 +37,11 @@ export const createProductSchema = z.object({
   isNew: z.boolean().default(false),
   isFeatured: z.boolean().default(false),
   discount: z.number().int().min(0).max(100).optional(),
-  stock: z.number().int().min(0, 'Estoque nao pode ser negativo'),
+  stock: z.number().int().min(0, 'Estoque não pode ser negativo'),
   minStock: z.number().int().min(0).default(0),
   weight: z.number().positive().optional(),
   dimensions: z.string().optional(),
-  categoryId: z.string().min(1, 'Categoria e obrigatoria'),
+  categoryId: z.string().min(1, 'Categoria e obrigatória'),
   images: z.array(productImageSchema).optional(),
 });
 

@@ -42,7 +42,7 @@ export function MerchantDashboardQuotes() {
       toast({
         variant: 'destructive',
         title: 'Falha ao atualizar orçamento',
-        description: error instanceof Error ? error.message : 'Nao foi possivel atualizar o status do orçamento.',
+        description: error instanceof Error ? error.message : 'Não foi possível atualizar o status do orçamento.',
       });
     },
   });
@@ -60,7 +60,7 @@ export function MerchantDashboardQuotes() {
       toast({
         variant: 'destructive',
         title: 'Falha ao atualizar lead',
-        description: error instanceof Error ? error.message : 'Nao foi possivel atualizar o lead capturado.',
+        description: error instanceof Error ? error.message : 'Não foi possível atualizar o lead capturado.',
       });
     },
   });
@@ -75,28 +75,28 @@ export function MerchantDashboardQuotes() {
   return (
     <div className="space-y-6">
       <SectionLeadCard
-        badge="Orcamentos"
-        title="Solicitacoes por documento e leads capturados"
-        description="Acompanhe os orcamentos que chegaram pelo OCR e os clientes que iniciaram o fluxo, mas ainda nao concluiram o envio."
+        badge="Orçamentos"
+        title="Solicitações por documento e leads capturados"
+        description="Acompanhe os orçamentos que chegaram pelo OCR e os clientes que iniciaram o fluxo, mas ainda não concluíram o envio."
         tone="blue"
       />
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard icon={<Send className="h-5 w-5 text-primary" />} label="Orcamentos recebidos" value={`${quotes.length}`} delta="Fluxo ja enviado pelo cliente." />
-        <StatCard icon={<ScanText className="h-5 w-5 text-primary" />} label="Em analise" value={`${inReviewQuotes}`} delta="Demandas em tratamento interno." />
+        <StatCard icon={<Send className="h-5 w-5 text-primary" />} label="Orçamentos recebidos" value={`${quotes.length}`} delta="Fluxo já enviado pelo cliente." />
+        <StatCard icon={<ScanText className="h-5 w-5 text-primary" />} label="Em análise" value={`${inReviewQuotes}`} delta="Demandas em tratamento interno." />
         <StatCard icon={<UserRound className="h-5 w-5 text-primary" />} label="Leads capturados" value={`${leads.length}`} delta={`${freshLeads} sem foto e ${draftLeads} com rascunho.`} />
-        <StatCard icon={<MessageCircle className="h-5 w-5 text-primary" />} label="Respondidos" value={`${respondedQuotes}`} delta="Orcamentos ja encaminhados ao cliente." />
+        <StatCard icon={<MessageCircle className="h-5 w-5 text-primary" />} label="Respondidos" value={`${respondedQuotes}`} delta="Orçamentos já encaminhados ao cliente." />
       </section>
 
       <DashboardPanel
-        badge="Solicitacoes"
-        title="Orcamentos enviados"
+        badge="Solicitações"
+        title="Orçamentos enviados"
         description="Lista operacional das solicitacoes que o cliente finalizou no painel."
       >
         {quotesQuery.isLoading ? (
           <p className="text-sm text-muted-foreground">Carregando orçamentos...</p>
         ) : quotes.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nenhum orçamento enviado ate o momento.</p>
+          <p className="text-sm text-muted-foreground">Nenhum orçamento enviado até o momento.</p>
         ) : (
           <>
             <div className="hidden overflow-x-auto rounded-[1.5rem] border border-black/5 lg:block">
@@ -108,7 +108,7 @@ export function MerchantDashboardQuotes() {
                     <TableHead>Status</TableHead>
                     <TableHead>Itens</TableHead>
                     <TableHead>Atualizacao</TableHead>
-                    <TableHead className="text-right">Acoes</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -125,7 +125,7 @@ export function MerchantDashboardQuotes() {
                       <TableCell>
                         <div>
                           <p className="font-semibold text-foreground">{quote.referenceCode}</p>
-                          <p className="text-sm text-muted-foreground">{quote.title || 'Sem titulo'}</p>
+                          <p className="text-sm text-muted-foreground">{quote.title || 'Sem título'}</p>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -141,7 +141,7 @@ export function MerchantDashboardQuotes() {
                             disabled={quoteStatusMutation.isPending}
                             onClick={() => quoteStatusMutation.mutate({ id: quote.id, status: 'IN_REVIEW' })}
                           >
-                            Em analise
+                            Em análise
                           </Button>
                           <Button
                             size="sm"
@@ -173,14 +173,14 @@ export function MerchantDashboardQuotes() {
                     </div>
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{quote.referenceCode}</p>
-                      <p className="mt-1 font-semibold text-foreground">{quote.title || 'Sem titulo'}</p>
+                      <p className="mt-1 font-semibold text-foreground">{quote.title || 'Sem título'}</p>
                       <p className="mt-1 text-sm text-muted-foreground">
                         {quote.itemCount} itens | atualizado em {formatQuoteTimestamp(quote.submittedAt || quote.updatedAt)}
                       </p>
                     </div>
                     <div className="flex gap-2">
                       <Button size="sm" variant="outline" className="flex-1" onClick={() => quoteStatusMutation.mutate({ id: quote.id, status: 'IN_REVIEW' })}>
-                        Em analise
+                        Em análise
                       </Button>
                       <Button size="sm" className="flex-1" onClick={() => quoteStatusMutation.mutate({ id: quote.id, status: 'RESPONDED' })}>
                         Respondido
@@ -197,8 +197,8 @@ export function MerchantDashboardQuotes() {
       <DashboardPanel
         badge="Leads"
         badgeClassName="bg-amber-500 text-black"
-        title="Leads capturados e nao concluidos"
-        description="Clientes que iniciaram a solicitacao, mas ainda nao transformaram o fluxo em um orçamento finalizado."
+        title="Leads capturados e não concluídos"
+        description="Clientes que iniciaram a solicitacao, mas ainda não transformaram o fluxo em um orçamento finalizado."
       >
         {leadsQuery.isLoading ? (
           <p className="text-sm text-muted-foreground">Carregando leads capturados...</p>

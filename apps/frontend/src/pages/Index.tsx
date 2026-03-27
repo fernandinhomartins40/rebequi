@@ -103,7 +103,7 @@ const Index = () => {
         <ProductSectionSkeleton />
       ) : offerItems.length > 0 ? (
         <ProductSection
-          title="Promocoes imperdiveis"
+          title="Promoções imperdíveis"
           items={offerItems}
           showViewAll={false}
         />

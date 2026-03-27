@@ -8,7 +8,7 @@ const PromoBanners = () => {
           <div className="group relative min-h-[220px] overflow-hidden rounded-lg bg-gradient-to-r from-brand-blue to-brand-blue/80 sm:h-64">
             <div className="absolute inset-0 flex flex-col justify-center p-5 text-white sm:p-8">
               <h3 className="mb-2 text-xl font-bold sm:text-2xl">Ferramentas Profissionais</h3>
-              <p className="mb-4 text-sm sm:text-lg">Ate 30% OFF em ferramentas selecionadas</p>
+              <p className="mb-4 text-sm sm:text-lg">Até 30% OFF em ferramentas selecionadas</p>
               <Button variant="secondary" className="w-full sm:w-fit">
                 Ver Ofertas
               </Button>
@@ -19,7 +19,7 @@ const PromoBanners = () => {
           <div className="group relative min-h-[220px] overflow-hidden rounded-lg bg-gradient-to-r from-brand-red to-brand-red/80 sm:h-64">
             <div className="absolute inset-0 flex flex-col justify-center p-5 text-white sm:p-8">
               <h3 className="mb-2 text-xl font-bold sm:text-2xl">Entrega Expressa</h3>
-              <p className="mb-4 text-sm sm:text-lg">Receba em ate 24h na regiao metropolitana</p>
+              <p className="mb-4 text-sm sm:text-lg">Receba em até 24h na região metropolitana</p>
               <Button variant="secondary" className="w-full sm:w-fit">
                 Saiba Mais
               </Button>

@@ -92,7 +92,7 @@ const Hero = () => {
                     {slide.cta}
                   </Button>
                   <Button asChild size="lg" variant="secondary" className="h-10 px-5 text-sm animate-fade-in sm:h-11 sm:px-8 sm:text-base">
-                    <Link to="/solicitar-orcamento">Solicitar orcamento</Link>
+                    <Link to="/solicitar-orcamento">Solicitar orçamento</Link>
                   </Button>
                 </div>
               </div>

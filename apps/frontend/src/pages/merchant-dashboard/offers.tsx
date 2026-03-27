@@ -133,7 +133,7 @@ export function MerchantDashboardOffers() {
     if (!canCreateOffer) {
       toast({
         variant: 'destructive',
-        title: 'Nenhum produto ativo disponivel',
+        title: 'Nenhum produto ativo disponível',
         description: 'Ative pelo menos um produto antes de criar uma oferta individual.',
       });
       return;
@@ -161,7 +161,7 @@ export function MerchantDashboardOffers() {
       <SectionLeadCard
         badge="Ofertas"
         title="Ofertas individuais"
-        description="Gerencie promocoes avulsas de um unico produto, exibidas na secao Promocoes imperdiveis da pagina publica."
+        description="Gerencie promoções avulsas de um único produto, exibidas na seção Promoções imperdíveis da página pública."
         tone="red"
         actions={
           <>
@@ -178,10 +178,10 @@ export function MerchantDashboardOffers() {
               Atualizar
             </Button>
             <Button asChild variant="outline" className="border-black/10 bg-white/80 text-foreground hover:bg-white">
-              <Link to="/">Ver home publica</Link>
+              <Link to="/">Ver home pública</Link>
             </Button>
             <Button asChild variant="outline" className="border-black/10 bg-white/80 text-foreground hover:bg-white">
-              <Link to={ADMIN_BASE_PATH}>Visao geral</Link>
+              <Link to={ADMIN_BASE_PATH}>Visão geral</Link>
             </Button>
           </>
         }
@@ -217,11 +217,11 @@ export function MerchantDashboardOffers() {
       <DashboardPanel
         badge="Admin"
         title="Ofertas cadastradas"
-        description="Controle as ofertas avulsas que alimentam a vitrine principal e as paginas individuais de oferta."
+        description="Controle as ofertas avulsas que alimentam a vitrine principal e as páginas individuais de oferta."
       >
         {!canCreateOffer ? (
           <div className="rounded-3xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
-            Nao existem produtos ativos para compor ofertas individuais.
+            Não existem produtos ativos para compor ofertas individuais.
           </div>
         ) : null}
 
@@ -231,7 +231,7 @@ export function MerchantDashboardOffers() {
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Buscar por nome, titulo ou descricao"
+              placeholder="Buscar por nome, título ou descrição"
               className="pl-9"
             />
           </div>
@@ -277,7 +277,7 @@ export function MerchantDashboardOffers() {
                       <TableHead>Validade</TableHead>
                       <TableHead className="w-40 text-center">Produto</TableHead>
                       <TableHead className="w-40 text-center">Status</TableHead>
-                      <TableHead className="w-[18rem] text-right">Acoes</TableHead>
+                      <TableHead className="w-[18rem] text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -304,7 +304,7 @@ export function MerchantDashboardOffers() {
                                 </div>
                                 <p className="text-xs text-muted-foreground">{offer.name}</p>
                                 <p className="line-clamp-2 text-sm text-muted-foreground">
-                                  {offer.subtitle || offer.description || 'Sem descricao complementar.'}
+                                  {offer.subtitle || offer.description || 'Sem descrição complementar.'}
                                 </p>
                                 {product ? (
                                   <p className="text-xs text-muted-foreground">
@@ -331,7 +331,7 @@ export function MerchantDashboardOffers() {
                           </TableCell>
                           <TableCell className="text-center">
                             <div className="space-y-1">
-                              <p className="text-sm font-semibold text-foreground">{product?.name ?? 'Produto indisponivel'}</p>
+                              <p className="text-sm font-semibold text-foreground">{product?.name ?? 'Produto indisponível'}</p>
                               <p className="text-xs text-muted-foreground">{product?.category?.name ?? 'Sem categoria'}</p>
                             </div>
                           </TableCell>
@@ -393,7 +393,7 @@ export function MerchantDashboardOffers() {
                         </div>
                         <p className="text-xs text-muted-foreground">{offer.name}</p>
                         <p className="line-clamp-2 text-sm text-muted-foreground">
-                          {offer.subtitle || offer.description || 'Sem descricao complementar.'}
+                          {offer.subtitle || offer.description || 'Sem descrição complementar.'}
                         </p>
                         {product ? (
                           <p className="text-xs text-muted-foreground">
@@ -412,7 +412,7 @@ export function MerchantDashboardOffers() {
                         <PromotionCountdown expiresAt={offer.expiresAt} compact className="mt-2" />
                       </div>
                       <div className="rounded-2xl border border-black/5 bg-slate-50 px-3 py-3 text-sm text-foreground">
-                        {product?.name ?? 'Produto indisponivel'}
+                        {product?.name ?? 'Produto indisponível'}
                         <div className="mt-1 text-xs text-muted-foreground">{product?.category?.name ?? 'Sem categoria'}</div>
                       </div>
                     </div>
@@ -446,7 +446,7 @@ export function MerchantDashboardOffers() {
           <Badge className="w-fit border-none bg-accent text-accent-foreground">Panorama</Badge>
           <div>
             <CardTitle className="text-xl sm:text-2xl">Radar de ofertas</CardTitle>
-            <CardDescription>Leitura rapida das ofertas individuais exibidas na home.</CardDescription>
+            <CardDescription>Leitura rápida das ofertas individuais exibidas na home.</CardDescription>
           </div>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
@@ -454,16 +454,16 @@ export function MerchantDashboardOffers() {
             <p className="text-sm font-semibold text-foreground">Ofertas em execucao</p>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
               {activeOffers.length > 0
-                ? `${activeOffers.length} ofertas individuais ativas estao expostas na secao Promocoes imperdiveis.`
+                ? `${activeOffers.length} ofertas individuais ativas estão expostas na seção Promoções imperdíveis.`
                 : 'Nenhuma oferta ativa no momento.'}
             </p>
           </div>
           <div className="rounded-2xl border border-black/5 bg-slate-50 p-4">
-            <p className="text-sm font-semibold text-foreground">Fila de publicacao</p>
+            <p className="text-sm font-semibold text-foreground">Fila de públicacao</p>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
               {scheduledOffers.length > 0
                 ? `${scheduledOffers.length} ofertas aguardam a data de inicio configurada.`
-                : 'Nao existem ofertas agendadas.'}
+                : 'Não existem ofertas agendadas.'}
             </p>
           </div>
           <div className="rounded-2xl border border-black/5 bg-slate-50 p-4">
@@ -471,7 +471,7 @@ export function MerchantDashboardOffers() {
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
               {inactiveOffers.length + expiredOffers.length > 0
                 ? `${inactiveOffers.length} inativas e ${expiredOffers.length} encerradas podem ser reaproveitadas em novas ondas promocionais.`
-                : 'Nao ha ofertas pausadas ou encerradas aguardando revisao.'}
+                : 'Não ha ofertas pausadas ou encerradas aguardando revisão.'}
             </p>
           </div>
         </CardContent>

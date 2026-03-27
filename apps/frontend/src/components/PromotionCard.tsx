@@ -55,7 +55,7 @@ export function PromotionCard({
           <div className="space-y-2">
             <h3 className="text-xl font-bold leading-tight text-foreground">{promotion.title}</h3>
             <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">
-              {promotion.subtitle || promotion.description || 'Colecao promocional com curadoria especial para sua compra.'}
+              {promotion.subtitle || promotion.description || 'Coleção promocional com curadoria especial para sua compra.'}
             </p>
           </div>
         </div>

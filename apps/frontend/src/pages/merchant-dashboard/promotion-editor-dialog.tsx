@@ -93,7 +93,7 @@ function toOptionalIsoDateTime(value: string) {
 
   const date = new Date(trimmedValue);
   if (Number.isNaN(date.getTime())) {
-    throw new Error('Informe datas validas para a promocao.');
+    throw new Error('Informe datas válidas para a promoção.');
   }
 
   return date.toISOString();
@@ -179,11 +179,11 @@ function buildCreatePayload(
   const expiresAt = toOptionalIsoDateTime(fields.expiresAt);
 
   if (!expiresAt) {
-    throw new Error('Informe a data final da promocao para habilitar o contador.');
+    throw new Error('Informe a data final da promoção para habilitar o contador.');
   }
 
   if (startsAt && expiresAt && new Date(expiresAt).getTime() <= new Date(startsAt).getTime()) {
-    throw new Error('A data final deve ser posterior ao inicio da promocao.');
+    throw new Error('A data final deve ser posterior ao início da promoção.');
   }
 
   return {
@@ -217,11 +217,11 @@ function buildUpdatePayload(
   const expiresAt = toOptionalIsoDateTime(fields.expiresAt);
 
   if (!expiresAt) {
-    throw new Error('Informe a data final da promocao para manter o contador ativo.');
+    throw new Error('Informe a data final da promoção para manter o contador ativo.');
   }
 
   if (startsAt && expiresAt && new Date(expiresAt).getTime() <= new Date(startsAt).getTime()) {
-    throw new Error('A data final deve ser posterior ao inicio da promocao.');
+    throw new Error('A data final deve ser posterior ao início da promoção.');
   }
 
   return {
@@ -323,15 +323,15 @@ export function PromotionEditorDialog({
   const saveMutation = useMutation({
     mutationFn: async (fields: PromotionFormFields) => {
       if (!fields.name.trim()) {
-        throw new Error('Informe o nome interno da promocao.');
+        throw new Error('Informe o nome interno da promoção.');
       }
 
       if (!fields.title.trim()) {
-        throw new Error('Informe o titulo exibido no card.');
+        throw new Error('Informe o título exibido no card.');
       }
 
       if (selectedProductIds.length === 0) {
-        throw new Error('Selecione pelo menos um produto para a promocao.');
+        throw new Error('Selecione pelo menos um produto para a promoção.');
       }
 
       if (isSingleProductMode && selectedProductIds.length !== 1) {
@@ -339,7 +339,7 @@ export function PromotionEditorDialog({
       }
 
       if (!isSingleProductMode && selectedProductIds.length < 2) {
-        throw new Error('Campanhas com pagina dedicada precisam de pelo menos dois produtos.');
+        throw new Error('Campanhas com página dedicada precisam de pelo menos dois produtos.');
       }
 
       const resolvedImage = await resolvePromotionImage(draftImage, fields.title.trim());
@@ -352,7 +352,7 @@ export function PromotionEditorDialog({
     },
     onSuccess: () => {
       toast({
-        title: isEditing ? 'Promocao atualizada' : 'Promocao criada',
+        title: isEditing ? 'Promoção atualizada' : 'Promoção criada',
         description: 'O card promocional foi salvo com sucesso.',
       });
       onSaved();
@@ -361,8 +361,8 @@ export function PromotionEditorDialog({
     onError: (error) => {
       toast({
         variant: 'destructive',
-        title: 'Falha ao salvar promocao',
-        description: error instanceof Error ? error.message : 'Erro inesperado ao persistir a promocao.',
+        title: 'Falha ao salvar promoção',
+        description: error instanceof Error ? error.message : 'Erro inesperado ao persistir a promoção.',
       });
     },
   });
@@ -424,7 +424,7 @@ export function PromotionEditorDialog({
       toast({
         variant: 'destructive',
         title: 'Falha ao abrir imagem',
-        description: error instanceof Error ? error.message : 'Nao foi possivel carregar a imagem selecionada.',
+        description: error instanceof Error ? error.message : 'Não foi possível carregar a imagem selecionada.',
       });
     }
   };
@@ -474,15 +474,15 @@ export function PromotionEditorDialog({
               {isEditing
                 ? isSingleProductMode
                   ? 'Editar oferta individual'
-                  : 'Editar promocao'
+                  : 'Editar promoção'
                 : isSingleProductMode
                   ? 'Nova oferta individual'
-                  : 'Nova promocao'}
+                  : 'Nova promoção'}
             </ModalTitle>
             <ModalDescription>
               {isSingleProductMode
                 ? 'Crie uma oferta avulsa para um unico produto, com validade, imagem dedicada e contador ativo na vitrine principal.'
-                : 'Monte um card promocional com imagem, validade, comunicacao da oferta e produtos vinculados.'}
+                : 'Monte um card promocional com imagem, validade, comunicação da oferta e produtos vinculados.'}
             </ModalDescription>
           </ModalHeader>
 
@@ -531,25 +531,25 @@ export function PromotionEditorDialog({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="promotion-title">Titulo do card</Label>
+                    <Label htmlFor="promotion-title">Título do card</Label>
                     <Input
                       id="promotion-title"
-                      placeholder={isSingleProductMode ? 'Furadeira com prazo relampago' : 'Acabamento com preco especial'}
+                      placeholder={isSingleProductMode ? 'Furadeira com prazo relâmpago' : 'Acabamento com preço especial'}
                       {...register('title', { required: true })}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="promotion-subtitle">Subtitulo</Label>
+                    <Label htmlFor="promotion-subtitle">Subtítulo</Label>
                     <Input id="promotion-subtitle" placeholder="Tintas, pinceis e rolos para renovar ambientes" {...register('subtitle')} />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="promotion-description">Descricao</Label>
+                    <Label htmlFor="promotion-description">Descrição</Label>
                     <Textarea
                       id="promotion-description"
                       rows={4}
-                      placeholder="Texto usado na pagina publica da promocao."
+                      placeholder="Texto usado na página pública da promoção."
                       {...register('description')}
                     />
                   </div>
@@ -562,14 +562,14 @@ export function PromotionEditorDialog({
                       {draftImage ? (
                         <img
                           src={draftImage.previewUrl || draftImage.url}
-                          alt={draftImage.alt || title || 'Imagem da promocao'}
+                          alt={draftImage.alt || title || 'Imagem da promoção'}
                           className="aspect-[16/10] w-full object-cover"
                         />
                       ) : (
                         <div className="flex aspect-[16/10] items-center justify-center px-6 text-center text-sm text-muted-foreground">
                           {isSingleProductMode
-                            ? 'Adicione uma imagem horizontal para destacar esta oferta individual na secao Promocoes imperdiveis.'
-                            : 'Adicione uma imagem horizontal para destacar esta campanha na pagina publica.'}
+                            ? 'Adicione uma imagem horizontal para destacar esta oferta individual na seção Promoções imperdíveis.'
+                            : 'Adicione uma imagem horizontal para destacar esta campanha na página pública.'}
                         </div>
                       )}
                     </div>
@@ -599,20 +599,20 @@ export function PromotionEditorDialog({
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="promotion-badge">Badge</Label>
-                      <Input id="promotion-badge" placeholder="Ate 25% OFF" {...register('badgeText')} />
+                      <Input id="promotion-badge" placeholder="Até 25% OFF" {...register('badgeText')} />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="promotion-cta">Texto do botao</Label>
+                      <Label htmlFor="promotion-cta">Texto do botão</Label>
                       <Input id="promotion-cta" placeholder="Ver oferta" {...register('ctaLabel')} />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="promotion-starts-at">Inicio</Label>
+                      <Label htmlFor="promotion-starts-at">Início</Label>
                       <Input id="promotion-starts-at" type="datetime-local" {...register('startsAt')} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="promotion-expires-at">Validade</Label>
                       <Input id="promotion-expires-at" type="datetime-local" {...register('expiresAt')} />
-                      <p className="text-xs text-muted-foreground">Obrigatorio para manter o contador de termino sempre ativo.</p>
+                      <p className="text-xs text-muted-foreground">Obrigatório para manter o contador de término sempre ativo.</p>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="promotion-sort-order">Ordem</Label>
@@ -620,7 +620,7 @@ export function PromotionEditorDialog({
                     </div>
                     <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-slate-50 px-4 py-3 text-sm">
                       <input type="checkbox" {...register('isActive')} />
-                      Promocao ativa
+                      Promoção ativa
                     </label>
                   </div>
 
@@ -702,7 +702,7 @@ export function PromotionEditorDialog({
                               </p>
                               <p className="mt-1 text-sm font-semibold text-foreground">R$ {product.price.toFixed(2)}</p>
                               {!product.isActive ? (
-                                <p className="mt-1 text-xs text-amber-700">Produto inativo no catalogo.</p>
+                                <p className="mt-1 text-xs text-amber-700">Produto inativo no catálogo.</p>
                               ) : null}
                             </div>
                             <Button
@@ -727,7 +727,7 @@ export function PromotionEditorDialog({
                   </div>
 
                   <div className="space-y-3">
-                    <p className="text-sm font-semibold text-foreground">Catalogo elegivel</p>
+                    <p className="text-sm font-semibold text-foreground">Catálogo elegível</p>
                     <div className="app-scrollbar max-h-[20rem] space-y-3 overflow-y-auto pr-1">
                       {availableProducts.map((product) => {
                         const isSelected = selectedProductIds.includes(product.id);
@@ -789,10 +789,10 @@ export function PromotionEditorDialog({
                 {isEditing
                   ? isSingleProductMode
                     ? 'Salvar oferta'
-                    : 'Salvar promocao'
+                    : 'Salvar promoção'
                   : isSingleProductMode
                     ? 'Cadastrar oferta'
-                    : 'Cadastrar promocao'}
+                    : 'Cadastrar promoção'}
               </Button>
             </ModalFooter>
           </form>
@@ -803,7 +803,7 @@ export function PromotionEditorDialog({
         open={Boolean(cropSourceUrl)}
         fileName={cropOriginalFileName}
         sourceUrl={cropSourceUrl}
-        title="Recortar imagem da promocao"
+        title="Recortar imagem da promoção"
         config={PROMOTION_IMAGE_CONFIG}
         onOpenChange={(nextOpen) => {
           if (!nextOpen) {

@@ -34,7 +34,7 @@ function getTimeValue(value?: string | Date | null) {
 
 function formatSnapshotDate(value?: string | Date | null) {
   const timestamp = getTimeValue(value);
-  return timestamp ? snapshotDateFormatter.format(timestamp) : 'data indisponivel';
+  return timestamp ? snapshotDateFormatter.format(timestamp) : 'data indisponível';
 }
 
 async function fetchAllAdminProductsSnapshot(): Promise<ProductResponse> {
@@ -122,7 +122,7 @@ export default function MerchantDashboardOverview() {
       }
 
       if (!trimText(product.shortDesc) && !trimText(product.description)) {
-        issues.push({ label: 'Sem descricao', tone: 'yellow' });
+        issues.push({ label: 'Sem descrição', tone: 'yellow' });
         severity += 2;
       }
 
@@ -178,13 +178,13 @@ export default function MerchantDashboardOverview() {
       <section className="grid gap-5 xl:grid-cols-[1.25fr_0.95fr]">
         <SectionLeadCard
           badge="Panorama"
-          title="Visao geral da operacao"
-          description="Resumo do catalogo, da publicacao e dos pontos que pedem revisao imediata no painel."
+          title="Visão geral da operação"
+          description="Resumo do catálogo, da públicacao e dos pontos que pedem revisão imediata no painel."
           tone="blue"
           actions={
             <>
               <div className="flex flex-wrap gap-2">
-                <MetricChip label="Sessao" tone="blue" value={userEmail} />
+                <MetricChip label="Sessão" tone="blue" value={userEmail} />
                 <MetricChip
                   label="Completude"
                   tone={completenessRate >= 80 ? 'green' : completenessRate >= 60 ? 'yellow' : 'red'}
@@ -210,17 +210,17 @@ export default function MerchantDashboardOverview() {
           badge="Situacao"
           badgeClassName="bg-primary/10 text-primary"
           className="border-[#dfe6f7] bg-white/92 shadow-[0_22px_55px_-38px_rgba(37,99,235,0.28)]"
-          description="Leitura rapida do que esta acontecendo agora no catalogo."
+          description="Leitura rápida do que está acontecendo agora no catálogo."
           title="Radar operacional"
         >
           {hasSnapshotError ? (
             <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
-              Nao foi possivel carregar o snapshot completo do dashboard neste momento.
+              Não foi possível carregar o snapshot completo do dashboard neste momento.
             </div>
           ) : (
             <>
               <SignalRow
-                title="Publicacao"
+                title="Publicação"
                 status={isSnapshotLoading ? 'Carregando' : publishedProducts.length > 0 ? 'Ativa' : 'Sem vitrine'}
                 tone={isSnapshotLoading ? 'neutral' : publishedProducts.length > 0 ? 'green' : 'yellow'}
                 description={
@@ -235,12 +235,12 @@ export default function MerchantDashboardOverview() {
                 tone={isSnapshotLoading ? 'neutral' : stockStatusTone}
                 description={
                   isSnapshotLoading
-                    ? 'Conferindo niveis de estoque do catalogo ativo.'
+                    ? 'Conferindo niveis de estoque do catálogo ativo.'
                     : outOfStockProducts.length > 0
-                      ? `${outOfStockProducts.length} produtos sem estoque e ${lowStockProducts.length} abaixo do minimo.`
+                      ? `${outOfStockProducts.length} produtos sem estoque e ${lowStockProducts.length} abaixo do mínimo.`
                       : lowStockProducts.length > 0
-                        ? `${lowStockProducts.length} produtos abaixo do minimo configurado.`
-                        : 'Nenhum alerta de estoque no catalogo publicado.'
+                        ? `${lowStockProducts.length} produtos abaixo do mínimo configurado.`
+                        : 'Nenhum alerta de estoque no catálogo publicado.'
                 }
               />
               <SignalRow
@@ -249,9 +249,9 @@ export default function MerchantDashboardOverview() {
                 tone={isSnapshotLoading ? 'neutral' : catalogStatusTone}
                 description={
                   isSnapshotLoading
-                    ? 'Validando imagem, descricao e identificacao dos produtos.'
+                    ? 'Validando imagem, descrição e identificação dos produtos.'
                     : missingImageProducts.length > 0 || missingDescriptionProducts.length > 0 || missingSkuProducts.length > 0
-                      ? `${missingImageProducts.length} sem imagem, ${missingDescriptionProducts.length} sem descricao e ${missingSkuProducts.length} sem SKU.`
+                      ? `${missingImageProducts.length} sem imagem, ${missingDescriptionProducts.length} sem descrição e ${missingSkuProducts.length} sem SKU.`
                       : 'Todos os produtos ativos possuem os dados essenciais preenchidos.'
                 }
               />
@@ -265,13 +265,13 @@ export default function MerchantDashboardOverview() {
           icon={<Boxes className="h-5 w-5 text-primary" />}
           label="Produtos totais"
           value={isSnapshotLoading ? '--' : `${products.length}`}
-          delta="Catalogo administrativo"
+          delta="Catálogo administrativo"
         />
         <StatCard
           icon={<Store className="h-5 w-5 text-primary" />}
           label="Produtos publicados"
           value={isSnapshotLoading ? '--' : `${publishedProducts.length}`}
-          delta="Visiveis na vitrine"
+          delta="Visíveis na vitrine"
         />
         <StatCard
           icon={<Tags className="h-5 w-5 text-primary" />}
@@ -293,19 +293,19 @@ export default function MerchantDashboardOverview() {
           badgeClassName="bg-accent/10 text-accent"
           className="border-[#f0d7d7] bg-white/92 shadow-[0_24px_60px_-44px_rgba(220,38,38,0.18)]"
           description="Itens que merecem tratamento primeiro para manter a vitrine consistente."
-          title="Acoes prioritarias"
+          title="Ações prioritarias"
         >
           {hasSnapshotError ? (
             <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
-              O painel nao conseguiu calcular prioridades agora.
+              O painel não conseguiu calcular prioridades agora.
             </div>
           ) : isSnapshotLoading ? (
             <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-4 text-sm text-muted-foreground">
-              Carregando prioridades do catalogo...
+              Carregando prioridades do catálogo...
             </div>
           ) : attentionItems.length === 0 ? (
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-700">
-              Nenhum produto ativo exige acao imediata. O catalogo principal esta sob controle.
+              Nenhum produto ativo exige ação imediata. O catálogo principal está sob controle.
             </div>
           ) : (
             <ul className="space-y-3">
@@ -345,7 +345,7 @@ export default function MerchantDashboardOverview() {
           badge="Categorias"
           badgeClassName="bg-secondary text-secondary-foreground"
           className="border-[#eadfba] bg-white/92 shadow-[0_20px_55px_-40px_rgba(255,215,0,0.2)]"
-          description="Distribuicao atual das categorias para entender concentracao e ociosidade."
+          description="Distribuição atual das categorias para entender concentração e ociosidade."
           title="Mapa de categorias"
         >
           <div className="flex flex-wrap gap-2">
@@ -360,7 +360,7 @@ export default function MerchantDashboardOverview() {
 
           {hasSnapshotError ? (
             <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
-              Nao foi possivel carregar a distribuicao das categorias.
+              Não foi possível carregar a distribuição das categorias.
             </div>
           ) : isSnapshotLoading ? (
             <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-4 text-sm text-muted-foreground">
@@ -390,10 +390,10 @@ export default function MerchantDashboardOverview() {
         </DashboardPanel>
 
         <DashboardPanel
-          badge="Movimentacao"
+          badge="Movimentação"
           badgeClassName="bg-primary/10 text-primary"
           className="border-[#dfe6f7] bg-white/92 shadow-[0_24px_60px_-44px_rgba(37,99,235,0.2)]"
-          description="Ultimos produtos atualizados para acompanhar o ritmo das alteracoes."
+          description="Últimos produtos atualizados para acompanhar o ritmo das alterações."
           title="Atualizacoes recentes"
         >
           <div className="flex flex-wrap gap-2">
@@ -404,15 +404,15 @@ export default function MerchantDashboardOverview() {
 
           {hasSnapshotError ? (
             <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
-              Nao foi possivel carregar a movimentacao recente do catalogo.
+              Não foi possível carregar a movimentação recente do catálogo.
             </div>
           ) : isSnapshotLoading ? (
             <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-4 text-sm text-muted-foreground">
-              Atualizando historico recente...
+              Atualizando histórico recente...
             </div>
           ) : recentProducts.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-black/10 bg-slate-50 px-4 py-4 text-sm text-muted-foreground">
-              Nenhum produto encontrado no catalogo.
+              Nenhum produto encontrado no catálogo.
             </div>
           ) : (
             <ul className="space-y-3">

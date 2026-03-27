@@ -23,7 +23,7 @@ const Categories = () => {
           <div>
             <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Nossas Categorias</h2>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
-              Acesse uma pagina dedicada para cada categoria e veja todos os produtos disponiveis naquele setor.
+              Acesse uma página dedicada para cada categoria e veja todos os produtos disponíveis naquele setor.
             </p>
           </div>
 
@@ -47,7 +47,7 @@ const Categories = () => {
         ) : error || categories.length === 0 ? (
           <div className="rounded-[1.75rem] border border-dashed border-[#e7dcc3] bg-white/90 px-6 py-10 text-center shadow-[0_30px_70px_-55px_rgba(15,23,42,0.3)]">
             <p className="text-sm text-muted-foreground">
-              Nao foi possivel carregar as categorias no momento. Use a pagina completa para tentar novamente.
+              Não foi possível carregar as categorias no momento. Use a página completa para tentar novamente.
             </p>
           </div>
         ) : (

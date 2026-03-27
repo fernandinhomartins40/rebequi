@@ -46,7 +46,7 @@ const Register = () => {
       toast({
         title: 'Acesso criado',
         description: response.provisionalCredentials
-          ? `Usuario ${response.provisionalCredentials.identifier} criado com senha provisoria ${response.provisionalCredentials.password}.`
+          ? `Usuário ${response.provisionalCredentials.identifier} criado com senha provisória ${response.provisionalCredentials.password}.`
           : 'Conta criada com sucesso.',
       });
       navigate('/painel-cliente');
@@ -71,7 +71,7 @@ const Register = () => {
             Cadastro rapido
           </CardTitle>
           <CardDescription>
-            Informe somente seu nome e WhatsApp. O sistema cria um acesso provisório para voce entrar no painel.
+            Informe somente seu nome e WhatsApp. O sistema cria um acesso provisório para você entrar no painel.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -99,9 +99,9 @@ const Register = () => {
             </div>
 
             <div className="rounded-[1.5rem] border border-[#e7dcc3] bg-slate-50 px-4 py-4 text-sm text-muted-foreground">
-              Usuario: numero do WhatsApp informado.
+              Usuário: número do WhatsApp informado.
               <br />
-              Senha provisoria: as 3 primeiras letras do seu nome.
+              Senha provisória: as 3 primeiras letras do seu nome.
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
@@ -109,7 +109,7 @@ const Register = () => {
             </Button>
 
             <p className="text-center text-sm text-muted-foreground">
-              Ja tem acesso?{' '}
+              Já tem acesso?{' '}
               <Link to="/login" className="font-semibold text-primary hover:underline">
                 Entrar
               </Link>

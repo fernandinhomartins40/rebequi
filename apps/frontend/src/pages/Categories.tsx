@@ -62,8 +62,8 @@ export default function CategoriesPage() {
                 Navegue por todas as categorias da vitrine
               </h1>
               <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
-                Cada categoria leva para uma pagina propria com todos os produtos ativos daquele departamento,
-                facilitando a exploracao do catalogo sem excesso de informacao.
+                Cada categoria leva para uma página própria com todos os produtos ativos daquele departamento,
+                facilitando a exploração do catálogo sem excesso de informação.
               </p>
             </div>
 
@@ -71,13 +71,13 @@ export default function CategoriesPage() {
               <div className="rounded-[1.75rem] border border-black/5 bg-slate-50 px-5 py-4">
                 <div className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">Categorias</div>
                 <div className="mt-2 text-3xl font-bold text-foreground">{categories.length}</div>
-                <p className="mt-1 text-sm text-muted-foreground">Departamentos ativos na pagina publica</p>
+                <p className="mt-1 text-sm text-muted-foreground">Departamentos ativos na página pública</p>
               </div>
 
               <div className="rounded-[1.75rem] border border-black/5 bg-slate-50 px-5 py-4">
                 <div className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">Produtos</div>
                 <div className="mt-2 text-3xl font-bold text-foreground">{totalProducts}</div>
-                <p className="mt-1 text-sm text-muted-foreground">Itens distribuidos entre as categorias disponiveis</p>
+                <p className="mt-1 text-sm text-muted-foreground">Itens distribuidos entre as categorias disponíveis</p>
               </div>
             </div>
           </div>
@@ -88,7 +88,7 @@ export default function CategoriesPage() {
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Falha ao carregar categorias</AlertTitle>
             <AlertDescription>
-              {error instanceof Error ? error.message : "Nao foi possivel carregar as categorias agora."}
+              {error instanceof Error ? error.message : "Não foi possível carregar as categorias agora."}
             </AlertDescription>
           </Alert>
         ) : categories.length === 0 ? (
@@ -96,10 +96,10 @@ export default function CategoriesPage() {
             <Package className="mx-auto h-10 w-10 text-primary" />
             <h2 className="mt-4 text-xl font-semibold text-foreground">Nenhuma categoria publicada</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Assim que novas categorias forem cadastradas e ativadas, elas aparecerao aqui automaticamente.
+              Assim que novas categorias forem cadastradas e ativadas, elas aparecerão aqui automaticamente.
             </p>
             <Button asChild variant="outline" className="mt-6">
-              <Link to="/">Voltar para a pagina inicial</Link>
+              <Link to="/">Voltar para a página inicial</Link>
             </Button>
           </div>
         ) : (
@@ -124,7 +124,7 @@ export default function CategoriesPage() {
                   <div className="mt-5">
                     <h2 className="text-xl font-semibold text-foreground">{category.name}</h2>
                     <p className="mt-2 line-clamp-3 min-h-[4.5rem] text-sm leading-6 text-muted-foreground">
-                      {category.description || "Abra a categoria para visualizar todos os produtos disponiveis nesta area."}
+                      {category.description || "Abra a categoria para visualizar todos os produtos disponíveis nesta área."}
                     </p>
                   </div>
 

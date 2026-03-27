@@ -7,10 +7,10 @@ import { z } from 'zod';
 
 // Create Category Schema
 export const createCategorySchema = z.object({
-  name: z.string().min(1, 'Nome e obrigatorio').max(100, 'Nome muito longo'),
+  name: z.string().min(1, 'Nome e obrigatório').max(100, 'Nome muito longo'),
   slug: z.string().optional(),
   icon: z.string().optional(),
-  image: z.string().url('URL da imagem invalida').optional().or(z.literal('')),
+  image: z.string().url('URL da imagem inválida').optional().or(z.literal('')),
   description: z.string().max(500).optional(),
   isActive: z.boolean().optional(),
 });
@@ -20,7 +20,7 @@ export const updateCategorySchema = z.object({
   name: z.string().min(1).max(100).optional(),
   slug: z.string().optional(),
   icon: z.string().optional(),
-  image: z.string().url('URL da imagem invalida').optional().or(z.literal('')),
+  image: z.string().url('URL da imagem inválida').optional().or(z.literal('')),
   description: z.string().max(500).optional(),
   isActive: z.boolean().optional(),
 });

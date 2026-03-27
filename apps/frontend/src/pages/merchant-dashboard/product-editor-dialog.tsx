@@ -124,11 +124,11 @@ function buildPayload(fields: ProductFormFields, images: ProductImage[]) {
   const stock = toOptionalNumber(fields.stock);
 
   if (price === undefined) {
-    throw new Error('Informe um preco valido.');
+    throw new Error('Informe um preço válido.');
   }
 
   if (stock === undefined) {
-    throw new Error('Informe um estoque valido.');
+    throw new Error('Informe um estoque válido.');
   }
 
   return {
@@ -345,7 +345,7 @@ export function ProductEditorDialog({
       toast({
         variant: 'destructive',
         title: 'Falha ao abrir imagem',
-        description: error instanceof Error ? error.message : 'Nao foi possivel carregar a imagem selecionada.',
+        description: error instanceof Error ? error.message : 'Não foi possível carregar a imagem selecionada.',
       });
     }
   };
@@ -440,7 +440,7 @@ export function ProductEditorDialog({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="product-original-price">Preco original</Label>
+                  <Label htmlFor="product-original-price">Preço original</Label>
                   <Input id="product-original-price" inputMode="decimal" placeholder="349.90" {...register('originalPrice')} />
                 </div>
 
@@ -455,7 +455,7 @@ export function ProductEditorDialog({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="product-min-stock">Estoque minimo</Label>
+                  <Label htmlFor="product-min-stock">Estoque mínimo</Label>
                   <Input id="product-min-stock" inputMode="numeric" placeholder="3" {...register('minStock')} />
                 </div>
 
@@ -475,13 +475,13 @@ export function ProductEditorDialog({
                 </div>
 
                 <div className="space-y-2 xl:col-span-3">
-                  <Label htmlFor="product-short-desc">Descricao curta</Label>
-                  <Textarea id="product-short-desc" rows={3} placeholder="Resumo para cards e secoes publicas." {...register('shortDesc')} />
+                  <Label htmlFor="product-short-desc">Descrição curta</Label>
+                  <Textarea id="product-short-desc" rows={3} placeholder="Resumo para cards e seções públicas." {...register('shortDesc')} />
                 </div>
 
                 <div className="space-y-2 xl:col-span-3">
-                  <Label htmlFor="product-description">Descricao completa</Label>
-                  <Textarea id="product-description" rows={5} placeholder="Descricao detalhada do produto." {...register('description')} />
+                  <Label htmlFor="product-description">Descrição completa</Label>
+                  <Textarea id="product-description" rows={5} placeholder="Descrição detalhada do produto." {...register('description')} />
                 </div>
               </section>
 

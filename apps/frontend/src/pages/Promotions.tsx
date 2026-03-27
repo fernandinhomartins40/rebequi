@@ -26,12 +26,12 @@ const PromotionsPage = () => {
           <section className="overflow-hidden rounded-[2rem] border border-[#eadfba] bg-[linear-gradient(135deg,rgba(255,251,235,0.96),rgba(255,255,255,0.98))] p-6 shadow-[0_28px_72px_-48px_rgba(217,119,6,0.24)] sm:p-8">
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:items-end">
               <div className="space-y-3">
-                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Promocoes</p>
+                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Promoções</p>
                 <h1 className="max-w-3xl text-3xl font-bold leading-tight text-foreground sm:text-4xl">
-                  Campanhas organizadas para acelerar a decisao de compra
+                  Campanhas organizadas para acelerar a decisão de compra
                 </h1>
                 <p className="max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
-                  Explore colecoes promocionais montadas com itens de diferentes categorias, prazos definidos e comunicacao visual dedicada para cada oportunidade.
+                  Explore coleções promocionais montadas com itens de diferentes categorias, prazos definidos e comunicação visual dedicada para cada oportunidade.
                 </p>
               </div>
 
@@ -64,9 +64,9 @@ const PromotionsPage = () => {
           {error ? (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Falha ao carregar promocoes</AlertTitle>
+              <AlertTitle>Falha ao carregar promoções</AlertTitle>
               <AlertDescription>
-                {error instanceof Error ? error.message : 'Nao foi possivel carregar as promocoes disponiveis.'}
+                {error instanceof Error ? error.message : 'Não foi possível carregar as promoções disponíveis.'}
               </AlertDescription>
             </Alert>
           ) : null}
@@ -89,9 +89,9 @@ const PromotionsPage = () => {
 
           {!isLoading && promotions.length === 0 ? (
             <section className="rounded-[1.75rem] border border-dashed border-black/10 bg-white px-6 py-16 text-center">
-              <p className="text-lg font-semibold text-foreground">Nenhuma promocao publicada no momento.</p>
+              <p className="text-lg font-semibold text-foreground">Nenhuma promoção publicada no momento.</p>
               <p className="mt-2 text-sm text-muted-foreground">
-                Assim que novas campanhas forem ativadas, elas aparecerao aqui com todos os produtos vinculados.
+                Assim que novas campanhas forem ativadas, elas aparecerão aqui com todos os produtos vinculados.
               </p>
             </section>
           ) : null}

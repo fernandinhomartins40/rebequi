@@ -105,7 +105,7 @@ export function MerchantDashboardPromotions() {
     mutationFn: deletePromotion,
     onSuccess: async () => {
       toast({
-        title: 'Promocao excluida',
+        title: 'Promoção excluida',
         description: 'O card promocional foi removido com sucesso.',
       });
       await refreshQueries();
@@ -113,8 +113,8 @@ export function MerchantDashboardPromotions() {
     onError: (error) => {
       toast({
         variant: 'destructive',
-        title: 'Falha ao excluir promocao',
-        description: error instanceof Error ? error.message : 'Erro inesperado ao excluir a promocao.',
+        title: 'Falha ao excluir promoção',
+        description: error instanceof Error ? error.message : 'Erro inesperado ao excluir a promoção.',
       });
     },
   });
@@ -149,7 +149,7 @@ export function MerchantDashboardPromotions() {
   };
 
   const handleDelete = async (promotion: Promotion) => {
-    if (!window.confirm(`Excluir a promocao "${promotion.title}"?`)) {
+    if (!window.confirm(`Excluir a promoção "${promotion.title}"?`)) {
       return;
     }
 
@@ -159,15 +159,15 @@ export function MerchantDashboardPromotions() {
   return (
     <div className="space-y-6">
       <SectionLeadCard
-        badge="Promocoes"
-        title="Gestao de promocoes"
+        badge="Promoções"
+        title="Gestão de promoções"
         description="Crie cards promocionais com validade, imagem destacada e curadoria de produtos de uma ou mais categorias."
         tone="yellow"
         actions={
           <>
             <Button onClick={openCreateDialog} className="gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90">
               <Megaphone className="h-4 w-4" />
-              Nova promocao
+              Nova promoção
             </Button>
             <Button
               variant="outline"
@@ -178,10 +178,10 @@ export function MerchantDashboardPromotions() {
               Atualizar
             </Button>
             <Button asChild variant="outline" className="border-black/10 bg-white/80 text-foreground hover:bg-white">
-              <Link to="/promocoes">Ver pagina publica</Link>
+              <Link to="/promocoes">Ver página pública</Link>
             </Button>
             <Button asChild variant="outline" className="border-black/10 bg-white/80 text-foreground hover:bg-white">
-              <Link to={ADMIN_BASE_PATH}>Visao geral</Link>
+              <Link to={ADMIN_BASE_PATH}>Visão geral</Link>
             </Button>
           </>
         }
@@ -204,7 +204,7 @@ export function MerchantDashboardPromotions() {
           icon={<Megaphone className="h-5 w-5 text-primary" />}
           label="Agendadas"
           value={`${scheduledPromotions.length}`}
-          delta="Prontas para publicar"
+          delta="Prontas para públicar"
         />
         <StatCard
           icon={<Boxes className="h-5 w-5 text-primary" />}
@@ -216,12 +216,12 @@ export function MerchantDashboardPromotions() {
 
       <DashboardPanel
         badge="Admin"
-        title="Promocoes cadastradas"
-        description="Filtre, acompanhe o status e mantenha os cards promocionais publicados na pagina publica."
+        title="Promoções cadastradas"
+        description="Filtre, acompanhe o status e mantenha os cards promocionais publicados na página pública."
       >
         {!canCreatePromotion ? (
           <div className="rounded-3xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
-            Campanhas com pagina dedicada exigem pelo menos dois produtos ativos.
+            Campanhas com página dedicada exigem pelo menos dois produtos ativos.
           </div>
         ) : null}
 
@@ -231,7 +231,7 @@ export function MerchantDashboardPromotions() {
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Buscar por nome, titulo ou descricao"
+              placeholder="Buscar por nome, título ou descrição"
               className="pl-9"
             />
           </div>
@@ -256,13 +256,13 @@ export function MerchantDashboardPromotions() {
         {isLoading || isLoadingProducts ? (
           <div className="flex items-center justify-center gap-2 rounded-3xl border border-black/5 bg-slate-50 px-5 py-16 text-sm text-muted-foreground">
             <RefreshCcw className="h-4 w-4 animate-spin" />
-            Carregando promocoes...
+            Carregando promoções...
           </div>
         ) : null}
 
         {!isLoading && !isLoadingProducts && promotions.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-black/10 bg-slate-50 px-5 py-16 text-center text-sm text-muted-foreground">
-            Nenhuma promocao encontrada para esse filtro.
+            Nenhuma promoção encontrada para esse filtro.
           </div>
         ) : null}
 
@@ -273,11 +273,11 @@ export function MerchantDashboardPromotions() {
                 <Table>
                   <TableHeader className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur supports-[backdrop-filter]:bg-slate-50/80">
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="w-[38%]">Promocao</TableHead>
+                      <TableHead className="w-[38%]">Promoção</TableHead>
                       <TableHead>Validade</TableHead>
                       <TableHead className="w-40 text-center">Produtos</TableHead>
                       <TableHead className="w-40 text-center">Status</TableHead>
-                      <TableHead className="w-[18rem] text-right">Acoes</TableHead>
+                      <TableHead className="w-[18rem] text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -304,7 +304,7 @@ export function MerchantDashboardPromotions() {
                                 {promotion.slug ? ` | /promocoes/${promotion.slug}` : ''}
                               </p>
                               <p className="line-clamp-2 text-sm text-muted-foreground">
-                                {promotion.subtitle || promotion.description || 'Sem descricao complementar.'}
+                                {promotion.subtitle || promotion.description || 'Sem descrição complementar.'}
                               </p>
                               <div className="flex flex-wrap gap-2 pt-1">
                                 {promotion.categories.slice(0, 3).map((category) => (
@@ -398,7 +398,7 @@ export function MerchantDashboardPromotions() {
                       </div>
                       <p className="text-xs text-muted-foreground">{promotion.name}</p>
                       <p className="line-clamp-2 text-sm text-muted-foreground">
-                        {promotion.subtitle || promotion.description || 'Sem descricao complementar.'}
+                        {promotion.subtitle || promotion.description || 'Sem descrição complementar.'}
                       </p>
                     </div>
                   </div>
@@ -454,8 +454,8 @@ export function MerchantDashboardPromotions() {
         <CardHeader className="space-y-3">
           <Badge className="w-fit border-none bg-accent text-accent-foreground">Panorama</Badge>
           <div>
-            <CardTitle className="text-xl sm:text-2xl">Radar de promocoes</CardTitle>
-            <CardDescription>Leitura rapida das campanhas em execucao e do backlog promocional.</CardDescription>
+            <CardTitle className="text-xl sm:text-2xl">Radar de promoções</CardTitle>
+            <CardDescription>Leitura rápida das campanhas em execucao e do backlog promocional.</CardDescription>
           </div>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
@@ -468,11 +468,11 @@ export function MerchantDashboardPromotions() {
             </p>
           </div>
           <div className="rounded-2xl border border-black/5 bg-slate-50 p-4">
-            <p className="text-sm font-semibold text-foreground">Fila de publicacao</p>
+            <p className="text-sm font-semibold text-foreground">Fila de públicacao</p>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
               {scheduledPromotions.length > 0
                 ? `${scheduledPromotions.length} campanhas aguardam a data de inicio configurada.`
-                : 'Nao existem campanhas agendadas.'}
+                : 'Não existem campanhas agendadas.'}
             </p>
           </div>
           <div className="rounded-2xl border border-black/5 bg-slate-50 p-4">
@@ -480,7 +480,7 @@ export function MerchantDashboardPromotions() {
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
               {inactivePromotions.length + expiredPromotions.length > 0
                 ? `${inactivePromotions.length} inativas e ${expiredPromotions.length} encerradas podem ser revisadas ou reaproveitadas.`
-                : 'Nao ha campanhas encerradas ou pausadas aguardando revisao.'}
+                : 'Não ha campanhas encerradas ou pausadas aguardando revisão.'}
             </p>
           </div>
         </CardContent>

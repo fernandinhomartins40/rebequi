@@ -177,8 +177,8 @@ export function MerchantDashboardProducts() {
     <div className="space-y-6">
       <SectionLeadCard
         badge="Produtos"
-        title="Gestao de produtos"
-        description="Cadastre, edite e remova produtos com persistencia de dados e imagens. As categorias tambem sao administradas nesta tela."
+        title="Gestão de produtos"
+        description="Cadastre, edite e remova produtos com persistência de dados e imagens. As categorias também são administradas nesta tela."
         tone="blue"
         actions={
           <>
@@ -203,7 +203,7 @@ export function MerchantDashboardProducts() {
               Atualizar
             </Button>
             <Button asChild variant="outline" className="border-black/10 bg-white/80 text-foreground hover:bg-white">
-              <Link to={ADMIN_BASE_PATH}>Visao geral</Link>
+              <Link to={ADMIN_BASE_PATH}>Visão geral</Link>
             </Button>
           </>
         }
@@ -242,7 +242,7 @@ export function MerchantDashboardProducts() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-2">
               <CardTitle className="text-xl sm:text-2xl">Gerenciamento de categorias</CardTitle>
-              <CardDescription>Crie, edite e remova categorias usadas no cadastro e na edicao de produtos.</CardDescription>
+              <CardDescription>Crie, edite e remova categorias usadas no cadastro e na edição de produtos.</CardDescription>
               <div className="flex flex-wrap gap-2">
                 <Badge variant="outline" className="border-black/10 bg-white/70 text-foreground">
                   {managedCategories.length} cadastradas
@@ -264,7 +264,7 @@ export function MerchantDashboardProducts() {
         <CardContent className="space-y-4">
           {!canCreateProduct ? (
             <div className="rounded-3xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
-              Nenhuma categoria ativa disponivel. Cadastre uma categoria para liberar o cadastro de produtos.
+              Nenhuma categoria ativa disponível. Cadastre uma categoria para liberar o cadastro de produtos.
             </div>
           ) : null}
 
@@ -291,7 +291,7 @@ export function MerchantDashboardProducts() {
                         <TableHead className="w-[40%]">Categoria</TableHead>
                         <TableHead>Detalhes</TableHead>
                         <TableHead className="w-28 text-center">Produtos</TableHead>
-                        <TableHead className="w-[18rem] text-right">Acoes</TableHead>
+                        <TableHead className="w-[18rem] text-right">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -299,8 +299,8 @@ export function MerchantDashboardProducts() {
                         const productsCount = category.productsCount ?? 0;
                         const hasLinkedProducts = productsCount > 0;
                         const canDeleteCategory = !hasLinkedProducts && !deleteCategoryMutation.isPending;
-                        const categoryDescription = trimText(category.description) || 'Sem descricao cadastrada para esta categoria.';
-                        const categoryIcon = trimText(category.icon) || 'Nao definido';
+                        const categoryDescription = trimText(category.description) || 'Sem descrição cadastrada para esta categoria.';
+                        const categoryIcon = trimText(category.icon) || 'Não definido';
 
                         return (
                           <TableRow key={category.id} className="bg-white/90">
@@ -379,8 +379,8 @@ export function MerchantDashboardProducts() {
                   const productsCount = category.productsCount ?? 0;
                   const hasLinkedProducts = productsCount > 0;
                   const canDeleteCategory = !hasLinkedProducts && !deleteCategoryMutation.isPending;
-                  const categoryDescription = trimText(category.description) || 'Sem descricao cadastrada para esta categoria.';
-                  const categoryIcon = trimText(category.icon) || 'Nao definido';
+                  const categoryDescription = trimText(category.description) || 'Sem descrição cadastrada para esta categoria.';
+                  const categoryIcon = trimText(category.icon) || 'Não definido';
 
                   return (
                     <article
@@ -473,7 +473,7 @@ export function MerchantDashboardProducts() {
               <Input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Buscar por nome, SKU ou descricao"
+                placeholder="Buscar por nome, SKU ou descrição"
                 className="pl-9"
               />
             </div>
@@ -511,7 +511,7 @@ export function MerchantDashboardProducts() {
             <div className="grid gap-4 2xl:grid-cols-2">
               {products.map((product) => {
                 const primaryImage = getPrimaryImage(product);
-                const productSummary = product.shortDesc || product.description || 'Sem descricao.';
+                const productSummary = product.shortDesc || product.description || 'Sem descrição.';
 
                 return (
                   <article

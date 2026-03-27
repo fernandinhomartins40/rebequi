@@ -148,11 +148,11 @@ export function CategoryEditorDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="category-description">Descricao</Label>
+              <Label htmlFor="category-description">Descrição</Label>
               <Textarea
                 id="category-description"
                 rows={4}
-                placeholder="Descricao usada para organizar a catalogacao de produtos."
+                placeholder="Descrição usada para organizar a catalogação de produtos."
                 {...register('description')}
               />
             </div>

@@ -18,7 +18,7 @@ export function QuoteDocumentCaptureCard({
   description,
   helper,
   processing = false,
-  buttonLabel = 'Abrir camera',
+  buttonLabel = 'Abrir câmera',
   disabled = false,
   onSelectFile,
 }: QuoteDocumentCaptureCardProps) {
@@ -33,7 +33,7 @@ export function QuoteDocumentCaptureCard({
       <CardHeader className="space-y-3">
         <div className="inline-flex w-fit items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
           <Camera className="h-4 w-4" />
-          Camera do celular
+          Câmera do celular
         </div>
         <div>
           <CardTitle className="text-xl sm:text-2xl">{title}</CardTitle>

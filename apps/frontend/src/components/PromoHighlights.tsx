@@ -27,21 +27,21 @@ const PromoHighlights = () => {
             <p className="text-sm font-semibold uppercase text-primary">Ofertas em destaque</p>
             <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Campanhas promocionais</h2>
             <p className="mx-auto max-w-2xl text-sm text-muted-foreground sm:text-base lg:mx-0">
-              Cards promocionais organizam colecoes especiais com produtos de uma ou mais categorias.
+              Cards promocionais organizam coleções especiais com produtos de uma ou mais categorias.
             </p>
           </div>
 
           <Button asChild variant="outline" className="rounded-2xl">
-            <Link to="/promocoes">Ver todas as promocoes</Link>
+            <Link to="/promocoes">Ver todas as promoções</Link>
           </Button>
         </div>
 
         {error ? (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Falha ao carregar promocoes</AlertTitle>
+            <AlertTitle>Falha ao carregar promoções</AlertTitle>
             <AlertDescription>
-              {error instanceof Error ? error.message : 'Nao foi possivel carregar as ofertas em destaque.'}
+              {error instanceof Error ? error.message : 'Não foi possível carregar as ofertas em destaque.'}
             </AlertDescription>
           </Alert>
         ) : null}

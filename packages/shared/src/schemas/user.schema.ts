@@ -11,29 +11,29 @@ export const userRoleSchema = z.enum(['ADMIN', 'CUSTOMER']);
 
 const whatsappSchema = z
   .string()
-  .min(10, 'WhatsApp com DDD e obrigatorio')
+  .min(10, 'WhatsApp com DDD e obrigatório')
   .transform((value) => normalizeWhatsapp(value))
-  .refine((value) => isValidWhatsapp(value), 'Informe um WhatsApp valido com DDD');
+  .refine((value) => isValidWhatsapp(value), 'Informe um WhatsApp válido com DDD');
 
 // Login Schema
 export const loginSchema = z.object({
   identifier: z.string().min(3, 'Informe seu email ou WhatsApp'),
-  password: z.string().min(3, 'Senha deve ter no minimo 3 caracteres'),
+  password: z.string().min(3, 'Senha deve ter no mínimo 3 caracteres'),
 });
 
 // Register Schema
 export const registerSchema = z.object({
-  name: z.string().min(1, 'Nome e obrigatorio').max(255, 'Nome muito longo'),
+  name: z.string().min(1, 'Nome e obrigatório').max(255, 'Nome muito longo'),
   whatsapp: whatsappSchema,
 });
 
 // Create User Schema
 export const createUserSchema = z.object({
-  email: z.string().email('Email invalido'),
-  name: z.string().min(1, 'Nome e obrigatorio').max(255, 'Nome muito longo'),
+  email: z.string().email('Email inválido'),
+  name: z.string().min(1, 'Nome e obrigatório').max(255, 'Nome muito longo'),
   password: z
     .string()
-    .min(8, 'Senha deve ter no minimo 8 caracteres')
+    .min(8, 'Senha deve ter no mínimo 8 caracteres')
     .max(100, 'Senha muito longa')
     .regex(/[A-Z]/, 'Senha deve conter pelo menos uma letra maiuscula')
     .regex(/[a-z]/, 'Senha deve conter pelo menos uma letra minuscula')
@@ -47,11 +47,11 @@ export const createUserSchema = z.object({
 
 // Update User Schema
 export const updateUserSchema = z.object({
-  email: z.string().email('Email invalido').optional(),
+  email: z.string().email('Email inválido').optional(),
   name: z.string().min(1).max(255).optional(),
   password: z
     .string()
-    .min(8, 'Senha deve ter no minimo 8 caracteres')
+    .min(8, 'Senha deve ter no mínimo 8 caracteres')
     .max(100, 'Senha muito longa')
     .regex(/[A-Z]/, 'Senha deve conter pelo menos uma letra maiuscula')
     .regex(/[a-z]/, 'Senha deve conter pelo menos uma letra minuscula')
@@ -66,12 +66,12 @@ export const updateUserSchema = z.object({
 });
 
 export const updateAdminCredentialsSchema = z.object({
-  currentEmail: z.string().email('Email atual invalido'),
-  currentPassword: z.string().min(8, 'Senha atual deve ter no minimo 8 caracteres'),
-  newEmail: z.string().email('Novo email invalido'),
+  currentEmail: z.string().email('Email atual inválido'),
+  currentPassword: z.string().min(8, 'Senha atual deve ter no mínimo 8 caracteres'),
+  newEmail: z.string().email('Novo email inválido'),
   newPassword: z
     .string()
-    .min(8, 'Senha deve ter no minimo 8 caracteres')
+    .min(8, 'Senha deve ter no mínimo 8 caracteres')
     .max(100, 'Senha muito longa')
     .regex(/[A-Z]/, 'Senha deve conter pelo menos uma letra maiuscula')
     .regex(/[a-z]/, 'Senha deve conter pelo menos uma letra minuscula')
@@ -81,7 +81,7 @@ export const updateAdminCredentialsSchema = z.object({
 
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(3, 'Informe sua senha atual'),
-  newPassword: z.string().min(6, 'A nova senha deve ter no minimo 6 caracteres').max(100, 'Senha muito longa'),
+  newPassword: z.string().min(6, 'A nova senha deve ter no mínimo 6 caracteres').max(100, 'Senha muito longa'),
 });
 
 // Export types inferred from schemas

@@ -93,7 +93,7 @@ const CustomerDashboard = () => {
       toast({
         variant: 'destructive',
         title: 'Falha ao criar rascunho',
-        description: error instanceof Error ? error.message : 'Nao foi possivel processar a imagem.',
+        description: error instanceof Error ? error.message : 'Não foi possível processar a imagem.',
       });
     },
   });
@@ -125,7 +125,7 @@ const CustomerDashboard = () => {
       toast({
         variant: 'destructive',
         title: 'Falha ao salvar rascunho',
-        description: error instanceof Error ? error.message : 'Nao foi possivel salvar o orçamento.',
+        description: error instanceof Error ? error.message : 'Não foi possível salvar o orçamento.',
       });
     },
   });
@@ -135,15 +135,15 @@ const CustomerDashboard = () => {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['customer', 'quotes'] });
       toast({
-        title: 'Orcamento enviado',
-        description: 'Seu orçamento agora esta disponivel para a equipe administrativa.',
+        title: 'Orçamento enviado',
+        description: 'Seu orçamento agora está disponível para a equipe administrativa.',
       });
     },
     onError: (error) => {
       toast({
         variant: 'destructive',
         title: 'Falha ao enviar orçamento',
-        description: error instanceof Error ? error.message : 'Nao foi possivel enviar o orçamento.',
+        description: error instanceof Error ? error.message : 'Não foi possível enviar o orçamento.',
       });
     },
   });
@@ -166,7 +166,7 @@ const CustomerDashboard = () => {
       toast({
         variant: 'destructive',
         title: 'Falha ao atualizar senha',
-        description: error instanceof Error ? error.message : 'Nao foi possivel alterar sua senha.',
+        description: error instanceof Error ? error.message : 'Não foi possível alterar sua senha.',
       });
     },
   });
@@ -215,7 +215,7 @@ const CustomerDashboard = () => {
                 Painel do cliente
               </p>
               <div>
-                <h1 className="text-3xl font-bold text-foreground sm:text-4xl">Central de orcamentos</h1>
+                <h1 className="text-3xl font-bold text-foreground sm:text-4xl">Central de orçamentos</h1>
                 <p className="mt-2 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
                   Tire foto do documento, revise os itens reconhecidos pelo OCR e acompanhe o status de cada orçamento.
                 </p>
@@ -235,11 +235,11 @@ const CustomerDashboard = () => {
               icon={<UserRound className="h-5 w-5 text-primary" />}
               label="Acesso"
               value={user?.identifier || '-'}
-              detail={user?.whatsapp ? formatWhatsapp(user.whatsapp) : user?.email || 'Sessao autenticada'}
+              detail={user?.whatsapp ? formatWhatsapp(user.whatsapp) : user?.email || 'Sessão autenticada'}
             />
             <MetricCard
               icon={<FileText className="h-5 w-5 text-primary" />}
-              label="Orcamentos"
+              label="Orçamentos"
               value={`${quotes.length}`}
               detail={`${draftQuotes.length} rascunhos e ${submittedQuotes.length} enviados`}
             />
@@ -258,15 +258,15 @@ const CustomerDashboard = () => {
             <AlertTitle>Acesso provisório disponível</AlertTitle>
             <AlertDescription>
               Use <strong>{provisionalCredentials?.identifier || user?.identifier}</strong> para entrar. Senha atual:{' '}
-              <strong>{provisionalCredentials?.password || 'definida por voce'}</strong>.
+              <strong>{provisionalCredentials?.password || 'definida por você'}</strong>.
             </AlertDescription>
           </Alert>
         ) : null}
 
         <QuoteDocumentCaptureCard
           title="Enviar um novo documento"
-          description="Use a camera do celular para fotografar um documento e deixar o OCR montar automaticamente os itens do orçamento."
-          helper="Depois do processamento, o rascunho aparece logo abaixo para revisao e envio."
+          description="Use a câmera do celular para fotografar um documento e deixar o OCR montar automaticamente os itens do orçamento."
+          helper="Depois do processamento, o rascunho aparece logo abaixo para revisão e envio."
           processing={createDraftMutation.isPending}
           buttonLabel="Tirar foto do documento"
           onSelectFile={async (file) => {
@@ -277,9 +277,9 @@ const CustomerDashboard = () => {
         <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
           <Card className="border-black/5 bg-white/92 shadow-[0_20px_55px_-40px_rgba(15,23,42,0.22)]">
             <CardHeader>
-              <CardTitle>Meus orcamentos</CardTitle>
+              <CardTitle>Meus orçamentos</CardTitle>
               <CardDescription>
-                Selecione um rascunho para revisar os itens ou acompanhe os orçamentos ja enviados.
+                Selecione um rascunho para revisar os itens ou acompanhe os orçamentos já enviados.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -309,7 +309,7 @@ const CustomerDashboard = () => {
                         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                           {quote.referenceCode}
                         </p>
-                        <h2 className="mt-1 text-lg font-semibold text-foreground">{quote.title || 'Orcamento sem titulo'}</h2>
+                        <h2 className="mt-1 text-lg font-semibold text-foreground">{quote.title || 'Orçamento sem título'}</h2>
                         <p className="mt-2 text-sm text-muted-foreground">
                           {quote.itemCount} itens | criado em {formatQuoteTimestamp(quote.createdAt)}
                         </p>
@@ -349,7 +349,7 @@ const CustomerDashboard = () => {
                         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                           {selectedQuote.referenceCode}
                         </p>
-                        <h2 className="mt-1 text-xl font-semibold text-foreground">{selectedQuote.title || 'Orcamento enviado'}</h2>
+                        <h2 className="mt-1 text-xl font-semibold text-foreground">{selectedQuote.title || 'Orçamento enviado'}</h2>
                       </div>
                       <QuoteStatusBadge status={selectedQuote.status} />
                     </div>
@@ -377,7 +377,7 @@ const CustomerDashboard = () => {
                 <>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2 sm:col-span-2">
-                      <Label htmlFor="quote-title">Titulo do orçamento</Label>
+                      <Label htmlFor="quote-title">Título do orçamento</Label>
                       <Input
                         id="quote-title"
                         value={editorState.title}
@@ -387,7 +387,7 @@ const CustomerDashboard = () => {
                     </div>
 
                     <div className="space-y-2 sm:col-span-2">
-                      <Label htmlFor="quote-note">Observacoes</Label>
+                      <Label htmlFor="quote-note">Observações</Label>
                       <Textarea
                         id="quote-note"
                         rows={4}
@@ -471,7 +471,7 @@ const CustomerDashboard = () => {
                         </div>
 
                         <div className="mt-3 space-y-2">
-                          <Label>Observacao do item</Label>
+                          <Label>Observação do item</Label>
                           <Input
                             value={item.notes || ''}
                             onChange={(event) =>

@@ -35,7 +35,7 @@ const MerchantPanel = () => {
 
       if (user.role !== UserRole.ADMIN) {
         await logout();
-        throw new Error('Sua conta nao possui acesso administrativo.');
+        throw new Error('Sua conta não possui acesso administrativo.');
       }
 
       toast({
@@ -67,7 +67,7 @@ const MerchantPanel = () => {
               </div>
               <h1 className="text-2xl font-bold sm:text-3xl">Acesso administrativo</h1>
               <p className="text-muted-foreground">
-                Entre com uma conta ADMIN para acessar a area interna da operacao.
+                Entre com uma conta ADMIN para acessar a área interna da operação.
               </p>
             </header>
 
@@ -75,17 +75,17 @@ const MerchantPanel = () => {
               <FeatureCard
                 icon={<PackageSearch className="h-6 w-6 text-primary" />}
                 title="Produtos"
-                description="Cadastro, edicao e exclusao."
+                description="Cadastro, edição e exclusão."
               />
               <FeatureCard
                 icon={<BarChart3 className="h-6 w-6 text-primary" />}
-                title="Sessao"
+                title="Sessão"
                 description="Autenticacao administrativa com controle de acesso."
               />
               <FeatureCard
                 icon={<Settings className="h-6 w-6 text-primary" />}
                 title="Plataforma"
-                description="Painel estruturado para expansao de novas areas."
+                description="Painel estruturado para expansão de novas ?reas."
               />
             </div>
           </div>

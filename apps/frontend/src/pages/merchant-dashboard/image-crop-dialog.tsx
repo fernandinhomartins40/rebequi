@@ -105,7 +105,7 @@ export function ImageCropDialog({
             {title}
           </ModalTitle>
           <ModalDescription>
-            Defina a area de crop no formato {config.width}x{config.height}px. A imagem final sera comprimida antes do upload.
+            Defina a área de recorte no formato {config.width}x{config.height}px. A imagem final será comprimida antes do upload.
           </ModalDescription>
         </ModalHeader>
 
@@ -173,7 +173,7 @@ export function ImageCropDialog({
               </div>
 
               <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-3 text-xs text-muted-foreground">
-                O arquivo final sera exportado em WebP com proporcao fixa e comprimido em background para reduzir armazenamento.
+                O arquivo final será exportado em WebP com proporção fixa e comprimido em background para reduzir armazenamento.
               </div>
 
               <Button type="button" variant="outline" onClick={handleReset} disabled={!imageMeta || submitting}>

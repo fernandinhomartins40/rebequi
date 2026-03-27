@@ -76,8 +76,8 @@ export default function CategoryDetailsPage() {
         <div className="container mx-auto px-4 py-16">
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Categoria invalida</AlertTitle>
-            <AlertDescription>O identificador da categoria nao foi informado.</AlertDescription>
+            <AlertTitle>Categoria inválida</AlertTitle>
+            <AlertDescription>O identificador da categoria não foi informado.</AlertDescription>
           </Alert>
         </div>
         <Footer />
@@ -98,13 +98,13 @@ export default function CategoryDetailsPage() {
         <div className="container mx-auto px-4 py-16">
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>{isNotFound ? "Categoria nao encontrada" : "Falha ao carregar categoria"}</AlertTitle>
+            <AlertTitle>{isNotFound ? "Categoria não encontrada" : "Falha ao carregar categoria"}</AlertTitle>
             <AlertDescription>
               {isNotFound
-                ? "A categoria solicitada nao esta disponivel ou foi removida da vitrine."
+                ? "A categoria solicitada não está disponível ou foi removida da vitrine."
                 : categoryError instanceof Error
                   ? categoryError.message
-                  : "Nao foi possivel carregar esta categoria agora."}
+                  : "Não foi possível carregar esta categoria agora."}
             </AlertDescription>
           </Alert>
 
@@ -146,7 +146,7 @@ export default function CategoryDetailsPage() {
                     <Icon className={`h-10 w-10 ${getCategoryColorClass(0)}`} />
                   </div>
                   <p className="mt-5 max-w-xs text-sm leading-6 text-muted-foreground">
-                    Visualize todos os produtos ativos vinculados a esta categoria em uma pagina dedicada.
+                    Visualize todos os produtos ativos vinculados a esta categoria em uma página dedicada.
                   </p>
                 </div>
               </div>
@@ -157,7 +157,7 @@ export default function CategoryDetailsPage() {
             <Badge className="border-none bg-accent text-accent-foreground">Categoria</Badge>
             <h1 className="mt-4 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">{category.name}</h1>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
-              {category.description || "Confira todos os produtos desta categoria com navegacao clara e foco total no catalogo disponivel."}
+              {category.description || "Confira todos os produtos desta categoria com navegação clara e foco total no catálogo disponível."}
             </p>
 
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -176,7 +176,7 @@ export default function CategoryDetailsPage() {
                   Slug
                 </div>
                 <div className="mt-2 text-lg font-semibold text-foreground">{category.slug}</div>
-                <p className="mt-1 text-sm text-muted-foreground">Identificador usado na rota publica da categoria</p>
+                <p className="mt-1 text-sm text-muted-foreground">Identificador usado na rota pública da categoria</p>
               </div>
             </div>
           </div>
@@ -204,7 +204,7 @@ export default function CategoryDetailsPage() {
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Falha ao carregar produtos</AlertTitle>
               <AlertDescription>
-                {productsError instanceof Error ? productsError.message : "Nao foi possivel carregar os produtos desta categoria."}
+                {productsError instanceof Error ? productsError.message : "Não foi possível carregar os produtos desta categoria."}
               </AlertDescription>
             </Alert>
           ) : products.length === 0 ? (
@@ -212,7 +212,7 @@ export default function CategoryDetailsPage() {
               <Package className="mx-auto h-10 w-10 text-primary" />
               <h3 className="mt-4 text-xl font-semibold text-foreground">Nenhum produto publicado</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                Esta categoria existe, mas ainda nao possui produtos ativos exibidos na vitrine.
+                Esta categoria existe, mas ainda não possui produtos ativos exibidos na vitrine.
               </p>
             </div>
           ) : (

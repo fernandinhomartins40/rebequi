@@ -14,7 +14,7 @@ const CATEGORY_ICON_BY_NAME: Record<string, LucideIcon> = {
 
 const CATEGORY_KEYWORD_MATCHERS: Array<{ keywords: string[]; icon: LucideIcon }> = [
   {
-    keywords: ["cimento", "argamassa", "construcao", "bloco", "tijolo"],
+    keywords: ["cimento", "argamassa", "construção", "bloco", "tijolo"],
     icon: HardHat,
   },
   {

@@ -3,29 +3,29 @@ import { isValidWhatsapp, normalizeWhatsapp } from '../utils/index.js';
 
 const normalizedWhatsappSchema = z
   .string()
-  .min(10, 'WhatsApp com DDD e obrigatorio')
+  .min(10, 'WhatsApp com DDD e obrigatório')
   .transform((value) => normalizeWhatsapp(value))
-  .refine((value) => isValidWhatsapp(value), 'Informe um WhatsApp valido com DDD');
+  .refine((value) => isValidWhatsapp(value), 'Informe um WhatsApp válido com DDD');
 
 export const quoteStatusSchema = z.enum(['DRAFT', 'SUBMITTED', 'IN_REVIEW', 'RESPONDED', 'ARCHIVED']);
 export const leadStatusSchema = z.enum(['STARTED', 'QUOTE_DRAFTED', 'QUOTE_SUBMITTED', 'CONTACTED', 'ARCHIVED']);
 
 export const startLeadSchema = z.object({
-  name: z.string().min(1, 'Nome e obrigatorio').max(255, 'Nome muito longo'),
+  name: z.string().min(1, 'Nome e obrigatório').max(255, 'Nome muito longo'),
   whatsapp: normalizedWhatsappSchema,
 });
 
 export const quoteItemInputSchema = z.object({
   productId: z.string().nullable().optional(),
-  name: z.string().min(1, 'Nome do item e obrigatorio').max(255, 'Nome muito longo'),
+  name: z.string().min(1, 'Nome do item e obrigatório').max(255, 'Nome muito longo'),
   quantity: z.number().positive('Quantidade deve ser positiva').default(1),
   unit: z.string().max(30, 'Unidade muito longa').nullable().optional(),
-  notes: z.string().max(500, 'Observacao muito longa').nullable().optional(),
+  notes: z.string().max(500, 'Observação muito longa').nullable().optional(),
 });
 
 export const updateQuoteDraftSchema = z.object({
-  title: z.string().max(255, 'Titulo muito longo').nullable().optional(),
-  customerNote: z.string().max(1500, 'Observacao muito longa').nullable().optional(),
+  title: z.string().max(255, 'Título muito longo').nullable().optional(),
+  customerNote: z.string().max(1500, 'Observação muito longa').nullable().optional(),
   items: z.array(quoteItemInputSchema).min(1, 'Adicione pelo menos um item ao orçamento'),
 });
 

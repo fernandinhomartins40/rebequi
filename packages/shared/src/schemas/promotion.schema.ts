@@ -10,8 +10,8 @@ export const promotionKindSchema = z.enum(['collection', 'single_product']);
 
 const promotionImageUrlSchema = z
   .string()
-  .min(1, 'Caminho da imagem obrigatorio')
-  .refine((value) => value.startsWith('/') || /^https?:\/\//.test(value), 'URL ou caminho da imagem invalido');
+  .min(1, 'Caminho da imagem obrigatório')
+  .refine((value) => value.startsWith('/') || /^https?:\/\//.test(value), 'URL ou caminho da imagem inválido');
 
 const promotionDateTimeSchema = z.string().datetime({ offset: true });
 
@@ -28,11 +28,11 @@ export const promotionImageSchema = z.object({
 
 export const createPromotionSchema = z
   .object({
-    name: z.string().min(1, 'Nome e obrigatorio').max(120, 'Nome muito longo'),
+    name: z.string().min(1, 'Nome e obrigatório').max(120, 'Nome muito longo'),
     slug: z.string().max(160).optional(),
     kind: promotionKindSchema.default('collection'),
     eyebrow: z.string().max(80).optional(),
-    title: z.string().min(1, 'Titulo e obrigatorio').max(120, 'Titulo muito longo'),
+    title: z.string().min(1, 'Título e obrigatório').max(120, 'Título muito longo'),
     subtitle: z.string().max(160).optional(),
     description: z.string().max(1200).optional(),
     badgeText: z.string().max(40).optional(),
@@ -49,7 +49,7 @@ export const createPromotionSchema = z
   .refine(
     (value) => !value.startsAt || !value.expiresAt || new Date(value.expiresAt).getTime() > new Date(value.startsAt).getTime(),
     {
-      message: 'A data final deve ser posterior ao inicio da promocao',
+      message: 'A data final deve ser posterior ao início da promoção',
       path: ['expiresAt'],
     },
   )
@@ -91,7 +91,7 @@ export const updatePromotionSchema = z
       value.expiresAt === null ||
       new Date(value.expiresAt).getTime() > new Date(value.startsAt).getTime(),
     {
-      message: 'A data final deve ser posterior ao inicio da promocao',
+      message: 'A data final deve ser posterior ao início da promoção',
       path: ['expiresAt'],
     },
   );
