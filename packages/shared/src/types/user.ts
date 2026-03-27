@@ -26,6 +26,7 @@ export interface User {
 export interface LoginDTO {
   identifier: string;
   password: string;
+  keepSignedIn?: boolean;
 }
 
 export interface RegisterDTO {

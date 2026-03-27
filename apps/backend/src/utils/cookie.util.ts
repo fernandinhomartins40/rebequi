@@ -15,8 +15,17 @@ const baseAuthCookieOptions: CookieOptions = {
   path: env.AUTH_COOKIE_PATH,
 };
 
-export function setAuthCookie(res: Response, token: string): void {
-  res.cookie(env.AUTH_COOKIE_NAME, token, baseAuthCookieOptions);
+function resolveAuthCookieOptions(persistent = true): CookieOptions {
+  if (persistent) {
+    return baseAuthCookieOptions;
+  }
+
+  const { maxAge: _maxAge, ...sessionCookieOptions } = baseAuthCookieOptions;
+  return sessionCookieOptions;
+}
+
+export function setAuthCookie(res: Response, token: string, options?: { persistent?: boolean }): void {
+  res.cookie(env.AUTH_COOKIE_NAME, token, resolveAuthCookieOptions(options?.persistent ?? true));
 }
 
 export function clearAuthCookie(res: Response): void {

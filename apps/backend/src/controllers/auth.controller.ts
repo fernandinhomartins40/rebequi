@@ -45,7 +45,7 @@ export class AuthController {
     try {
       const data: LoginInput = req.body;
       const { user, token } = await this.authService.login(data);
-      setAuthCookie(res, token);
+      setAuthCookie(res, token, { persistent: Boolean(data.keepSignedIn) });
       successResponse(res, { user }, 200, 'Login successful');
     } catch (error) {
       next(error);
