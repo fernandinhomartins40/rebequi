@@ -81,7 +81,9 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): 
 
     return (await readResponseBody(response)) as T;
   } catch (error) {
-    console.error('API Fetch Error:', error);
+    if (!(error instanceof ApiError)) {
+      console.error('API Fetch Error:', error);
+    }
     throw error;
   }
 }

@@ -144,9 +144,9 @@ const MerchantPanel = () => {
                       type="text"
                       placeholder="admin@rebequi.com.br"
                       autoComplete="username"
-                      {...register('identifier', { required: true })}
+                      {...register('identifier')}
                     />
-                    {errors.identifier ? <p className="text-sm text-red-500">Informe o e-mail do admin.</p> : null}
+                    {errors.identifier ? <p className="text-sm text-red-500">{errors.identifier.message}</p> : null}
                   </div>
 
                   <PasswordField
@@ -155,7 +155,7 @@ const MerchantPanel = () => {
                     placeholder="Sua senha"
                     autoComplete="current-password"
                     error={errors.password?.message}
-                    {...register('password', { required: true })}
+                    {...register('password')}
                   />
 
                   <LoginSessionOptions

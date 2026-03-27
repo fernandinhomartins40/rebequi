@@ -17,8 +17,18 @@ const whatsappSchema = z
 
 // Login Schema
 export const loginSchema = z.object({
-  identifier: z.string().min(3, 'Informe seu email ou WhatsApp'),
-  password: z.string().min(3, 'Senha deve ter no mínimo 3 caracteres'),
+  identifier: z
+    .string({
+      required_error: 'Informe seu e-mail ou WhatsApp',
+      invalid_type_error: 'Informe seu e-mail ou WhatsApp',
+    })
+    .min(3, 'Informe seu e-mail ou WhatsApp'),
+  password: z
+    .string({
+      required_error: 'Informe sua senha',
+      invalid_type_error: 'Informe sua senha',
+    })
+    .min(3, 'Senha deve ter no mínimo 3 caracteres'),
   keepSignedIn: z.boolean().optional().default(false),
 });
 
