@@ -1,7 +1,7 @@
 import { useDeferredValue, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Boxes, Clock3, Megaphone, Pencil, RefreshCcw, Search, Tag, Trash2 } from 'lucide-react';
-import type { Product, Promotion, PromotionResponse } from '@rebequi/shared/types';
+import type { Product, Promotion } from '@rebequi/shared/types';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,31 +15,12 @@ import { deletePromotion, fetchAdminPromotions } from '@/services/api/promotions
 import { formatPromotionStatusLabel, formatPromotionWindow, getPromotionStatusTone } from '@/lib/promotion-ui';
 import { ADMIN_BASE_PATH } from './config';
 import { DashboardPanel, SectionLeadCard, StatCard } from './components';
+import { fetchAllAdminPromotionsSnapshot } from './promotion-admin';
 import { PromotionEditorDialog } from './promotion-editor-dialog';
 
 type PromotionStatusFilter = 'all' | 'active' | 'scheduled' | 'expired' | 'inactive';
 
 const SNAPSHOT_PAGE_SIZE = 100;
-
-async function fetchAllAdminOffersSnapshot(): Promise<PromotionResponse> {
-  const firstPage = await fetchAdminPromotions({ kind: 'single_product', page: 1, limit: SNAPSHOT_PAGE_SIZE });
-  const totalPages = firstPage.totalPages ?? Math.max(1, Math.ceil(firstPage.total / SNAPSHOT_PAGE_SIZE));
-
-  if (totalPages <= 1) {
-    return firstPage;
-  }
-
-  const remainingPages = await Promise.all(
-    Array.from({ length: totalPages - 1 }, (_, index) =>
-      fetchAdminPromotions({ kind: 'single_product', page: index + 2, limit: SNAPSHOT_PAGE_SIZE }),
-    ),
-  );
-
-  return {
-    ...firstPage,
-    promotions: [firstPage.promotions, ...remainingPages.map((page) => page.promotions)].flat(),
-  };
-}
 
 async function fetchAllAdminProductsSnapshot(): Promise<Product[]> {
   const firstPage = await fetchAdminProducts({ page: 1, limit: SNAPSHOT_PAGE_SIZE });
@@ -69,7 +50,7 @@ export function MerchantDashboardOffers() {
 
   const { data: offersSnapshot } = useQuery({
     queryKey: ['merchant-dashboard', 'offers-snapshot'],
-    queryFn: fetchAllAdminOffersSnapshot,
+    queryFn: () => fetchAllAdminPromotionsSnapshot('single_product'),
   });
 
   const { data: offerProducts, isLoading: isLoadingProducts } = useQuery({

@@ -44,6 +44,8 @@ type PromotionDraftImage = PromotionImageAsset & {
   previewUrl?: string;
 };
 
+type PromotionEditorDialogMode = 'default' | 'quick-single-product';
+
 const THEME_OPTIONS: Array<{ label: string; value: PromotionTheme }> = [
   { label: 'Dourado', value: 'gold' },
   { label: 'Azul', value: 'blue' },
@@ -124,6 +126,26 @@ function buildStoredDraftImage(image?: Promotion['image']): PromotionDraftImage 
   };
 }
 
+function buildDraftImageFromProduct(product?: Product | null): PromotionDraftImage | undefined {
+  const primaryImage = product?.images?.find((image) => image.isPrimary) || product?.images?.[0];
+
+  if (!primaryImage?.url) {
+    return undefined;
+  }
+
+  return {
+    url: primaryImage.url,
+    alt: primaryImage.alt || product?.name,
+    storageKey: primaryImage.storageKey,
+    filename: primaryImage.filename,
+    mimeType: primaryImage.mimeType,
+    size: primaryImage.size,
+    width: primaryImage.width,
+    height: primaryImage.height,
+    source: 'stored',
+  };
+}
+
 function cleanupDraftImage(image?: PromotionDraftImage) {
   if (image?.source === 'new') {
     revokeObjectPreviewUrl(image.previewUrl);
@@ -167,6 +189,37 @@ async function resolvePromotionImage(image: PromotionDraftImage | undefined, tit
 
 function trimText(value?: string | null) {
   return value?.trim() || '';
+}
+
+function addDays(date: Date, amount: number) {
+  const nextDate = new Date(date);
+  nextDate.setDate(nextDate.getDate() + amount);
+  return nextDate;
+}
+
+function getDefaultQuickOfferExpiryValue() {
+  const expiryDate = addDays(new Date(), 7);
+  expiryDate.setHours(23, 59, 0, 0);
+  return toDateTimeLocalValue(expiryDate);
+}
+
+function buildQuickOfferValues(product: Product): PromotionFormFields {
+  return {
+    name: `Oferta ${product.name}`,
+    slug: '',
+    eyebrow: 'Promoção imperdível',
+    title: product.name,
+    subtitle: trimText(product.shortDesc),
+    description: trimText(product.description) || trimText(product.shortDesc),
+    badgeText: product.discount ? `${product.discount}% OFF` : 'Oferta especial',
+    ctaLabel: 'Ver oferta',
+    disclaimer: '',
+    themeTone: 'red',
+    startsAt: '',
+    expiresAt: getDefaultQuickOfferExpiryValue(),
+    sortOrder: '0',
+    isActive: true,
+  };
 }
 
 function buildCreatePayload(
@@ -247,16 +300,20 @@ function buildUpdatePayload(
 
 export function PromotionEditorDialog({
   kind,
+  mode = 'default',
   open,
   promotion,
   products,
+  initialProductId,
   onOpenChange,
   onSaved,
 }: {
   kind: PromotionKind;
+  mode?: PromotionEditorDialogMode;
   open: boolean;
   promotion?: Promotion | null;
   products: Product[];
+  initialProductId?: string;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
 }) {
@@ -271,6 +328,9 @@ export function PromotionEditorDialog({
   const deferredProductSearch = useDeferredValue(productSearch);
   const isEditing = Boolean(promotion);
   const isSingleProductMode = kind === 'single_product';
+  const isQuickSingleProductMode = isSingleProductMode && mode === 'quick-single-product';
+  const initialProduct = initialProductId ? products.find((product) => product.id === initialProductId) ?? null : null;
+  const isProductSelectionLocked = isQuickSingleProductMode && Boolean(initialProduct);
 
   const { register, handleSubmit, reset, watch, formState } = useForm<PromotionFormFields>({
     defaultValues: createEmptyValues(),
@@ -282,6 +342,18 @@ export function PromotionEditorDialog({
     }
 
     if (!promotion) {
+      if (isQuickSingleProductMode && initialProduct) {
+        reset(buildQuickOfferValues(initialProduct));
+        setSelectedProductIds([initialProduct.id]);
+        setProductSearch(initialProduct.name);
+        setCategoryFilter(initialProduct.category?.name || 'all');
+        setDraftImage((current) => {
+          cleanupDraftImage(current);
+          return buildDraftImageFromProduct(initialProduct);
+        });
+        return;
+      }
+
       reset(createEmptyValues());
       setSelectedProductIds([]);
       setProductSearch('');
@@ -314,15 +386,21 @@ export function PromotionEditorDialog({
     setCategoryFilter('all');
     setDraftImage((current) => {
       cleanupDraftImage(current);
-      return buildStoredDraftImage(promotion.image);
+      return buildStoredDraftImage(promotion.image) || buildDraftImageFromProduct(promotion.primaryProduct || promotion.products?.[0]);
     });
-  }, [open, promotion, reset]);
+  }, [initialProduct, isQuickSingleProductMode, open, products, promotion, reset]);
 
   useEffect(() => () => cleanupDraftImage(draftImage), [draftImage]);
 
   const saveMutation = useMutation({
     mutationFn: async (fields: PromotionFormFields) => {
-      if (!fields.name.trim()) {
+      const primarySelectedProduct =
+        (selectedProductIds[0] ? products.find((product) => product.id === selectedProductIds[0]) : null) || initialProduct;
+      const resolvedName =
+        fields.name.trim() ||
+        (isQuickSingleProductMode && primarySelectedProduct ? `Oferta ${primarySelectedProduct.name}` : '');
+
+      if (!resolvedName) {
         throw new Error('Informe o nome interno da promoção.');
       }
 
@@ -342,13 +420,17 @@ export function PromotionEditorDialog({
         throw new Error('Campanhas com página dedicada precisam de pelo menos dois produtos.');
       }
 
+      const normalizedFields = {
+        ...fields,
+        name: resolvedName,
+      };
       const resolvedImage = await resolvePromotionImage(draftImage, fields.title.trim());
 
       if (isEditing && promotion) {
-        return updatePromotion(promotion.id, buildUpdatePayload(kind, fields, resolvedImage, selectedProductIds));
+        return updatePromotion(promotion.id, buildUpdatePayload(kind, normalizedFields, resolvedImage, selectedProductIds));
       }
 
-      return createPromotion(buildCreatePayload(kind, fields, resolvedImage, selectedProductIds));
+      return createPromotion(buildCreatePayload(kind, normalizedFields, resolvedImage, selectedProductIds));
     },
     onSuccess: () => {
       toast({
@@ -380,6 +462,8 @@ export function PromotionEditorDialog({
   const selectedProducts = selectedProductIds
     .map((productId) => products.find((product) => product.id === productId))
     .filter((product): product is Product => Boolean(product));
+  const lockedProduct = selectedProducts[0] || initialProduct;
+  const quickModeBaseImage = buildDraftImageFromProduct(lockedProduct);
 
   const availableProducts = activeProducts.filter((product) => {
     if (categoryFilter !== 'all' && product.category?.name !== categoryFilter) {
@@ -450,9 +534,11 @@ export function PromotionEditorDialog({
   };
 
   const handleRemoveDraftImage = () => {
+    const fallbackImage = isQuickSingleProductMode ? quickModeBaseImage : undefined;
+
     setDraftImage((current) => {
       cleanupDraftImage(current);
-      return undefined;
+      return fallbackImage;
     });
   };
 
@@ -468,21 +554,27 @@ export function PromotionEditorDialog({
           onOpenChange(nextOpen);
         }}
       >
-        <ModalContent size="3xl">
+        <ModalContent size={isQuickSingleProductMode ? '2xl' : '3xl'}>
           <ModalHeader>
             <ModalTitle>
-              {isEditing
-                ? isSingleProductMode
-                  ? 'Editar oferta individual'
-                  : 'Editar promoção'
-                : isSingleProductMode
-                  ? 'Nova oferta individual'
-                  : 'Nova promoção'}
+              {isQuickSingleProductMode
+                ? isEditing
+                  ? 'Editar oferta rápida'
+                  : 'Criar oferta rápida'
+                : isEditing
+                  ? isSingleProductMode
+                    ? 'Editar oferta individual'
+                    : 'Editar promoção'
+                  : isSingleProductMode
+                    ? 'Nova oferta individual'
+                    : 'Nova promoção'}
             </ModalTitle>
             <ModalDescription>
-              {isSingleProductMode
-                ? 'Crie uma oferta avulsa para um unico produto, com validade, imagem dedicada e contador ativo na vitrine principal.'
-                : 'Monte um card promocional com imagem, validade, comunicação da oferta e produtos vinculados.'}
+              {isQuickSingleProductMode
+                ? 'Configure a oferta deste produto sem sair da página. Os dados principais já entram preenchidos para acelerar o cadastro.'
+                : isSingleProductMode
+                  ? 'Crie uma oferta avulsa para um único produto, com validade, imagem dedicada e contador ativo na vitrine principal.'
+                  : 'Monte um card promocional com imagem, validade, comunicação da oferta e produtos vinculados.'}
             </ModalDescription>
           </ModalHeader>
 
@@ -493,291 +585,483 @@ export function PromotionEditorDialog({
             })}
           >
             <ModalBody className="space-y-6">
-              <section className="grid gap-4 xl:grid-cols-2">
-                <ModalPanel className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="promotion-name">Nome interno</Label>
-                    <Input
-                      id="promotion-name"
-                      placeholder={isSingleProductMode ? 'Ex.: Oferta Furadeira Pro' : 'Ex.: Semana da pintura'}
-                      {...register('name', { required: true })}
-                    />
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-2">
+              {isQuickSingleProductMode ? (
+                <section className="grid gap-4 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+                  <ModalPanel className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="promotion-slug">Slug</Label>
-                      <Input id="promotion-slug" placeholder="semana-da-pintura" {...register('slug')} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="promotion-theme">Tema visual</Label>
-                      <select
-                        id="promotion-theme"
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                        {...register('themeTone')}
-                      >
-                        {THEME_OPTIONS.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="promotion-eyebrow">Selo superior</Label>
-                    <Input id="promotion-eyebrow" placeholder="Ofertas em destaque" {...register('eyebrow')} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="promotion-title">Título do card</Label>
-                    <Input
-                      id="promotion-title"
-                      placeholder={isSingleProductMode ? 'Furadeira com prazo relâmpago' : 'Acabamento com preço especial'}
-                      {...register('title', { required: true })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="promotion-subtitle">Subtítulo</Label>
-                    <Input id="promotion-subtitle" placeholder="Tintas, pinceis e rolos para renovar ambientes" {...register('subtitle')} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="promotion-description">Descrição</Label>
-                    <Textarea
-                      id="promotion-description"
-                      rows={4}
-                      placeholder="Texto usado na página pública da promoção."
-                      {...register('description')}
-                    />
-                  </div>
-                </ModalPanel>
-
-                <ModalPanel className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Imagem do card</Label>
-                    <div className="overflow-hidden rounded-[1.5rem] border border-black/5 bg-slate-50">
-                      {draftImage ? (
-                        <img
-                          src={draftImage.previewUrl || draftImage.url}
-                          alt={draftImage.alt || title || 'Imagem da promoção'}
-                          className="aspect-[16/10] w-full object-cover"
-                        />
+                      <Label>Produto selecionado</Label>
+                      {lockedProduct ? (
+                        <article className="overflow-hidden rounded-[1.5rem] border border-black/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))]">
+                          <div className="grid gap-0 sm:grid-cols-[120px_minmax(0,1fr)]">
+                            <div className="overflow-hidden bg-slate-100">
+                              {lockedProduct.images?.[0]?.url ? (
+                                <img
+                                  src={lockedProduct.images[0].url}
+                                  alt={lockedProduct.images[0].alt || lockedProduct.name}
+                                  className="aspect-[4/3] h-full w-full object-cover"
+                                />
+                              ) : (
+                                <div className="flex aspect-[4/3] h-full items-center justify-center text-sm text-muted-foreground">
+                                  Sem imagem
+                                </div>
+                              )}
+                            </div>
+                            <div className="space-y-3 p-4">
+                              <div className="space-y-1">
+                                <p className="line-clamp-2 text-base font-semibold text-foreground">{lockedProduct.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {lockedProduct.category?.name ?? 'Sem categoria'}
+                                  {lockedProduct.sku ? ` | SKU ${lockedProduct.sku}` : ''}
+                                </p>
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                <span className="inline-flex rounded-full border border-black/5 bg-slate-50 px-3 py-1 text-xs text-foreground">
+                                  Preço:
+                                  <span className="ml-1.5 font-semibold">R$ {lockedProduct.price.toFixed(2)}</span>
+                                </span>
+                                <span className="inline-flex rounded-full border border-black/5 bg-slate-50 px-3 py-1 text-xs text-foreground">
+                                  Estoque:
+                                  <span className="ml-1.5 font-semibold">{lockedProduct.stock}</span>
+                                </span>
+                              </div>
+                              <p className="text-xs leading-5 text-muted-foreground">
+                                Esta oferta será vinculada a este produto e exibida na seção Promoções imperdíveis.
+                              </p>
+                            </div>
+                          </div>
+                        </article>
                       ) : (
-                        <div className="flex aspect-[16/10] items-center justify-center px-6 text-center text-sm text-muted-foreground">
-                          {isSingleProductMode
-                            ? 'Adicione uma imagem horizontal para destacar esta oferta individual na seção Promoções imperdíveis.'
-                            : 'Adicione uma imagem horizontal para destacar esta campanha na página pública.'}
+                        <div className="rounded-2xl border border-dashed border-black/10 bg-slate-50 px-5 py-8 text-sm text-muted-foreground">
+                          Selecione um produto válido para criar a oferta rápida.
                         </div>
                       )}
                     </div>
-                  </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    <Button type="button" onClick={() => fileInputRef.current?.click()} className="gap-2">
-                      <ImagePlus className="h-4 w-4" />
-                      {draftImage ? 'Trocar imagem' : 'Adicionar imagem'}
-                    </Button>
-                    {draftImage ? (
-                      <Button type="button" variant="outline" onClick={handleRemoveDraftImage} className="gap-2 border-red-200 text-red-600">
-                        <Trash2 className="h-4 w-4" />
-                        Remover
+                    <div className="space-y-2">
+                      <Label>Imagem do card</Label>
+                      <div className="overflow-hidden rounded-[1.5rem] border border-black/5 bg-slate-50">
+                        {draftImage ? (
+                          <img
+                            src={draftImage.previewUrl || draftImage.url}
+                            alt={draftImage.alt || title || 'Imagem da promoção'}
+                            className="aspect-[16/10] w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex aspect-[16/10] items-center justify-center px-6 text-center text-sm text-muted-foreground">
+                            {quickModeBaseImage
+                              ? 'Use uma imagem horizontal para destacar o card na home. Se nada for enviado, a imagem principal do produto é reaproveitada.'
+                              : 'Use uma imagem horizontal para destacar o card na home.'}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" onClick={() => fileInputRef.current?.click()} className="gap-2">
+                        <ImagePlus className="h-4 w-4" />
+                        {draftImage ? 'Trocar imagem' : 'Adicionar imagem'}
                       </Button>
-                    ) : null}
-                  </div>
+                      {draftImage?.source === 'new' ? (
+                        <Button type="button" variant="outline" onClick={handleRemoveDraftImage} className="gap-2 border-red-200 text-red-600">
+                          <Trash2 className="h-4 w-4" />
+                          {quickModeBaseImage ? 'Voltar para imagem do produto' : 'Remover imagem'}
+                        </Button>
+                      ) : null}
+                    </div>
 
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp"
-                    className="hidden"
-                    onChange={(event) => void handleFileChange(event)}
-                  />
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      className="hidden"
+                      onChange={(event) => void handleFileChange(event)}
+                    />
+                  </ModalPanel>
 
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="promotion-badge">Badge</Label>
-                      <Input id="promotion-badge" placeholder="Até 25% OFF" {...register('badgeText')} />
+                  <ModalPanel className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="promotion-title">Título do card</Label>
+                        <Input id="promotion-title" placeholder="Ex.: Furadeira com prazo relâmpago" {...register('title', { required: true })} />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="promotion-badge">Selo da oferta</Label>
+                        <Input id="promotion-badge" placeholder="Ex.: Oferta especial" {...register('badgeText')} />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="promotion-expires-at">Validade</Label>
+                        <Input id="promotion-expires-at" type="datetime-local" {...register('expiresAt')} />
+                        <p className="text-xs text-muted-foreground">Já sugerimos um prazo inicial de 7 dias. Ajuste se precisar.</p>
+                      </div>
+
+                      <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="promotion-subtitle">Chamada curta</Label>
+                        <Input id="promotion-subtitle" placeholder="Texto curto que aparece no card da oferta" {...register('subtitle')} />
+                      </div>
+
+                      <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="promotion-description">Descrição</Label>
+                        <Textarea
+                          id="promotion-description"
+                          rows={4}
+                          placeholder="Texto usado na página pública da oferta."
+                          {...register('description')}
+                        />
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="promotion-cta">Texto do botão</Label>
-                      <Input id="promotion-cta" placeholder="Ver oferta" {...register('ctaLabel')} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="promotion-starts-at">Início</Label>
-                      <Input id="promotion-starts-at" type="datetime-local" {...register('startsAt')} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="promotion-expires-at">Validade</Label>
-                      <Input id="promotion-expires-at" type="datetime-local" {...register('expiresAt')} />
-                      <p className="text-xs text-muted-foreground">Obrigatório para manter o contador de término sempre ativo.</p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="promotion-sort-order">Ordem</Label>
-                      <Input id="promotion-sort-order" inputMode="numeric" placeholder="0" {...register('sortOrder')} />
-                    </div>
+
                     <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-slate-50 px-4 py-3 text-sm">
                       <input type="checkbox" {...register('isActive')} />
-                      Promoção ativa
+                      Publicar oferta assim que salvar
                     </label>
+
+                    <details className="rounded-[1.5rem] border border-black/5 bg-slate-50/80 p-4">
+                      <summary className="cursor-pointer list-none text-sm font-semibold text-foreground">
+                        Ajustes avançados
+                      </summary>
+                      <div className="mt-4 grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="promotion-name">Nome interno</Label>
+                          <Input id="promotion-name" placeholder="Ex.: Oferta Furadeira Pro" {...register('name')} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="promotion-slug">Slug</Label>
+                          <Input id="promotion-slug" placeholder="oferta-furadeira-pro" {...register('slug')} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="promotion-eyebrow">Selo superior</Label>
+                          <Input id="promotion-eyebrow" placeholder="Promoções imperdíveis" {...register('eyebrow')} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="promotion-cta">Texto do botão</Label>
+                          <Input id="promotion-cta" placeholder="Ver oferta" {...register('ctaLabel')} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="promotion-theme">Tema visual</Label>
+                          <select
+                            id="promotion-theme"
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            {...register('themeTone')}
+                          >
+                            {THEME_OPTIONS.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="promotion-starts-at">Início</Label>
+                          <Input id="promotion-starts-at" type="datetime-local" {...register('startsAt')} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="promotion-sort-order">Ordem</Label>
+                          <Input id="promotion-sort-order" inputMode="numeric" placeholder="0" {...register('sortOrder')} />
+                        </div>
+                        <div className="space-y-2 md:col-span-2">
+                          <Label htmlFor="promotion-disclaimer">Mensagem auxiliar</Label>
+                          <Textarea
+                            id="promotion-disclaimer"
+                            rows={3}
+                            placeholder="Ex.: Estoque sujeito à disponibilidade durante a campanha."
+                            {...register('disclaimer')}
+                          />
+                        </div>
+                      </div>
+                    </details>
+                  </ModalPanel>
+                </section>
+              ) : (
+                <section className="grid gap-4 xl:grid-cols-2">
+                  <ModalPanel className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="promotion-name">Nome interno</Label>
+                      <Input
+                        id="promotion-name"
+                        placeholder={isSingleProductMode ? 'Ex.: Oferta Furadeira Pro' : 'Ex.: Semana da pintura'}
+                        {...register('name', { required: true })}
+                      />
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="promotion-slug">Slug</Label>
+                        <Input id="promotion-slug" placeholder="semana-da-pintura" {...register('slug')} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="promotion-theme">Tema visual</Label>
+                        <select
+                          id="promotion-theme"
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          {...register('themeTone')}
+                        >
+                          {THEME_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="promotion-eyebrow">Selo superior</Label>
+                      <Input id="promotion-eyebrow" placeholder="Ofertas em destaque" {...register('eyebrow')} />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="promotion-title">Título do card</Label>
+                      <Input
+                        id="promotion-title"
+                        placeholder={isSingleProductMode ? 'Furadeira com prazo relâmpago' : 'Acabamento com preço especial'}
+                        {...register('title', { required: true })}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="promotion-subtitle">Subtítulo</Label>
+                      <Input id="promotion-subtitle" placeholder="Tintas, pincéis e rolos para renovar ambientes" {...register('subtitle')} />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="promotion-description">Descrição</Label>
+                      <Textarea
+                        id="promotion-description"
+                        rows={4}
+                        placeholder="Texto usado na página pública da promoção."
+                        {...register('description')}
+                      />
+                    </div>
+                  </ModalPanel>
+
+                  <ModalPanel className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Imagem do card</Label>
+                      <div className="overflow-hidden rounded-[1.5rem] border border-black/5 bg-slate-50">
+                        {draftImage ? (
+                          <img
+                            src={draftImage.previewUrl || draftImage.url}
+                            alt={draftImage.alt || title || 'Imagem da promoção'}
+                            className="aspect-[16/10] w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex aspect-[16/10] items-center justify-center px-6 text-center text-sm text-muted-foreground">
+                            {isSingleProductMode
+                              ? 'Adicione uma imagem horizontal para destacar esta oferta individual na seção Promoções imperdíveis.'
+                              : 'Adicione uma imagem horizontal para destacar esta campanha na página pública.'}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" onClick={() => fileInputRef.current?.click()} className="gap-2">
+                        <ImagePlus className="h-4 w-4" />
+                        {draftImage ? 'Trocar imagem' : 'Adicionar imagem'}
+                      </Button>
+                      {draftImage ? (
+                        <Button type="button" variant="outline" onClick={handleRemoveDraftImage} className="gap-2 border-red-200 text-red-600">
+                          <Trash2 className="h-4 w-4" />
+                          Remover
+                        </Button>
+                      ) : null}
+                    </div>
+
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      className="hidden"
+                      onChange={(event) => void handleFileChange(event)}
+                    />
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="promotion-badge">Badge</Label>
+                        <Input id="promotion-badge" placeholder="Até 25% OFF" {...register('badgeText')} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="promotion-cta">Texto do botão</Label>
+                        <Input id="promotion-cta" placeholder="Ver oferta" {...register('ctaLabel')} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="promotion-starts-at">Início</Label>
+                        <Input id="promotion-starts-at" type="datetime-local" {...register('startsAt')} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="promotion-expires-at">Validade</Label>
+                        <Input id="promotion-expires-at" type="datetime-local" {...register('expiresAt')} />
+                        <p className="text-xs text-muted-foreground">Obrigatório para manter o contador de término sempre ativo.</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="promotion-sort-order">Ordem</Label>
+                        <Input id="promotion-sort-order" inputMode="numeric" placeholder="0" {...register('sortOrder')} />
+                      </div>
+                      <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-slate-50 px-4 py-3 text-sm">
+                        <input type="checkbox" {...register('isActive')} />
+                        Promoção ativa
+                      </label>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="promotion-disclaimer">Mensagem auxiliar</Label>
+                      <Textarea
+                        id="promotion-disclaimer"
+                        rows={3}
+                        placeholder="Ex.: Estoque sujeito à disponibilidade durante a campanha."
+                        {...register('disclaimer')}
+                      />
+                    </div>
+                  </ModalPanel>
+                </section>
+              )}
+
+              {!isProductSelectionLocked ? (
+                <ModalPanel className="space-y-4">
+                  <div className="flex flex-wrap items-end justify-between gap-3">
+                    <div>
+                      <h3 className="text-lg font-semibold text-foreground">
+                        {isSingleProductMode ? 'Produto da oferta' : 'Produtos vinculados'}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {isSingleProductMode
+                          ? 'Selecione exatamente um produto ativo para esta oferta avulsa.'
+                          : 'Selecione produtos ativos de uma ou mais categorias para compor este card.'}
+                      </p>
+                    </div>
+                    <div className="rounded-full border border-black/5 bg-slate-50 px-4 py-2 text-sm font-semibold text-foreground">
+                      {selectedProductIds.length} selecionados
+                    </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="promotion-disclaimer">Mensagem auxiliar</Label>
-                    <Textarea
-                      id="promotion-disclaimer"
-                      rows={3}
-                      placeholder="Ex.: Estoque sujeito a disponibilidade durante a campanha."
-                      {...register('disclaimer')}
-                    />
+                  <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        value={productSearch}
+                        onChange={(event) => setProductSearch(event.target.value)}
+                        placeholder="Buscar por nome, SKU ou categoria"
+                        className="pl-9"
+                      />
+                    </div>
+
+                    <select
+                      value={categoryFilter}
+                      onChange={(event) => setCategoryFilter(event.target.value)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    >
+                      <option value="all">Todas as categorias</option>
+                      {categoryOptions.map((category) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+                    <div className="space-y-3">
+                      <p className="text-sm font-semibold text-foreground">Selecionados</p>
+                      <div className="app-scrollbar max-h-[20rem] space-y-3 overflow-y-auto pr-1">
+                        {selectedProducts.map((product) => {
+                          const previewImage = product.images?.[0]?.url;
+
+                          return (
+                            <article key={product.id} className="flex gap-3 rounded-2xl border border-black/5 bg-slate-50 p-3">
+                              <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-white">
+                                {previewImage ? (
+                                  <img src={previewImage} alt={product.name} className="h-full w-full object-cover" />
+                                ) : (
+                                  <div className="flex h-full items-center justify-center text-[11px] text-muted-foreground">Sem imagem</div>
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate font-semibold text-foreground">{product.name}</p>
+                                <p className="truncate text-xs text-muted-foreground">
+                                  {product.category?.name ?? 'Sem categoria'}
+                                  {product.sku ? ` | SKU ${product.sku}` : ''}
+                                </p>
+                                <p className="mt-1 text-sm font-semibold text-foreground">R$ {product.price.toFixed(2)}</p>
+                                {!product.isActive ? (
+                                  <p className="mt-1 text-xs text-amber-700">Produto inativo no catálogo.</p>
+                                ) : null}
+                              </div>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleToggleProduct(product.id)}
+                                className="self-start border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                              >
+                                Remover
+                              </Button>
+                            </article>
+                          );
+                        })}
+
+                        {selectedProducts.length === 0 ? (
+                          <div className="rounded-2xl border border-dashed border-black/10 bg-white px-5 py-10 text-center text-sm text-muted-foreground">
+                            Nenhum produto selecionado.
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <p className="text-sm font-semibold text-foreground">Catálogo elegível</p>
+                      <div className="app-scrollbar max-h-[20rem] space-y-3 overflow-y-auto pr-1">
+                        {availableProducts.map((product) => {
+                          const isSelected = selectedProductIds.includes(product.id);
+                          const previewImage = product.images?.[0]?.url;
+
+                          return (
+                            <article
+                              key={product.id}
+                              className={`flex gap-3 rounded-2xl border p-3 transition-colors ${
+                                isSelected
+                                  ? 'border-primary/20 bg-primary/5'
+                                  : 'border-black/5 bg-white'
+                              }`}
+                            >
+                              <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-50">
+                                {previewImage ? (
+                                  <img src={previewImage} alt={product.name} className="h-full w-full object-cover" />
+                                ) : (
+                                  <div className="flex h-full items-center justify-center text-[11px] text-muted-foreground">Sem imagem</div>
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate font-semibold text-foreground">{product.name}</p>
+                                <p className="truncate text-xs text-muted-foreground">
+                                  {product.category?.name ?? 'Sem categoria'}
+                                  {product.sku ? ` | SKU ${product.sku}` : ''}
+                                </p>
+                                <p className="mt-1 text-sm font-semibold text-foreground">R$ {product.price.toFixed(2)}</p>
+                              </div>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant={isSelected ? 'outline' : 'default'}
+                                onClick={() => handleToggleProduct(product.id)}
+                              >
+                                {isSelected ? 'Remover' : 'Adicionar'}
+                              </Button>
+                            </article>
+                          );
+                        })}
+
+                        {availableProducts.length === 0 ? (
+                          <div className="rounded-2xl border border-dashed border-black/10 bg-white px-5 py-10 text-center text-sm text-muted-foreground">
+                            Nenhum produto encontrado para esse filtro.
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
                   </div>
                 </ModalPanel>
-              </section>
-
-              <ModalPanel className="space-y-4">
-                <div className="flex flex-wrap items-end justify-between gap-3">
-                  <div>
-                    <h3 className="text-lg font-semibold text-foreground">
-                      {isSingleProductMode ? 'Produto da oferta' : 'Produtos vinculados'}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {isSingleProductMode
-                        ? 'Selecione exatamente um produto ativo para esta oferta avulsa.'
-                        : 'Selecione produtos ativos de uma ou mais categorias para compor este card.'}
-                    </p>
-                  </div>
-                  <div className="rounded-full border border-black/5 bg-slate-50 px-4 py-2 text-sm font-semibold text-foreground">
-                    {selectedProductIds.length} selecionados
-                  </div>
-                </div>
-
-                <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
-                  <div className="relative">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      value={productSearch}
-                      onChange={(event) => setProductSearch(event.target.value)}
-                      placeholder="Buscar por nome, SKU ou categoria"
-                      className="pl-9"
-                    />
-                  </div>
-
-                  <select
-                    value={categoryFilter}
-                    onChange={(event) => setCategoryFilter(event.target.value)}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  >
-                    <option value="all">Todas as categorias</option>
-                    {categoryOptions.map((category) => (
-                      <option key={category} value={category}>
-                        {category}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-                  <div className="space-y-3">
-                    <p className="text-sm font-semibold text-foreground">Selecionados</p>
-                    <div className="app-scrollbar max-h-[20rem] space-y-3 overflow-y-auto pr-1">
-                      {selectedProducts.map((product) => {
-                        const previewImage = product.images?.[0]?.url;
-
-                        return (
-                          <article key={product.id} className="flex gap-3 rounded-2xl border border-black/5 bg-slate-50 p-3">
-                            <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-white">
-                              {previewImage ? (
-                                <img src={previewImage} alt={product.name} className="h-full w-full object-cover" />
-                              ) : (
-                                <div className="flex h-full items-center justify-center text-[11px] text-muted-foreground">Sem imagem</div>
-                              )}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate font-semibold text-foreground">{product.name}</p>
-                              <p className="truncate text-xs text-muted-foreground">
-                                {product.category?.name ?? 'Sem categoria'}
-                                {product.sku ? ` | SKU ${product.sku}` : ''}
-                              </p>
-                              <p className="mt-1 text-sm font-semibold text-foreground">R$ {product.price.toFixed(2)}</p>
-                              {!product.isActive ? (
-                                <p className="mt-1 text-xs text-amber-700">Produto inativo no catálogo.</p>
-                              ) : null}
-                            </div>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleToggleProduct(product.id)}
-                              className="self-start border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                            >
-                              Remover
-                            </Button>
-                          </article>
-                        );
-                      })}
-
-                      {selectedProducts.length === 0 ? (
-                        <div className="rounded-2xl border border-dashed border-black/10 bg-white px-5 py-10 text-center text-sm text-muted-foreground">
-                          Nenhum produto selecionado.
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <p className="text-sm font-semibold text-foreground">Catálogo elegível</p>
-                    <div className="app-scrollbar max-h-[20rem] space-y-3 overflow-y-auto pr-1">
-                      {availableProducts.map((product) => {
-                        const isSelected = selectedProductIds.includes(product.id);
-                        const previewImage = product.images?.[0]?.url;
-
-                        return (
-                          <article
-                            key={product.id}
-                            className={`flex gap-3 rounded-2xl border p-3 transition-colors ${
-                              isSelected
-                                ? 'border-primary/20 bg-primary/5'
-                                : 'border-black/5 bg-white'
-                            }`}
-                          >
-                            <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-50">
-                              {previewImage ? (
-                                <img src={previewImage} alt={product.name} className="h-full w-full object-cover" />
-                              ) : (
-                                <div className="flex h-full items-center justify-center text-[11px] text-muted-foreground">Sem imagem</div>
-                              )}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate font-semibold text-foreground">{product.name}</p>
-                              <p className="truncate text-xs text-muted-foreground">
-                                {product.category?.name ?? 'Sem categoria'}
-                                {product.sku ? ` | SKU ${product.sku}` : ''}
-                              </p>
-                              <p className="mt-1 text-sm font-semibold text-foreground">R$ {product.price.toFixed(2)}</p>
-                            </div>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant={isSelected ? 'outline' : 'default'}
-                              onClick={() => handleToggleProduct(product.id)}
-                            >
-                              {isSelected ? 'Remover' : 'Adicionar'}
-                            </Button>
-                          </article>
-                        );
-                      })}
-
-                      {availableProducts.length === 0 ? (
-                        <div className="rounded-2xl border border-dashed border-black/10 bg-white px-5 py-10 text-center text-sm text-muted-foreground">
-                          Nenhum produto encontrado para esse filtro.
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-              </ModalPanel>
+              ) : null}
             </ModalBody>
 
             <ModalFooter>
@@ -786,13 +1070,17 @@ export function PromotionEditorDialog({
               </Button>
               <Button type="submit" disabled={saveMutation.isPending || formState.isSubmitting}>
                 {saveMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                {isEditing
-                  ? isSingleProductMode
-                    ? 'Salvar oferta'
-                    : 'Salvar promoção'
-                  : isSingleProductMode
-                    ? 'Cadastrar oferta'
-                    : 'Cadastrar promoção'}
+                {isQuickSingleProductMode
+                  ? isEditing
+                    ? 'Salvar oferta rápida'
+                    : 'Publicar oferta rápida'
+                  : isEditing
+                    ? isSingleProductMode
+                      ? 'Salvar oferta'
+                      : 'Salvar promoção'
+                    : isSingleProductMode
+                      ? 'Cadastrar oferta'
+                      : 'Cadastrar promoção'}
               </Button>
             </ModalFooter>
           </form>

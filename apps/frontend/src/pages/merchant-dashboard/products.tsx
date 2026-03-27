@@ -1,20 +1,25 @@
 import { useDeferredValue, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Boxes, Loader2, Pencil, Plus, RefreshCcw, Search, Tags, Trash2 } from 'lucide-react';
-import type { Category, Product } from '@rebequi/shared/types';
+import { Boxes, Clock3, Loader2, Pencil, Plus, RefreshCcw, Search, Tags, Trash2 } from 'lucide-react';
+import type { Category, Product, Promotion } from '@rebequi/shared/types';
 import { Link } from 'react-router-dom';
+import { PromotionCountdown } from '@/components/PromotionCountdown';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/components/ui/use-toast';
+import { formatPromotionStatusLabel, formatPromotionWindow, getPromotionStatusTone } from '@/lib/promotion-ui';
 import { deleteCategory, fetchCategories } from '@/services/api/categories';
 import { deleteProduct, fetchAdminProducts } from '@/services/api/products';
+import { deletePromotion } from '@/services/api/promotions';
 import { CategoryEditorDialog } from './category-editor-dialog';
 import { ADMIN_BASE_PATH } from './config';
 import { SectionLeadCard, StatCard } from './components';
 import { ProductEditorDialog } from './product-editor-dialog';
+import { fetchAllAdminPromotionsSnapshot, buildSingleProductOfferMap, pickPrimaryPromotion } from './promotion-admin';
+import { PromotionEditorDialog } from './promotion-editor-dialog';
 
 type ProductStatusFilter = 'all' | 'active' | 'inactive';
 
@@ -35,6 +40,9 @@ export function MerchantDashboardProducts() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [categoryEditorOpen, setCategoryEditorOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [offerEditorOpen, setOfferEditorOpen] = useState(false);
+  const [selectedOfferProduct, setSelectedOfferProduct] = useState<Product | null>(null);
+  const [selectedOffer, setSelectedOffer] = useState<Promotion | null>(null);
   const deferredSearch = useDeferredValue(search);
 
   const { data: categoriesData, isLoading: isLoadingCategories } = useQuery({
@@ -57,11 +65,17 @@ export function MerchantDashboardProducts() {
       }),
   });
 
+  const { data: offersSnapshot } = useQuery({
+    queryKey: ['merchant-dashboard', 'single-product-offers-snapshot'],
+    queryFn: () => fetchAllAdminPromotionsSnapshot('single_product'),
+  });
+
   const refreshQueries = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['merchant-dashboard'] }),
       queryClient.invalidateQueries({ queryKey: ['products'] }),
       queryClient.invalidateQueries({ queryKey: ['categories'] }),
+      queryClient.invalidateQueries({ queryKey: ['promotions'] }),
     ]);
   };
 
@@ -101,14 +115,33 @@ export function MerchantDashboardProducts() {
     },
   });
 
+  const deleteOfferMutation = useMutation({
+    mutationFn: deletePromotion,
+    onSuccess: async () => {
+      toast({
+        title: 'Oferta excluída',
+        description: 'A oferta individual foi removida com sucesso.',
+      });
+      await refreshQueries();
+    },
+    onError: (error) => {
+      toast({
+        variant: 'destructive',
+        title: 'Falha ao excluir oferta',
+        description: error instanceof Error ? error.message : 'Erro inesperado ao excluir a oferta.',
+      });
+    },
+  });
+
   const products = adminProducts?.products ?? [];
+  const singleProductOffers = offersSnapshot?.promotions ?? [];
+  const singleProductOffersByProduct = buildSingleProductOfferMap(singleProductOffers);
   const managedCategories = categoriesData?.categories ?? [];
   const activeProducts = products.filter((product) => product.isActive);
-  const inactiveProducts = products.filter((product) => !product.isActive);
-  const featuredProducts = products.filter((product) => product.isFeatured);
   const activeCategories = managedCategories.filter((category) => category.isActive);
-  const inactiveCategories = managedCategories.filter((category) => !category.isActive);
   const categoriesInUse = managedCategories.filter((category) => (category.productsCount ?? 0) > 0);
+  const activeSingleProductOffers = singleProductOffers.filter((offer) => offer.status === 'active');
+  const productsWithSingleProductOffer = Array.from(singleProductOffersByProduct.keys()).length;
 
   const categories = managedCategories
     .filter((category) => category.isActive || category.id === selectedProduct?.categoryId)
@@ -136,6 +169,21 @@ export function MerchantDashboardProducts() {
   const openEditDialog = (product: Product) => {
     setSelectedProduct(product);
     setEditorOpen(true);
+  };
+
+  const openOfferDialog = (product: Product, offer?: Promotion | null) => {
+    if (!product.isActive) {
+      toast({
+        variant: 'destructive',
+        title: 'Produto inativo',
+        description: 'Ative o produto antes de publicar uma oferta individual.',
+      });
+      return;
+    }
+
+    setSelectedOfferProduct(product);
+    setSelectedOffer(offer ?? null);
+    setOfferEditorOpen(true);
   };
 
   const openCreateCategoryDialog = () => {
@@ -173,12 +221,20 @@ export function MerchantDashboardProducts() {
     await deleteCategoryMutation.mutateAsync(category.id);
   };
 
+  const handleDeleteOffer = async (offer: Promotion) => {
+    if (!window.confirm(`Excluir a oferta "${offer.title}"?`)) {
+      return;
+    }
+
+    await deleteOfferMutation.mutateAsync(offer.id);
+  };
+
   return (
     <div className="space-y-6">
       <SectionLeadCard
         badge="Produtos"
         title="Gestão de produtos"
-        description="Cadastre, edite e remova produtos com persistência de dados e imagens. As categorias também são administradas nesta tela."
+        description="Cadastre, edite e remova produtos com persistência de dados e imagens. As categorias e as ofertas rápidas de produto único também são administradas nesta tela."
         tone="blue"
         actions={
           <>
@@ -223,16 +279,16 @@ export function MerchantDashboardProducts() {
           delta="Visiveis na vitrine"
         />
         <StatCard
-          icon={<Tags className="h-5 w-5 text-primary" />}
-          label="Categorias ativas"
-          value={`${activeCategories.length}`}
-          delta="Disponiveis no formulario"
+          icon={<Clock3 className="h-5 w-5 text-primary" />}
+          label="Produtos com oferta"
+          value={`${productsWithSingleProductOffer}`}
+          delta="Com oferta individual vinculada"
         />
         <StatCard
-          icon={<Tags className="h-5 w-5 text-primary" />}
-          label="Categorias em uso"
-          value={`${categoriesInUse.length}`}
-          delta="Com produtos vinculados"
+          icon={<Clock3 className="h-5 w-5 text-primary" />}
+          label="Ofertas ativas agora"
+          value={`${activeSingleProductOffers.length}`}
+          delta="Exibidas em Promoções imperdíveis"
         />
       </section>
 
@@ -463,7 +519,7 @@ export function MerchantDashboardProducts() {
           <Badge className="w-fit border-none bg-accent text-accent-foreground">Admin</Badge>
           <div>
             <CardTitle className="text-2xl">Produtos cadastrados</CardTitle>
-            <CardDescription>Consulta administrativa da base de produtos.</CardDescription>
+            <CardDescription>Consulta administrativa da base de produtos com atalho para ofertas individuais.</CardDescription>
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -512,6 +568,9 @@ export function MerchantDashboardProducts() {
               {products.map((product) => {
                 const primaryImage = getPrimaryImage(product);
                 const productSummary = product.shortDesc || product.description || 'Sem descrição.';
+                const productOffers = singleProductOffersByProduct.get(product.id) ?? [];
+                const primaryOffer = pickPrimaryPromotion(productOffers);
+                const additionalOffersCount = Math.max(0, productOffers.length - 1);
 
                 return (
                   <article
@@ -559,6 +618,85 @@ export function MerchantDashboardProducts() {
                           {productSummary}
                         </p>
 
+                        <div className="rounded-2xl border border-black/5 bg-white/85 p-3">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div className="space-y-1">
+                              <p className="text-sm font-semibold text-foreground">Oferta individual</p>
+                              <p className="text-xs leading-5 text-muted-foreground">
+                                {primaryOffer
+                                  ? 'Esse produto já possui uma oferta rápida vinculada à home pública.'
+                                  : 'Crie uma oferta rápida sem sair desta tela e publique o produto em Promoções imperdíveis.'}
+                              </p>
+                            </div>
+                            {primaryOffer ? (
+                              <span className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-semibold ${getPromotionStatusTone(primaryOffer.status)}`}>
+                                {formatPromotionStatusLabel(primaryOffer.status)}
+                              </span>
+                            ) : (
+                              <span className="inline-flex rounded-full border border-dashed border-black/10 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
+                                Sem oferta
+                              </span>
+                            )}
+                          </div>
+
+                          {primaryOffer ? (
+                            <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
+                              <div className="space-y-2">
+                                <p className="text-sm font-medium text-foreground">{primaryOffer.title}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {formatPromotionWindow({
+                                    startsAt: primaryOffer.startsAt,
+                                    expiresAt: primaryOffer.expiresAt,
+                                  })}
+                                </p>
+                                <PromotionCountdown expiresAt={primaryOffer.expiresAt} compact />
+                                {additionalOffersCount > 0 ? (
+                                  <p className="text-xs text-amber-800">
+                                    +{additionalOffersCount} oferta{additionalOffersCount > 1 ? 's' : ''} adicional{additionalOffersCount > 1 ? 'is' : ''} vinculada{additionalOffersCount > 1 ? 's' : ''} a este produto.
+                                  </p>
+                                ) : null}
+                              </div>
+
+                              <div className="flex flex-wrap gap-2 md:justify-end">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => openOfferDialog(product, primaryOffer)}
+                                  className="gap-2 border-black/10"
+                                >
+                                  <Clock3 className="h-4 w-4" />
+                                  Gerenciar oferta
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => void handleDeleteOffer(primaryOffer)}
+                                  disabled={deleteOfferMutation.isPending}
+                                  className="gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  Excluir oferta
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                              <p className="text-xs text-muted-foreground">
+                                O card já abre preenchido com o nome do produto, imagem principal e validade sugerida.
+                              </p>
+                              <Button
+                                size="sm"
+                                onClick={() => openOfferDialog(product)}
+                                disabled={!product.isActive}
+                                className="gap-2"
+                              >
+                                <Clock3 className="h-4 w-4" />
+                                Criar oferta rápida
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+
                         <div className="flex flex-wrap gap-2">
                           <span className="inline-flex items-center rounded-full border border-black/5 bg-slate-50 px-3 py-1.5 text-xs text-foreground">
                             Estoque:
@@ -579,6 +717,12 @@ export function MerchantDashboardProducts() {
                             <Pencil className="h-4 w-4" />
                             Editar
                           </Button>
+                          {!primaryOffer ? (
+                            <Button size="sm" variant="outline" onClick={() => openOfferDialog(product)} disabled={!product.isActive} className="gap-2 border-black/10">
+                              <Clock3 className="h-4 w-4" />
+                              Oferta rápida
+                            </Button>
+                          ) : null}
                           <Button
                             size="sm"
                             variant="outline"
@@ -608,6 +752,25 @@ export function MerchantDashboardProducts() {
           setEditorOpen(nextOpen);
           if (!nextOpen) {
             setSelectedProduct(null);
+          }
+        }}
+        onSaved={() => {
+          void refreshQueries();
+        }}
+      />
+
+      <PromotionEditorDialog
+        kind="single_product"
+        mode="quick-single-product"
+        open={offerEditorOpen}
+        promotion={selectedOffer}
+        products={products}
+        initialProductId={selectedOfferProduct?.id}
+        onOpenChange={(nextOpen) => {
+          setOfferEditorOpen(nextOpen);
+          if (!nextOpen) {
+            setSelectedOfferProduct(null);
+            setSelectedOffer(null);
           }
         }}
         onSaved={() => {
