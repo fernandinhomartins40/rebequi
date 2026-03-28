@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, CheckCircle2, FileScan, PhoneCall } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
@@ -19,11 +19,13 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { saveProvisionalCredentials } from '@/lib/provisional-credentials';
 import { processPublicQuoteDocument, startPublicLead } from '@/services/api/quotes';
+import type { QuoteRequest } from '@/types';
 
 type FormValues = RegisterInput;
 
 export default function RequestQuotePage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const { refreshSession } = useAuth();
   const {
@@ -80,12 +82,18 @@ export default function RequestQuotePage() {
         file,
       });
 
+      queryClient.setQueryData<QuoteRequest[]>(['customer', 'quotes'], (current) => {
+        const nextQuotes = current ?? [];
+        const withoutCurrentQuote = nextQuotes.filter((quote) => quote.id !== result.quote.id);
+        return [result.quote, ...withoutCurrentQuote];
+      });
+
       await refreshSession();
       toast({
         title: 'Orçamento em rascunho',
-        description: 'Revise os itens reconhecidos no painel do cliente antes de enviar.',
+        description: `${result.quote.itemCount} item(ns) reconhecido(s). Revise o rascunho no painel do cliente antes de enviar.`,
       });
-      navigate(`/painel-cliente?quoteId=${result.quote.id}`);
+      navigate(`/painel-cliente?quoteId=${result.quote.id}`, { replace: true });
     } catch (error) {
       toast({
         variant: 'destructive',

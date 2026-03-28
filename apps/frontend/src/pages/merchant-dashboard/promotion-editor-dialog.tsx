@@ -610,6 +610,14 @@ export function PromotionEditorDialog({
     .filter((product): product is Product => Boolean(product));
   const lockedProduct = selectedProducts[0] || initialProduct;
   const quickModeBaseImage = buildDraftImageFromProduct(lockedProduct);
+  const pricingPanelTitle = isSingleProductMode ? 'Condição da oferta' : 'Regra comercial da campanha';
+  const pricingPanelDescription = isSingleProductMode
+    ? `Defina como o cliente verá o benefício desta oferta. Base atual do produto: ${
+        lockedProduct ? `R$ ${lockedProduct.price.toFixed(2)}` : 'produto não selecionado'
+      }.`
+    : selectedProductIds.length > 0
+      ? `A mesma regra será aplicada aos ${selectedProductIds.length} produto${selectedProductIds.length > 1 ? 's' : ''} selecionado${selectedProductIds.length > 1 ? 's' : ''}, respeitando o preço-base de cada item.`
+      : 'Selecione os produtos da campanha para aplicar uma mesma regra comercial ao conjunto.';
 
   const availableProducts = activeProducts.filter((product) => {
     if (categoryFilter !== 'all' && product.category?.name !== categoryFilter) {
@@ -691,17 +699,13 @@ export function PromotionEditorDialog({
   const renderOfferPricingFields = (compact: boolean) => (
     <div className="space-y-4 rounded-[1.5rem] border border-black/5 bg-slate-50/80 p-4">
       <div className="space-y-1">
-        <p className="text-sm font-semibold text-foreground">Condição da oferta</p>
-        <p className="text-xs leading-5 text-muted-foreground">
-          Defina como o cliente verá o benefício desta oferta. Base atual do produto:
-          {' '}
-          {lockedProduct ? `R$ ${lockedProduct.price.toFixed(2)}` : 'produto não selecionado'}.
-        </p>
+        <p className="text-sm font-semibold text-foreground">{pricingPanelTitle}</p>
+        <p className="text-xs leading-5 text-muted-foreground">{pricingPanelDescription}</p>
       </div>
 
       <div className={`grid gap-4 ${compact ? '' : 'md:grid-cols-2'}`}>
         <div className="space-y-2">
-          <Label htmlFor="promotion-pricing-mode">Como a oferta funciona</Label>
+          <Label htmlFor="promotion-pricing-mode">Como a promoção funciona</Label>
           <select
             id="promotion-pricing-mode"
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -757,19 +761,35 @@ export function PromotionEditorDialog({
       </div>
 
       {pricingMode === 'fixed_price' ? (
-        <p className="text-xs text-muted-foreground">Exemplo: de R$ 199,90 por R$ 149,90.</p>
+        <p className="text-xs text-muted-foreground">
+          {isSingleProductMode
+            ? 'Exemplo: de R$ 199,90 por R$ 149,90.'
+            : 'Define um preço unitário promocional igual para todos os produtos participantes.'}
+        </p>
       ) : null}
 
       {pricingMode === 'percentage_discount' ? (
-        <p className="text-xs text-muted-foreground">Exemplo: 15% OFF no valor unitário do produto.</p>
+        <p className="text-xs text-muted-foreground">
+          {isSingleProductMode
+            ? 'Exemplo: 15% OFF no valor unitário do produto.'
+            : 'Aplica o mesmo percentual de desconto sobre o preço atual de cada item da campanha.'}
+        </p>
       ) : null}
 
       {pricingMode === 'buy_x_pay_y' ? (
-        <p className="text-xs text-muted-foreground">Exemplo: leve 2 unidades e pague apenas 1.</p>
+        <p className="text-xs text-muted-foreground">
+          {isSingleProductMode
+            ? 'Exemplo: leve 2 unidades e pague apenas 1.'
+            : 'Usa a mesma mecânica de quantidade para todos os produtos vinculados à campanha.'}
+        </p>
       ) : null}
 
       {pricingMode === 'bulk_percentage' ? (
-        <p className="text-xs text-muted-foreground">Exemplo: a partir de 5 unidades, o cliente ganha 10% de desconto.</p>
+        <p className="text-xs text-muted-foreground">
+          {isSingleProductMode
+            ? 'Exemplo: a partir de 5 unidades, o cliente ganha 10% de desconto.'
+            : 'Libera o mesmo desconto por quantidade em cada item participante da campanha.'}
+        </p>
       ) : null}
     </div>
   );
@@ -1141,7 +1161,7 @@ export function PromotionEditorDialog({
                       </label>
                     </div>
 
-                    {isSingleProductMode ? renderOfferPricingFields(false) : null}
+                    {renderOfferPricingFields(false)}
 
                     <div className="space-y-2">
                       <Label htmlFor="promotion-disclaimer">Mensagem auxiliar</Label>

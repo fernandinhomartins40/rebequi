@@ -1,4 +1,4 @@
-import type { Product, Promotion, PromotionKind, PromotionStatus, PromotionTheme } from '@rebequi/shared/types';
+import type { Product, Promotion, PromotionKind, PromotionOfferPricing, PromotionStatus, PromotionTheme } from '@rebequi/shared/types';
 
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
   day: '2-digit',
@@ -6,6 +6,92 @@ const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
   hour: '2-digit',
   minute: '2-digit',
 });
+
+const currencyFormatter = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL',
+});
+
+const percentageFormatter = new Intl.NumberFormat('pt-BR', {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+});
+
+function formatCurrency(value: number) {
+  return currencyFormatter.format(value);
+}
+
+function formatPercentage(value: number) {
+  return percentageFormatter.format(value);
+}
+
+function roundCurrency(value: number) {
+  return Number(value.toFixed(2));
+}
+
+function getComputedPromotionPricing(offerPricing: PromotionOfferPricing, referencePrice: number) {
+  switch (offerPricing.mode) {
+    case 'fixed_price': {
+      if (offerPricing.promotionalPrice === undefined) {
+        return undefined;
+      }
+
+      const promotionalPrice = offerPricing.promotionalPrice;
+      const hasDiscount = promotionalPrice < referencePrice;
+
+      return {
+        price: promotionalPrice,
+        originalPrice: hasDiscount ? referencePrice : undefined,
+        discount: hasDiscount ? Math.round(((referencePrice - promotionalPrice) / referencePrice) * 100) : undefined,
+        offerSummary: `Cada item sai por ${formatCurrency(promotionalPrice)}.`,
+      };
+    }
+    case 'percentage_discount': {
+      if (offerPricing.discountPercentage === undefined) {
+        return undefined;
+      }
+
+      const effectiveUnitPrice = roundCurrency(referencePrice * (1 - offerPricing.discountPercentage / 100));
+
+      return {
+        price: effectiveUnitPrice,
+        originalPrice: referencePrice,
+        discount: Math.round(offerPricing.discountPercentage),
+        offerSummary: `${formatPercentage(offerPricing.discountPercentage)}% de desconto neste item.`,
+      };
+    }
+    case 'buy_x_pay_y': {
+      if (!offerPricing.minimumQuantity || !offerPricing.payQuantity) {
+        return undefined;
+      }
+
+      const effectiveUnitPrice = roundCurrency((referencePrice * offerPricing.payQuantity) / offerPricing.minimumQuantity);
+
+      return {
+        price: effectiveUnitPrice,
+        originalPrice: referencePrice,
+        discount: Math.round(100 - (offerPricing.payQuantity / offerPricing.minimumQuantity) * 100),
+        offerSummary: `Leve ${offerPricing.minimumQuantity} e pague ${offerPricing.payQuantity}.`,
+      };
+    }
+    case 'bulk_percentage': {
+      if (!offerPricing.minimumQuantity || offerPricing.discountPercentage === undefined) {
+        return undefined;
+      }
+
+      const effectiveUnitPrice = roundCurrency(referencePrice * (1 - offerPricing.discountPercentage / 100));
+
+      return {
+        price: effectiveUnitPrice,
+        originalPrice: referencePrice,
+        discount: Math.round(offerPricing.discountPercentage),
+        offerSummary: `A partir de ${offerPricing.minimumQuantity} unidades, este item sai por ${formatCurrency(effectiveUnitPrice)}.`,
+      };
+    }
+    default:
+      return undefined;
+  }
+}
 
 export function getPromotionThemeClasses(themeTone: PromotionTheme) {
   switch (themeTone) {
@@ -112,7 +198,7 @@ export function formatPromotionWindow(params: {
   }
 
   if (params.startsAt) {
-    return `Disponivel desde ${formatPromotionDate(params.startsAt)}`;
+    return `Disponível desde ${formatPromotionDate(params.startsAt)}`;
   }
 
   return 'Promoção por tempo indeterminado';
@@ -129,7 +215,7 @@ export function getPromotionBadgeLabel(promotion?: Promotion | null) {
 export function getPromotionProductPricingData(promotion: Promotion | undefined, product: Product) {
   const offerPricing = promotion?.offerPricing;
 
-  if (!offerPricing?.effectiveUnitPrice) {
+  if (!offerPricing) {
     return {
       price: product.price,
       originalPrice: product.originalPrice,
@@ -138,18 +224,21 @@ export function getPromotionProductPricingData(promotion: Promotion | undefined,
     };
   }
 
-  const originalPrice =
-    offerPricing.referencePrice && offerPricing.referencePrice > offerPricing.effectiveUnitPrice
-      ? offerPricing.referencePrice
-      : product.originalPrice;
+  const computedPricing = getComputedPromotionPricing(offerPricing, product.price);
+
+  if (!computedPricing) {
+    return {
+      price: product.price,
+      originalPrice: product.originalPrice,
+      discount: product.discount,
+      offerSummary: offerPricing.summary,
+    };
+  }
 
   return {
-    price: offerPricing.effectiveUnitPrice,
-    originalPrice,
-    discount:
-      offerPricing.effectiveDiscountPercentage !== undefined
-        ? Math.round(offerPricing.effectiveDiscountPercentage)
-        : product.discount,
-    offerSummary: offerPricing.summary,
+    price: computedPricing.price,
+    originalPrice: computedPricing.originalPrice ?? product.originalPrice,
+    discount: computedPricing.discount ?? product.discount,
+    offerSummary: computedPricing.offerSummary,
   };
 }

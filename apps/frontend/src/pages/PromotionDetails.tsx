@@ -66,6 +66,7 @@ const PromotionDetailsPage = () => {
 
   const theme = getPromotionThemeClasses(promotion.themeTone);
   const isSingleProductPromotion = promotion.kind === 'single_product';
+  const hasCommercialRule = Boolean(promotion.offerPricing);
   const primaryProduct = promotion.primaryProduct || promotion.products?.[0];
 
   return (
@@ -115,13 +116,15 @@ const PromotionDetailsPage = () => {
 
                 <PromotionCountdown expiresAt={promotion.expiresAt} />
 
-                {isSingleProductPromotion && promotion.offerPricing ? (
+                {hasCommercialRule ? (
                   <div className="rounded-2xl border border-black/5 bg-white/80 px-4 py-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Condição da oferta</p>
-                    <p className="mt-2 text-base font-semibold text-foreground">
-                      {promotion.offerPricing.shortLabel || 'Oferta especial'}
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      {isSingleProductPromotion ? 'Condição da oferta' : 'Regra comercial da campanha'}
                     </p>
-                    {promotion.offerPricing.summary ? (
+                    <p className="mt-2 text-base font-semibold text-foreground">
+                      {promotion.offerPricing?.shortLabel || 'Oferta especial'}
+                    </p>
+                    {promotion.offerPricing?.summary ? (
                       <p className="mt-2 text-sm leading-6 text-muted-foreground">{promotion.offerPricing.summary}</p>
                     ) : null}
                   </div>
@@ -208,7 +211,7 @@ const PromotionDetailsPage = () => {
                     category={categoryName}
                     href={`/produto/${product.slug}`}
                     isNew={product.isNew}
-                    isOffer={isSingleProductPromotion || product.isOffer}
+                    isOffer={hasCommercialRule || isSingleProductPromotion || product.isOffer}
                     discount={pricing.discount}
                     promotionBadge={getPromotionBadgeLabel(promotion)}
                     offerSummary={pricing.offerSummary}

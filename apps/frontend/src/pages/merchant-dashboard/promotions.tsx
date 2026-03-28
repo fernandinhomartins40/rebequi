@@ -161,7 +161,7 @@ export function MerchantDashboardPromotions() {
       <SectionLeadCard
         badge="Promoções"
         title="Gestão de promoções"
-        description="Crie cards promocionais com validade, imagem destacada e curadoria de produtos de uma ou mais categorias."
+        description="Crie campanhas com validade, imagem destacada, regra comercial e curadoria de produtos de uma ou mais categorias."
         tone="yellow"
         actions={
           <>
@@ -298,6 +298,11 @@ export function MerchantDashboardPromotions() {
                                 {promotion.badgeText ? (
                                   <Badge className="border-none bg-accent text-accent-foreground">{promotion.badgeText}</Badge>
                                 ) : null}
+                                {promotion.offerPricing?.shortLabel && promotion.offerPricing.shortLabel !== promotion.badgeText ? (
+                                  <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary">
+                                    {promotion.offerPricing.shortLabel}
+                                  </Badge>
+                                ) : null}
                               </div>
                               <p className="text-xs text-muted-foreground">
                                 {promotion.name}
@@ -395,6 +400,11 @@ export function MerchantDashboardPromotions() {
                         <span className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-semibold ${getPromotionStatusTone(promotion.status)}`}>
                           {formatPromotionStatusLabel(promotion.status)}
                         </span>
+                        {promotion.offerPricing?.shortLabel && promotion.offerPricing.shortLabel !== promotion.badgeText ? (
+                          <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary">
+                            {promotion.offerPricing.shortLabel}
+                          </Badge>
+                        ) : null}
                       </div>
                       <p className="text-xs text-muted-foreground">{promotion.name}</p>
                       <p className="line-clamp-2 text-sm text-muted-foreground">

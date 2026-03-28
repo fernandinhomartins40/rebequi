@@ -436,14 +436,11 @@ export class PromotionService {
     }
   }
 
-  private validateOfferPricingForKind(kind: PromotionKind, offerPricing?: PromotionOfferPricingInput | null) {
+  private validateOfferPricingForKind(_kind: PromotionKind, offerPricing?: PromotionOfferPricingInput | null) {
     if (!offerPricing) {
       return;
     }
 
-    if (kind !== PromotionKind.SINGLE_PRODUCT) {
-      throw new ValidationError('Regras comerciais de oferta estão disponíveis apenas para promoções de produto único');
-    }
   }
 
   private mapOfferPricingFields(offerPricing?: PromotionOfferPricingInput | null) {
@@ -717,12 +714,23 @@ export class PromotionService {
     }
 
     const referencePrice = primaryProduct?.price;
+    const isCollectionPromotion = promotion.kind === PromotionKind.COLLECTION;
 
     switch (promotion.offerPricingMode) {
       case PromotionOfferPricingMode.FIXED_PRICE: {
         const promotionalPrice = promotion.offerPromotionalPrice ?? undefined;
         if (promotionalPrice === undefined) {
           return undefined;
+        }
+
+        if (isCollectionPromotion) {
+          return {
+            mode: 'fixed_price' as const,
+            promotionalPrice,
+            effectiveUnitPrice: promotionalPrice,
+            summary: `Todos os itens participantes saem por ${this.formatCurrency(promotionalPrice)} cada.`,
+            shortLabel: `Cada por ${this.formatCurrency(promotionalPrice)}`,
+          };
         }
 
         const effectiveDiscountPercentage =
@@ -744,6 +752,16 @@ export class PromotionService {
         const discountPercentage = promotion.offerDiscountPercentage ?? undefined;
         if (discountPercentage === undefined) {
           return undefined;
+        }
+
+        if (isCollectionPromotion) {
+          return {
+            mode: 'percentage_discount' as const,
+            discountPercentage,
+            effectiveDiscountPercentage: discountPercentage,
+            summary: `${this.formatPercentage(discountPercentage)}% de desconto nos produtos participantes.`,
+            shortLabel: `${this.formatPercentage(discountPercentage)}% OFF`,
+          };
         }
 
         const effectiveUnitPrice =
@@ -769,6 +787,17 @@ export class PromotionService {
         const payQuantity = promotion.offerPayQuantity ?? undefined;
         if (!minimumQuantity || !payQuantity) {
           return undefined;
+        }
+
+        if (isCollectionPromotion) {
+          return {
+            mode: 'buy_x_pay_y' as const,
+            minimumQuantity,
+            payQuantity,
+            effectiveDiscountPercentage: Number((100 - (payQuantity / minimumQuantity) * 100).toFixed(2)),
+            summary: `Leve ${minimumQuantity} e pague ${payQuantity} nos itens participantes da campanha.`,
+            shortLabel: `Leve ${minimumQuantity}, pague ${payQuantity}`,
+          };
         }
 
         const bundlePrice =
@@ -804,6 +833,17 @@ export class PromotionService {
         const discountPercentage = promotion.offerDiscountPercentage ?? undefined;
         if (!minimumQuantity || discountPercentage === undefined) {
           return undefined;
+        }
+
+        if (isCollectionPromotion) {
+          return {
+            mode: 'bulk_percentage' as const,
+            minimumQuantity,
+            discountPercentage,
+            effectiveDiscountPercentage: discountPercentage,
+            summary: `${this.formatPercentage(discountPercentage)}% de desconto a partir de ${minimumQuantity} unidades nos itens participantes.`,
+            shortLabel: `${minimumQuantity}+ com ${this.formatPercentage(discountPercentage)}% OFF`,
+          };
         }
 
         const effectiveUnitPrice =

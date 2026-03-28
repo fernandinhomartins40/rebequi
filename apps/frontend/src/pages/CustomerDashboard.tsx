@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowRight, Camera, CheckCircle2, FileText, KeyRound, LogOut, Plus, Trash2, UserRound } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -72,6 +72,7 @@ const CustomerDashboard = () => {
   const [editorState, setEditorState] = useState<DraftEditorState>(buildEditorState());
   const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(searchParams.get('quoteId'));
   const [provisionalCredentials, setProvisionalCredentials] = useState(() => readProvisionalCredentials());
+  const editorCardRef = useRef<HTMLDivElement | null>(null);
 
   const quotesQuery = useQuery({
     queryKey: ['customer', 'quotes'],
@@ -81,12 +82,18 @@ const CustomerDashboard = () => {
   const createDraftMutation = useMutation({
     mutationFn: createAuthenticatedQuoteDraft,
     onSuccess: async (quote) => {
+      queryClient.setQueryData<QuoteRequest[]>(['customer', 'quotes'], (current) => {
+        const nextQuotes = current ?? [];
+        const withoutCurrentQuote = nextQuotes.filter((entry) => entry.id !== quote.id);
+        return [quote, ...withoutCurrentQuote];
+      });
       await queryClient.invalidateQueries({ queryKey: ['customer', 'quotes'] });
       setSelectedQuoteId(quote.id);
+      setEditorState(buildEditorState(quote));
       setSearchParams({ quoteId: quote.id });
       toast({
         title: 'Rascunho criado',
-        description: 'Revise os itens reconhecidos e envie o orçamento quando estiver tudo certo.',
+        description: `${quote.itemCount} item(ns) reconhecido(s). Revise o rascunho e envie o orçamento quando estiver tudo certo.`,
       });
     },
     onError: (error) => {
@@ -190,6 +197,21 @@ const CustomerDashboard = () => {
       setSelectedQuoteId(quoteId);
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!selectedQuote || !selectedQuoteId) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      editorCardRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [selectedQuote?.id, selectedQuoteId]);
 
   const draftQuotes = quotes.filter((quote) => quote.status === 'DRAFT');
   const submittedQuotes = quotes.filter((quote) => quote.status !== 'DRAFT');
@@ -331,7 +353,7 @@ const CustomerDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-black/5 bg-white/92 shadow-[0_20px_55px_-40px_rgba(15,23,42,0.22)]">
+          <Card ref={editorCardRef} className="border-black/5 bg-white/92 shadow-[0_20px_55px_-40px_rgba(15,23,42,0.22)]">
             <CardHeader>
               <CardTitle>Revisao do rascunho</CardTitle>
               <CardDescription>

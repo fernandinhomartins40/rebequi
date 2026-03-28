@@ -66,7 +66,7 @@ const ProductSection = ({
                 category={categoryName}
                 href={href}
                 isNew={product.isNew}
-                isOffer={promotion?.kind === 'single_product' || product.isOffer}
+                isOffer={Boolean(promotion?.offerPricing) || promotion?.kind === 'single_product' || product.isOffer}
                 discount={pricing.discount}
                 promotionBadge={getPromotionBadgeLabel(promotion)}
                 offerSummary={pricing.offerSummary}
