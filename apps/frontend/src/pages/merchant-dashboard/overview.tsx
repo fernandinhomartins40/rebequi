@@ -199,9 +199,6 @@ export default function MerchantDashboardOverview() {
               <Button asChild className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
                 <Link to={`${ADMIN_BASE_PATH}/produtos`}>Gerenciar produtos</Link>
               </Button>
-              <Button asChild variant="outline" className="border-black/10 bg-white/80 text-foreground hover:bg-white">
-                <Link to={`${ADMIN_BASE_PATH}/estabilidade`}>Status da plataforma</Link>
-              </Button>
             </>
           }
         />

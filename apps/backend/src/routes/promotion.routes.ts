@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { getRolesForMerchantPermission } from '@rebequi/shared/constants';
 import { createPromotionSchema, updatePromotionSchema } from '@rebequi/shared/schemas';
 import { PromotionController } from '../controllers/promotion.controller.js';
 import { validateBody } from '../middleware/validation.middleware.js';
@@ -8,15 +9,16 @@ import { uploadLimiter } from '../middleware/rate-limit.middleware.js';
 
 const router: Router = Router();
 const promotionController = new PromotionController();
+const promotionRoles = getRolesForMerchantPermission('promotions:manage');
 
 router.get('/', promotionController.getPublicAll);
 router.get('/slug/:slug', promotionController.getPublicBySlug);
-router.get('/admin/list', authenticate, authorize('ADMIN'), promotionController.getAdminAll);
+router.get('/admin/list', authenticate, authorize(...promotionRoles), promotionController.getAdminAll);
 
 router.post(
   '/images/upload',
   authenticate,
-  authorize('ADMIN'),
+  authorize(...promotionRoles),
   uploadLimiter,
   upload.single('image'),
   promotionController.uploadImage,
@@ -25,7 +27,7 @@ router.post(
 router.post(
   '/',
   authenticate,
-  authorize('ADMIN'),
+  authorize(...promotionRoles),
   validateBody(createPromotionSchema),
   promotionController.create,
 );
@@ -33,11 +35,11 @@ router.post(
 router.put(
   '/:id',
   authenticate,
-  authorize('ADMIN'),
+  authorize(...promotionRoles),
   validateBody(updatePromotionSchema),
   promotionController.update,
 );
 
-router.delete('/:id', authenticate, authorize('ADMIN'), promotionController.delete);
+router.delete('/:id', authenticate, authorize(...promotionRoles), promotionController.delete);
 
 export default router;

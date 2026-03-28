@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
+import { hasMerchantPermission } from '@rebequi/shared/constants';
 import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchCategories } from '@/services/api/categories';
 import { fetchProducts } from '@/services/api/products';
 import { fetchAdminPromotions } from '@/services/api/promotions';
 import { fetchAdminQuotes, fetchCapturedLeads } from '@/services/api/quotes';
-import { NAV_SECTIONS, type MerchantNavItem } from './config';
+import { getMerchantNavItemsForRole, type MerchantNavItem } from './config';
 
 export type ProductSummary = Awaited<ReturnType<typeof fetchProducts>>;
 export type CategorySummary = Awaited<ReturnType<typeof fetchCategories>>;
@@ -36,33 +37,41 @@ export type MerchantDashboardOutletContext = {
 
 export function useMerchantDashboardData(): MerchantDashboardOutletContext {
   const { user } = useAuth();
+  const canManageCatalog = hasMerchantPermission(user?.role, 'catalog:manage');
+  const canManagePromotions = hasMerchantPermission(user?.role, 'promotions:manage');
+  const canManageQuotes = hasMerchantPermission(user?.role, 'quotes:manage');
 
   const { data: productSummary } = useQuery({
     queryKey: ['merchant-dashboard', 'products'],
     queryFn: () => fetchProducts({}),
+    enabled: canManageCatalog,
   });
 
   const { data: categorySummary } = useQuery({
     queryKey: ['merchant-dashboard', 'categories'],
     queryFn: fetchCategories,
+    enabled: canManageCatalog,
   });
 
   const { data: promotionSummary } = useQuery({
     queryKey: ['merchant-dashboard', 'promotions-badge'],
     queryFn: () => fetchAdminPromotions({ kind: 'collection', page: 1, limit: 1 }),
+    enabled: canManagePromotions,
   });
 
   const { data: quoteSummary } = useQuery({
     queryKey: ['merchant-dashboard', 'quotes-badge'],
     queryFn: () => fetchAdminQuotes({ page: 1, limit: 1 }),
+    enabled: canManageQuotes,
   });
 
   const { data: leadSummary } = useQuery({
     queryKey: ['merchant-dashboard', 'leads-badge'],
     queryFn: () => fetchCapturedLeads({ page: 1, limit: 1 }),
+    enabled: canManageQuotes,
   });
 
-  const navItems = NAV_SECTIONS.map((item) => {
+  const navItems = getMerchantNavItemsForRole(user?.role).map((item) => {
     if (item.id === 'visao-geral') {
       return { ...item, badge: 'Agora' };
     }
@@ -86,7 +95,7 @@ export function useMerchantDashboardData(): MerchantDashboardOutletContext {
 
   return {
     userEmail: user?.email ?? '-',
-    userRole: user?.role ?? 'ADMIN',
+    userRole: user?.role ?? '-',
     productSummary,
     categorySummary,
     promotionSummary,

@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getDefaultRouteForRole } from "@/lib/auth-routing";
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -18,7 +19,7 @@ const Header = () => {
     { name: "Contato", href: "/contato" },
   ];
 
-  const accountHref = user?.role === 'ADMIN' ? '/painel-lojista/painel/visao-geral' : '/painel-cliente';
+  const accountHref = getDefaultRouteForRole(user?.role);
 
   const handleLogout = async () => {
     await logout();

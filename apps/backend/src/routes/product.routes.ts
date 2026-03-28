@@ -4,6 +4,7 @@
  */
 
 import { Router } from 'express';
+import { getRolesForMerchantPermission } from '@rebequi/shared/constants';
 import { ProductController } from '../controllers/product.controller.js';
 import { validateBody } from '../middleware/validation.middleware.js';
 import { authenticate, authorize } from '../middleware/auth.middleware.js';
@@ -13,6 +14,7 @@ import { uploadLimiter } from '../middleware/rate-limit.middleware.js';
 
 const router: Router = Router();
 const productController = new ProductController();
+const catalogRoles = getRolesForMerchantPermission('catalog:manage');
 
 // Public routes
 router.get('/', productController.getAll);
@@ -23,13 +25,13 @@ router.get('/category/:categorySlug', productController.getByCategory);
 router.get('/slug/:slug', productController.getBySlug);
 
 // Admin read routes
-router.get('/admin/list', authenticate, authorize('ADMIN'), productController.getAdminAll);
+router.get('/admin/list', authenticate, authorize(...catalogRoles), productController.getAdminAll);
 
 // Admin routes
 router.post(
   '/images/upload',
   authenticate,
-  authorize('ADMIN'),
+  authorize(...catalogRoles),
   uploadLimiter,
   upload.single('image'),
   productController.uploadImage
@@ -38,7 +40,7 @@ router.post(
 router.post(
   '/',
   authenticate,
-  authorize('ADMIN'),
+  authorize(...catalogRoles),
   validateBody(createProductSchema),
   productController.create
 );
@@ -46,12 +48,12 @@ router.post(
 router.put(
   '/:id',
   authenticate,
-  authorize('ADMIN'),
+  authorize(...catalogRoles),
   validateBody(updateProductSchema),
   productController.update
 );
 
-router.delete('/:id', authenticate, authorize('ADMIN'), productController.delete);
+router.delete('/:id', authenticate, authorize(...catalogRoles), productController.delete);
 router.get('/:id', productController.getById);
 
 export default router;

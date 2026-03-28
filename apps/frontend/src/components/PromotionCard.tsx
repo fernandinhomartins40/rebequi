@@ -18,23 +18,28 @@ export function PromotionCard({
   promotion: Promotion;
 }) {
   const theme = getPromotionThemeClasses(promotion.themeTone);
-  const previewCategories = promotion.categories.slice(0, 2);
+  const previewCategory = promotion.categories[0];
   const promotionHref = getPromotionHref(promotion.kind, promotion.slug);
   const topBadgeLabel = getPromotionBadgeLabel(promotion) || 'Oferta especial';
   const commercialLabel =
     promotion.offerPricing?.shortLabel && promotion.offerPricing.shortLabel !== topBadgeLabel
       ? promotion.offerPricing.shortLabel
       : undefined;
+  const supportText =
+    promotion.subtitle || promotion.description || 'Coleção promocional com curadoria especial para sua compra.';
+  const contextLabel = commercialLabel || previewCategory;
+  const itemSummary =
+    promotion.productCount === 1 ? '1 item selecionado' : `${promotion.productCount} itens selecionados`;
 
   return (
     <article
       className={cn(
-        'group overflow-hidden rounded-[1.5rem] border transition-transform duration-300 hover:-translate-y-1',
+        'group flex h-full flex-col overflow-hidden rounded-[1.5rem] border transition-transform duration-300 hover:-translate-y-1',
         theme.shell,
         className,
       )}
     >
-      <div className="relative aspect-[16/9] overflow-hidden">
+      <Link to={promotionHref} className="relative block aspect-[16/10] overflow-hidden">
         <img
           src={promotion.image?.url || PROMOTION_IMAGE_FALLBACK}
           alt={promotion.image?.alt || promotion.title}
@@ -42,48 +47,30 @@ export function PromotionCard({
           loading="lazy"
         />
         <div className={cn('absolute inset-0 bg-gradient-to-b', theme.overlay)} />
-        <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-4">
-          <Badge className={cn('border-none shadow-sm', theme.badge)}>{topBadgeLabel}</Badge>
-          <span className="inline-flex items-center rounded-full border border-white/60 bg-white/88 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground">
-            {promotion.productCount} itens
-          </span>
+        <div className="absolute inset-x-0 top-0 p-4">
+          <Badge className={cn('max-w-[70%] truncate border-none shadow-sm', theme.badge)}>{topBadgeLabel}</Badge>
         </div>
-      </div>
+      </Link>
 
-      <div className="space-y-3.5 p-4">
-        {promotion.eyebrow ? (
-          <p className={cn('text-[11px] font-semibold uppercase tracking-[0.24em]', theme.accent)}>{promotion.eyebrow}</p>
-        ) : null}
-
-        <div className="space-y-1.5">
-          <h3 className="line-clamp-2 text-lg font-bold leading-tight text-foreground">{promotion.title}</h3>
-          <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">
-            {promotion.subtitle || promotion.description || 'Coleção promocional com curadoria especial para sua compra.'}
-          </p>
+      <div className="flex flex-1 flex-col p-5">
+        <div className="space-y-2">
+          <h3 className="line-clamp-2 min-h-[3.5rem] text-lg font-bold leading-tight text-foreground">{promotion.title}</h3>
+          <p className="line-clamp-2 min-h-[2.75rem] text-sm leading-6 text-muted-foreground">{supportText}</p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          {commercialLabel ? (
-            <span className={cn('inline-flex rounded-full border px-3 py-1 text-xs font-medium', theme.chip)}>
-              {commercialLabel}
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          {contextLabel ? (
+            <span className={cn('inline-flex max-w-full rounded-full border px-3 py-1 text-xs font-medium', theme.chip)}>
+              <span className="truncate">{contextLabel}</span>
             </span>
           ) : null}
-          {previewCategories.map((category) => (
-            <span key={category} className={cn('inline-flex rounded-full border px-3 py-1 text-xs font-medium', theme.chip)}>
-              {category}
-            </span>
-          ))}
-          {promotion.categoryCount > previewCategories.length ? (
-            <span className="inline-flex rounded-full border border-black/5 bg-white/80 px-3 py-1 text-xs font-medium text-foreground">
-              +{promotion.categoryCount - previewCategories.length} categoria{promotion.categoryCount - previewCategories.length > 1 ? 's' : ''}
-            </span>
-          ) : null}
+          <span className="text-xs font-medium text-muted-foreground">{itemSummary}</span>
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <PromotionCountdown expiresAt={promotion.expiresAt} compact className="w-fit" />
+        <div className="mt-auto space-y-3 border-t border-black/5 pt-4">
+          <PromotionCountdown expiresAt={promotion.expiresAt} compact className="w-full" />
 
-          <Button asChild size="sm" className="w-full rounded-xl sm:w-auto">
+          <Button asChild size="sm" className="w-full rounded-xl">
             <Link to={promotionHref}>
               {promotion.ctaLabel || 'Ver campanha'}
               <ArrowRight className="ml-2 h-4 w-4" />

@@ -2,20 +2,21 @@ import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { BarChart3, Lock, PackageSearch, Settings, Shield } from 'lucide-react';
+import { isMerchantUserRole } from '@rebequi/shared/constants';
 import { loginSchema, type LoginInput } from '@rebequi/shared/schemas';
-import { UserRole } from '@rebequi/shared/types';
 import { z } from 'zod';
 import { LoginSessionOptions } from '@/components/auth/LoginSessionOptions';
 import { PasswordField } from '@/components/auth/PasswordField';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLoginPreferences } from '@/hooks/use-login-preferences';
+import { getDefaultRouteForRole } from '@/lib/auth-routing';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 
-const MERCHANT_PANEL_URL = import.meta.env.VITE_MERCHANT_PANEL_URL || '/painel-lojista/painel/produtos';
+const MERCHANT_PANEL_URL = import.meta.env.VITE_MERCHANT_PANEL_URL;
 const MERCHANT_LOGIN_PREFERENCES_STORAGE_KEY = 'rebequi:auth:merchant-login';
 
 type MerchantLoginFormValues = LoginInput & {
@@ -71,17 +72,17 @@ const MerchantPanel = () => {
         keepSignedIn: values.keepSignedIn,
       });
 
-      if (user.role !== UserRole.ADMIN) {
+      if (!isMerchantUserRole(user.role)) {
         await logout();
-        throw new Error('Sua conta não possui acesso administrativo.');
+        throw new Error('Sua conta nao possui acesso ao painel do lojista.');
       }
 
       toast({
         title: 'Login realizado',
-        description: 'Acesso administrativo liberado.',
+        description: 'Acesso interno liberado.',
       });
 
-      window.location.href = MERCHANT_PANEL_URL;
+      window.location.href = MERCHANT_PANEL_URL || getDefaultRouteForRole(user.role);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erro ao autenticar';
       toast({
@@ -103,25 +104,25 @@ const MerchantPanel = () => {
               <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm font-semibold text-primary">
                 <Shield className="h-4 w-4" /> Painel do Lojista
               </div>
-              <h1 className="text-2xl font-bold sm:text-3xl">Acesso administrativo</h1>
-              <p className="text-muted-foreground">Entre com uma conta ADMIN para acessar a área interna da operação.</p>
+              <h1 className="text-2xl font-bold sm:text-3xl">Acesso da equipe</h1>
+              <p className="text-muted-foreground">Entre com uma conta interna para acessar as funcoes liberadas para o seu papel.</p>
             </header>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
               <FeatureCard
                 icon={<PackageSearch className="h-6 w-6 text-primary" />}
-                title="Produtos"
-                description="Cadastro, edição e exclusão."
+                title="Catalogo"
+                description="Cadastro e manutencao conforme o papel do usuario."
               />
               <FeatureCard
                 icon={<BarChart3 className="h-6 w-6 text-primary" />}
-                title="Sessão"
-                description="Autenticação administrativa com controle de acesso."
+                title="Operacao"
+                description="Painel com funcoes liberadas por role e sessao autenticada."
               />
               <FeatureCard
                 icon={<Settings className="h-6 w-6 text-primary" />}
-                title="Plataforma"
-                description="Painel estruturado para expansão de novas áreas."
+                title="Equipe"
+                description="Admin controla acessos internos para funcionarios e gestores."
               />
             </div>
           </div>
@@ -133,12 +134,12 @@ const MerchantPanel = () => {
                   <Lock className="h-5 w-5 text-primary" />
                   Acesso do Lojista
                 </CardTitle>
-                <CardDescription>Entre com e-mail e senha de administrador.</CardDescription>
+                <CardDescription>Entre com e-mail e senha da sua conta interna.</CardDescription>
               </CardHeader>
               <CardContent>
                 <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
                   <div className="space-y-2">
-                    <Label htmlFor="identifier">E-mail do administrador</Label>
+                    <Label htmlFor="identifier">E-mail ou identificador</Label>
                     <Input
                       id="identifier"
                       type="text"

@@ -4,7 +4,7 @@
  */
 
 export const APP_NAME = 'Rebequi';
-export const APP_DESCRIPTION = 'E-commerce de Material de Construção';
+export const APP_DESCRIPTION = 'E-commerce de Material de Construcao';
 
 // Pagination
 export const DEFAULT_PAGE_SIZE = 12;
@@ -45,14 +45,16 @@ export const HTTP_STATUS = {
 
 // Error messages
 export const ERROR_MESSAGES = {
-  UNAUTHORIZED: 'Não autorizado',
+  UNAUTHORIZED: 'Nao autorizado',
   FORBIDDEN: 'Acesso negado',
-  NOT_FOUND: 'Recurso não encontrado',
-  VALIDATION_ERROR: 'Erro de validação',
+  NOT_FOUND: 'Recurso nao encontrado',
+  VALIDATION_ERROR: 'Erro de validacao',
   INTERNAL_ERROR: 'Erro interno do servidor',
-  INVALID_CREDENTIALS: 'Credenciais inválidas',
-  EMAIL_ALREADY_EXISTS: 'Email já cadastrado',
-  PRODUCT_NOT_FOUND: 'Produto não encontrado',
-  CATEGORY_NOT_FOUND: 'Categoria não encontrada',
+  INVALID_CREDENTIALS: 'Credenciais invalidas',
+  EMAIL_ALREADY_EXISTS: 'Email ja cadastrado',
+  PRODUCT_NOT_FOUND: 'Produto nao encontrado',
+  CATEGORY_NOT_FOUND: 'Categoria nao encontrada',
   INSUFFICIENT_STOCK: 'Estoque insuficiente',
 } as const;
+
+export * from './access.js';

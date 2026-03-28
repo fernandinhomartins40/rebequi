@@ -4,12 +4,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useNavigate } from 'react-router-dom';
 import { LogIn } from 'lucide-react';
 import { loginSchema, type LoginInput } from '@rebequi/shared/schemas';
-import { UserRole } from '@rebequi/shared/types';
 import { z } from 'zod';
 import { LoginSessionOptions } from '@/components/auth/LoginSessionOptions';
 import { PasswordField } from '@/components/auth/PasswordField';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLoginPreferences } from '@/hooks/use-login-preferences';
+import { getDefaultRouteForRole } from '@/lib/auth-routing';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -77,7 +77,7 @@ const Login = () => {
         description: 'Sessão autenticada com sucesso.',
       });
 
-      navigate(user.role === UserRole.ADMIN ? '/painel-lojista/painel/visao-geral' : '/painel-cliente');
+      navigate(getDefaultRouteForRole(user.role));
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erro ao fazer login';
       toast({

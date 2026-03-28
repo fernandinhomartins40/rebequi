@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { ArrowLeft, LogOut } from 'lucide-react';
+import { getMerchantRoleLabel, isMerchantUserRole } from '@rebequi/shared/constants';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -107,11 +108,15 @@ export function AdminSidebarNavigation({
 
 export function MerchantSidebarFooter({
   userEmail,
+  userRole,
   onLogout,
 }: {
   userEmail: string;
+  userRole: string;
   onLogout: () => Promise<void>;
 }) {
+  const roleLabel = isMerchantUserRole(userRole) ? getMerchantRoleLabel(userRole) : userRole;
+
   return (
     <>
       <SidebarSeparator className="mx-4" />
@@ -120,7 +125,7 @@ export function MerchantSidebarFooter({
         <div className="rounded-3xl border border-[#eadfba] bg-white/90 p-4 shadow-[0_16px_38px_-34px_rgba(37,99,235,0.25)] group-data-[collapsible=icon]:hidden">
           <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Sessão ativa</p>
           <p className="mt-3 break-all text-sm font-semibold text-foreground">{userEmail}</p>
-          <p className="mt-1 text-xs text-muted-foreground">Role ADMIN validada pelo backend.</p>
+          <p className="mt-1 text-xs text-muted-foreground">Perfil {roleLabel} validado pelo backend.</p>
         </div>
 
         <Button

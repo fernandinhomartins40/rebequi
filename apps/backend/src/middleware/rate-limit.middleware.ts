@@ -5,9 +5,10 @@
 
 import rateLimit from 'express-rate-limit';
 import type { Request } from 'express';
+import { isMerchantUserRole } from '@rebequi/shared/constants';
 
 function isAdminRequest(req: Request) {
-  return req.user?.role === 'ADMIN';
+  return isMerchantUserRole(req.user?.role);
 }
 
 /**

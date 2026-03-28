@@ -5,6 +5,10 @@
 
 export enum UserRole {
   ADMIN = 'ADMIN',
+  MANAGER = 'MANAGER',
+  CATALOG_MANAGER = 'CATALOG_MANAGER',
+  MARKETING = 'MARKETING',
+  SALES = 'SALES',
   CUSTOMER = 'CUSTOMER',
 }
 
@@ -52,6 +56,8 @@ export interface UpdateAdminCredentialsDTO {
   newPassword: string;
 }
 
+export type ManagedUserRole = Exclude<UserRole, UserRole.CUSTOMER>;
+
 export interface CreateUserDTO {
   email: string;
   name: string;
@@ -76,4 +82,40 @@ export interface UpdateUserDTO {
 export interface ChangePasswordDTO {
   currentPassword: string;
   newPassword: string;
+}
+
+export interface CreateManagedUserDTO {
+  email: string;
+  name: string;
+  password: string;
+  whatsapp?: string;
+  role: ManagedUserRole;
+  isActive?: boolean;
+  mustChangePassword?: boolean;
+}
+
+export interface UpdateManagedUserDTO {
+  email?: string;
+  name?: string;
+  password?: string;
+  whatsapp?: string;
+  role?: ManagedUserRole;
+  isActive?: boolean;
+  mustChangePassword?: boolean;
+}
+
+export interface ManagedUserFilters {
+  search?: string;
+  role?: ManagedUserRole | 'all';
+  includeInactive?: boolean;
+  page?: number;
+  limit?: number;
+}
+
+export interface ManagedUserResponse {
+  users: User[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages?: number;
 }

@@ -46,7 +46,7 @@ export function MerchantDashboardLayout() {
         >
           <MerchantSidebarHeader />
           <AdminSidebarNavigation activePath={activeItem.href} items={dashboardData.navItems} />
-          <MerchantSidebarFooter userEmail={dashboardData.userEmail} onLogout={handleLogout} />
+          <MerchantSidebarFooter userEmail={dashboardData.userEmail} userRole={dashboardData.userRole} onLogout={handleLogout} />
           <SidebarRail />
         </Sidebar>
 

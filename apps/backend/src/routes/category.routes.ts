@@ -4,6 +4,7 @@
  */
 
 import { Router } from 'express';
+import { getRolesForMerchantPermission } from '@rebequi/shared/constants';
 import { CategoryController } from '../controllers/category.controller.js';
 import { validateBody } from '../middleware/validation.middleware.js';
 import { authenticate, authorize } from '../middleware/auth.middleware.js';
@@ -11,6 +12,7 @@ import { createCategorySchema, updateCategorySchema } from '@rebequi/shared/sche
 
 const router: Router = Router();
 const categoryController = new CategoryController();
+const catalogRoles = getRolesForMerchantPermission('catalog:manage');
 
 // Public routes
 router.get('/', categoryController.getAll);
@@ -21,7 +23,7 @@ router.get('/slug/:slug', categoryController.getBySlug);
 router.post(
   '/',
   authenticate,
-  authorize('ADMIN'),
+  authorize(...catalogRoles),
   validateBody(createCategorySchema),
   categoryController.create
 );
@@ -29,11 +31,11 @@ router.post(
 router.put(
   '/:id',
   authenticate,
-  authorize('ADMIN'),
+  authorize(...catalogRoles),
   validateBody(updateCategorySchema),
   categoryController.update
 );
 
-router.delete('/:id', authenticate, authorize('ADMIN'), categoryController.delete);
+router.delete('/:id', authenticate, authorize(...catalogRoles), categoryController.delete);
 
 export default router;

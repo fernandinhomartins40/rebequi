@@ -4,6 +4,5 @@ export {
   MerchantDashboardProducts,
   MerchantDashboardPromotions,
   MerchantDashboardQuotes,
-  MerchantDashboardStability,
   default,
 } from './merchant-dashboard';

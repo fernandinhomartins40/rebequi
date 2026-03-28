@@ -38,6 +38,10 @@ model User {
 
 enum UserRole {
   ADMIN
+  MANAGER
+  CATALOG_MANAGER
+  MARKETING
+  SALES
   CUSTOMER
 }
 

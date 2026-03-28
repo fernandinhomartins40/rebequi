@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { getRolesForMerchantPermission } from '@rebequi/shared/constants';
 import {
   startLeadSchema,
   updateLeadStatusSchema,
@@ -13,6 +14,7 @@ import { validateBody } from '../middleware/validation.middleware.js';
 
 const router: Router = Router();
 const quoteController = new QuoteController();
+const quoteRoles = getRolesForMerchantPermission('quotes:manage');
 
 router.post('/public/start', validateBody(startLeadSchema), quoteController.startPublicLead);
 router.post('/public/document', uploadLimiter, upload.single('document'), quoteController.processPublicDocument);
@@ -29,19 +31,19 @@ router.post(
 router.put('/:id', authenticate, authorize('CUSTOMER'), validateBody(updateQuoteDraftSchema), quoteController.updateCustomerDraft);
 router.post('/:id/submit', authenticate, authorize('CUSTOMER'), quoteController.submitCustomerQuote);
 
-router.get('/admin/list', authenticate, authorize('ADMIN'), quoteController.getAdminQuotes);
-router.get('/admin/leads', authenticate, authorize('ADMIN'), quoteController.getCapturedLeads);
+router.get('/admin/list', authenticate, authorize(...quoteRoles), quoteController.getAdminQuotes);
+router.get('/admin/leads', authenticate, authorize(...quoteRoles), quoteController.getCapturedLeads);
 router.post(
   '/admin/:id/status',
   authenticate,
-  authorize('ADMIN'),
+  authorize(...quoteRoles),
   validateBody(updateQuoteStatusSchema),
   quoteController.updateQuoteStatus
 );
 router.post(
   '/admin/leads/:id/status',
   authenticate,
-  authorize('ADMIN'),
+  authorize(...quoteRoles),
   validateBody(updateLeadStatusSchema),
   quoteController.updateLeadStatus
 );
