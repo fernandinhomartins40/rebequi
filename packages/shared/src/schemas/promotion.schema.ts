@@ -27,30 +27,44 @@ export const promotionImageSchema = z.object({
   height: z.number().int().positive().optional(),
 });
 
+const fixedPriceOfferPricingSchema = z.object({
+  mode: z.literal('fixed_price'),
+  promotionalPrice: z.number().positive('Informe o preço promocional'),
+});
+
+const percentageDiscountOfferPricingSchema = z.object({
+  mode: z.literal('percentage_discount'),
+  discountPercentage: z.number().positive('Informe o percentual de desconto').max(100, 'Desconto inválido'),
+});
+
+const buyXPayYOfferPricingSchema = z.object({
+  mode: z.literal('buy_x_pay_y'),
+  minimumQuantity: z.number().int().min(2, 'Informe a quantidade mínima'),
+  payQuantity: z.number().int().min(1, 'Informe a quantidade cobrada'),
+});
+
+const bulkPercentageOfferPricingSchema = z.object({
+  mode: z.literal('bulk_percentage'),
+  minimumQuantity: z.number().int().min(2, 'Informe a quantidade mínima'),
+  discountPercentage: z.number().positive('Informe o percentual de desconto').max(100, 'Desconto inválido'),
+});
+
 export const promotionOfferPricingSchema = z
   .discriminatedUnion('mode', [
-    z.object({
-      mode: z.literal('fixed_price'),
-      promotionalPrice: z.number().positive('Informe o preço promocional'),
-    }),
-    z.object({
-      mode: z.literal('percentage_discount'),
-      discountPercentage: z.number().positive('Informe o percentual de desconto').max(100, 'Desconto inválido'),
-    }),
-    z.object({
-      mode: z.literal('buy_x_pay_y'),
-      minimumQuantity: z.number().int().min(2, 'Informe a quantidade mínima'),
-      payQuantity: z.number().int().min(1, 'Informe a quantidade cobrada'),
-    }).refine((value) => value.payQuantity < value.minimumQuantity, {
-      message: 'A quantidade cobrada deve ser menor que a quantidade levada',
-      path: ['payQuantity'],
-    }),
-    z.object({
-      mode: z.literal('bulk_percentage'),
-      minimumQuantity: z.number().int().min(2, 'Informe a quantidade mínima'),
-      discountPercentage: z.number().positive('Informe o percentual de desconto').max(100, 'Desconto inválido'),
-    }),
-  ]);
+    fixedPriceOfferPricingSchema,
+    percentageDiscountOfferPricingSchema,
+    buyXPayYOfferPricingSchema,
+    bulkPercentageOfferPricingSchema,
+  ])
+  .superRefine((value, context) => {
+    if (value.mode === 'buy_x_pay_y' && value.payQuantity >= value.minimumQuantity) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'A quantidade cobrada deve ser menor que a quantidade levada',
+        path: ['payQuantity'],
+      });
+    }
+  });
 
 export const createPromotionSchema = z
   .object({
@@ -58,7 +72,7 @@ export const createPromotionSchema = z
     slug: z.string().max(160).optional(),
     kind: promotionKindSchema.default('collection'),
     eyebrow: z.string().max(80).optional(),
-    title: z.string().min(1, 'Título e obrigatório').max(120, 'Título muito longo'),
+    title: z.string().min(1, 'Título é obrigatório').max(120, 'Título muito longo'),
     subtitle: z.string().max(160).optional(),
     description: z.string().max(1200).optional(),
     badgeText: z.string().max(40).optional(),
