@@ -24,13 +24,11 @@ export type MerchantDashboardOutletContext = {
   productSummary?: ProductSummary;
   categorySummary?: CategorySummary;
   promotionSummary?: PromotionSummary;
-  offerSummary?: PromotionSummary;
   quoteSummary?: QuoteSummary;
   leadSummary?: LeadSummary;
   products: ProductItem[];
   categories: CategoryItem[];
   promotions: PromotionItem[];
-  offers: PromotionItem[];
   quotes: QuoteItem[];
   leads: LeadItem[];
   navItems: MerchantNavItem[];
@@ -52,11 +50,6 @@ export function useMerchantDashboardData(): MerchantDashboardOutletContext {
   const { data: promotionSummary } = useQuery({
     queryKey: ['merchant-dashboard', 'promotions-badge'],
     queryFn: () => fetchAdminPromotions({ kind: 'collection', page: 1, limit: 1 }),
-  });
-
-  const { data: offerSummary } = useQuery({
-    queryKey: ['merchant-dashboard', 'offers-badge'],
-    queryFn: () => fetchAdminPromotions({ kind: 'single_product', page: 1, limit: 1 }),
   });
 
   const { data: quoteSummary } = useQuery({
@@ -82,10 +75,6 @@ export function useMerchantDashboardData(): MerchantDashboardOutletContext {
       return { ...item, badge: `${promotionSummary?.total ?? 0}` };
     }
 
-    if (item.id === 'ofertas') {
-      return { ...item, badge: `${offerSummary?.total ?? 0}` };
-    }
-
     if (item.id === 'orcamentos') {
       const quotesTotal = quoteSummary?.total ?? 0;
       const leadsTotal = leadSummary?.total ?? 0;
@@ -101,13 +90,11 @@ export function useMerchantDashboardData(): MerchantDashboardOutletContext {
     productSummary,
     categorySummary,
     promotionSummary,
-    offerSummary,
     quoteSummary,
     leadSummary,
     products: productSummary?.products ?? [],
     categories: categorySummary?.categories ?? [],
     promotions: promotionSummary?.promotions ?? [],
-    offers: offerSummary?.promotions ?? [],
     quotes: quoteSummary?.quotes ?? [],
     leads: leadSummary?.leads ?? [],
     navItems,

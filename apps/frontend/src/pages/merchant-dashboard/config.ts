@@ -1,4 +1,4 @@
-import { BadgePercent, BarChart3, CheckCircle2, FileText, ShieldCheck, Boxes, Tag, type LucideIcon } from 'lucide-react';
+import { BadgePercent, BarChart3, Boxes, CheckCircle2, FileText, ShieldCheck, type LucideIcon } from 'lucide-react';
 
 export const ADMIN_BASE_PATH = '/painel-lojista/painel';
 
@@ -13,7 +13,7 @@ export const SIDEBAR_THEME = {
   '--sidebar-ring': '217 91% 60%',
 } as const;
 
-export type MerchantSection = 'visao-geral' | 'produtos' | 'promocoes' | 'ofertas' | 'orcamentos' | 'acesso' | 'estabilidade';
+export type MerchantSection = 'visao-geral' | 'produtos' | 'promocoes' | 'orcamentos' | 'acesso' | 'estabilidade';
 
 export type MerchantNavItem = {
   id: MerchantSection;
@@ -57,16 +57,6 @@ export const NAV_SECTIONS: Omit<MerchantNavItem, 'badge'>[] = [
     eyebrow: 'Promoções',
     title: 'Gestão de promoções',
     intro: 'Crie cards promocionais, defina validade e vincule produtos a cada campanha.',
-  },
-  {
-    id: 'ofertas',
-    href: `${ADMIN_BASE_PATH}/ofertas`,
-    label: 'Ofertas',
-    description: 'Promoções avulsas',
-    icon: Tag,
-    eyebrow: 'Ofertas',
-    title: 'Ofertas individuais',
-    intro: 'Gerencie promoções avulsas de um único produto exibidas na home.',
   },
   {
     id: 'orcamentos',

@@ -11,7 +11,6 @@ import MerchantPanel from "./pages/MerchantPanel";
 import MerchantDashboard, {
   MerchantDashboardAccess,
   MerchantDashboardLayout,
-  MerchantDashboardOffers,
   MerchantDashboardProducts,
   MerchantDashboardPromotions,
   MerchantDashboardQuotes,
@@ -62,7 +61,7 @@ const App = () => (
                 <Route path="visao-geral" element={<MerchantDashboard />} />
                 <Route path="produtos" element={<MerchantDashboardProducts />} />
                 <Route path="promocoes" element={<MerchantDashboardPromotions />} />
-                <Route path="ofertas" element={<MerchantDashboardOffers />} />
+                <Route path="ofertas" element={<Navigate to="/painel-lojista/painel/produtos" replace />} />
                 <Route path="orcamentos" element={<MerchantDashboardQuotes />} />
                 <Route path="acesso" element={<MerchantDashboardAccess />} />
                 <Route path="estabilidade" element={<MerchantDashboardStability />} />
