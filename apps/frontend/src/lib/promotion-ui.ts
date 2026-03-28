@@ -1,4 +1,4 @@
-import type { PromotionKind, PromotionStatus, PromotionTheme } from '@rebequi/shared/types';
+import type { Product, Promotion, PromotionKind, PromotionStatus, PromotionTheme } from '@rebequi/shared/types';
 
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
   day: '2-digit',
@@ -120,4 +120,36 @@ export function formatPromotionWindow(params: {
 
 export function getPromotionHref(kind: PromotionKind, slug: string) {
   return kind === 'single_product' ? `/ofertas/${slug}` : `/promocoes/${slug}`;
+}
+
+export function getPromotionBadgeLabel(promotion?: Promotion | null) {
+  return promotion?.badgeText || promotion?.offerPricing?.shortLabel;
+}
+
+export function getPromotionProductPricingData(promotion: Promotion | undefined, product: Product) {
+  const offerPricing = promotion?.offerPricing;
+
+  if (!offerPricing?.effectiveUnitPrice) {
+    return {
+      price: product.price,
+      originalPrice: product.originalPrice,
+      discount: product.discount,
+      offerSummary: undefined as string | undefined,
+    };
+  }
+
+  const originalPrice =
+    offerPricing.referencePrice && offerPricing.referencePrice > offerPricing.effectiveUnitPrice
+      ? offerPricing.referencePrice
+      : product.originalPrice;
+
+  return {
+    price: offerPricing.effectiveUnitPrice,
+    originalPrice,
+    discount:
+      offerPricing.effectiveDiscountPercentage !== undefined
+        ? Math.round(offerPricing.effectiveDiscountPercentage)
+        : product.discount,
+    offerSummary: offerPricing.summary,
+  };
 }

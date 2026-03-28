@@ -7,6 +7,7 @@ import { z } from 'zod';
 
 export const promotionThemeSchema = z.enum(['gold', 'blue', 'green', 'red', 'slate']);
 export const promotionKindSchema = z.enum(['collection', 'single_product']);
+export const promotionOfferPricingModeSchema = z.enum(['fixed_price', 'percentage_discount', 'buy_x_pay_y', 'bulk_percentage']);
 
 const promotionImageUrlSchema = z
   .string()
@@ -26,6 +27,31 @@ export const promotionImageSchema = z.object({
   height: z.number().int().positive().optional(),
 });
 
+export const promotionOfferPricingSchema = z
+  .discriminatedUnion('mode', [
+    z.object({
+      mode: z.literal('fixed_price'),
+      promotionalPrice: z.number().positive('Informe o preço promocional'),
+    }),
+    z.object({
+      mode: z.literal('percentage_discount'),
+      discountPercentage: z.number().positive('Informe o percentual de desconto').max(100, 'Desconto inválido'),
+    }),
+    z.object({
+      mode: z.literal('buy_x_pay_y'),
+      minimumQuantity: z.number().int().min(2, 'Informe a quantidade mínima'),
+      payQuantity: z.number().int().min(1, 'Informe a quantidade cobrada'),
+    }).refine((value) => value.payQuantity < value.minimumQuantity, {
+      message: 'A quantidade cobrada deve ser menor que a quantidade levada',
+      path: ['payQuantity'],
+    }),
+    z.object({
+      mode: z.literal('bulk_percentage'),
+      minimumQuantity: z.number().int().min(2, 'Informe a quantidade mínima'),
+      discountPercentage: z.number().positive('Informe o percentual de desconto').max(100, 'Desconto inválido'),
+    }),
+  ]);
+
 export const createPromotionSchema = z
   .object({
     name: z.string().min(1, 'Nome e obrigatório').max(120, 'Nome muito longo'),
@@ -44,6 +70,7 @@ export const createPromotionSchema = z
     sortOrder: z.number().int().min(0).default(0),
     isActive: z.boolean().default(true),
     image: promotionImageSchema,
+    offerPricing: promotionOfferPricingSchema.optional(),
     productIds: z.array(z.string().min(1)).min(1, 'Selecione pelo menos um produto'),
   })
   .refine(
@@ -82,6 +109,7 @@ export const updatePromotionSchema = z
     sortOrder: z.number().int().min(0).optional(),
     isActive: z.boolean().optional(),
     image: promotionImageSchema.optional(),
+    offerPricing: promotionOfferPricingSchema.nullable().optional(),
     productIds: z.array(z.string().min(1)).min(1).optional(),
   })
   .refine(
@@ -111,3 +139,5 @@ export type PromotionFiltersInput = z.infer<typeof promotionFiltersSchema>;
 export type PromotionImageInput = z.infer<typeof promotionImageSchema>;
 export type PromotionThemeInput = z.infer<typeof promotionThemeSchema>;
 export type PromotionKindInput = z.infer<typeof promotionKindSchema>;
+export type PromotionOfferPricingInput = z.infer<typeof promotionOfferPricingSchema>;
+export type PromotionOfferPricingModeInput = z.infer<typeof promotionOfferPricingModeSchema>;

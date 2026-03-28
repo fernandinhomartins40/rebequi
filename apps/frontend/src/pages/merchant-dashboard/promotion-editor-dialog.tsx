@@ -2,7 +2,15 @@ import { useDeferredValue, useEffect, useRef, useState, type ChangeEvent } from 
 import { useForm } from 'react-hook-form';
 import { useMutation } from '@tanstack/react-query';
 import { ImagePlus, Loader2, Save, Search, Trash2 } from 'lucide-react';
-import type { Product, Promotion, PromotionImageAsset, PromotionKind, PromotionTheme } from '@rebequi/shared/types';
+import type {
+  Product,
+  Promotion,
+  PromotionImageAsset,
+  PromotionKind,
+  PromotionOfferPricing,
+  PromotionOfferPricingMode,
+  PromotionTheme,
+} from '@rebequi/shared/types';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -36,6 +44,11 @@ type PromotionFormFields = {
   expiresAt: string;
   sortOrder: string;
   isActive: boolean;
+  pricingMode: PromotionOfferPricingMode | 'none';
+  promotionalPrice: string;
+  discountPercentage: string;
+  minimumQuantity: string;
+  payQuantity: string;
 };
 
 type PromotionDraftImage = PromotionImageAsset & {
@@ -54,6 +67,14 @@ const THEME_OPTIONS: Array<{ label: string; value: PromotionTheme }> = [
   { label: 'Slate', value: 'slate' },
 ];
 
+const PRICING_MODE_OPTIONS: Array<{ label: string; value: PromotionOfferPricingMode | 'none' }> = [
+  { label: 'Sem regra comercial', value: 'none' },
+  { label: 'Preço promocional', value: 'fixed_price' },
+  { label: 'Percentual de desconto', value: 'percentage_discount' },
+  { label: 'Leve X, pague Y', value: 'buy_x_pay_y' },
+  { label: 'Desconto por quantidade', value: 'bulk_percentage' },
+];
+
 function createEmptyValues(): PromotionFormFields {
   return {
     name: '',
@@ -70,6 +91,11 @@ function createEmptyValues(): PromotionFormFields {
     expiresAt: '',
     sortOrder: '0',
     isActive: true,
+    pricingMode: 'none',
+    promotionalPrice: '',
+    discountPercentage: '',
+    minimumQuantity: '',
+    payQuantity: '',
   };
 }
 
@@ -85,6 +111,20 @@ function toOptionalInteger(value: string) {
   }
 
   return Math.max(0, Math.trunc(parsedValue));
+}
+
+function toOptionalNumber(value: string) {
+  const trimmedValue = value.trim().replace(',', '.');
+  if (!trimmedValue) {
+    return undefined;
+  }
+
+  const parsedValue = Number(trimmedValue);
+  if (Number.isNaN(parsedValue)) {
+    return undefined;
+  }
+
+  return parsedValue;
 }
 
 function toOptionalIsoDateTime(value: string) {
@@ -219,6 +259,108 @@ function buildQuickOfferValues(product: Product): PromotionFormFields {
     expiresAt: getDefaultQuickOfferExpiryValue(),
     sortOrder: '0',
     isActive: true,
+    pricingMode: 'none',
+    promotionalPrice: '',
+    discountPercentage: product.discount ? String(product.discount) : '',
+    minimumQuantity: '',
+    payQuantity: '',
+  };
+}
+
+function buildOfferPricingFormValues(offerPricing?: PromotionOfferPricing) {
+  if (!offerPricing) {
+    return {
+      pricingMode: 'none' as const,
+      promotionalPrice: '',
+      discountPercentage: '',
+      minimumQuantity: '',
+      payQuantity: '',
+    };
+  }
+
+  return {
+    pricingMode: offerPricing.mode,
+    promotionalPrice: offerPricing.promotionalPrice !== undefined ? String(offerPricing.promotionalPrice) : '',
+    discountPercentage: offerPricing.discountPercentage !== undefined ? String(offerPricing.discountPercentage) : '',
+    minimumQuantity: offerPricing.minimumQuantity !== undefined ? String(offerPricing.minimumQuantity) : '',
+    payQuantity: offerPricing.payQuantity !== undefined ? String(offerPricing.payQuantity) : '',
+  };
+}
+
+function buildOfferPricingPayload(
+  fields: PromotionFormFields,
+  options?: {
+    clearWhenNone?: boolean;
+  },
+): PromotionOfferPricing | null | undefined {
+  const pricingMode = fields.pricingMode;
+
+  if (pricingMode === 'none') {
+    return options?.clearWhenNone ? null : undefined;
+  }
+
+  if (pricingMode === 'fixed_price') {
+    const promotionalPrice = toOptionalNumber(fields.promotionalPrice);
+    if (!promotionalPrice || promotionalPrice <= 0) {
+      throw new Error('Informe um preço promocional válido.');
+    }
+
+    return {
+      mode: 'fixed_price',
+      promotionalPrice,
+    };
+  }
+
+  if (pricingMode === 'percentage_discount') {
+    const discountPercentage = toOptionalNumber(fields.discountPercentage);
+    if (!discountPercentage || discountPercentage <= 0 || discountPercentage > 100) {
+      throw new Error('Informe um percentual de desconto válido.');
+    }
+
+    return {
+      mode: 'percentage_discount',
+      discountPercentage,
+    };
+  }
+
+  if (pricingMode === 'buy_x_pay_y') {
+    const minimumQuantity = toOptionalInteger(fields.minimumQuantity);
+    const payQuantity = toOptionalInteger(fields.payQuantity);
+
+    if (!minimumQuantity || minimumQuantity < 2) {
+      throw new Error('Informe quantas unidades o cliente precisa levar.');
+    }
+
+    if (!payQuantity || payQuantity < 1) {
+      throw new Error('Informe quantas unidades serão cobradas.');
+    }
+
+    if (payQuantity >= minimumQuantity) {
+      throw new Error('Na regra Leve X, pague Y, a quantidade cobrada deve ser menor que a quantidade levada.');
+    }
+
+    return {
+      mode: 'buy_x_pay_y',
+      minimumQuantity,
+      payQuantity,
+    };
+  }
+
+  const minimumQuantity = toOptionalInteger(fields.minimumQuantity);
+  const discountPercentage = toOptionalNumber(fields.discountPercentage);
+
+  if (!minimumQuantity || minimumQuantity < 2) {
+    throw new Error('Informe a quantidade mínima para liberar o desconto.');
+  }
+
+  if (!discountPercentage || discountPercentage <= 0 || discountPercentage > 100) {
+    throw new Error('Informe um percentual de desconto válido.');
+  }
+
+  return {
+    mode: 'bulk_percentage',
+    minimumQuantity,
+    discountPercentage,
   };
 }
 
@@ -256,6 +398,7 @@ function buildCreatePayload(
     sortOrder: toOptionalInteger(fields.sortOrder) ?? 0,
     isActive: fields.isActive,
     image,
+    offerPricing: buildOfferPricingPayload(fields),
     productIds,
   };
 }
@@ -294,6 +437,7 @@ function buildUpdatePayload(
     sortOrder: toOptionalInteger(fields.sortOrder) ?? 0,
     isActive: fields.isActive,
     image,
+    offerPricing: buildOfferPricingPayload(fields, { clearWhenNone: true }),
     productIds,
   };
 }
@@ -380,6 +524,7 @@ export function PromotionEditorDialog({
       expiresAt: toDateTimeLocalValue(promotion.expiresAt),
       sortOrder: String(promotion.sortOrder ?? 0),
       isActive: promotion.isActive,
+      ...buildOfferPricingFormValues(promotion.offerPricing),
     });
     setSelectedProductIds((promotion.products ?? []).map((productItem) => productItem.id));
     setProductSearch('');
@@ -450,6 +595,7 @@ export function PromotionEditorDialog({
   });
 
   const title = watch('title');
+  const pricingMode = watch('pricingMode');
   const activeProducts = products.filter((product) => product.isActive);
   const categoryOptions = Array.from(
     new Set(
@@ -541,6 +687,92 @@ export function PromotionEditorDialog({
       return fallbackImage;
     });
   };
+
+  const renderOfferPricingFields = (compact: boolean) => (
+    <div className="space-y-4 rounded-[1.5rem] border border-black/5 bg-slate-50/80 p-4">
+      <div className="space-y-1">
+        <p className="text-sm font-semibold text-foreground">Condição da oferta</p>
+        <p className="text-xs leading-5 text-muted-foreground">
+          Defina como o cliente verá o benefício desta oferta. Base atual do produto:
+          {' '}
+          {lockedProduct ? `R$ ${lockedProduct.price.toFixed(2)}` : 'produto não selecionado'}.
+        </p>
+      </div>
+
+      <div className={`grid gap-4 ${compact ? '' : 'md:grid-cols-2'}`}>
+        <div className="space-y-2">
+          <Label htmlFor="promotion-pricing-mode">Como a oferta funciona</Label>
+          <select
+            id="promotion-pricing-mode"
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            {...register('pricingMode')}
+          >
+            {PRICING_MODE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {pricingMode === 'fixed_price' ? (
+          <div className="space-y-2">
+            <Label htmlFor="promotion-promotional-price">Preço promocional</Label>
+            <Input id="promotion-promotional-price" inputMode="decimal" placeholder="149,90" {...register('promotionalPrice')} />
+          </div>
+        ) : null}
+
+        {pricingMode === 'percentage_discount' ? (
+          <div className="space-y-2">
+            <Label htmlFor="promotion-discount-percentage">Percentual de desconto</Label>
+            <Input id="promotion-discount-percentage" inputMode="decimal" placeholder="15" {...register('discountPercentage')} />
+          </div>
+        ) : null}
+
+        {pricingMode === 'buy_x_pay_y' ? (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="promotion-minimum-quantity-buy">Leva quantas unidades</Label>
+              <Input id="promotion-minimum-quantity-buy" inputMode="numeric" placeholder="2" {...register('minimumQuantity')} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="promotion-pay-quantity">Paga quantas unidades</Label>
+              <Input id="promotion-pay-quantity" inputMode="numeric" placeholder="1" {...register('payQuantity')} />
+            </div>
+          </>
+        ) : null}
+
+        {pricingMode === 'bulk_percentage' ? (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="promotion-minimum-quantity-bulk">Quantidade mínima</Label>
+              <Input id="promotion-minimum-quantity-bulk" inputMode="numeric" placeholder="5" {...register('minimumQuantity')} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="promotion-bulk-discount-percentage">Desconto liberado</Label>
+              <Input id="promotion-bulk-discount-percentage" inputMode="decimal" placeholder="10" {...register('discountPercentage')} />
+            </div>
+          </>
+        ) : null}
+      </div>
+
+      {pricingMode === 'fixed_price' ? (
+        <p className="text-xs text-muted-foreground">Exemplo: de R$ 199,90 por R$ 149,90.</p>
+      ) : null}
+
+      {pricingMode === 'percentage_discount' ? (
+        <p className="text-xs text-muted-foreground">Exemplo: 15% OFF no valor unitário do produto.</p>
+      ) : null}
+
+      {pricingMode === 'buy_x_pay_y' ? (
+        <p className="text-xs text-muted-foreground">Exemplo: leve 2 unidades e pague apenas 1.</p>
+      ) : null}
+
+      {pricingMode === 'bulk_percentage' ? (
+        <p className="text-xs text-muted-foreground">Exemplo: a partir de 5 unidades, o cliente ganha 10% de desconto.</p>
+      ) : null}
+    </div>
+  );
 
   return (
     <>
@@ -695,7 +927,11 @@ export function PromotionEditorDialog({
                         <Input id="promotion-expires-at" type="datetime-local" {...register('expiresAt')} />
                         <p className="text-xs text-muted-foreground">Já sugerimos um prazo inicial de 7 dias. Ajuste se precisar.</p>
                       </div>
+                    </div>
 
+                    {renderOfferPricingFields(true)}
+
+                    <div className="grid gap-4 md:grid-cols-2">
                       <div className="space-y-2 md:col-span-2">
                         <Label htmlFor="promotion-subtitle">Chamada curta</Label>
                         <Input id="promotion-subtitle" placeholder="Texto curto que aparece no card da oferta" {...register('subtitle')} />
@@ -904,6 +1140,8 @@ export function PromotionEditorDialog({
                         Promoção ativa
                       </label>
                     </div>
+
+                    {isSingleProductMode ? renderOfferPricingFields(false) : null}
 
                     <div className="space-y-2">
                       <Label htmlFor="promotion-disclaimer">Mensagem auxiliar</Label>

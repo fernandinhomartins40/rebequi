@@ -145,6 +145,13 @@ enum PromotionKind {
   SINGLE_PRODUCT
 }
 
+enum PromotionOfferPricingMode {
+  FIXED_PRICE
+  PERCENTAGE_DISCOUNT
+  BUY_X_PAY_Y
+  BULK_PERCENTAGE
+}
+
 model Promotion {
   id              String             @id @default(cuid())
   name            String
@@ -166,6 +173,11 @@ model Promotion {
   imageSize       Int?
   imageWidth      Int?
   imageHeight     Int?
+  offerPricingMode       PromotionOfferPricingMode?
+  offerPromotionalPrice  Float?
+  offerDiscountPercentage Float?
+  offerMinimumQuantity   Int?
+  offerPayQuantity       Int?
   startsAt        DateTime?
   expiresAt       DateTime?
   sortOrder       Int                @default(0)
@@ -177,6 +189,7 @@ model Promotion {
 
   @@index([slug])
   @@index([kind])
+  @@index([offerPricingMode])
   @@index([themeTone])
   @@index([sortOrder])
   @@index([isActive])

@@ -8,6 +8,21 @@ import type { Product } from './product.js';
 export type PromotionTheme = 'gold' | 'blue' | 'green' | 'red' | 'slate';
 export type PromotionStatus = 'active' | 'scheduled' | 'expired' | 'inactive';
 export type PromotionKind = 'collection' | 'single_product';
+export type PromotionOfferPricingMode = 'fixed_price' | 'percentage_discount' | 'buy_x_pay_y' | 'bulk_percentage';
+
+export interface PromotionOfferPricing {
+  mode: PromotionOfferPricingMode;
+  promotionalPrice?: number;
+  discountPercentage?: number;
+  minimumQuantity?: number;
+  payQuantity?: number;
+  referencePrice?: number;
+  effectiveUnitPrice?: number;
+  bundlePrice?: number;
+  effectiveDiscountPercentage?: number;
+  summary?: string;
+  shortLabel?: string;
+}
 
 export interface PromotionImageAsset {
   url: string;
@@ -42,6 +57,7 @@ export interface Promotion {
   categoryCount: number;
   categories: string[];
   image?: PromotionImageAsset;
+  offerPricing?: PromotionOfferPricing;
   primaryProduct?: Product;
   products?: Product[];
   createdAt: Date | string;
@@ -83,6 +99,7 @@ export interface CreatePromotionDTO {
   sortOrder?: number;
   isActive?: boolean;
   image: PromotionImageAsset;
+  offerPricing?: PromotionOfferPricing;
   productIds: string[];
 }
 
@@ -103,5 +120,6 @@ export interface UpdatePromotionDTO {
   sortOrder?: number;
   isActive?: boolean;
   image?: PromotionImageAsset;
+  offerPricing?: PromotionOfferPricing | null;
   productIds?: string[];
 }

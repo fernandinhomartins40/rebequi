@@ -10,10 +10,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/components/ui/use-toast';
-import { formatPromotionStatusLabel, formatPromotionWindow, getPromotionStatusTone } from '@/lib/promotion-ui';
+import { formatPromotionStatusLabel, getPromotionStatusTone } from '@/lib/promotion-ui';
 import { deleteCategory, fetchCategories } from '@/services/api/categories';
 import { deleteProduct, fetchAdminProducts } from '@/services/api/products';
-import { deletePromotion } from '@/services/api/promotions';
 import { CategoryEditorDialog } from './category-editor-dialog';
 import { ADMIN_BASE_PATH } from './config';
 import { SectionLeadCard, StatCard } from './components';
@@ -115,24 +114,6 @@ export function MerchantDashboardProducts() {
     },
   });
 
-  const deleteOfferMutation = useMutation({
-    mutationFn: deletePromotion,
-    onSuccess: async () => {
-      toast({
-        title: 'Oferta excluída',
-        description: 'A oferta individual foi removida com sucesso.',
-      });
-      await refreshQueries();
-    },
-    onError: (error) => {
-      toast({
-        variant: 'destructive',
-        title: 'Falha ao excluir oferta',
-        description: error instanceof Error ? error.message : 'Erro inesperado ao excluir a oferta.',
-      });
-    },
-  });
-
   const products = adminProducts?.products ?? [];
   const singleProductOffers = offersSnapshot?.promotions ?? [];
   const singleProductOffersByProduct = buildSingleProductOfferMap(singleProductOffers);
@@ -219,14 +200,6 @@ export function MerchantDashboardProducts() {
     }
 
     await deleteCategoryMutation.mutateAsync(category.id);
-  };
-
-  const handleDeleteOffer = async (offer: Promotion) => {
-    if (!window.confirm(`Excluir a oferta "${offer.title}"?`)) {
-      return;
-    }
-
-    await deleteOfferMutation.mutateAsync(offer.id);
   };
 
   return (
@@ -577,16 +550,16 @@ export function MerchantDashboardProducts() {
                     key={product.id}
                     className="overflow-hidden rounded-2xl border border-black/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.94))] shadow-[0_18px_45px_-42px_rgba(15,23,42,0.2)]"
                   >
-                    <div className="grid gap-0 sm:grid-cols-[180px_minmax(0,1fr)]">
+                    <div className="grid gap-0 sm:grid-cols-[144px_minmax(0,1fr)]">
                       <div className="relative bg-slate-100">
                         {primaryImage ? (
                           <img
                             src={primaryImage.url}
                             alt={primaryImage.alt || product.name}
-                            className="aspect-[16/10] w-full object-cover sm:aspect-square sm:h-full"
+                            className="aspect-[16/10] w-full object-cover sm:aspect-[4/5] sm:h-full"
                           />
                         ) : (
-                          <div className="flex aspect-[16/10] items-center justify-center text-sm text-muted-foreground sm:aspect-square sm:h-full">
+                          <div className="flex aspect-[16/10] items-center justify-center text-sm text-muted-foreground sm:aspect-[4/5] sm:h-full">
                             Sem imagem
                           </div>
                         )}
@@ -600,115 +573,77 @@ export function MerchantDashboardProducts() {
                         </div>
                       </div>
 
-                      <div className="space-y-3 p-4">
+                      <div className="space-y-2.5 p-3.5">
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div className="min-w-0 flex-1">
-                            <h3 className="line-clamp-2 text-lg font-semibold leading-snug text-foreground">{product.name}</h3>
+                            <h3 className="line-clamp-2 text-base font-semibold leading-snug text-foreground sm:text-lg">{product.name}</h3>
                             <p className="truncate text-sm text-muted-foreground">
                               {product.category?.name ?? 'Sem categoria'}{product.sku ? ` | SKU ${product.sku}` : ''}
                             </p>
                           </div>
                           <div className="rounded-xl border border-black/5 bg-slate-50 px-3 py-2 sm:text-right">
-                            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Preco</p>
-                            <p className="mt-1 text-xl font-bold leading-none text-foreground">R$ {product.price.toFixed(2)}</p>
+                            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Preço</p>
+                            <p className="mt-1 text-lg font-bold leading-none text-foreground sm:text-xl">R$ {product.price.toFixed(2)}</p>
                           </div>
                         </div>
 
-                        <p className="line-clamp-2 text-sm leading-6 text-muted-foreground" title={productSummary}>
+                        <p className="line-clamp-1 text-sm leading-6 text-muted-foreground" title={productSummary}>
                           {productSummary}
                         </p>
 
-                        <div className="rounded-2xl border border-black/5 bg-white/85 p-3">
-                          <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="rounded-2xl border border-black/5 bg-white/90 px-3 py-2.5">
+                          <div className="flex flex-wrap items-center justify-between gap-3">
                             <div className="space-y-1">
                               <p className="text-sm font-semibold text-foreground">Oferta individual</p>
                               <p className="text-xs leading-5 text-muted-foreground">
                                 {primaryOffer
-                                  ? 'Esse produto já possui uma oferta rápida vinculada à home pública.'
-                                  : 'Crie uma oferta rápida sem sair desta tela e publique o produto em Promoções imperdíveis.'}
+                                  ? primaryOffer.offerPricing?.shortLabel || primaryOffer.title
+                                  : 'Publique este produto em Promoções imperdíveis com um cadastro rápido.'}
                               </p>
                             </div>
-                            {primaryOffer ? (
-                              <span className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-semibold ${getPromotionStatusTone(primaryOffer.status)}`}>
-                                {formatPromotionStatusLabel(primaryOffer.status)}
-                              </span>
-                            ) : (
-                              <span className="inline-flex rounded-full border border-dashed border-black/10 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
-                                Sem oferta
-                              </span>
-                            )}
-                          </div>
-
-                          {primaryOffer ? (
-                            <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
-                              <div className="space-y-2">
-                                <p className="text-sm font-medium text-foreground">{primaryOffer.title}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {formatPromotionWindow({
-                                    startsAt: primaryOffer.startsAt,
-                                    expiresAt: primaryOffer.expiresAt,
-                                  })}
-                                </p>
-                                <PromotionCountdown expiresAt={primaryOffer.expiresAt} compact />
-                                {additionalOffersCount > 0 ? (
-                                  <p className="text-xs text-amber-800">
-                                    +{additionalOffersCount} oferta{additionalOffersCount > 1 ? 's' : ''} adicional{additionalOffersCount > 1 ? 'is' : ''} vinculada{additionalOffersCount > 1 ? 's' : ''} a este produto.
-                                  </p>
-                                ) : null}
-                              </div>
-
-                              <div className="flex flex-wrap gap-2 md:justify-end">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => openOfferDialog(product, primaryOffer)}
-                                  className="gap-2 border-black/10"
-                                >
-                                  <Clock3 className="h-4 w-4" />
-                                  Gerenciar oferta
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => void handleDeleteOffer(primaryOffer)}
-                                  disabled={deleteOfferMutation.isPending}
-                                  className="gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                  Excluir oferta
-                                </Button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                              <p className="text-xs text-muted-foreground">
-                                O card já abre preenchido com o nome do produto, imagem principal e validade sugerida.
-                              </p>
+                            <div className="flex flex-wrap items-center gap-2">
+                              {primaryOffer ? (
+                                <span className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-semibold ${getPromotionStatusTone(primaryOffer.status)}`}>
+                                  {formatPromotionStatusLabel(primaryOffer.status)}
+                                </span>
+                              ) : (
+                                <span className="inline-flex rounded-full border border-dashed border-black/10 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
+                                  Sem oferta
+                                </span>
+                              )}
                               <Button
                                 size="sm"
-                                onClick={() => openOfferDialog(product)}
+                                variant={primaryOffer ? 'outline' : 'default'}
+                                onClick={() => openOfferDialog(product, primaryOffer)}
                                 disabled={!product.isActive}
                                 className="gap-2"
                               >
                                 <Clock3 className="h-4 w-4" />
-                                Criar oferta rápida
+                                {primaryOffer ? 'Gerenciar' : 'Criar'}
                               </Button>
                             </div>
-                          )}
+                          </div>
+
+                          {primaryOffer ? (
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              <PromotionCountdown expiresAt={primaryOffer.expiresAt} compact />
+                              {additionalOffersCount > 0 ? (
+                                <span className="text-xs text-amber-800">
+                                  +{additionalOffersCount} oferta{additionalOffersCount > 1 ? 's' : ''} extra
+                                </span>
+                              ) : null}
+                            </div>
+                          ) : null}
                         </div>
 
                         <div className="flex flex-wrap gap-2">
-                          <span className="inline-flex items-center rounded-full border border-black/5 bg-slate-50 px-3 py-1.5 text-xs text-foreground">
-                            Estoque:
+                          <span className="inline-flex items-center rounded-full border border-black/5 bg-slate-50 px-3 py-1 text-xs text-foreground">
+                            Estoque
                             <span className="ml-1.5 font-semibold">{product.stock}</span>
                           </span>
                           <span className="inline-flex items-center rounded-full border border-black/5 bg-slate-50 px-3 py-1.5 text-xs text-foreground">
-                            Minimo:
+                            Mínimo
                             <span className="ml-1.5 font-semibold">{product.minStock}</span>
-                          </span>
-                          <span className="inline-flex items-center rounded-full border border-black/5 bg-slate-50 px-3 py-1.5 text-xs text-foreground">
-                            Imagens:
-                            <span className="ml-1.5 font-semibold">{product.images?.length ?? 0}</span>
                           </span>
                         </div>
 
@@ -717,12 +652,6 @@ export function MerchantDashboardProducts() {
                             <Pencil className="h-4 w-4" />
                             Editar
                           </Button>
-                          {!primaryOffer ? (
-                            <Button size="sm" variant="outline" onClick={() => openOfferDialog(product)} disabled={!product.isActive} className="gap-2 border-black/10">
-                              <Clock3 className="h-4 w-4" />
-                              Oferta rápida
-                            </Button>
-                          ) : null}
                           <Button
                             size="sm"
                             variant="outline"

@@ -2,6 +2,7 @@ import ProductCard from "./ProductCard";
 import { Button } from "@/components/ui/button";
 import type { Product, Promotion } from "@/types";
 import { Link } from "react-router-dom";
+import { getPromotionBadgeLabel, getPromotionProductPricingData } from "@/lib/promotion-ui";
 
 type ProductSectionItem = {
   product: Product;
@@ -51,6 +52,7 @@ const ProductSection = ({
               (product.images && product.images.length > 0 && product.images[0].url) ||
               "https://via.placeholder.com/400x300?text=Produto";
             const categoryName = product.category?.name || "Categoria";
+            const pricing = getPromotionProductPricingData(promotion, product);
 
             return (
               <ProductCard
@@ -58,15 +60,16 @@ const ProductSection = ({
                 id={product.id}
                 slug={product.slug}
                 name={product.name}
-                price={product.price}
-                originalPrice={product.originalPrice}
+                price={pricing.price}
+                originalPrice={pricing.originalPrice}
                 image={primaryImage}
                 category={categoryName}
                 href={href}
                 isNew={product.isNew}
                 isOffer={promotion?.kind === 'single_product' || product.isOffer}
-                discount={product.discount}
-                promotionBadge={promotion?.badgeText}
+                discount={pricing.discount}
+                promotionBadge={getPromotionBadgeLabel(promotion)}
+                offerSummary={pricing.offerSummary}
                 countdownTo={promotion?.expiresAt}
               />
             );

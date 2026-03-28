@@ -18,6 +18,7 @@ interface ProductCardProps {
   isOffer?: boolean;
   discount?: number;
   promotionBadge?: string;
+  offerSummary?: string;
   countdownTo?: string | Date | null;
   countdownLabel?: string;
 }
@@ -35,6 +36,7 @@ const ProductCard = ({
   isOffer = false,
   discount,
   promotionBadge,
+  offerSummary,
   countdownTo,
   countdownLabel,
 }: ProductCardProps) => {
@@ -100,6 +102,10 @@ const ProductCard = ({
             <span className="text-sm text-muted-foreground line-through">{formatPrice(originalPrice)}</span>
           ) : null}
         </div>
+
+        {offerSummary ? (
+          <p className="mb-3 line-clamp-2 text-sm leading-5 text-muted-foreground">{offerSummary}</p>
+        ) : null}
 
         {countdownTo ? (
           <PromotionCountdown expiresAt={countdownTo} label={countdownLabel || 'Termina em'} className="mb-3" />

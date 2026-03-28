@@ -9,7 +9,13 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { fetchPromotionBySlug } from '@/services/api/promotions';
-import { formatPromotionStatusLabel, formatPromotionWindow, getPromotionThemeClasses } from '@/lib/promotion-ui';
+import {
+  formatPromotionStatusLabel,
+  formatPromotionWindow,
+  getPromotionBadgeLabel,
+  getPromotionProductPricingData,
+  getPromotionThemeClasses,
+} from '@/lib/promotion-ui';
 
 const PromotionDetailsPage = () => {
   const { slug = '' } = useParams();
@@ -95,7 +101,7 @@ const PromotionDetailsPage = () => {
 
                 <div className="flex flex-wrap gap-2">
                   <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${theme.chip}`}>
-                    {promotion.badgeText || formatPromotionStatusLabel(promotion.status)}
+                    {getPromotionBadgeLabel(promotion) || formatPromotionStatusLabel(promotion.status)}
                   </span>
                   {promotion.categories.map((category) => (
                     <span
@@ -108,6 +114,18 @@ const PromotionDetailsPage = () => {
                 </div>
 
                 <PromotionCountdown expiresAt={promotion.expiresAt} />
+
+                {isSingleProductPromotion && promotion.offerPricing ? (
+                  <div className="rounded-2xl border border-black/5 bg-white/80 px-4 py-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Condição da oferta</p>
+                    <p className="mt-2 text-base font-semibold text-foreground">
+                      {promotion.offerPricing.shortLabel || 'Oferta especial'}
+                    </p>
+                    {promotion.offerPricing.summary ? (
+                      <p className="mt-2 text-sm leading-6 text-muted-foreground">{promotion.offerPricing.summary}</p>
+                    ) : null}
+                  </div>
+                ) : null}
 
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div className="rounded-2xl border border-black/5 bg-white/85 px-4 py-4">
@@ -176,6 +194,7 @@ const PromotionDetailsPage = () => {
                   (product.images && product.images.length > 0 && product.images[0].url) ||
                   'https://via.placeholder.com/400x300?text=Produto';
                 const categoryName = product.category?.name || 'Categoria';
+                const pricing = getPromotionProductPricingData(promotion, product);
 
                 return (
                   <ProductCard
@@ -183,15 +202,16 @@ const PromotionDetailsPage = () => {
                     id={product.id}
                     slug={product.slug}
                     name={product.name}
-                    price={product.price}
-                    originalPrice={product.originalPrice}
+                    price={pricing.price}
+                    originalPrice={pricing.originalPrice}
                     image={primaryImage}
                     category={categoryName}
                     href={`/produto/${product.slug}`}
                     isNew={product.isNew}
                     isOffer={isSingleProductPromotion || product.isOffer}
-                    discount={product.discount}
-                    promotionBadge={promotion.badgeText}
+                    discount={pricing.discount}
+                    promotionBadge={getPromotionBadgeLabel(promotion)}
+                    offerSummary={pricing.offerSummary}
                     countdownTo={promotion.expiresAt}
                   />
                 );

@@ -1,9 +1,10 @@
-import { Prisma, PromotionKind, PromotionTheme } from '@prisma/client';
+import { Prisma, PromotionKind, PromotionOfferPricingMode, PromotionTheme } from '@prisma/client';
 import { slugify } from '@rebequi/shared/utils';
 import type {
   CreatePromotionInput,
   PromotionFiltersInput,
   PromotionImageInput,
+  PromotionOfferPricingInput,
   UpdatePromotionInput,
 } from '@rebequi/shared/schemas';
 import { ProductRepository } from '../repositories/product.repository.js';
@@ -72,6 +73,7 @@ export class PromotionService {
     await this.ensureSlugAvailable(slug);
     const productIds = this.normalizeProductIds(data.productIds);
     this.validateProductCountForKind(kind, productIds);
+    this.validateOfferPricingForKind(kind, data.offerPricing);
     await this.ensureProductsExist(productIds);
 
     const promotion = await this.promotionRepository.create({
@@ -91,6 +93,7 @@ export class PromotionService {
       sortOrder: data.sortOrder ?? 0,
       isActive: data.isActive ?? true,
       ...this.mapImageFields(data.image),
+      ...this.mapOfferPricingFields(data.offerPricing),
       products: {
         create: productIds.map((productId, index) => ({
           order: index,
@@ -113,9 +116,14 @@ export class PromotionService {
     const updateData: Prisma.PromotionUpdateInput = {};
     const nextKind = data.kind !== undefined ? this.mapKind(data.kind) : currentPromotion.kind;
     const currentProductIds = (currentPromotion.products ?? []).map((item) => item.productId);
+    const nextOfferPricing = data.offerPricing !== undefined ? data.offerPricing : undefined;
 
     if (data.kind !== undefined && data.productIds === undefined) {
       this.validateProductCountForKind(nextKind, currentProductIds);
+    }
+
+    if (data.kind !== undefined || data.offerPricing !== undefined) {
+      this.validateOfferPricingForKind(nextKind, nextOfferPricing ?? this.extractOfferPricingInput(currentPromotion));
     }
 
     if (data.name !== undefined) {
@@ -175,6 +183,9 @@ export class PromotionService {
     }
     if (data.image !== undefined) {
       Object.assign(updateData, this.mapImageFields(data.image));
+    }
+    if (data.offerPricing !== undefined) {
+      Object.assign(updateData, this.mapOfferPricingFields(data.offerPricing));
     }
     if (data.productIds !== undefined) {
       const productIds = this.normalizeProductIds(data.productIds);
@@ -384,6 +395,112 @@ export class PromotionService {
     }
   }
 
+  private extractOfferPricingInput(promotion: any): PromotionOfferPricingInput | undefined {
+    if (!promotion.offerPricingMode) {
+      return undefined;
+    }
+
+    switch (promotion.offerPricingMode) {
+      case PromotionOfferPricingMode.FIXED_PRICE:
+        return promotion.offerPromotionalPrice
+          ? {
+              mode: 'fixed_price',
+              promotionalPrice: promotion.offerPromotionalPrice,
+            }
+          : undefined;
+      case PromotionOfferPricingMode.PERCENTAGE_DISCOUNT:
+        return promotion.offerDiscountPercentage
+          ? {
+              mode: 'percentage_discount',
+              discountPercentage: promotion.offerDiscountPercentage,
+            }
+          : undefined;
+      case PromotionOfferPricingMode.BUY_X_PAY_Y:
+        return promotion.offerMinimumQuantity && promotion.offerPayQuantity
+          ? {
+              mode: 'buy_x_pay_y',
+              minimumQuantity: promotion.offerMinimumQuantity,
+              payQuantity: promotion.offerPayQuantity,
+            }
+          : undefined;
+      case PromotionOfferPricingMode.BULK_PERCENTAGE:
+        return promotion.offerMinimumQuantity && promotion.offerDiscountPercentage
+          ? {
+              mode: 'bulk_percentage',
+              minimumQuantity: promotion.offerMinimumQuantity,
+              discountPercentage: promotion.offerDiscountPercentage,
+            }
+          : undefined;
+      default:
+        return undefined;
+    }
+  }
+
+  private validateOfferPricingForKind(kind: PromotionKind, offerPricing?: PromotionOfferPricingInput | null) {
+    if (!offerPricing) {
+      return;
+    }
+
+    if (kind !== PromotionKind.SINGLE_PRODUCT) {
+      throw new ValidationError('Regras comerciais de oferta estão disponíveis apenas para promoções de produto único');
+    }
+  }
+
+  private mapOfferPricingFields(offerPricing?: PromotionOfferPricingInput | null) {
+    if (!offerPricing) {
+      return {
+        offerPricingMode: null,
+        offerPromotionalPrice: null,
+        offerDiscountPercentage: null,
+        offerMinimumQuantity: null,
+        offerPayQuantity: null,
+      };
+    }
+
+    switch (offerPricing.mode) {
+      case 'fixed_price':
+        return {
+          offerPricingMode: PromotionOfferPricingMode.FIXED_PRICE,
+          offerPromotionalPrice: offerPricing.promotionalPrice,
+          offerDiscountPercentage: null,
+          offerMinimumQuantity: null,
+          offerPayQuantity: null,
+        };
+      case 'percentage_discount':
+        return {
+          offerPricingMode: PromotionOfferPricingMode.PERCENTAGE_DISCOUNT,
+          offerPromotionalPrice: null,
+          offerDiscountPercentage: offerPricing.discountPercentage,
+          offerMinimumQuantity: null,
+          offerPayQuantity: null,
+        };
+      case 'buy_x_pay_y':
+        return {
+          offerPricingMode: PromotionOfferPricingMode.BUY_X_PAY_Y,
+          offerPromotionalPrice: null,
+          offerDiscountPercentage: null,
+          offerMinimumQuantity: offerPricing.minimumQuantity,
+          offerPayQuantity: offerPricing.payQuantity,
+        };
+      case 'bulk_percentage':
+        return {
+          offerPricingMode: PromotionOfferPricingMode.BULK_PERCENTAGE,
+          offerPromotionalPrice: null,
+          offerDiscountPercentage: offerPricing.discountPercentage,
+          offerMinimumQuantity: offerPricing.minimumQuantity,
+          offerPayQuantity: null,
+        };
+      default:
+        return {
+          offerPricingMode: null,
+          offerPromotionalPrice: null,
+          offerDiscountPercentage: null,
+          offerMinimumQuantity: null,
+          offerPayQuantity: null,
+        };
+    }
+  }
+
   private async ensureProductsExist(productIds: string[]) {
     const products = await this.productRepository.findByIds(productIds);
 
@@ -580,6 +697,139 @@ export class PromotionService {
     };
   }
 
+  private formatCurrency(value: number) {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(value);
+  }
+
+  private formatPercentage(value: number) {
+    return new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: Number.isInteger(value) ? 0 : 1,
+      maximumFractionDigits: Number.isInteger(value) ? 0 : 2,
+    }).format(value);
+  }
+
+  private formatOfferPricing(promotion: any, primaryProduct?: { price?: number } | null) {
+    if (!promotion.offerPricingMode) {
+      return undefined;
+    }
+
+    const referencePrice = primaryProduct?.price;
+
+    switch (promotion.offerPricingMode) {
+      case PromotionOfferPricingMode.FIXED_PRICE: {
+        const promotionalPrice = promotion.offerPromotionalPrice ?? undefined;
+        if (promotionalPrice === undefined) {
+          return undefined;
+        }
+
+        const effectiveDiscountPercentage =
+          referencePrice && referencePrice > promotionalPrice
+            ? Number((((referencePrice - promotionalPrice) / referencePrice) * 100).toFixed(2))
+            : undefined;
+
+        return {
+          mode: 'fixed_price' as const,
+          promotionalPrice,
+          referencePrice,
+          effectiveUnitPrice: promotionalPrice,
+          effectiveDiscountPercentage,
+          summary: `Preço promocional por unidade: ${this.formatCurrency(promotionalPrice)}.`,
+          shortLabel: `Por ${this.formatCurrency(promotionalPrice)}`,
+        };
+      }
+      case PromotionOfferPricingMode.PERCENTAGE_DISCOUNT: {
+        const discountPercentage = promotion.offerDiscountPercentage ?? undefined;
+        if (discountPercentage === undefined) {
+          return undefined;
+        }
+
+        const effectiveUnitPrice =
+          referencePrice !== undefined
+            ? Number((referencePrice * (1 - discountPercentage / 100)).toFixed(2))
+            : undefined;
+
+        return {
+          mode: 'percentage_discount' as const,
+          discountPercentage,
+          referencePrice,
+          effectiveUnitPrice,
+          effectiveDiscountPercentage: discountPercentage,
+          summary:
+            effectiveUnitPrice !== undefined
+              ? `${this.formatPercentage(discountPercentage)}% de desconto, saindo por ${this.formatCurrency(effectiveUnitPrice)} cada.`
+              : `${this.formatPercentage(discountPercentage)}% de desconto no valor unitário.`,
+          shortLabel: `${this.formatPercentage(discountPercentage)}% OFF`,
+        };
+      }
+      case PromotionOfferPricingMode.BUY_X_PAY_Y: {
+        const minimumQuantity = promotion.offerMinimumQuantity ?? undefined;
+        const payQuantity = promotion.offerPayQuantity ?? undefined;
+        if (!minimumQuantity || !payQuantity) {
+          return undefined;
+        }
+
+        const bundlePrice =
+          referencePrice !== undefined
+            ? Number((referencePrice * payQuantity).toFixed(2))
+            : undefined;
+        const effectiveUnitPrice =
+          referencePrice !== undefined
+            ? Number(((referencePrice * payQuantity) / minimumQuantity).toFixed(2))
+            : undefined;
+        const effectiveDiscountPercentage =
+          referencePrice !== undefined
+            ? Number((100 - (payQuantity / minimumQuantity) * 100).toFixed(2))
+            : undefined;
+
+        return {
+          mode: 'buy_x_pay_y' as const,
+          minimumQuantity,
+          payQuantity,
+          referencePrice,
+          bundlePrice,
+          effectiveUnitPrice,
+          effectiveDiscountPercentage,
+          summary:
+            effectiveUnitPrice !== undefined
+              ? `Leve ${minimumQuantity} e pague ${payQuantity}. Valor efetivo: ${this.formatCurrency(effectiveUnitPrice)} por unidade.`
+              : `Leve ${minimumQuantity} e pague ${payQuantity}.`,
+          shortLabel: `Leve ${minimumQuantity}, pague ${payQuantity}`,
+        };
+      }
+      case PromotionOfferPricingMode.BULK_PERCENTAGE: {
+        const minimumQuantity = promotion.offerMinimumQuantity ?? undefined;
+        const discountPercentage = promotion.offerDiscountPercentage ?? undefined;
+        if (!minimumQuantity || discountPercentage === undefined) {
+          return undefined;
+        }
+
+        const effectiveUnitPrice =
+          referencePrice !== undefined
+            ? Number((referencePrice * (1 - discountPercentage / 100)).toFixed(2))
+            : undefined;
+
+        return {
+          mode: 'bulk_percentage' as const,
+          minimumQuantity,
+          discountPercentage,
+          referencePrice,
+          effectiveUnitPrice,
+          effectiveDiscountPercentage: discountPercentage,
+          summary:
+            effectiveUnitPrice !== undefined
+              ? `A partir de ${minimumQuantity} unidades, cada item sai por ${this.formatCurrency(effectiveUnitPrice)} com ${this.formatPercentage(discountPercentage)}% de desconto.`
+              : `${this.formatPercentage(discountPercentage)}% de desconto a partir de ${minimumQuantity} unidades.`,
+          shortLabel: `${this.formatPercentage(discountPercentage)}% OFF no atacado`,
+        };
+      }
+      default:
+        return undefined;
+    }
+  }
+
   private formatPromotion(promotion: any) {
     const products = (promotion.products ?? []).map((item: any) => this.formatProduct(item.product));
     const categories = Array.from(
@@ -612,6 +862,7 @@ export class PromotionService {
       categoryCount: categories.length,
       categories,
       primaryProduct: products[0],
+      offerPricing: this.formatOfferPricing(promotion, products[0]),
       image: promotion.imageUrl
         ? {
             url: promotion.imageUrl,
