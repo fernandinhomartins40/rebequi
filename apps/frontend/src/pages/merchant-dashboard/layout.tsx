@@ -21,7 +21,9 @@ export function MerchantDashboardLayout() {
   const dashboardData = useMerchantDashboardData();
 
   const activeItem =
-    dashboardData.navItems.find((item) => location.pathname === item.href) ?? dashboardData.navItems[0];
+    dashboardData.navItems.find(
+      (item) => location.pathname === item.href || location.pathname.startsWith(`${item.href}/`)
+    ) ?? dashboardData.navItems[0];
 
   const handleLogout = async () => {
     await logout();

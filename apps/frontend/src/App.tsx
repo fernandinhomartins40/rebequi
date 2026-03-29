@@ -13,6 +13,7 @@ import MerchantPanel from "./pages/MerchantPanel";
 import MerchantDashboard, {
   MerchantDashboardAccess,
   MerchantDashboardLayout,
+  MerchantDashboardOrderDetails,
   MerchantDashboardOrders,
   MerchantDashboardProducts,
   MerchantDashboardPromotions,
@@ -83,6 +84,7 @@ const App = () => (
                   </Route>
                   <Route element={<MerchantPermissionRoute permission="orders:manage" />}>
                     <Route path="pedidos" element={<MerchantDashboardOrders />} />
+                    <Route path="pedidos/:orderId" element={<MerchantDashboardOrderDetails />} />
                   </Route>
                   <Route element={<MerchantPermissionRoute permission="quotes:manage" />}>
                     <Route path="orcamentos" element={<MerchantDashboardQuotes />} />

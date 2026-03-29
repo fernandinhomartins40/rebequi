@@ -21,6 +21,7 @@ router.get('/me', authenticate, authorize('CUSTOMER'), orderController.listCusto
 router.post('/checkout', authenticate, authorize('CUSTOMER'), validateBody(authenticatedCheckoutOrderSchema), orderController.authenticatedCheckout);
 
 router.get('/admin/list', authenticate, authorize(...orderRoles), validateQuery(orderFiltersSchema), orderController.listAdminOrders);
+router.get('/admin/:id', authenticate, authorize(...orderRoles), orderController.getAdminOrder);
 router.post(
   '/admin/:id/status',
   authenticate,

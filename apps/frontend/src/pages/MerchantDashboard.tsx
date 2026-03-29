@@ -1,5 +1,6 @@
 export {
   MerchantDashboardAccess,
+  MerchantDashboardOrderDetails,
   MerchantDashboardLayout,
   MerchantDashboardOrders,
   MerchantDashboardProducts,

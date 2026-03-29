@@ -1,4 +1,5 @@
-import type { OrderStatus } from '@/types';
+import { normalizeWhatsapp } from '@rebequi/shared/utils';
+import type { CustomerOrder, OrderStatus } from '@/types';
 
 export function getOrderStatusLabel(status: OrderStatus) {
   switch (status) {
@@ -32,4 +33,15 @@ export function getOrderStatusBadgeClass(status: OrderStatus) {
     default:
       return 'border-black/10 bg-slate-50 text-slate-700';
   }
+}
+
+export function buildCustomerWhatsappUrl(order: Pick<CustomerOrder, 'customerNameSnapshot' | 'customerWhatsapp' | 'referenceCode'>) {
+  const normalizedWhatsapp = normalizeWhatsapp(order.customerWhatsapp);
+
+  if (!normalizedWhatsapp) {
+    return '#';
+  }
+
+  const message = `Ola ${order.customerNameSnapshot}, aqui e da Rebequi. Estou falando sobre o pedido ${order.referenceCode}.`;
+  return `https://wa.me/55${normalizedWhatsapp}?text=${encodeURIComponent(message)}`;
 }

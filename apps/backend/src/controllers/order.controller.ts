@@ -99,6 +99,15 @@ export class OrderController {
     }
   };
 
+  getAdminOrder = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const order = await this.orderService.getAdminOrderById(req.params.id);
+      successResponse(res, order, 200);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   updateOrderStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const payload: UpdateOrderStatusInput = req.body;

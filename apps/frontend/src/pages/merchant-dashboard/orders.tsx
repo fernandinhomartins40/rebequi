@@ -1,11 +1,27 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertTriangle, CheckCircle2, Clock3, MessageCircleMore, Search, ShoppingCart } from 'lucide-react';
+import {
+  CheckCircle2,
+  Eye,
+  MessageCircleMore,
+  MoreHorizontal,
+  Pencil,
+  Search,
+  ShoppingCart,
+} from 'lucide-react';
 import { formatDateTime, formatWhatsapp } from '@rebequi/shared/utils';
-import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { Link } from 'react-router-dom';
 import { OrderStatusBadge } from '@/components/OrderStatusBadge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -16,11 +32,13 @@ import {
 } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { buildCustomerWhatsappUrl } from '@/lib/order-ui';
 import { fetchAdminOrders, updateAdminOrderStatus } from '@/services/api/orders';
 import type { CustomerOrder, OrderStatus } from '@/types';
 import { DashboardPanel, SectionLeadCard, StatCard } from './components';
+import { ADMIN_BASE_PATH } from './config';
 
 type QueueView = 'all' | 'recovery';
 type StatusFilterValue = 'all' | OrderStatus;
@@ -47,7 +65,6 @@ export function MerchantDashboardOrders() {
   const [search, setSearch] = useState('');
   const [queueView, setQueueView] = useState<QueueView>('recovery');
   const [statusFilter, setStatusFilter] = useState<StatusFilterValue>('all');
-  const [notesDrafts, setNotesDrafts] = useState<Record<string, string>>({});
   const debouncedSearch = useDebouncedValue(search, 300);
 
   const ordersQuery = useQuery({
@@ -63,13 +80,18 @@ export function MerchantDashboardOrders() {
   });
 
   const statusMutation = useMutation({
-    mutationFn: ({ id, internalNotes, status }: { id: string; internalNotes?: string; status: OrderStatus }) =>
+    mutationFn: ({ id, status, internalNotes }: { id: string; status: OrderStatus; internalNotes?: string }) =>
       updateAdminOrderStatus(id, { internalNotes, status }),
-    onSuccess: async () => {
+    onSuccess: async (updatedOrder) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['merchant-dashboard', 'orders'] }),
         queryClient.invalidateQueries({ queryKey: ['merchant-dashboard', 'orders-badge'] }),
       ]);
+
+      toast({
+        title: 'Pedido atualizado',
+        description: `${updatedOrder.referenceCode} agora esta como ${updatedOrder.status}.`,
+      });
     },
     onError: (error) => {
       toast({
@@ -81,20 +103,6 @@ export function MerchantDashboardOrders() {
   });
 
   const orders = ordersQuery.data?.orders ?? [];
-
-  useEffect(() => {
-    setNotesDrafts((currentDrafts) => {
-      const nextDrafts = { ...currentDrafts };
-
-      orders.forEach((order) => {
-        if (!(order.id in nextDrafts)) {
-          nextDrafts[order.id] = order.internalNotes || '';
-        }
-      });
-
-      return nextDrafts;
-    });
-  }, [orders]);
 
   const metrics = useMemo(() => {
     const pendingWhatsapp = orders.filter((order) => order.status === 'PENDING_WHATSAPP').length;
@@ -113,7 +121,7 @@ export function MerchantDashboardOrders() {
   const handleStatusChange = async (order: CustomerOrder, status: OrderStatus) => {
     await statusMutation.mutateAsync({
       id: order.id,
-      internalNotes: notesDrafts[order.id]?.trim() || undefined,
+      internalNotes: order.internalNotes || undefined,
       status,
     });
   };
@@ -122,8 +130,8 @@ export function MerchantDashboardOrders() {
     <div className="space-y-6">
       <SectionLeadCard
         badge="Pedidos"
-        title="Checkout publico, fila de recuperacao e fechamento comercial"
-        description="Os pedidos entram no painel antes do redirecionamento para o WhatsApp. Isso permite acompanhar clientes que abriram a conversa, desistiram no meio ou precisam de retorno manual da equipe."
+        title="Pedidos em lista operacional"
+        description="A listagem mostra o que precisa de tratamento rapido. A edicao completa, notas e acompanhamento ficam na pagina dedicada de cada pedido."
         tone="blue"
       />
 
@@ -135,29 +143,29 @@ export function MerchantDashboardOrders() {
           delta="Resultado atual da consulta."
         />
         <StatCard
-          icon={<Clock3 className="h-5 w-5 text-primary" />}
-          label="Aguardando envio"
-          value={`${metrics.pendingWhatsapp}`}
-          delta="Cliente nao chegou a abrir o WhatsApp."
-        />
-        <StatCard
           icon={<MessageCircleMore className="h-5 w-5 text-primary" />}
           label="Fila de recuperacao"
-          value={`${metrics.redirected + metrics.recovery}`}
-          delta={`${metrics.recovery} ja em tratamento interno.`}
+          value={`${metrics.pendingWhatsapp + metrics.redirected + metrics.recovery}`}
+          delta={`${metrics.recovery} em tratamento manual.`}
         />
         <StatCard
           icon={<CheckCircle2 className="h-5 w-5 text-primary" />}
           label="Concluidos"
           value={`${metrics.completed}`}
-          delta="Pedidos fechados pelo time."
+          delta="Pedidos aprovados pelo time."
+        />
+        <StatCard
+          icon={<Search className="h-5 w-5 text-primary" />}
+          label="Em aberto"
+          value={`${metrics.pendingWhatsapp + metrics.redirected}`}
+          delta="Pedidos ainda sem fechamento."
         />
       </section>
 
       <DashboardPanel
         badge="Operacao"
         title="Pedidos registrados pelo carrinho e checkout"
-        description="Use busca, filtro e a troca de status para trabalhar a fila comercial e recuperar vendas quando o cliente nao concluir o WhatsApp."
+        description="Use a lista para triagem rapida e entre no pedido quando precisar gerenciar atendimento, aprovacoes e notas."
       >
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
           <div className="relative">
@@ -192,13 +200,13 @@ export function MerchantDashboardOrders() {
 
           <TabsContent value="recovery" className="mt-4">
             <p className="text-sm text-muted-foreground">
-              Mostra primeiro quem nao concluiu o contato ou ainda precisa de acompanhamento manual.
+              Priorizacao para pedidos que nao fecharam naturalmente no fluxo do WhatsApp.
             </p>
           </TabsContent>
 
           <TabsContent value="all" className="mt-4">
             <p className="text-sm text-muted-foreground">
-              Visao completa da operacao, incluindo pedidos concluidos e cancelados.
+              Visao completa da operacao com acesso rapido para gerenciar cada pedido.
             </p>
           </TabsContent>
         </Tabs>
@@ -211,7 +219,7 @@ export function MerchantDashboardOrders() {
           </div>
         ) : (
           <>
-            <div className="hidden overflow-x-auto rounded-[1.5rem] border border-black/5 xl:block">
+            <div className="hidden overflow-x-auto rounded-[1.5rem] border border-black/5 lg:block">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -221,6 +229,7 @@ export function MerchantDashboardOrders() {
                     <TableHead>Subtotal</TableHead>
                     <TableHead>WhatsApp</TableHead>
                     <TableHead>Atualizacao</TableHead>
+                    <TableHead className="text-right">Acoes</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -229,14 +238,11 @@ export function MerchantDashboardOrders() {
                       <TableCell>
                         <div>
                           <p className="font-semibold text-foreground">{order.customerNameSnapshot}</p>
-                          <p className="text-sm text-muted-foreground">{order.user?.name || 'Cadastro do cliente'}</p>
+                          <p className="text-sm text-muted-foreground">{order.itemCount} item(ns)</p>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div>
-                          <p className="font-semibold text-foreground">{order.referenceCode}</p>
-                          <p className="text-sm text-muted-foreground">{order.itemCount} item(ns)</p>
-                        </div>
+                        <p className="font-semibold text-foreground">{order.referenceCode}</p>
                       </TableCell>
                       <TableCell>
                         <OrderStatusBadge status={order.status} />
@@ -244,151 +250,147 @@ export function MerchantDashboardOrders() {
                       <TableCell>{formatPrice(order.subtotal)}</TableCell>
                       <TableCell>{formatWhatsapp(order.customerWhatsapp)}</TableCell>
                       <TableCell>{formatDateTime(order.updatedAt)}</TableCell>
+                      <TableCell className="text-right">
+                        <OrderRowActions
+                          compact
+                          order={order}
+                          isMutating={statusMutation.isPending}
+                          onApprove={() => void handleStatusChange(order, 'COMPLETED')}
+                          onRecovery={() => void handleStatusChange(order, 'IN_RECOVERY')}
+                          onRedirected={() => void handleStatusChange(order, 'WHATSAPP_REDIRECTED')}
+                          onCancel={() => void handleStatusChange(order, 'CANCELED')}
+                        />
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </div>
 
-            <div className="grid gap-4">
+            <div className="grid gap-3 lg:hidden">
               {orders.map((order) => (
                 <Card key={order.id} className="border-black/5 bg-slate-50 shadow-none">
-                  <CardContent className="space-y-4 p-4">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
+                  <CardContent className="space-y-3 p-4">
+                    <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="font-semibold text-foreground">{order.customerNameSnapshot}</p>
-                          <OrderStatusBadge status={order.status} />
-                        </div>
+                        <p className="font-semibold text-foreground">{order.customerNameSnapshot}</p>
                         <p className="mt-1 text-sm text-muted-foreground">
                           {formatWhatsapp(order.customerWhatsapp)} | {order.referenceCode}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-lg font-bold text-primary">{formatPrice(order.subtotal)}</p>
-                        <p className="text-sm text-muted-foreground">{order.itemCount} item(ns)</p>
+                        <p className="font-semibold text-primary">{formatPrice(order.subtotal)}</p>
+                        <p className="text-xs text-muted-foreground">{order.itemCount} item(ns)</p>
                       </div>
                     </div>
 
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <InfoLine label="Criado em" value={formatDateTime(order.createdAt)} />
-                      <InfoLine label="Ultima atualizacao" value={formatDateTime(order.updatedAt)} />
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <OrderStatusBadge status={order.status} />
+                      <span className="text-xs text-muted-foreground">{formatDateTime(order.updatedAt)}</span>
                     </div>
 
-                    <div className="rounded-2xl border border-black/5 bg-white px-4 py-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Itens</p>
-                      <ul className="mt-3 space-y-2">
-                        {order.items.map((item) => (
-                          <li key={item.id} className="flex items-center justify-between gap-3 text-sm">
-                            <span className="text-foreground">
-                              {item.quantity}x {item.productNameSnapshot}
-                            </span>
-                            <span className="font-semibold text-foreground">
-                              {formatPrice(item.quantity * item.unitPrice)}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label
-                        htmlFor={`order-notes-${order.id}`}
-                        className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground"
-                      >
-                        Observacoes internas
-                      </label>
-                      <Textarea
-                        id={`order-notes-${order.id}`}
-                        placeholder="Ex.: cliente abriu o checkout, mas nao mandou a mensagem. Retornar manualmente."
-                        value={notesDrafts[order.id] ?? ''}
-                        onChange={(event) =>
-                          setNotesDrafts((currentDrafts) => ({
-                            ...currentDrafts,
-                            [order.id]: event.target.value,
-                          }))
-                        }
-                      />
-                    </div>
-
-                    {order.customerNote ? (
-                      <div className="rounded-2xl border border-black/5 bg-white px-4 py-4 text-sm text-muted-foreground">
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                          Observacao do cliente
-                        </p>
-                        <p className="mt-2 leading-6 text-foreground">{order.customerNote}</p>
-                      </div>
-                    ) : null}
-
-                    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={statusMutation.isPending}
-                        onClick={() => void handleStatusChange(order, 'IN_RECOVERY')}
-                      >
-                        Colocar em recuperacao
-                      </Button>
-                      <Button
-                        size="sm"
-                        disabled={statusMutation.isPending}
-                        onClick={() => void handleStatusChange(order, 'COMPLETED')}
-                      >
-                        Marcar concluido
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        disabled={statusMutation.isPending}
-                        onClick={() => void handleStatusChange(order, 'WHATSAPP_REDIRECTED')}
-                      >
-                        Cliente foi ao WhatsApp
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        disabled={statusMutation.isPending}
-                        onClick={() => void handleStatusChange(order, 'CANCELED')}
-                      >
-                        Cancelar pedido
-                      </Button>
-                      {order.whatsappUrl ? (
-                        <Button size="sm" variant="ghost" asChild>
-                          <a href={order.whatsappUrl} target="_blank" rel="noreferrer">
-                            Abrir conversa
-                          </a>
-                        </Button>
-                      ) : null}
-                    </div>
+                    <OrderRowActions
+                      order={order}
+                      isMutating={statusMutation.isPending}
+                      onApprove={() => void handleStatusChange(order, 'COMPLETED')}
+                      onRecovery={() => void handleStatusChange(order, 'IN_RECOVERY')}
+                      onRedirected={() => void handleStatusChange(order, 'WHATSAPP_REDIRECTED')}
+                      onCancel={() => void handleStatusChange(order, 'CANCELED')}
+                    />
                   </CardContent>
                 </Card>
               ))}
             </div>
           </>
         )}
-
-        {queueView === 'recovery' ? (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
-            <div className="flex items-center gap-2 font-semibold">
-              <AlertTriangle className="h-4 w-4" />
-              Recuperacao de vendas
-            </div>
-            <p className="mt-2 leading-6">
-              Pedidos com status pendente, redirecionados ao WhatsApp ou ja em recuperacao ficam visiveis aqui para o
-              time comercial agir mesmo quando o cliente abandona o envio da mensagem.
-            </p>
-          </div>
-        ) : null}
       </DashboardPanel>
     </div>
   );
 }
 
-function InfoLine({ label, value }: { label: string; value: string }) {
+function OrderRowActions({
+  compact = false,
+  order,
+  isMutating,
+  onApprove,
+  onRecovery,
+  onRedirected,
+  onCancel,
+}: {
+  compact?: boolean;
+  order: CustomerOrder;
+  isMutating: boolean;
+  onApprove: () => void;
+  onRecovery: () => void;
+  onRedirected: () => void;
+  onCancel: () => void;
+}) {
+  const customerChatUrl = buildCustomerWhatsappUrl(order);
+
   return (
-    <div className="rounded-xl border border-black/5 bg-white px-3 py-3">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-foreground">{value}</p>
+    <div className={`flex items-center ${compact ? 'justify-end gap-1' : 'justify-between gap-2'}`}>
+      {!compact ? <span className="text-xs text-muted-foreground">Acoes</span> : null}
+
+      <div className="flex items-center gap-1">
+        <Button variant="ghost" size="icon" asChild>
+          <Link to={`${ADMIN_BASE_PATH}/pedidos/${order.id}`} aria-label={`Gerenciar ${order.referenceCode}`}>
+            <Eye className="h-4 w-4" />
+          </Link>
+        </Button>
+
+        <Button variant="ghost" size="icon" asChild>
+          <Link to={`${ADMIN_BASE_PATH}/pedidos/${order.id}`} aria-label={`Editar ${order.referenceCode}`}>
+            <Pencil className="h-4 w-4" />
+          </Link>
+        </Button>
+
+        <Button variant="ghost" size="icon" asChild>
+          <a href={customerChatUrl} target="_blank" rel="noreferrer" aria-label={`Conversar com ${order.customerNameSnapshot}`}>
+            <MessageCircleMore className="h-4 w-4" />
+          </a>
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          disabled={isMutating || order.status === 'COMPLETED'}
+          onClick={onApprove}
+          aria-label={`Aprovar ${order.referenceCode}`}
+        >
+          <CheckCircle2 className="h-4 w-4" />
+        </Button>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" aria-label={`Mais acoes para ${order.referenceCode}`}>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>Gerenciar pedido</DropdownMenuLabel>
+            <DropdownMenuItem asChild>
+              <Link to={`${ADMIN_BASE_PATH}/pedidos/${order.id}`}>Abrir pagina do pedido</Link>
+            </DropdownMenuItem>
+            {order.whatsappUrl ? (
+              <DropdownMenuItem asChild>
+                <a href={order.whatsappUrl} target="_blank" rel="noreferrer">
+                  Ver mensagem do checkout
+                </a>
+              </DropdownMenuItem>
+            ) : null}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem disabled={isMutating} onClick={onRecovery}>
+              Colocar em recuperacao
+            </DropdownMenuItem>
+            <DropdownMenuItem disabled={isMutating} onClick={onRedirected}>
+              Marcar cliente no WhatsApp
+            </DropdownMenuItem>
+            <DropdownMenuItem disabled={isMutating} onClick={onCancel} className="text-red-600 focus:text-red-600">
+              Cancelar pedido
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </div>
   );
 }

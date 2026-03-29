@@ -117,6 +117,11 @@ export async function fetchAdminOrders(filters?: OrderFilters): Promise<Customer
   return unwrapPaginatedOrders(response);
 }
 
+export async function fetchAdminOrderById(id: string): Promise<CustomerOrder> {
+  const response = await apiFetch<ApiResponse<CustomerOrder> | CustomerOrder>(`/orders/admin/${id}`);
+  return unwrapData<CustomerOrder>(response);
+}
+
 export async function updateAdminOrderStatus(id: string, payload: UpdateOrderStatusDTO): Promise<CustomerOrder> {
   const response = await apiFetch<ApiResponse<CustomerOrder> | CustomerOrder>(`/orders/admin/${id}/status`, {
     method: 'POST',

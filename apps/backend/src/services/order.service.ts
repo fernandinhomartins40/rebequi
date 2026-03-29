@@ -194,6 +194,16 @@ export class OrderService {
     };
   }
 
+  async getAdminOrderById(orderId: string) {
+    const order = await this.orderRepository.findOrderById(orderId);
+
+    if (!order) {
+      throw new NotFoundError('Pedido nao encontrado');
+    }
+
+    return this.formatOrder(order);
+  }
+
   async updateOrderStatus(orderId: string, data: UpdateOrderStatusInput) {
     const order = await this.orderRepository.findOrderById(orderId);
     if (!order) {
