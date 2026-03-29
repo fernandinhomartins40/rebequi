@@ -1,4 +1,4 @@
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { Navigate, Outlet, useLocation, useOutletContext } from 'react-router-dom';
 import { hasMerchantPermission, isMerchantUserRole, type MerchantPermission } from '@rebequi/shared/constants';
 import type { UserRole } from '@rebequi/shared/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -27,6 +27,7 @@ export function ProtectedRoute({
 }) {
   const { isAuthenticated, isLoading, user } = useAuth();
   const location = useLocation();
+  const outletContext = useOutletContext<unknown>();
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -40,7 +41,7 @@ export function ProtectedRoute({
     return <Navigate to={resolveFallbackRoute(user.role)} replace />;
   }
 
-  return <Outlet />;
+  return <Outlet context={outletContext} />;
 }
 
 export function MerchantPermissionRoute({
@@ -50,6 +51,7 @@ export function MerchantPermissionRoute({
 }) {
   const { isAuthenticated, isLoading, user } = useAuth();
   const location = useLocation();
+  const outletContext = useOutletContext<unknown>();
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -63,7 +65,7 @@ export function MerchantPermissionRoute({
     return <Navigate to={resolveFallbackRoute(user.role)} replace />;
   }
 
-  return <Outlet />;
+  return <Outlet context={outletContext} />;
 }
 
 export function RoleHomeRedirect() {
@@ -78,6 +80,7 @@ export function RoleHomeRedirect() {
 
 export function GuestRoute() {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const outletContext = useOutletContext<unknown>();
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -87,5 +90,5 @@ export function GuestRoute() {
     return <Navigate to={resolveFallbackRoute(user.role)} replace />;
   }
 
-  return <Outlet />;
+  return <Outlet context={outletContext} />;
 }

@@ -24,6 +24,8 @@ import CategoryDetailsPage from "./pages/CategoryDetails";
 import ProductDetails from "./pages/ProductDetails";
 import PromotionDetailsPage from "./pages/PromotionDetails";
 import PromotionsPage from "./pages/Promotions";
+import NewsPage from "./pages/News";
+import ContactPage from "./pages/Contact";
 import RequestQuotePage from "./pages/RequestQuote";
 import Register from "./pages/Register";
 
@@ -44,6 +46,8 @@ const App = () => (
             <Route path="/ofertas/:slug" element={<PromotionDetailsPage />} />
             <Route path="/promocoes" element={<PromotionsPage />} />
             <Route path="/promocoes/:slug" element={<PromotionDetailsPage />} />
+            <Route path="/novidades" element={<NewsPage />} />
+            <Route path="/contato" element={<ContactPage />} />
             <Route path="/produto/:slug" element={<ProductDetails />} />
             <Route path="/produtos/:slug" element={<ProductDetails />} />
 
