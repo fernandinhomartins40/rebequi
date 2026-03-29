@@ -1,9 +1,12 @@
 import { useState } from "react";
-import { Heart, Eye } from "lucide-react";
+import { Heart, Eye, ShoppingCart } from "lucide-react";
 import { Link } from "react-router-dom";
+import type { Product } from "@/types";
+import { useCart } from "@/contexts/CartContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PromotionCountdown } from "@/components/PromotionCountdown";
+import { useToast } from "@/components/ui/use-toast";
 
 interface ProductCardProps {
   id: string;
@@ -13,6 +16,8 @@ interface ProductCardProps {
   originalPrice?: number;
   image: string;
   category: string;
+  stock?: number;
+  promotionId?: string;
   href?: string;
   isNew?: boolean;
   isOffer?: boolean;
@@ -31,6 +36,8 @@ const ProductCard = ({
   originalPrice,
   image,
   category,
+  stock = 0,
+  promotionId,
   href,
   isNew = false,
   isOffer = false,
@@ -41,13 +48,50 @@ const ProductCard = ({
   countdownLabel,
 }: ProductCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
+  const { addItem } = useCart();
+  const { toast } = useToast();
   const productHref = href || `/produto/${slug}`;
+  const canAddToCart = stock > 0;
 
   const formatPrice = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
       currency: "BRL",
     }).format(value);
+  };
+
+  const handleAddToCart = () => {
+    if (!canAddToCart) {
+      return;
+    }
+
+    addItem(
+      {
+        category: { id: "", name: category, slug: "" },
+        categoryId: "",
+        createdAt: new Date().toISOString(),
+        id,
+        images: [{ alt: name, isPrimary: true, order: 0, url: image }],
+        isActive: true,
+        isFeatured: false,
+        isNew,
+        isOffer,
+        minStock: 0,
+        name,
+        originalPrice,
+        price,
+        slug,
+        stock,
+        updatedAt: new Date().toISOString(),
+      } as Product,
+      1,
+      promotionId,
+    );
+
+    toast({
+      title: "Produto adicionado",
+      description: `${name} foi para o carrinho.`,
+    });
   };
 
   return (
@@ -111,12 +155,18 @@ const ProductCard = ({
           <PromotionCountdown expiresAt={countdownTo} label={countdownLabel || 'Termina em'} className="mb-3" />
         ) : null}
 
-        <Button asChild className="w-full" size="sm">
-          <Link to={productHref}>
-            <Eye className="mr-2 h-4 w-4" />
-            Ver produto
-          </Link>
-        </Button>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Button size="sm" onClick={handleAddToCart} disabled={!canAddToCart}>
+            <ShoppingCart className="mr-2 h-4 w-4" />
+            {canAddToCart ? "Adicionar" : "Sem estoque"}
+          </Button>
+          <Button asChild className="w-full" size="sm" variant="outline">
+            <Link to={productHref}>
+              <Eye className="mr-2 h-4 w-4" />
+              Ver produto
+            </Link>
+          </Button>
+        </div>
       </div>
     </div>
   );

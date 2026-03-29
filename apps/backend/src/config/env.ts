@@ -31,6 +31,8 @@ const envSchema = z.object({
     .default('http://localhost:8080,http://127.0.0.1:8080')
     .transform((value) => value.split(',').map((item) => item.trim()).filter(Boolean)),
 
+  STORE_WHATSAPP: z.string().default('11999999999'),
+
   MAX_FILE_SIZE: z.coerce.number().positive().default(5242880),
   UPLOAD_DIR: z.string().default('./uploads'),
 

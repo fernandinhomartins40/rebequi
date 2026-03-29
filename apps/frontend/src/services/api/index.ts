@@ -9,4 +9,5 @@ export * from './categories';
 export * from './promotions';
 export * from './auth';
 export * from './quotes';
+export * from './orders';
 export * from './users';

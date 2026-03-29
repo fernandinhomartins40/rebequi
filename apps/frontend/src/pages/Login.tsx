@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { LogIn } from 'lucide-react';
 import { loginSchema, type LoginInput } from '@rebequi/shared/schemas';
 import { z } from 'zod';
@@ -22,16 +22,27 @@ type LoginFormValues = LoginInput & {
   rememberIdentifier: boolean;
 };
 
+type LoginLocationState = {
+  from?: {
+    pathname?: string;
+    search?: string;
+    hash?: string;
+  };
+  prefillIdentifier?: string;
+};
+
 const loginFormSchema = loginSchema.extend({
   rememberIdentifier: z.boolean().default(false),
 });
 
 const Login = () => {
   const { toast } = useToast();
+  const location = useLocation();
   const navigate = useNavigate();
   const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const { initialPreferences, persistPreferences } = useLoginPreferences(LOGIN_PREFERENCES_STORAGE_KEY);
+  const locationState = location.state as LoginLocationState | null;
 
   const {
     register,
@@ -53,6 +64,12 @@ const Login = () => {
     register('rememberIdentifier');
     register('keepSignedIn');
   }, [register]);
+
+  useEffect(() => {
+    if (locationState?.prefillIdentifier) {
+      setValue('identifier', locationState.prefillIdentifier, { shouldValidate: true });
+    }
+  }, [locationState?.prefillIdentifier, setValue]);
 
   const rememberIdentifier = watch('rememberIdentifier');
   const keepSignedIn = watch('keepSignedIn');
@@ -77,7 +94,11 @@ const Login = () => {
         description: 'Sessão autenticada com sucesso.',
       });
 
-      navigate(getDefaultRouteForRole(user.role));
+      const redirectTarget = locationState?.from?.pathname
+        ? `${locationState.from.pathname}${locationState.from.search || ''}${locationState.from.hash || ''}`
+        : getDefaultRouteForRole(user.role);
+
+      navigate(redirectTarget, { replace: true });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erro ao fazer login';
       toast({

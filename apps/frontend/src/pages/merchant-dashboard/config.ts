@@ -1,4 +1,4 @@
-import { BadgePercent, BarChart3, Boxes, FileText, ShieldCheck, type LucideIcon } from 'lucide-react';
+import { BadgePercent, BarChart3, Boxes, FileText, ReceiptText, ShieldCheck, type LucideIcon } from 'lucide-react';
 import { hasMerchantPermission, isMerchantUserRole, type MerchantPermission } from '@rebequi/shared/constants';
 import type { UserRole } from '@rebequi/shared/types';
 
@@ -15,7 +15,7 @@ export const SIDEBAR_THEME = {
   '--sidebar-ring': '217 91% 60%',
 } as const;
 
-export type MerchantSection = 'visao-geral' | 'produtos' | 'promocoes' | 'orcamentos' | 'acesso';
+export type MerchantSection = 'visao-geral' | 'produtos' | 'promocoes' | 'pedidos' | 'orcamentos' | 'acesso';
 
 export type MerchantNavItem = {
   id: MerchantSection;
@@ -63,6 +63,17 @@ export const NAV_SECTIONS: Omit<MerchantNavItem, 'badge'>[] = [
     title: 'Gestao de promocoes',
     intro: 'Crie cards promocionais, defina validade e vincule produtos a cada campanha.',
     requiredPermission: 'promotions:manage',
+  },
+  {
+    id: 'pedidos',
+    href: `${ADMIN_BASE_PATH}/pedidos`,
+    label: 'Pedidos',
+    description: 'Checkout e recuperacao',
+    icon: ReceiptText,
+    eyebrow: 'Pedidos',
+    title: 'Gestao de pedidos',
+    intro: 'Acompanhe checkouts enviados ao WhatsApp, pedidos abandonados e a recuperacao de vendas.',
+    requiredPermission: 'orders:manage',
   },
   {
     id: 'orcamentos',

@@ -5,10 +5,13 @@ import {
   AlertCircle,
   ArrowLeft,
   BadgePercent,
+  Minus,
+  Plus,
   CheckCircle2,
   Package,
   Ruler,
   ShieldCheck,
+  ShoppingCart,
   Tag,
   Truck,
   Weight,
@@ -16,6 +19,7 @@ import {
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProductSection from "@/components/ProductSection";
+import { useCart } from "@/contexts/CartContext";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -29,6 +33,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui/use-toast";
 import { fetchProductBySlug, fetchProductsByCategory } from "@/services/api/products";
 import { ApiError } from "@/services/api/client";
 
@@ -74,6 +79,9 @@ function ProductDetailsSkeleton() {
 export default function ProductDetails() {
   const { slug } = useParams<{ slug: string }>();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [quantity, setQuantity] = useState(1);
+  const { addItem, getItemQuantity } = useCart();
+  const { toast } = useToast();
 
   const {
     data: product,
@@ -94,6 +102,7 @@ export default function ProductDetails() {
 
   useEffect(() => {
     setSelectedImageIndex(0);
+    setQuantity(1);
   }, [product?.id]);
 
   if (!slug) {
@@ -154,6 +163,7 @@ export default function ProductDetails() {
   const selectedImage = images[selectedImageIndex] || images[0];
   const relatedProducts = (relatedProductsResponse?.products || []).filter((item) => item.id !== product.id);
   const hasStock = product.stock > 0;
+  const inCartQuantity = getItemQuantity(product.id);
 
   const detailItems = [
     product.sku
@@ -320,6 +330,62 @@ export default function ProductDetails() {
                   <p className="mt-2 text-sm text-muted-foreground">
                     Dados vindos da API pública, sem necessidade de login para consulta.
                   </p>
+                </div>
+              </div>
+
+              <Separator className="my-5" />
+
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="inline-flex items-center rounded-2xl border border-black/10 bg-white">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="rounded-r-none"
+                      onClick={() => setQuantity((current) => Math.max(1, current - 1))}
+                      disabled={!hasStock}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <div className="min-w-14 text-center text-sm font-semibold text-foreground">{quantity}</div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="rounded-l-none"
+                      onClick={() => setQuantity((current) => Math.min(product.stock, current + 1))}
+                      disabled={!hasStock}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  {inCartQuantity > 0 ? (
+                    <div className="rounded-full bg-primary/5 px-4 py-2 text-sm font-medium text-primary">
+                      {inCartQuantity} no carrinho
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Button
+                    className="w-full"
+                    disabled={!hasStock}
+                    onClick={() => {
+                      addItem(product, quantity);
+                      toast({
+                        title: 'Produto adicionado',
+                        description: `${quantity} unidade(s) de ${product.name} foram para o carrinho.`,
+                      });
+                    }}
+                  >
+                    <ShoppingCart className="mr-2 h-4 w-4" />
+                    {hasStock ? 'Adicionar ao carrinho' : 'Sem estoque'}
+                  </Button>
+                  <Button asChild variant="outline" className="w-full">
+                    <Link to="/carrinho">Ir para o carrinho</Link>
+                  </Button>
                 </div>
               </div>
             </div>

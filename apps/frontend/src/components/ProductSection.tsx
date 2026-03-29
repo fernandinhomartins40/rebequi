@@ -64,6 +64,8 @@ const ProductSection = ({
                 originalPrice={pricing.originalPrice}
                 image={primaryImage}
                 category={categoryName}
+                stock={product.stock}
+                promotionId={promotion?.id}
                 href={href}
                 isNew={product.isNew}
                 isOffer={Boolean(promotion?.offerPricing) || promotion?.kind === 'single_product' || product.isOffer}

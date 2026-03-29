@@ -6,6 +6,7 @@ import Header from "@/components/Header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { STORE_CONTACT } from "@/lib/store-contact";
 
 const CONTACT_CHANNELS: Array<{
   title: string;
@@ -19,18 +20,18 @@ const CONTACT_CHANNELS: Array<{
   {
     title: "Telefone",
     description: "Para duvidas rapidas sobre disponibilidade, atendimento e operacao da loja.",
-    detail: "(11) 9999-9999",
+    detail: STORE_CONTACT.whatsappDisplay,
     cta: "Ligar agora",
-    href: "tel:+551199999999",
+    href: `tel:+55${STORE_CONTACT.whatsappDigits}`,
     icon: Phone,
     kind: "external",
   },
   {
     title: "E-mail",
     description: "Ideal para pedidos de retorno, documentos, parcerias e contatos comerciais.",
-    detail: "contato@rebequi.com.br",
+    detail: STORE_CONTACT.email,
     cta: "Enviar e-mail",
-    href: "mailto:contato@rebequi.com.br",
+    href: `mailto:${STORE_CONTACT.email}`,
     icon: Mail,
     kind: "external",
   },
@@ -93,14 +94,14 @@ export default function ContactPage() {
                     <Phone className="h-4 w-4" />
                     Telefone
                   </div>
-                  <p className="mt-3 text-lg font-bold text-foreground">(11) 9999-9999</p>
+                  <p className="mt-3 text-lg font-bold text-foreground">{STORE_CONTACT.whatsappDisplay}</p>
                 </div>
                 <div className="rounded-2xl border border-black/5 bg-white/90 px-4 py-4">
                   <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                     <Mail className="h-4 w-4" />
                     E-mail
                   </div>
-                  <p className="mt-3 break-all text-lg font-bold text-foreground sm:break-normal">contato@rebequi.com.br</p>
+                  <p className="mt-3 break-all text-lg font-bold text-foreground sm:break-normal">{STORE_CONTACT.email}</p>
                 </div>
                 <div className="rounded-2xl border border-black/5 bg-white/90 px-4 py-4">
                   <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -182,11 +183,12 @@ export default function ContactPage() {
                       Endereco
                     </div>
                     <p className="mt-3 text-sm leading-7 text-foreground">
-                      Rua dos Materiais, 123
-                      <br />
-                      Centro - Sao Paulo, SP
-                      <br />
-                      CEP: 01234-567
+                      {STORE_CONTACT.address.map((line) => (
+                        <span key={line}>
+                          {line}
+                          <br />
+                        </span>
+                      ))}
                     </p>
                   </div>
 
@@ -196,11 +198,12 @@ export default function ContactPage() {
                       Horarios
                     </div>
                     <p className="mt-3 text-sm leading-7 text-foreground">
-                      Seg - Sex: 7h as 18h
-                      <br />
-                      Sabado: 7h as 16h
-                      <br />
-                      Domingo: 8h as 12h
+                      {STORE_CONTACT.openingHours.map((line) => (
+                        <span key={line}>
+                          {line}
+                          <br />
+                        </span>
+                      ))}
                     </p>
                   </div>
                 </CardContent>

@@ -209,6 +209,8 @@ const PromotionDetailsPage = () => {
                     originalPrice={pricing.originalPrice}
                     image={primaryImage}
                     category={categoryName}
+                    stock={product.stock}
+                    promotionId={promotion.id}
                     href={`/produto/${product.slug}`}
                     isNew={product.isNew}
                     isOffer={hasCommercialRule || isSingleProductPromotion || product.isOffer}

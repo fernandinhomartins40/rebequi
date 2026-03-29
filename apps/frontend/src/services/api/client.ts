@@ -10,13 +10,15 @@ export const getAuthHeaders = () => {
 
 export class ApiError extends Error {
   status: number;
+  code?: string;
   payload?: unknown;
 
-  constructor(message: string, status: number, payload?: unknown) {
+  constructor(message: string, status: number, payload?: unknown, code?: string) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.payload = payload;
+    this.code = code;
   }
 }
 
@@ -71,8 +73,12 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): 
           `${(payload as { error?: string; message?: string }).error || (payload as { message?: string }).message}`) ||
         (typeof payload === 'string' && payload) ||
         `API Error: ${response.status} ${response.statusText}`;
+      const code =
+        payload && typeof payload === 'object' && 'code' in payload
+          ? `${(payload as { code?: string }).code || ''}` || undefined
+          : undefined;
 
-      throw new ApiError(message, response.status, payload);
+      throw new ApiError(message, response.status, payload, code);
     }
 
     if (response.status === 204) {

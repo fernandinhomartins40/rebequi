@@ -10,6 +10,7 @@ import productRoutes from './product.routes.js';
 import promotionRoutes from './promotion.routes.js';
 import quoteRoutes from './quote.routes.js';
 import healthRoutes from './health.routes.js';
+import orderRoutes from './order.routes.js';
 import userRoutes from './user.routes.js';
 
 const router: Router = Router();
@@ -20,6 +21,7 @@ router.use('/categories', categoryRoutes);
 router.use('/products', productRoutes);
 router.use('/promotions', promotionRoutes);
 router.use('/quotes', quoteRoutes);
+router.use('/orders', orderRoutes);
 router.use('/health', healthRoutes);
 router.use('/users', userRoutes);
 

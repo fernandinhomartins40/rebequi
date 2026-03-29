@@ -3,6 +3,7 @@ import { hasMerchantPermission } from '@rebequi/shared/constants';
 import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchCategories } from '@/services/api/categories';
+import { fetchAdminOrders } from '@/services/api/orders';
 import { fetchProducts } from '@/services/api/products';
 import { fetchAdminPromotions } from '@/services/api/promotions';
 import { fetchAdminQuotes, fetchCapturedLeads } from '@/services/api/quotes';
@@ -11,11 +12,13 @@ import { getMerchantNavItemsForRole, type MerchantNavItem } from './config';
 export type ProductSummary = Awaited<ReturnType<typeof fetchProducts>>;
 export type CategorySummary = Awaited<ReturnType<typeof fetchCategories>>;
 export type PromotionSummary = Awaited<ReturnType<typeof fetchAdminPromotions>>;
+export type OrderSummary = Awaited<ReturnType<typeof fetchAdminOrders>>;
 export type QuoteSummary = Awaited<ReturnType<typeof fetchAdminQuotes>>;
 export type LeadSummary = Awaited<ReturnType<typeof fetchCapturedLeads>>;
 export type ProductItem = ProductSummary['products'][number];
 export type CategoryItem = CategorySummary['categories'][number];
 export type PromotionItem = PromotionSummary['promotions'][number];
+export type OrderItem = OrderSummary['orders'][number];
 export type QuoteItem = QuoteSummary['quotes'][number];
 export type LeadItem = LeadSummary['leads'][number];
 
@@ -25,11 +28,13 @@ export type MerchantDashboardOutletContext = {
   productSummary?: ProductSummary;
   categorySummary?: CategorySummary;
   promotionSummary?: PromotionSummary;
+  orderSummary?: OrderSummary;
   quoteSummary?: QuoteSummary;
   leadSummary?: LeadSummary;
   products: ProductItem[];
   categories: CategoryItem[];
   promotions: PromotionItem[];
+  orders: OrderItem[];
   quotes: QuoteItem[];
   leads: LeadItem[];
   navItems: MerchantNavItem[];
@@ -39,6 +44,7 @@ export function useMerchantDashboardData(): MerchantDashboardOutletContext {
   const { user } = useAuth();
   const canManageCatalog = hasMerchantPermission(user?.role, 'catalog:manage');
   const canManagePromotions = hasMerchantPermission(user?.role, 'promotions:manage');
+  const canManageOrders = hasMerchantPermission(user?.role, 'orders:manage');
   const canManageQuotes = hasMerchantPermission(user?.role, 'quotes:manage');
 
   const { data: productSummary } = useQuery({
@@ -65,6 +71,12 @@ export function useMerchantDashboardData(): MerchantDashboardOutletContext {
     enabled: canManageQuotes,
   });
 
+  const { data: orderSummary } = useQuery({
+    queryKey: ['merchant-dashboard', 'orders-badge'],
+    queryFn: () => fetchAdminOrders({ page: 1, limit: 1, recoveryOnly: true }),
+    enabled: canManageOrders,
+  });
+
   const { data: leadSummary } = useQuery({
     queryKey: ['merchant-dashboard', 'leads-badge'],
     queryFn: () => fetchCapturedLeads({ page: 1, limit: 1 }),
@@ -84,6 +96,11 @@ export function useMerchantDashboardData(): MerchantDashboardOutletContext {
       return { ...item, badge: `${promotionSummary?.total ?? 0}` };
     }
 
+    if (item.id === 'pedidos') {
+      const recoveryTotal = orderSummary?.total ?? 0;
+      return { ...item, badge: recoveryTotal > 0 ? `${recoveryTotal}` : 'Fila limpa' };
+    }
+
     if (item.id === 'orcamentos') {
       const quotesTotal = quoteSummary?.total ?? 0;
       const leadsTotal = leadSummary?.total ?? 0;
@@ -99,11 +116,13 @@ export function useMerchantDashboardData(): MerchantDashboardOutletContext {
     productSummary,
     categorySummary,
     promotionSummary,
+    orderSummary,
     quoteSummary,
     leadSummary,
     products: productSummary?.products ?? [],
     categories: categorySummary?.categories ?? [],
     promotions: promotionSummary?.promotions ?? [],
+    orders: orderSummary?.orders ?? [],
     quotes: quoteSummary?.quotes ?? [],
     leads: leadSummary?.leads ?? [],
     navItems,

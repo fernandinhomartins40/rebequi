@@ -24,6 +24,7 @@ model User {
   isProvisional      Boolean        @default(false)
   mustChangePassword Boolean        @default(false)
   leads              LeadCapture[]
+  customerOrders     CustomerOrder[]
   quoteRequests      QuoteRequest[]
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
@@ -89,6 +90,7 @@ model Product {
   dimensions    String?        // Dimensions (e.g., "10x20x30 cm")
   categoryId    String
   category      Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  customerOrderItems CustomerOrderItem[]
   images        ProductImage[]
   promotions    PromotionProduct[]
   quoteItems    QuoteItem[]
@@ -235,6 +237,14 @@ enum QuoteStatus {
   ARCHIVED
 }
 
+enum OrderStatus {
+  PENDING_WHATSAPP
+  WHATSAPP_REDIRECTED
+  IN_RECOVERY
+  COMPLETED
+  CANCELED
+}
+
 model LeadCapture {
   id           String         @id @default(cuid())
   userId       String
@@ -308,4 +318,53 @@ model QuoteItem {
   @@index([quoteRequestId, position])
   @@index([productId])
   @@map("quote_items")
+}
+
+model CustomerOrder {
+  id                   String              @id @default(cuid())
+  referenceCode        String              @unique
+  userId               String
+  user                 User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status               OrderStatus         @default(PENDING_WHATSAPP)
+  source               String              @default("public_cart")
+  customerNameSnapshot String
+  customerWhatsapp     String
+  customerNote         String?
+  internalNotes        String?
+  whatsappUrl          String?
+  whatsappMessage      String?
+  whatsappRedirectedAt DateTime?
+  recoveryStartedAt    DateTime?
+  completedAt          DateTime?
+  canceledAt           DateTime?
+  items                CustomerOrderItem[]
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  @@index([referenceCode])
+  @@index([userId])
+  @@index([status])
+  @@index([customerWhatsapp])
+  @@index([whatsappRedirectedAt])
+  @@map("customer_orders")
+}
+
+model CustomerOrderItem {
+  id                      String        @id @default(cuid())
+  orderId                 String
+  order                   CustomerOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId               String?
+  product                 Product?      @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productNameSnapshot     String
+  productSlugSnapshot     String
+  productImageUrlSnapshot String?
+  quantity                Int
+  unitPrice               Float
+  originalPrice           Float?
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("customer_order_items")
 }

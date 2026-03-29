@@ -1,6 +1,7 @@
 import { MapPin, Phone, Mail, Clock, Facebook, Instagram, Twitter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { STORE_CONTACT } from "@/lib/store-contact";
 
 const Footer = () => {
   return (
@@ -19,20 +20,20 @@ const Footer = () => {
               <div className="flex items-start space-x-2">
                 <MapPin className="mt-0.5 h-5 w-5 text-brand-yellow" />
                 <p className="text-sm">
-                  Rua dos Materiais, 123
+                  {STORE_CONTACT.address[0]}
                   <br />
-                  Centro - Sao Paulo, SP
+                  {STORE_CONTACT.address[1]}
                   <br />
-                  CEP: 01234-567
+                  {STORE_CONTACT.address[2]}
                 </p>
               </div>
               <div className="flex items-center space-x-2">
                 <Phone className="h-5 w-5 text-brand-yellow" />
-                <p className="text-sm">(11) 9999-9999</p>
+                <p className="text-sm">{STORE_CONTACT.whatsappDisplay}</p>
               </div>
               <div className="flex items-center space-x-2">
                 <Mail className="h-5 w-5 text-brand-yellow" />
-                <p className="break-all text-sm sm:break-normal">contato@rebequi.com.br</p>
+                <p className="break-all text-sm sm:break-normal">{STORE_CONTACT.email}</p>
               </div>
             </div>
           </div>
@@ -69,9 +70,9 @@ const Footer = () => {
               <div className="flex items-center space-x-2">
                 <Clock className="h-4 w-4 text-brand-yellow" />
                 <div className="text-sm">
-                  <p>Seg - Sex: 7h as 18h</p>
-                  <p>Sabado: 7h as 16h</p>
-                  <p>Domingo: 8h as 12h</p>
+                  {STORE_CONTACT.openingHours.map((line) => (
+                    <p key={line}>{line}</p>
+                  ))}
                 </div>
               </div>
             </div>

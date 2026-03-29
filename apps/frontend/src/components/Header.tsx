@@ -2,14 +2,16 @@ import { useState } from "react";
 import { FileScan, LogOut, Menu, Search, ShoppingCart, User, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
+import { PublicProductSearch } from "@/components/PublicProductSearch";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { getDefaultRouteForRole } from "@/lib/auth-routing";
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuth();
+  const { totalItems } = useCart();
 
   const navigation = [
     { name: "Home", href: "/" },
@@ -51,10 +53,7 @@ const Header = () => {
           </nav>
 
           <div className="hidden max-w-md flex-1 items-center lg:flex xl:max-w-lg">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
-              <Input type="search" placeholder="Buscar produtos..." className="pl-10 pr-4" />
-            </div>
+            <PublicProductSearch />
           </div>
 
           <div className="flex items-center gap-1 sm:gap-2">
@@ -65,15 +64,26 @@ const Header = () => {
               </Link>
             </Button>
 
-            <Button variant="ghost" size="icon" className="lg:hidden">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="lg:hidden"
+              onClick={() => {
+                const input = document.getElementById("public-product-search-mobile") as HTMLInputElement | null;
+                input?.focus();
+                input?.scrollIntoView({ behavior: "smooth", block: "center" });
+              }}
+            >
               <Search className="h-5 w-5" />
             </Button>
 
-            <Button variant="ghost" size="icon" className="relative">
-              <ShoppingCart className="h-5 w-5" />
-              <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-brand-red text-xs text-white">
-                0
-              </span>
+            <Button variant="ghost" size="icon" className="relative" asChild>
+              <Link to="/carrinho" aria-label="Abrir carrinho">
+                <ShoppingCart className="h-5 w-5" />
+                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-red px-1 text-xs text-white">
+                  {totalItems}
+                </span>
+              </Link>
             </Button>
 
             <Button variant="ghost" size="icon" asChild>
@@ -100,10 +110,10 @@ const Header = () => {
         </div>
 
         <div className="py-3 lg:hidden">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
-            <Input type="search" placeholder="Buscar produtos..." className="pl-10 pr-4" />
-          </div>
+          <PublicProductSearch
+            inputId="public-product-search-mobile"
+            onNavigate={() => setIsMobileMenuOpen(false)}
+          />
         </div>
 
         {isMobileMenuOpen && (
@@ -125,6 +135,13 @@ const Header = () => {
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Solicitar orçamento
+              </Link>
+              <Link
+                to="/carrinho"
+                className="rounded-md px-3 py-2 text-foreground transition-colors duration-200 hover:bg-muted hover:text-primary"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Carrinho ({totalItems})
               </Link>
               <Link
                 to={isAuthenticated ? accountHref : "/login"}

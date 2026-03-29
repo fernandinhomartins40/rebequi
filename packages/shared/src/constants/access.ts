@@ -4,6 +4,7 @@ export type MerchantPermission =
   | 'dashboard:view'
   | 'catalog:manage'
   | 'promotions:manage'
+  | 'orders:manage'
   | 'quotes:manage'
   | 'access:manage';
 
@@ -41,6 +42,10 @@ export const MERCHANT_PERMISSION_PROFILES: Record<MerchantPermission, Permission
     label: 'Promocoes',
     description: 'Cria campanhas promocionais, ofertas e destaques de vitrine.',
   },
+  'orders:manage': {
+    label: 'Pedidos',
+    description: 'Acompanha pedidos do carrinho, checkout por WhatsApp e recuperacao de vendas.',
+  },
   'quotes:manage': {
     label: 'Orcamentos',
     description: 'Atende leads, acompanha solicitacoes e atualiza status comerciais.',
@@ -59,6 +64,7 @@ export const MERCHANT_ROLE_PROFILES: Record<InternalUserRole, RoleProfile> = {
       'dashboard:view',
       'catalog:manage',
       'promotions:manage',
+      'orders:manage',
       'quotes:manage',
       'access:manage',
     ],
@@ -70,6 +76,7 @@ export const MERCHANT_ROLE_PROFILES: Record<InternalUserRole, RoleProfile> = {
       'dashboard:view',
       'catalog:manage',
       'promotions:manage',
+      'orders:manage',
       'quotes:manage',
     ],
   },
@@ -84,9 +91,9 @@ export const MERCHANT_ROLE_PROFILES: Record<InternalUserRole, RoleProfile> = {
     permissions: ['promotions:manage'],
   },
   [UserRole.SALES]: {
-    label: 'Operador de orcamentos',
-    description: 'Atende solicitacoes, leads e acompanha o fluxo comercial.',
-    permissions: ['quotes:manage'],
+    label: 'Operador comercial',
+    description: 'Atende solicitacoes, pedidos, recuperacao de vendas e acompanha o fluxo comercial.',
+    permissions: ['orders:manage', 'quotes:manage'],
   },
 };
 

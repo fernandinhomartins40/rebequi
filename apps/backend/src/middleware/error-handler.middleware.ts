@@ -71,6 +71,7 @@ export function errorHandler(
   res.status(statusCode).json({
     success: false,
     error: message,
+    ...(err instanceof AppError && err.code ? { code: err.code } : {}),
     ...(errors && { errors }),
     ...(env.NODE_ENV === 'development' && { stack: err.stack }),
     timestamp: new Date().toISOString(),

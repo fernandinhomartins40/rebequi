@@ -87,6 +87,27 @@ export class PromotionRepository {
     });
   }
 
+  async findActivePublicByIds(ids: string[], referenceDate: Date) {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    return prisma.promotion.findMany({
+      where: {
+        id: { in: ids },
+        deletedAt: null,
+        isActive: true,
+        OR: [{ startsAt: null }, { startsAt: { lte: referenceDate } }],
+        AND: [
+          {
+            OR: [{ expiresAt: null }, { expiresAt: { gt: referenceDate } }],
+          },
+        ],
+      },
+      include: publicPromotionInclude,
+    });
+  }
+
   async findAdminMany(params: {
     skip?: number;
     take?: number;
