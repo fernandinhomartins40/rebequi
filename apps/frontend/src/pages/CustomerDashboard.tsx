@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowRight, Camera, CheckCircle2, FileText, KeyRound, LogOut, Plus, Trash2, UserRound } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { formatDateTime, formatWhatsapp } from '@rebequi/shared/utils';
-import { QuoteDocumentCaptureCard } from '@/components/QuoteDocumentCaptureCard';
+import { QuoteDocumentCaptureCard, type QuoteDocumentSelection } from '@/components/QuoteDocumentCaptureCard';
 import { LeadStatusBadge, QuoteStatusBadge } from '@/components/QuoteStatusBadge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -239,7 +239,7 @@ const CustomerDashboard = () => {
               <div>
                 <h1 className="text-3xl font-bold text-foreground sm:text-4xl">Central de orçamentos</h1>
                 <p className="mt-2 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
-                  Tire foto do documento, revise os itens reconhecidos pelo OCR e acompanhe o status de cada orçamento.
+                  Escaneie o documento, revise os itens reconhecidos pelo OCR e acompanhe o status de cada orcamento.
                 </p>
               </div>
             </div>
@@ -286,13 +286,17 @@ const CustomerDashboard = () => {
         ) : null}
 
         <QuoteDocumentCaptureCard
-          title="Enviar um novo documento"
-          description="Use a câmera do celular para fotografar um documento e deixar o OCR montar automaticamente os itens do orçamento."
-          helper="Depois do processamento, o rascunho aparece logo abaixo para revisão e envio."
+          title="Escanear um novo documento"
+          description="Use a camera ao vivo para capturar o documento sem sair da pagina e deixar o OCR montar automaticamente os itens do orcamento."
+          helper="Depois do processamento, o rascunho aparece logo abaixo para revisao e envio."
           processing={createDraftMutation.isPending}
-          buttonLabel="Tirar foto do documento"
-          onSelectFile={async (file) => {
-            await createDraftMutation.mutateAsync({ file });
+          buttonLabel="Capturar documento"
+          onSelectFile={async (selection: QuoteDocumentSelection) => {
+            await createDraftMutation.mutateAsync({
+              file: selection.file,
+              width: selection.width,
+              height: selection.height,
+            });
           }}
         />
 
@@ -311,7 +315,7 @@ const CustomerDashboard = () => {
                 <div className="rounded-[1.5rem] border border-dashed border-[#e7dcc3] bg-slate-50 px-5 py-8 text-center">
                   <p className="font-semibold text-foreground">Nenhum orçamento por enquanto</p>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Envie o primeiro documento com a câmera para abrir um rascunho aqui.
+                      Escaneie o primeiro documento com a camera para abrir um rascunho aqui.
                   </p>
                 </div>
               ) : (

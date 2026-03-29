@@ -8,7 +8,7 @@ import { registerSchema } from '@rebequi/shared/schemas';
 import { formatWhatsapp } from '@rebequi/shared/utils';
 import Footer from '@/components/Footer';
 import Header from '@/components/Header';
-import { QuoteDocumentCaptureCard } from '@/components/QuoteDocumentCaptureCard';
+import { QuoteDocumentCaptureCard, type QuoteDocumentSelection } from '@/components/QuoteDocumentCaptureCard';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -60,7 +60,7 @@ export default function RequestQuotePage() {
 
       toast({
         title: 'Lead capturado',
-        description: 'Agora envie a foto do documento para gerar o orçamento automaticamente.',
+        description: 'Agora escaneie o documento para gerar o orcamento automaticamente.',
       });
     } catch (error) {
       toast({
@@ -71,7 +71,7 @@ export default function RequestQuotePage() {
     }
   });
 
-  const handleProcessDocument = async (file: File) => {
+  const handleProcessDocument = async (selection: QuoteDocumentSelection) => {
     if (!leadData?.lead) {
       return;
     }
@@ -79,7 +79,9 @@ export default function RequestQuotePage() {
     try {
       const result = await quoteMutation.mutateAsync({
         leadId: leadData.lead.id,
-        file,
+        file: selection.file,
+        width: selection.width,
+        height: selection.height,
       });
 
       queryClient.setQueryData<QuoteRequest[]>(['customer', 'quotes'], (current) => {
@@ -98,7 +100,7 @@ export default function RequestQuotePage() {
       toast({
         variant: 'destructive',
         title: 'Falha ao processar documento',
-        description: error instanceof Error ? error.message : 'Não foi possível processar a foto enviada.',
+        description: error instanceof Error ? error.message : 'Nao foi possivel processar o documento enviado.',
       });
     }
   };
@@ -121,17 +123,17 @@ export default function RequestQuotePage() {
               <Badge className="w-fit border-none bg-accent text-accent-foreground">Solicitar orçamento</Badge>
               <div>
                 <CardTitle className="text-3xl leading-tight sm:text-4xl">
-                  Envie a foto do documento e deixe o sistema montar o rascunho
+                  Escaneie o documento ao vivo e deixe o sistema montar o rascunho
                 </CardTitle>
                 <CardDescription className="mt-3 max-w-xl text-sm leading-7 text-muted-foreground sm:text-base">
-                  Primeiro capturamos seu nome e WhatsApp para registrar o lead. Em seguida, a foto do documento e
-                  processada com OCR para montar os itens automaticamente.
+                  Primeiro capturamos seu nome e WhatsApp para registrar o lead. Em seguida, o documento e
+                  tratado e processado com OCR para montar os itens automaticamente.
                 </CardDescription>
               </div>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-3">
               <InfoPill icon={<PhoneCall className="h-4 w-4 text-primary" />} title="1. Identificacao" description="Nome e WhatsApp com DDD" />
-              <InfoPill icon={<FileScan className="h-4 w-4 text-primary" />} title="2. Foto" description="Câmera do celular ou galeria" />
+              <InfoPill icon={<FileScan className="h-4 w-4 text-primary" />} title="2. Scanner" description="Camera ao vivo ou galeria" />
               <InfoPill icon={<CheckCircle2 className="h-4 w-4 text-primary" />} title="3. Revisao" description="Edite os itens no painel" />
             </CardContent>
           </Card>
@@ -168,7 +170,7 @@ export default function RequestQuotePage() {
                 </div>
 
                 <Button type="submit" className="w-full" disabled={leadMutation.isPending}>
-                  {leadMutation.isPending ? 'Registrando lead...' : 'Continuar para a foto do documento'}
+                  {leadMutation.isPending ? 'Registrando lead...' : 'Continuar para o scanner'}
                 </Button>
               </form>
             </CardContent>
@@ -189,9 +191,9 @@ export default function RequestQuotePage() {
             ) : null}
 
             <QuoteDocumentCaptureCard
-              title="Fotografe o documento do orçamento"
-              description="A imagem será processada com OCR open source para identificar os itens e abrir um rascunho no painel do cliente."
-              helper="Se a câmera não abrir automaticamente no seu aparelho, o seletor também permite enviar a imagem da galeria."
+              title="Escaneie o documento do orçamento"
+              description="Use a camera ao vivo para capturar o documento sem sair da pagina. O recorte e a limpeza da imagem acontecem antes do OCR."
+              helper="Se a camera do aparelho falhar ou a permissao for negada, troque para a guia de envio manual e selecione a imagem."
               processing={quoteMutation.isPending}
               onSelectFile={handleProcessDocument}
             />
@@ -202,7 +204,7 @@ export default function RequestQuotePage() {
           <Alert variant="destructive" className="mt-6">
             <AlertTitle>Falha ao processar o documento</AlertTitle>
             <AlertDescription>
-              {quoteMutation.error instanceof Error ? quoteMutation.error.message : 'Tente novamente com uma foto mais nítida.'}
+              {quoteMutation.error instanceof Error ? quoteMutation.error.message : 'Tente novamente com um documento mais nitido.'}
             </AlertDescription>
           </Alert>
         ) : null}
