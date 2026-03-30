@@ -53,7 +53,8 @@ export function MerchantDashboardLayout() {
         </Sidebar>
 
         <SidebarInset className="min-w-0 overflow-hidden bg-transparent">
-          <header className="sticky top-0 z-20 border-b border-black/5 bg-white/78 backdrop-blur-md">
+          <header className="sticky top-0 z-20 border-b border-black/5 bg-white/82 backdrop-blur-lg">
+            <div className="h-0.5 w-full bg-gradient-to-r from-primary via-secondary to-accent opacity-60" />
             <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 md:px-8 md:py-4">
               <div className="flex min-w-0 items-center gap-3">
                 <SidebarTrigger className="h-9 w-9 rounded-full border border-black/10 bg-white shadow-sm" />

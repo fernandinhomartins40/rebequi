@@ -258,30 +258,38 @@ export default function MerchantDashboardOverview() {
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          icon={<Boxes className="h-5 w-5 text-primary" />}
-          label="Produtos totais"
-          value={isSnapshotLoading ? '--' : `${products.length}`}
-          delta="Catálogo administrativo"
-        />
-        <StatCard
-          icon={<Store className="h-5 w-5 text-primary" />}
-          label="Produtos publicados"
-          value={isSnapshotLoading ? '--' : `${publishedProducts.length}`}
-          delta="Visíveis na vitrine"
-        />
-        <StatCard
-          icon={<Tags className="h-5 w-5 text-primary" />}
-          label="Categorias ativas"
-          value={isSnapshotLoading ? '--' : `${activeCategories.length}`}
-          delta={`${inactiveCategories.length} inativas`}
-        />
-        <StatCard
-          icon={<AlertTriangle className="h-5 w-5 text-primary" />}
-          label="Estoque critico"
-          value={isSnapshotLoading ? '--' : `${outOfStockProducts.length + lowStockProducts.length}`}
-          delta={`${outOfStockProducts.length} sem estoque`}
-        />
+        <div className="stagger-1">
+          <StatCard
+            icon={<Boxes className="h-5 w-5 text-primary" />}
+            label="Produtos totais"
+            value={isSnapshotLoading ? '--' : `${products.length}`}
+            delta="Catálogo administrativo"
+          />
+        </div>
+        <div className="stagger-2">
+          <StatCard
+            icon={<Store className="h-5 w-5 text-primary" />}
+            label="Produtos publicados"
+            value={isSnapshotLoading ? '--' : `${publishedProducts.length}`}
+            delta="Visíveis na vitrine"
+          />
+        </div>
+        <div className="stagger-3">
+          <StatCard
+            icon={<Tags className="h-5 w-5 text-primary" />}
+            label="Categorias ativas"
+            value={isSnapshotLoading ? '--' : `${activeCategories.length}`}
+            delta={`${inactiveCategories.length} inativas`}
+          />
+        </div>
+        <div className="stagger-4">
+          <StatCard
+            icon={<AlertTriangle className="h-5 w-5 text-primary" />}
+            label="Estoque critico"
+            value={isSnapshotLoading ? '--' : `${outOfStockProducts.length + lowStockProducts.length}`}
+            delta={`${outOfStockProducts.length} sem estoque`}
+          />
+        </div>
       </section>
 
       <section className="grid gap-5 2xl:grid-cols-[1.2fr_0.95fr_1fr]">

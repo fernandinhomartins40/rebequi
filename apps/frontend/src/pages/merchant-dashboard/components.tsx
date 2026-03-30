@@ -171,8 +171,16 @@ export function SectionLeadCard({
         ? 'border-[#f0d7d7] bg-[linear-gradient(160deg,rgba(255,244,244,0.92),rgba(255,255,255,0.97))] shadow-[0_28px_72px_-48px_rgba(220,38,38,0.2)]'
         : 'border-[#dfe6f7] bg-[linear-gradient(160deg,rgba(239,246,255,0.94),rgba(255,255,255,0.97))] shadow-[0_28px_72px_-48px_rgba(37,99,235,0.22)]';
 
+  const accentGradientClass =
+    tone === 'yellow'
+      ? 'from-amber-400 via-yellow-300 to-amber-500'
+      : tone === 'red'
+        ? 'from-red-400 via-rose-300 to-red-500'
+        : 'from-blue-400 via-sky-300 to-blue-500';
+
   return (
-    <Card className={toneClass}>
+    <Card className={cn('animate-fade-in-up overflow-hidden', toneClass)}>
+      <div className={cn('h-1 w-full bg-gradient-to-r', accentGradientClass)} />
       <CardHeader className="space-y-3">
         <Badge className="w-fit border-none bg-secondary text-secondary-foreground">{badge}</Badge>
         <div className="space-y-2">
@@ -219,7 +227,7 @@ export function DashboardPanel({
   children: ReactNode;
 }) {
   return (
-    <Card className={cn('border-black/5 bg-white/92 shadow-[0_20px_55px_-40px_rgba(15,23,42,0.22)]', className)}>
+    <Card className={cn('animate-fade-in-up border-black/5 bg-white/92 shadow-[0_20px_55px_-40px_rgba(15,23,42,0.22)] transition-shadow duration-300 hover:shadow-[0_28px_65px_-45px_rgba(15,23,42,0.3)]', className)}>
       <CardHeader className="space-y-3">
         {badge ? (
           <Badge className={cn('w-fit border-none bg-secondary text-secondary-foreground', badgeClassName)}>{badge}</Badge>
@@ -284,13 +292,27 @@ export function SignalRow({
             ? 'bg-amber-100 text-amber-800'
             : 'bg-slate-100 text-slate-700';
 
+  const dotColor =
+    tone === 'green'
+      ? 'bg-emerald-500'
+      : tone === 'red'
+        ? 'bg-red-500'
+        : tone === 'yellow'
+          ? 'bg-amber-500'
+          : tone === 'blue'
+            ? 'bg-blue-500'
+            : 'bg-slate-400';
+
   return (
-    <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-4">
+    <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-4 transition-colors duration-200 hover:bg-slate-100/80">
       <div className="flex items-center justify-between gap-3">
-        <p className="font-semibold text-foreground">{title}</p>
+        <div className="flex items-center gap-2.5">
+          <span className={cn('h-2 w-2 shrink-0 rounded-full', dotColor, tone !== 'neutral' && 'animate-pulse-soft')} />
+          <p className="font-semibold text-foreground">{title}</p>
+        </div>
         <div className={cn('rounded-full px-3 py-1 text-[11px] font-semibold', toneClass)}>{status}</div>
       </div>
-      <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
+      <p className="mt-2 pl-[18px] text-sm leading-6 text-muted-foreground">{description}</p>
     </div>
   );
 }
@@ -319,14 +341,14 @@ export function StatCard({
   delta: string;
 }) {
   return (
-    <Card className="border-black/5 bg-white/88 shadow-[0_20px_55px_-40px_rgba(15,23,42,0.22)]">
+    <Card className="animate-fade-in-up border-black/5 bg-white/88 shadow-[0_20px_55px_-40px_rgba(15,23,42,0.22)] transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_28px_65px_-40px_rgba(15,23,42,0.3)]">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <p className="text-sm font-medium text-muted-foreground">{label}</p>
-        <div className="rounded-full bg-primary/10 p-2">{icon}</div>
+        <div className="rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-blue-50 p-2.5 shadow-sm">{icon}</div>
       </CardHeader>
       <CardContent>
-        <div className="break-words text-xl font-bold text-foreground sm:text-2xl">{value}</div>
-        <p className="text-xs text-muted-foreground">{delta}</p>
+        <div className="animate-count-up break-words text-xl font-bold text-foreground sm:text-2xl">{value}</div>
+        <p className="mt-1 text-xs text-muted-foreground">{delta}</p>
       </CardContent>
     </Card>
   );
