@@ -139,7 +139,7 @@ export function MerchantDashboardAccess() {
         }
       />
 
-      <section className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           icon={<Users className="h-5 w-5 text-primary" />}
           label="Usuarios internos"
@@ -166,7 +166,7 @@ export function MerchantDashboardAccess() {
         />
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+      <section className="grid gap-5 2xl:grid-cols-[1.2fr_0.8fr]">
         <DashboardPanel
           badge="Sessao"
           badgeClassName="bg-primary/10 text-primary"
@@ -211,7 +211,7 @@ export function MerchantDashboardAccess() {
         description="Cada role libera um conjunto fixo de funcoes do painel. O admin escolhe o perfil mais adequado para cada funcionario."
         title="Perfis disponiveis"
       >
-        <div className="grid gap-4 xl:grid-cols-2">
+        <div className="grid gap-4 2xl:grid-cols-2">
           {INTERNAL_USER_ROLES.map((role) => (
             <article
               key={role}
@@ -248,7 +248,7 @@ export function MerchantDashboardAccess() {
         description="Cadastre e mantenha os acessos internos da loja. O filtro ajuda a localizar pessoas e roles rapidamente."
         title="Usuarios cadastrados"
       >
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_auto]">
+        <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_220px_auto]">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -272,7 +272,7 @@ export function MerchantDashboardAccess() {
             ))}
           </select>
 
-          <label className="flex items-center gap-2 rounded-md border border-black/10 bg-white px-3 py-2 text-sm">
+          <label className="flex w-full items-center justify-between gap-2 rounded-md border border-black/10 bg-white px-3 py-2 text-sm xl:w-auto xl:justify-start">
             <input
               checked={includeInactive}
               onChange={(event) => setIncludeInactive(event.target.checked)}
@@ -297,7 +297,7 @@ export function MerchantDashboardAccess() {
 
         {!isLoading && hasUsers ? (
           <>
-            <div className="hidden overflow-hidden rounded-2xl border border-black/5 bg-white lg:block">
+            <div className="hidden overflow-hidden rounded-2xl border border-black/5 bg-white xl:block">
               <div className="max-h-[34rem] overflow-auto">
                 <Table>
                   <TableHeader className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur supports-[backdrop-filter]:bg-slate-50/80">
@@ -388,7 +388,7 @@ export function MerchantDashboardAccess() {
               </div>
             </div>
 
-            <div className="space-y-3 lg:hidden">
+            <div className="space-y-3 xl:hidden">
               {users.map((managedUser) => {
                 const isCurrentUser = user?.id === managedUser.id;
 
@@ -450,7 +450,7 @@ export function MerchantDashboardAccess() {
                     </div>
 
                     <div className="mt-4">
-                      <Button size="sm" onClick={() => openEditDialog(managedUser)} className="gap-2">
+                      <Button size="sm" onClick={() => openEditDialog(managedUser)} className="w-full gap-2 sm:w-auto">
                         <UserCog className="h-4 w-4" />
                         Editar
                       </Button>

@@ -98,7 +98,7 @@ const MerchantPanel = () => {
   return (
     <div className="flex min-h-screen items-center bg-gradient-to-br from-slate-50 to-slate-100 px-4 py-8 sm:px-6 sm:py-12">
       <div className="container mx-auto">
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 lg:[grid-template-columns:1.15fr_0.85fr] lg:items-center lg:gap-14">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 xl:[grid-template-columns:1.15fr_0.85fr] xl:items-center xl:gap-14">
           <div className="space-y-6">
             <header className="space-y-3">
               <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm font-semibold text-primary">
@@ -127,7 +127,7 @@ const MerchantPanel = () => {
             </div>
           </div>
 
-          <div className="w-full lg:max-w-xl lg:justify-self-end">
+          <div className="w-full xl:max-w-xl xl:justify-self-end">
             <Card className="shadow-md">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl">

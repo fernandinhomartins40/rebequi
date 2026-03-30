@@ -117,7 +117,7 @@ export default function RequestQuotePage() {
           </Link>
         </Button>
 
-        <section className="mt-6 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+        <section className="mt-6 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
           <Card className="border-[#e7dcc3] bg-white/95 shadow-[0_35px_80px_-50px_rgba(15,23,42,0.35)]">
             <CardHeader className="space-y-4">
               <Badge className="w-fit border-none bg-accent text-accent-foreground">Solicitar orçamento</Badge>

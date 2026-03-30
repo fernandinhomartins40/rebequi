@@ -99,7 +99,7 @@ export function MerchantDashboardQuotes() {
           <p className="text-sm text-muted-foreground">Nenhum orçamento enviado até o momento.</p>
         ) : (
           <>
-            <div className="hidden overflow-x-auto rounded-[1.5rem] border border-black/5 lg:block">
+            <div className="hidden overflow-x-auto rounded-[1.5rem] border border-black/5 xl:block">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -158,7 +158,7 @@ export function MerchantDashboardQuotes() {
               </Table>
             </div>
 
-            <div className="grid gap-4 lg:hidden">
+            <div className="grid gap-4 xl:hidden">
               {quotes.map((quote) => (
                 <Card key={quote.id} className="border-black/5 bg-slate-50 shadow-none">
                   <CardContent className="space-y-3 p-4">
@@ -178,11 +178,11 @@ export function MerchantDashboardQuotes() {
                         {quote.itemCount} itens | atualizado em {formatQuoteTimestamp(quote.submittedAt || quote.updatedAt)}
                       </p>
                     </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" className="flex-1" onClick={() => quoteStatusMutation.mutate({ id: quote.id, status: 'IN_REVIEW' })}>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <Button size="sm" variant="outline" className="w-full sm:flex-1" onClick={() => quoteStatusMutation.mutate({ id: quote.id, status: 'IN_REVIEW' })}>
                         Em análise
                       </Button>
-                      <Button size="sm" className="flex-1" onClick={() => quoteStatusMutation.mutate({ id: quote.id, status: 'RESPONDED' })}>
+                      <Button size="sm" className="w-full sm:flex-1" onClick={() => quoteStatusMutation.mutate({ id: quote.id, status: 'RESPONDED' })}>
                         Respondido
                       </Button>
                     </div>
@@ -221,11 +221,11 @@ export function MerchantDashboardQuotes() {
                   <InfoLine label="Rascunhos" value={`${lead.quoteCount}`} />
                 </div>
 
-                <div className="mt-4 flex gap-2">
+                <div className="mt-4 flex flex-col gap-2 sm:flex-row">
                   <Button
                     size="sm"
                     variant="outline"
-                    className="flex-1"
+                    className="w-full sm:flex-1"
                     disabled={leadStatusMutation.isPending}
                     onClick={() => leadStatusMutation.mutate({ id: lead.id, status: 'CONTACTED' })}
                   >
@@ -233,7 +233,7 @@ export function MerchantDashboardQuotes() {
                   </Button>
                   <Button
                     size="sm"
-                    className="flex-1"
+                    className="w-full sm:flex-1"
                     disabled={leadStatusMutation.isPending}
                     onClick={() => leadStatusMutation.mutate({ id: lead.id, status: 'ARCHIVED' })}
                   >

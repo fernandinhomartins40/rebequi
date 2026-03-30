@@ -175,7 +175,7 @@ export default function MerchantDashboardOverview() {
 
   return (
     <div className="space-y-6">
-      <section className="grid gap-5 xl:grid-cols-[1.25fr_0.95fr]">
+      <section className="grid gap-5 2xl:grid-cols-[1.25fr_0.95fr]">
         <SectionLeadCard
           badge="Panorama"
           title="Visão geral da operação"
@@ -257,7 +257,7 @@ export default function MerchantDashboardOverview() {
         </DashboardPanel>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           icon={<Boxes className="h-5 w-5 text-primary" />}
           label="Produtos totais"
@@ -284,7 +284,7 @@ export default function MerchantDashboardOverview() {
         />
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[1.2fr_0.95fr_1fr]">
+      <section className="grid gap-5 2xl:grid-cols-[1.2fr_0.95fr_1fr]">
         <DashboardPanel
           badge="Prioridades"
           badgeClassName="bg-accent/10 text-accent"

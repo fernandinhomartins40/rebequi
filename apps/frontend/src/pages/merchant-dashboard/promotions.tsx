@@ -187,7 +187,7 @@ export function MerchantDashboardPromotions() {
         }
       />
 
-      <section className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           icon={<LayoutTemplate className="h-5 w-5 text-primary" />}
           label="Cards cadastrados"
@@ -225,7 +225,7 @@ export function MerchantDashboardPromotions() {
           </div>
         ) : null}
 
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_auto]">
+        <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_220px_auto]">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -248,7 +248,7 @@ export function MerchantDashboardPromotions() {
             <option value="inactive">Inativas</option>
           </select>
 
-          <Button onClick={openCreateDialog} disabled={!canCreatePromotion}>
+          <Button onClick={openCreateDialog} disabled={!canCreatePromotion} className="w-full xl:w-auto">
             Cadastrar
           </Button>
         </div>
@@ -268,7 +268,7 @@ export function MerchantDashboardPromotions() {
 
         {!isLoading && !isLoadingProducts && promotions.length > 0 ? (
           <>
-            <div className="hidden overflow-hidden rounded-2xl border border-black/5 bg-white lg:block">
+            <div className="hidden overflow-hidden rounded-2xl border border-black/5 bg-white xl:block">
               <div className="max-h-[32rem] overflow-auto">
                 <Table>
                   <TableHeader className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur supports-[backdrop-filter]:bg-slate-50/80">
@@ -379,7 +379,7 @@ export function MerchantDashboardPromotions() {
               </div>
             </div>
 
-            <div className="space-y-3 lg:hidden">
+            <div className="space-y-3 xl:hidden">
               {promotions.map((promotion) => (
                 <article
                   key={promotion.id}
@@ -437,8 +437,8 @@ export function MerchantDashboardPromotions() {
                     ))}
                   </div>
 
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <Button size="sm" onClick={() => openEditDialog(promotion)} className="gap-2">
+                  <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                    <Button size="sm" onClick={() => openEditDialog(promotion)} className="w-full gap-2 sm:w-auto">
                       <Pencil className="h-4 w-4" />
                       Editar
                     </Button>
@@ -447,7 +447,7 @@ export function MerchantDashboardPromotions() {
                       variant="outline"
                       onClick={() => void handleDelete(promotion)}
                       disabled={deleteMutation.isPending}
-                      className="gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                      className="w-full gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 sm:w-auto"
                     >
                       <Trash2 className="h-4 w-4" />
                       Excluir

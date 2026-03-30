@@ -21,7 +21,7 @@ function CategoryDetailsSkeleton() {
       <Header />
       <div className="container mx-auto px-4 py-10">
         <Skeleton className="h-5 w-40" />
-        <div className="mt-8 grid gap-6 lg:grid-cols-[0.72fr_1.28fr] lg:gap-8">
+        <div className="mt-8 grid gap-6 xl:grid-cols-[0.72fr_1.28fr] xl:gap-8">
           <Skeleton className="h-72 rounded-[2rem]" />
           <div className="space-y-4">
             <Skeleton className="h-6 w-28" />
@@ -135,7 +135,7 @@ export default function CategoryDetailsPage() {
           </Link>
         </Button>
 
-        <section className="mt-6 grid gap-6 lg:grid-cols-[0.72fr_1.28fr] lg:gap-8">
+        <section className="mt-6 grid gap-6 xl:grid-cols-[0.72fr_1.28fr] xl:gap-8">
           <div className="overflow-hidden rounded-[2rem] border border-[#e7dcc3] bg-[radial-gradient(circle_at_top,#fff8dc_0%,#fff2b5_38%,#f8f6ef_100%)] shadow-[0_35px_80px_-50px_rgba(15,23,42,0.35)]">
             {category.image ? (
               <img src={category.image} alt={category.name} className="h-full min-h-[18rem] w-full object-cover" />

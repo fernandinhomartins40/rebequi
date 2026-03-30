@@ -52,7 +52,7 @@ function ProductDetailsSkeleton() {
       <Header />
       <div className="container mx-auto px-4 py-10">
         <Skeleton className="h-5 w-48" />
-        <div className="mt-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:gap-8">
+        <div className="mt-8 grid gap-6 xl:grid-cols-[1.1fr_0.9fr] xl:gap-8">
           <div className="space-y-4">
             <Skeleton className="aspect-square w-full rounded-3xl" />
             <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
@@ -227,7 +227,7 @@ export default function ProductDetails() {
           </BreadcrumbList>
         </Breadcrumb>
 
-        <div className="mt-8 grid gap-8 lg:grid-cols-[1.08fr_0.92fr] lg:gap-10">
+        <div className="mt-8 grid gap-8 xl:grid-cols-[1.08fr_0.92fr] xl:gap-10">
           <section className="space-y-4">
             <div className="overflow-hidden rounded-[2rem] border border-[#e7dcc3] bg-white shadow-[0_35px_80px_-50px_rgba(15,23,42,0.35)]">
               <img

@@ -183,7 +183,7 @@ export function SectionLeadCard({
         </div>
       </CardHeader>
       {actions ? (
-        <CardContent className="flex flex-col gap-3 sm:flex-row sm:flex-wrap [&>*]:w-full sm:[&>*]:w-auto">
+        <CardContent className="flex flex-col gap-3 lg:flex-row lg:flex-wrap [&>*]:w-full lg:[&>*]:w-auto">
           {actions}
         </CardContent>
       ) : null}

@@ -238,7 +238,7 @@ export function MerchantDashboardProducts() {
         }
       />
 
-      <section className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           icon={<Boxes className="h-5 w-5 text-primary" />}
           label="Produtos cadastrados"
@@ -284,7 +284,7 @@ export function MerchantDashboardProducts() {
                 </Badge>
               </div>
             </div>
-            <Button onClick={openCreateCategoryDialog} size="sm" className="gap-2">
+            <Button onClick={openCreateCategoryDialog} size="sm" className="w-full gap-2 sm:w-auto">
               <Plus className="h-4 w-4" />
               Cadastrar categoria
             </Button>
@@ -496,7 +496,7 @@ export function MerchantDashboardProducts() {
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_auto]">
+          <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_220px_auto]">
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -517,7 +517,7 @@ export function MerchantDashboardProducts() {
               <option value="inactive">Somente inativos</option>
             </select>
 
-            <Button onClick={openCreateDialog} className="gap-2" disabled={!canCreateProduct}>
+            <Button onClick={openCreateDialog} className="w-full gap-2 xl:w-auto" disabled={!canCreateProduct}>
               <Plus className="h-4 w-4" />
               Cadastrar
             </Button>
@@ -537,7 +537,7 @@ export function MerchantDashboardProducts() {
           ) : null}
 
           {!isLoading ? (
-            <div className="grid gap-4 2xl:grid-cols-2">
+            <div className="grid gap-4 xl:grid-cols-2">
               {products.map((product) => {
                 const primaryImage = getPrimaryImage(product);
                 const productSummary = product.shortDesc || product.description || 'Sem descrição.';
@@ -616,7 +616,7 @@ export function MerchantDashboardProducts() {
                                 variant={primaryOffer ? 'outline' : 'default'}
                                 onClick={() => openOfferDialog(product, primaryOffer)}
                                 disabled={!product.isActive}
-                                className="gap-2"
+                                className="w-full gap-2 sm:w-auto"
                               >
                                 <Clock3 className="h-4 w-4" />
                                 {primaryOffer ? 'Gerenciar' : 'Criar'}
@@ -647,8 +647,8 @@ export function MerchantDashboardProducts() {
                           </span>
                         </div>
 
-                        <div className="flex flex-wrap gap-2">
-                          <Button size="sm" onClick={() => openEditDialog(product)} className="gap-2">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                          <Button size="sm" onClick={() => openEditDialog(product)} className="w-full gap-2 sm:w-auto">
                             <Pencil className="h-4 w-4" />
                             Editar
                           </Button>
@@ -657,7 +657,7 @@ export function MerchantDashboardProducts() {
                             variant="outline"
                             onClick={() => void handleDelete(product)}
                             disabled={deleteMutation.isPending}
-                            className="gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                            className="w-full gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 sm:w-auto"
                           >
                             <Trash2 className="h-4 w-4" />
                             Excluir

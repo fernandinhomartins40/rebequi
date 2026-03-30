@@ -23,7 +23,7 @@ export default function CartPage() {
       <main className="pb-16 pt-10">
         <div className="container mx-auto space-y-8 px-4 sm:px-6">
           <section className="overflow-hidden rounded-[2rem] border border-[#dfe6f7] bg-[linear-gradient(135deg,rgba(239,246,255,0.98),rgba(255,252,237,0.96))] p-6 shadow-[0_28px_72px_-48px_rgba(37,99,235,0.22)] sm:p-8">
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)] lg:items-end">
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)] xl:items-end">
               <div className="space-y-4">
                 <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Carrinho</p>
                 <h1 className="max-w-3xl text-3xl font-bold leading-tight text-foreground sm:text-4xl">
@@ -66,7 +66,7 @@ export default function CartPage() {
               </CardContent>
             </Card>
           ) : (
-            <section className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
+            <section className="grid gap-6 2xl:grid-cols-[1.25fr_0.75fr]">
               <div className="space-y-4">
                 {items.map((item) => (
                   <Card key={item.productId} className="border-black/5 bg-white/92 shadow-[0_20px_55px_-40px_rgba(15,23,42,0.22)]">

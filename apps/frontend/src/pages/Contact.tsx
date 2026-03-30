@@ -76,7 +76,7 @@ export default function ContactPage() {
       <main className="pb-16 pt-10">
         <div className="container mx-auto space-y-8 px-4 sm:px-6">
           <section className="overflow-hidden rounded-[2rem] border border-[#eadfba] bg-[linear-gradient(135deg,rgba(255,251,235,0.96),rgba(255,255,255,0.98))] p-6 shadow-[0_28px_72px_-48px_rgba(217,119,6,0.22)] sm:p-8">
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-end">
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] xl:items-end">
               <div className="space-y-4">
                 <Badge className="border-none bg-secondary text-secondary-foreground">Contato</Badge>
                 <h1 className="max-w-3xl text-3xl font-bold leading-tight text-foreground sm:text-4xl">
@@ -244,7 +244,7 @@ export default function ContactPage() {
           </section>
 
           <section className="rounded-[2rem] border border-black/5 bg-white px-6 py-8 shadow-[0_22px_60px_-48px_rgba(15,23,42,0.24)] sm:px-8">
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
               <div>
                 <Badge className="border-none bg-primary/10 text-primary">Atalho rapido</Badge>
                 <h2 className="mt-4 text-2xl font-bold text-foreground sm:text-3xl">
@@ -256,10 +256,10 @@ export default function ContactPage() {
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Button asChild className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
+                <Button asChild className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 sm:w-auto">
                   <Link to="/solicitar-orcamento">Solicitar orcamento</Link>
                 </Button>
-                <Button asChild variant="outline" className="border-black/10 bg-white hover:bg-white">
+                <Button asChild variant="outline" className="w-full border-black/10 bg-white hover:bg-white sm:w-auto">
                   <Link to="/categorias">Ver catalogo</Link>
                 </Button>
               </div>

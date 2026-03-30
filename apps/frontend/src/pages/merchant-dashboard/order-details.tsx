@@ -140,14 +140,14 @@ export function MerchantDashboardOrderDetails() {
         }
       />
 
-      <section className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+      <section className="grid gap-6 2xl:grid-cols-[1.05fr_0.95fr]">
         <div className="space-y-6">
           <DashboardPanel
             badge="Cliente"
             title="Resumo comercial"
             description="Informacoes centrais para atendimento rapido sem voltar para a lista."
           >
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
               <InfoRow label="Cliente" value={order.customerNameSnapshot} />
               <InfoRow label="WhatsApp" value={formatWhatsapp(order.customerWhatsapp)} />
               <InfoRow label="Referencia" value={order.referenceCode} />
@@ -191,7 +191,7 @@ export function MerchantDashboardOrderDetails() {
           >
             <div className="space-y-3">
               {order.items.map((item) => (
-                <div key={item.id} className="flex items-center gap-3 rounded-2xl border border-black/5 bg-slate-50 px-4 py-4">
+                <div key={item.id} className="flex flex-col items-start gap-3 rounded-2xl border border-black/5 bg-slate-50 px-4 py-4 sm:flex-row sm:items-center">
                   {item.productImageUrlSnapshot ? (
                     <img
                       src={item.productImageUrlSnapshot}
@@ -211,7 +211,7 @@ export function MerchantDashboardOrderDetails() {
                     </p>
                   </div>
 
-                  <div className="text-right">
+                  <div className="sm:text-right">
                     <p className="font-semibold text-foreground">{formatPrice(item.quantity * item.unitPrice)}</p>
                     {item.originalPrice ? (
                       <p className="text-xs text-muted-foreground line-through">{formatPrice(item.originalPrice)}</p>

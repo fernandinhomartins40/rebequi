@@ -285,7 +285,7 @@ export default function CheckoutPage() {
             </Link>
           </Button>
 
-          <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+          <section className="grid gap-6 2xl:grid-cols-[1.1fr_0.9fr]">
             <div className="space-y-6">
               <Card className="border-[#dfe6f7] bg-[linear-gradient(135deg,rgba(239,246,255,0.98),rgba(255,252,237,0.96))] shadow-[0_28px_72px_-48px_rgba(37,99,235,0.22)]">
                 <CardHeader className="space-y-3">

@@ -97,7 +97,7 @@ export default function SearchResultsPage() {
       <main className="pb-16 pt-10">
         <div className="container mx-auto space-y-8 px-4 sm:px-6">
           <section className="overflow-hidden rounded-[2rem] border border-[#dfe6f7] bg-[linear-gradient(135deg,rgba(239,246,255,0.98),rgba(255,252,237,0.96))] p-6 shadow-[0_28px_72px_-48px_rgba(37,99,235,0.22)] sm:p-8">
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:items-end">
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] xl:items-end">
               <div className="space-y-4">
                 <Badge className="border-none bg-primary/10 text-primary">Busca</Badge>
                 <h1 className="max-w-3xl text-3xl font-bold leading-tight text-foreground sm:text-4xl">
@@ -216,7 +216,7 @@ export default function SearchResultsPage() {
                       <p className="mt-1 text-sm text-muted-foreground">{total} produtos encontrados para esta busca.</p>
                     </div>
 
-                    <div className="flex gap-3">
+                    <div className="flex flex-col gap-3 sm:flex-row">
                       <Button
                         variant="outline"
                         className="gap-2"

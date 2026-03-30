@@ -167,7 +167,7 @@ export function MerchantDashboardOrders() {
         title="Pedidos registrados pelo carrinho e checkout"
         description="Use a lista para triagem rapida e entre no pedido quando precisar gerenciar atendimento, aprovacoes e notas."
       >
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
+        <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_220px]">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -219,7 +219,7 @@ export function MerchantDashboardOrders() {
           </div>
         ) : (
           <>
-            <div className="hidden overflow-x-auto rounded-[1.5rem] border border-black/5 lg:block">
+            <div className="hidden overflow-x-auto rounded-[1.5rem] border border-black/5 xl:block">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -267,7 +267,7 @@ export function MerchantDashboardOrders() {
               </Table>
             </div>
 
-            <div className="grid gap-3 lg:hidden">
+            <div className="grid gap-3 xl:hidden">
               {orders.map((order) => (
                 <Card key={order.id} className="border-black/5 bg-slate-50 shadow-none">
                   <CardContent className="space-y-3 p-4">
@@ -328,10 +328,10 @@ function OrderRowActions({
   const customerChatUrl = buildCustomerWhatsappUrl(order);
 
   return (
-    <div className={`flex items-center ${compact ? 'justify-end gap-1' : 'justify-between gap-2'}`}>
+    <div className={compact ? 'flex items-center justify-end gap-1' : 'flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'}>
       {!compact ? <span className="text-xs text-muted-foreground">Acoes</span> : null}
 
-      <div className="flex items-center gap-1">
+      <div className="flex flex-wrap items-center gap-1">
         <Button variant="ghost" size="icon" asChild>
           <Link to={`${ADMIN_BASE_PATH}/pedidos/${order.id}`} aria-label={`Gerenciar ${order.referenceCode}`}>
             <Eye className="h-4 w-4" />

@@ -300,7 +300,7 @@ const CustomerDashboard = () => {
           }}
         />
 
-        <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+        <section className="grid gap-6 2xl:grid-cols-[0.9fr_1.1fr]">
           <Card className="border-black/5 bg-white/92 shadow-[0_20px_55px_-40px_rgba(15,23,42,0.22)]">
             <CardHeader>
               <CardTitle>Meus orçamentos</CardTitle>
@@ -427,7 +427,7 @@ const CustomerDashboard = () => {
                   <div className="space-y-3">
                     {editorState.items.map((item, index) => (
                       <div key={`${item.id || 'new'}-${index}`} className="rounded-[1.5rem] border border-black/5 bg-slate-50 px-4 py-4">
-                        <div className="grid gap-3 sm:grid-cols-[1.5fr_0.35fr_0.35fr_auto]">
+                        <div className="grid gap-3 lg:grid-cols-[minmax(0,1.45fr)_120px_120px_auto]">
                           <div className="space-y-2">
                             <Label>Item</Label>
                             <Input
@@ -479,7 +479,7 @@ const CustomerDashboard = () => {
                             <Button
                               type="button"
                               variant="outline"
-                              className="gap-2"
+                              className="w-full gap-2 lg:w-auto"
                               onClick={() =>
                                 setEditorState((current) => ({
                                   ...current,
@@ -582,7 +582,7 @@ const CustomerDashboard = () => {
               Troque a senha provisória por uma senha pessoal para continuar acessando o painel com mais segurança.
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-[1fr_1fr_auto]">
+          <CardContent className="grid gap-4 xl:grid-cols-[1fr_1fr_auto]">
             <div className="space-y-2">
               <Label htmlFor="current-password">Senha atual</Label>
               <Input
@@ -605,7 +605,7 @@ const CustomerDashboard = () => {
             </div>
             <div className="flex items-end">
               <Button
-                className="w-full gap-2 md:w-auto"
+                className="w-full gap-2 xl:w-auto"
                 disabled={changePasswordMutation.isPending}
                 onClick={() => {
                   void changePasswordMutation.mutateAsync(passwordForm);

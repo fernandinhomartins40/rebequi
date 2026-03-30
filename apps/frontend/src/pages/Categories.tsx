@@ -56,7 +56,7 @@ export default function CategoriesPage() {
       <div className="container mx-auto px-4 py-10">
         <section className="rounded-[2rem] border border-[#e7dcc3] bg-white px-5 py-6 shadow-[0_30px_70px_-50px_rgba(15,23,42,0.35)] sm:px-8 sm:py-8">
           <Badge className="border-none bg-accent text-accent-foreground">Catalogo</Badge>
-          <div className="mt-4 grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
+          <div className="mt-4 grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
             <div>
               <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
                 Navegue por todas as categorias da vitrine

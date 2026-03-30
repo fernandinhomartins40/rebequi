@@ -119,6 +119,10 @@ jobs:
             cat "$SITE_CONF" || true
             echo "=== listeners ==="
             ss -tulpn | grep -E ':80 |:443 |:3190 ' || true
+            if [ -f "/etc/letsencrypt/live/${PRIMARY_DOMAIN}/fullchain.pem" ]; then
+              echo "=== certificate details ==="
+              openssl x509 -in "/etc/letsencrypt/live/${PRIMARY_DOMAIN}/fullchain.pem" -noout -subject -issuer -dates -ext subjectAltName || true
+            fi
           }
 
           verify_json_health() {
@@ -219,6 +223,38 @@ jobs:
             echo "Container $container_name nao ficou saudavel a tempo." >&2
             docker logs "$container_name" --tail 100 || true
             exit 1
+          }
+
+          certificate_covers_domain() {
+            local cert_path="$1"
+            local domain="$2"
+
+            [ -f "$cert_path" ] || return 1
+
+            openssl x509 -in "$cert_path" -noout -ext subjectAltName 2>/dev/null |
+              tr ',' '\n' |
+              grep -Fq "DNS:${domain}"
+          }
+
+          ensure_tls_certificate() {
+            local cert_path="/etc/letsencrypt/live/${PRIMARY_DOMAIN}/fullchain.pem"
+
+            if [ -f "$cert_path" ] &&
+              certificate_covers_domain "$cert_path" "$PRIMARY_DOMAIN" &&
+              certificate_covers_domain "$cert_path" "$SECONDARY_DOMAIN"; then
+              return 0
+            fi
+
+            certbot certonly \
+              --webroot \
+              -w /var/www/certbot \
+              --cert-name "${PRIMARY_DOMAIN}" \
+              -d "${PRIMARY_DOMAIN}" \
+              -d "${SECONDARY_DOMAIN}" \
+              --expand \
+              --non-interactive \
+              --agree-tos \
+              --email "${SSL_EMAIL}"
           }
 
           ensure_release_running() {
@@ -384,6 +420,7 @@ jobs:
           cat > "$SITE_CONF" <<NGINX_HTTP
           server {
               listen 80;
+              listen [::]:80;
               server_name ${PRIMARY_DOMAIN} ${SECONDARY_DOMAIN};
 
               location /.well-known/acme-challenge/ {
@@ -410,21 +447,24 @@ jobs:
           verify_json_health "http://127.0.0.1/api/health" --header "Host: ${PRIMARY_DOMAIN}"
           verify_json_health "http://127.0.0.1/api/health" --header "Host: ${SECONDARY_DOMAIN}"
 
-          if [ ! -f "/etc/letsencrypt/live/${PRIMARY_DOMAIN}/fullchain.pem" ]; then
-            certbot certonly \
-              --webroot \
-              -w /var/www/certbot \
-              -d "${PRIMARY_DOMAIN}" \
-              -d "${SECONDARY_DOMAIN}" \
-              --non-interactive \
-              --agree-tos \
-              --email "${SSL_EMAIL}"
-          fi
+          ensure_tls_certificate
 
           if [ -f "/etc/letsencrypt/live/${PRIMARY_DOMAIN}/fullchain.pem" ]; then
+          SSL_OPTIONS_DIRECTIVE=""
+          SSL_DHPARAM_DIRECTIVE=""
+
+          if [ -f "/etc/letsencrypt/options-ssl-nginx.conf" ]; then
+            SSL_OPTIONS_DIRECTIVE="    include /etc/letsencrypt/options-ssl-nginx.conf;"
+          fi
+
+          if [ -f "/etc/letsencrypt/ssl-dhparams.pem" ]; then
+            SSL_DHPARAM_DIRECTIVE="    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;"
+          fi
+
           cat > "$SITE_CONF" <<NGINX_HTTPS
           server {
               listen 80;
+              listen [::]:80;
               server_name ${PRIMARY_DOMAIN} ${SECONDARY_DOMAIN};
 
               location /.well-known/acme-challenge/ {
@@ -438,10 +478,13 @@ jobs:
 
           server {
               listen 443 ssl http2;
+              listen [::]:443 ssl http2;
               server_name ${PRIMARY_DOMAIN} ${SECONDARY_DOMAIN};
 
               ssl_certificate /etc/letsencrypt/live/${PRIMARY_DOMAIN}/fullchain.pem;
               ssl_certificate_key /etc/letsencrypt/live/${PRIMARY_DOMAIN}/privkey.pem;
+          ${SSL_OPTIONS_DIRECTIVE}
+          ${SSL_DHPARAM_DIRECTIVE}
 
               location / {
                   proxy_pass http://127.0.0.1:${DEPLOY_PORT};

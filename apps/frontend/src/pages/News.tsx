@@ -37,7 +37,7 @@ function NewsPageSkeleton() {
       <main className="pb-16 pt-10">
         <div className="container mx-auto space-y-8 px-4 sm:px-6">
           <Skeleton className="h-64 rounded-[2rem]" />
-          <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
             <Skeleton className="h-[360px] rounded-[2rem]" />
             <Skeleton className="h-[360px] rounded-[2rem]" />
           </div>
@@ -83,7 +83,7 @@ export default function NewsPage() {
       <main className="pb-16 pt-10">
         <div className="container mx-auto space-y-8 px-4 sm:px-6">
           <section className="overflow-hidden rounded-[2rem] border border-[#dfe6f7] bg-[linear-gradient(135deg,rgba(239,246,255,0.98),rgba(255,252,237,0.96))] p-6 shadow-[0_28px_72px_-48px_rgba(37,99,235,0.24)] sm:p-8">
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:items-end">
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] xl:items-end">
               <div className="space-y-4">
                 <Badge className="border-none bg-primary/10 text-primary">Novidades</Badge>
                 <h1 className="max-w-3xl text-3xl font-bold leading-tight text-foreground sm:text-4xl">
@@ -157,7 +157,7 @@ export default function NewsPage() {
           ) : null}
 
           {!error && featuredProduct ? (
-            <section className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+            <section className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
               <article className="overflow-hidden rounded-[2rem] border border-black/5 bg-white shadow-[0_28px_72px_-55px_rgba(15,23,42,0.28)]">
                 <div className="relative aspect-[16/11] overflow-hidden">
                   <img

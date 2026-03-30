@@ -55,22 +55,22 @@ export function MerchantDashboardLayout() {
         <SidebarInset className="min-w-0 overflow-hidden bg-transparent">
           <header className="sticky top-0 z-20 border-b border-black/5 bg-white/78 backdrop-blur-md">
             <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 md:px-8 md:py-4">
-              <div className="flex items-center gap-3">
+              <div className="flex min-w-0 items-center gap-3">
                 <SidebarTrigger className="h-9 w-9 rounded-full border border-black/10 bg-white shadow-sm" />
-                <div>
+                <div className="min-w-0">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
                     {activeItem.eyebrow}
                   </p>
-                  <h1 className="text-base font-bold text-foreground sm:text-lg">{activeItem.title}</h1>
-                  <p className="hidden text-sm text-muted-foreground xl:block">{activeItem.intro}</p>
+                  <h1 className="break-words text-base font-bold text-foreground sm:text-lg">{activeItem.title}</h1>
+                  <p className="hidden text-sm text-muted-foreground 2xl:block">{activeItem.intro}</p>
                 </div>
               </div>
 
-              <div className="hidden items-center gap-2 sm:flex">
+              <div className="flex w-full items-center gap-2 sm:w-auto sm:justify-end">
                 <Button
                   asChild
                   variant="outline"
-                  className="gap-2 border-black/10 bg-white/80 shadow-sm hover:bg-white"
+                  className="w-full gap-2 border-black/10 bg-white/80 shadow-sm hover:bg-white sm:w-auto"
                 >
                   <Link to="/">
                     <Store className="h-4 w-4" />
