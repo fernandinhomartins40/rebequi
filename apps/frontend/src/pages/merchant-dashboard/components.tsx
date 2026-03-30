@@ -166,36 +166,25 @@ export function SectionLeadCard({
 }) {
   const toneClass =
     tone === 'yellow'
-      ? 'border-[#e9dfbb] bg-[linear-gradient(160deg,rgba(255,250,224,0.9),rgba(255,255,255,0.97))] shadow-[0_28px_72px_-48px_rgba(255,215,0,0.3)]'
+      ? 'border-amber-200/40 bg-amber-50/50'
       : tone === 'red'
-        ? 'border-[#f0d7d7] bg-[linear-gradient(160deg,rgba(255,244,244,0.92),rgba(255,255,255,0.97))] shadow-[0_28px_72px_-48px_rgba(220,38,38,0.2)]'
-        : 'border-[#dfe6f7] bg-[linear-gradient(160deg,rgba(239,246,255,0.94),rgba(255,255,255,0.97))] shadow-[0_28px_72px_-48px_rgba(37,99,235,0.22)]';
-
-  const accentGradientClass =
-    tone === 'yellow'
-      ? 'from-amber-400 via-yellow-300 to-amber-500'
-      : tone === 'red'
-        ? 'from-red-400 via-rose-300 to-red-500'
-        : 'from-blue-400 via-sky-300 to-blue-500';
+        ? 'border-red-200/40 bg-red-50/50'
+        : 'border-blue-200/40 bg-blue-50/50';
 
   return (
-    <Card className={cn('animate-fade-in-up overflow-hidden', toneClass)}>
-      <div className={cn('h-1 w-full bg-gradient-to-r', accentGradientClass)} />
-      <CardHeader className="space-y-3">
-        <Badge className="w-fit border-none bg-secondary text-secondary-foreground">{badge}</Badge>
-        <div className="space-y-2">
-          <CardTitle className="text-2xl leading-tight sm:text-3xl">{title}</CardTitle>
-          <CardDescription className="max-w-3xl text-sm leading-6 text-muted-foreground">
-            {description}
-          </CardDescription>
+    <div className={cn('animate-fade-in-up rounded-2xl border px-5 py-5', toneClass)}>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <h2 className="text-xl font-bold text-foreground">{title}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
         </div>
-      </CardHeader>
-      {actions ? (
-        <CardContent className="flex flex-col gap-3 lg:flex-row lg:flex-wrap [&>*]:w-full lg:[&>*]:w-auto">
-          {actions}
-        </CardContent>
-      ) : null}
-    </Card>
+        {actions ? (
+          <div className="flex shrink-0 flex-wrap gap-2">
+            {actions}
+          </div>
+        ) : null}
+      </div>
+    </div>
   );
 }
 
@@ -227,18 +216,13 @@ export function DashboardPanel({
   children: ReactNode;
 }) {
   return (
-    <Card className={cn('animate-fade-in-up border-black/5 bg-white/92 shadow-[0_20px_55px_-40px_rgba(15,23,42,0.22)] transition-shadow duration-300 hover:shadow-[0_28px_65px_-45px_rgba(15,23,42,0.3)]', className)}>
-      <CardHeader className="space-y-3">
-        {badge ? (
-          <Badge className={cn('w-fit border-none bg-secondary text-secondary-foreground', badgeClassName)}>{badge}</Badge>
-        ) : null}
-        <div>
-          <CardTitle className="text-xl sm:text-2xl">{title}</CardTitle>
-          <CardDescription className="mt-2 text-sm leading-6 text-muted-foreground">{description}</CardDescription>
-        </div>
-      </CardHeader>
-      <CardContent className={cn('space-y-4', contentClassName)}>{children}</CardContent>
-    </Card>
+    <div className={cn('animate-fade-in-up rounded-2xl border border-slate-200/60 bg-white p-5', className)}>
+      <div className="mb-4">
+        <h3 className="text-base font-bold text-foreground">{title}</h3>
+        <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
+      </div>
+      <div className={cn('space-y-3', contentClassName)}>{children}</div>
+    </div>
   );
 }
 
@@ -341,16 +325,13 @@ export function StatCard({
   delta: string;
 }) {
   return (
-    <Card className="animate-fade-in-up border-black/5 bg-white/88 shadow-[0_20px_55px_-40px_rgba(15,23,42,0.22)] transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_28px_65px_-40px_rgba(15,23,42,0.3)]">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <p className="text-sm font-medium text-muted-foreground">{label}</p>
-        <div className="rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-blue-50 p-2.5 shadow-sm">{icon}</div>
-      </CardHeader>
-      <CardContent>
-        <div className="animate-count-up break-words text-xl font-bold text-foreground sm:text-2xl">{value}</div>
-        <p className="mt-1 text-xs text-muted-foreground">{delta}</p>
-      </CardContent>
-    </Card>
+    <div className="animate-fade-in-up flex items-center gap-4 rounded-2xl border border-slate-200/60 bg-white px-4 py-4 transition-shadow duration-200 hover:shadow-md">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/8">{icon}</div>
+      <div className="min-w-0">
+        <p className="text-sm text-muted-foreground">{label}</p>
+        <p className="text-lg font-bold text-foreground">{value}</p>
+      </div>
+    </div>
   );
 }
 

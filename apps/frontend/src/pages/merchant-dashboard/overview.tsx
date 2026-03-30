@@ -175,268 +175,143 @@ export default function MerchantDashboardOverview() {
 
   return (
     <div className="space-y-6">
-      <section className="grid gap-5 2xl:grid-cols-[1.25fr_0.95fr]">
-        <SectionLeadCard
-          badge="Panorama"
-          title="Visão geral da operação"
-          description="Resumo do catálogo, da públicacao e dos pontos que pedem revisão imediata no painel."
-          tone="blue"
-          actions={
-            <>
-              <div className="flex flex-wrap gap-2">
-                <MetricChip label="Sessão" tone="blue" value={userEmail} />
-                <MetricChip
-                  label="Completude"
-                  tone={completenessRate >= 80 ? 'green' : completenessRate >= 60 ? 'yellow' : 'red'}
-                  value={isSnapshotLoading ? 'Carregando...' : `${completenessRate}% dos ativos completos`}
-                />
-                <MetricChip
-                  label="Vitrine"
-                  tone="yellow"
-                  value={isSnapshotLoading ? 'Atualizando snapshot' : `${offerProducts.length} ofertas e ${newProducts.length} novidades`}
-                />
-              </div>
-              <Button asChild className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
-                <Link to={`${ADMIN_BASE_PATH}/produtos`}>Gerenciar produtos</Link>
-              </Button>
-            </>
-          }
-        />
+      <SectionLeadCard
+        badge="Panorama"
+        title="Visão geral"
+        description={isSnapshotLoading ? 'Carregando dados...' : `${products.length} produtos · ${publishedProducts.length} publicados · ${activeCategories.length} categorias`}
+        tone="blue"
+        actions={
+          <Button asChild className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
+            <Link to={`${ADMIN_BASE_PATH}/produtos`}>Gerenciar produtos</Link>
+          </Button>
+        }
+      />
 
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          icon={<Boxes className="h-5 w-5 text-primary" />}
+          label="Produtos"
+          value={isSnapshotLoading ? '--' : `${products.length}`}
+          delta=""
+        />
+        <StatCard
+          icon={<Store className="h-5 w-5 text-primary" />}
+          label="Publicados"
+          value={isSnapshotLoading ? '--' : `${publishedProducts.length}`}
+          delta=""
+        />
+        <StatCard
+          icon={<Tags className="h-5 w-5 text-primary" />}
+          label="Categorias"
+          value={isSnapshotLoading ? '--' : `${activeCategories.length}`}
+          delta=""
+        />
+        <StatCard
+          icon={<AlertTriangle className="h-5 w-5 text-primary" />}
+          label="Estoque crítico"
+          value={isSnapshotLoading ? '--' : `${outOfStockProducts.length + lowStockProducts.length}`}
+          delta=""
+        />
+      </section>
+
+      <section className="grid gap-5 xl:grid-cols-2">
         <DashboardPanel
-          badge="Situacao"
-          badgeClassName="bg-primary/10 text-primary"
-          className="border-[#dfe6f7] bg-white/92 shadow-[0_22px_55px_-38px_rgba(37,99,235,0.28)]"
-          description="Leitura rápida do que está acontecendo agora no catálogo."
-          title="Radar operacional"
+          description="Status geral do catálogo publicado."
+          title="Radar"
         >
           {hasSnapshotError ? (
-            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
-              Não foi possível carregar o snapshot completo do dashboard neste momento.
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              Não foi possível carregar os dados.
             </div>
           ) : (
             <>
               <SignalRow
                 title="Publicação"
-                status={isSnapshotLoading ? 'Carregando' : publishedProducts.length > 0 ? 'Ativa' : 'Sem vitrine'}
+                status={isSnapshotLoading ? '...' : publishedProducts.length > 0 ? 'Ativa' : 'Sem vitrine'}
                 tone={isSnapshotLoading ? 'neutral' : publishedProducts.length > 0 ? 'green' : 'yellow'}
                 description={
                   isSnapshotLoading
-                    ? 'Carregando dados de produtos e categorias.'
-                    : `${publishedProducts.length} produtos visiveis, ${offerProducts.length} ofertas, ${newProducts.length} novidades e ${featuredProducts.length} destaques.`
+                    ? 'Carregando...'
+                    : `${publishedProducts.length} publicados · ${offerProducts.length} ofertas · ${featuredProducts.length} destaques`
                 }
               />
               <SignalRow
                 title="Estoque"
-                status={isSnapshotLoading ? 'Carregando' : stockStatusLabel}
+                status={isSnapshotLoading ? '...' : stockStatusLabel}
                 tone={isSnapshotLoading ? 'neutral' : stockStatusTone}
                 description={
                   isSnapshotLoading
-                    ? 'Conferindo niveis de estoque do catálogo ativo.'
+                    ? 'Verificando...'
                     : outOfStockProducts.length > 0
-                      ? `${outOfStockProducts.length} produtos sem estoque e ${lowStockProducts.length} abaixo do mínimo.`
+                      ? `${outOfStockProducts.length} sem estoque, ${lowStockProducts.length} baixo`
                       : lowStockProducts.length > 0
-                        ? `${lowStockProducts.length} produtos abaixo do mínimo configurado.`
-                        : 'Nenhum alerta de estoque no catálogo publicado.'
+                        ? `${lowStockProducts.length} abaixo do mínimo`
+                        : 'Estoque OK'
                 }
               />
               <SignalRow
                 title="Cadastro"
-                status={isSnapshotLoading ? 'Carregando' : catalogStatusLabel}
+                status={isSnapshotLoading ? '...' : catalogStatusLabel}
                 tone={isSnapshotLoading ? 'neutral' : catalogStatusTone}
                 description={
                   isSnapshotLoading
-                    ? 'Validando imagem, descrição e identificação dos produtos.'
-                    : missingImageProducts.length > 0 || missingDescriptionProducts.length > 0 || missingSkuProducts.length > 0
-                      ? `${missingImageProducts.length} sem imagem, ${missingDescriptionProducts.length} sem descrição e ${missingSkuProducts.length} sem SKU.`
-                      : 'Todos os produtos ativos possuem os dados essenciais preenchidos.'
+                    ? 'Verificando...'
+                    : missingImageProducts.length > 0 || missingDescriptionProducts.length > 0
+                      ? `${missingImageProducts.length} sem imagem · ${missingDescriptionProducts.length} sem descrição`
+                      : 'Cadastro completo'
                 }
               />
             </>
           )}
         </DashboardPanel>
-      </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="stagger-1">
-          <StatCard
-            icon={<Boxes className="h-5 w-5 text-primary" />}
-            label="Produtos totais"
-            value={isSnapshotLoading ? '--' : `${products.length}`}
-            delta="Catálogo administrativo"
-          />
-        </div>
-        <div className="stagger-2">
-          <StatCard
-            icon={<Store className="h-5 w-5 text-primary" />}
-            label="Produtos publicados"
-            value={isSnapshotLoading ? '--' : `${publishedProducts.length}`}
-            delta="Visíveis na vitrine"
-          />
-        </div>
-        <div className="stagger-3">
-          <StatCard
-            icon={<Tags className="h-5 w-5 text-primary" />}
-            label="Categorias ativas"
-            value={isSnapshotLoading ? '--' : `${activeCategories.length}`}
-            delta={`${inactiveCategories.length} inativas`}
-          />
-        </div>
-        <div className="stagger-4">
-          <StatCard
-            icon={<AlertTriangle className="h-5 w-5 text-primary" />}
-            label="Estoque critico"
-            value={isSnapshotLoading ? '--' : `${outOfStockProducts.length + lowStockProducts.length}`}
-            delta={`${outOfStockProducts.length} sem estoque`}
-          />
-        </div>
-      </section>
-
-      <section className="grid gap-5 2xl:grid-cols-[1.2fr_0.95fr_1fr]">
         <DashboardPanel
-          badge="Prioridades"
-          badgeClassName="bg-accent/10 text-accent"
-          className="border-[#f0d7d7] bg-white/92 shadow-[0_24px_60px_-44px_rgba(220,38,38,0.18)]"
-          description="Itens que merecem tratamento primeiro para manter a vitrine consistente."
-          title="Ações prioritarias"
+          description="Produtos que precisam de atenção."
+          title="Prioridades"
         >
           {hasSnapshotError ? (
-            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
-              O painel não conseguiu calcular prioridades agora.
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              Erro ao carregar prioridades.
             </div>
           ) : isSnapshotLoading ? (
-            <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-4 text-sm text-muted-foreground">
-              Carregando prioridades do catálogo...
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-muted-foreground">
+              Carregando...
             </div>
           ) : attentionItems.length === 0 ? (
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-700">
-              Nenhum produto ativo exige ação imediata. O catálogo principal está sob controle.
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+              ✓ Tudo em dia. Nenhuma ação pendente.
             </div>
           ) : (
-            <ul className="space-y-3">
-              {attentionItems.map((item) => (
-                <li key={`${item.name}-${item.updatedAt}`} className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-foreground">{item.name}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {item.categoryName} | estoque {item.stock} | atualizado em {formatSnapshotDate(item.updatedAt)}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {item.issues.map((issue) => (
-                        <Badge
-                          key={`${item.name}-${issue.label}`}
-                          className={
-                            issue.tone === 'red'
-                              ? 'border-red-200 bg-red-50 text-red-700'
-                              : issue.tone === 'yellow'
-                                ? 'border-amber-200 bg-amber-50 text-amber-800'
-                                : 'border-primary/15 bg-primary/5 text-primary'
-                          }
-                        >
-                          {issue.label}
-                        </Badge>
-                      ))}
-                    </div>
+            <ul className="space-y-2">
+              {attentionItems.slice(0, 5).map((item) => (
+                <li key={`${item.name}-${item.updatedAt}`} className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground">{item.name}</p>
+                    <p className="text-xs text-muted-foreground">{item.categoryName}</p>
+                  </div>
+                  <div className="flex shrink-0 gap-1">
+                    {item.issues.slice(0, 2).map((issue) => (
+                      <Badge
+                        key={`${item.name}-${issue.label}`}
+                        className={
+                          issue.tone === 'red'
+                            ? 'border-red-200 bg-red-50 text-red-700'
+                            : issue.tone === 'yellow'
+                              ? 'border-amber-200 bg-amber-50 text-amber-800'
+                              : 'border-primary/15 bg-primary/5 text-primary'
+                        }
+                      >
+                        {issue.label}
+                      </Badge>
+                    ))}
                   </div>
                 </li>
               ))}
-            </ul>
-          )}
-        </DashboardPanel>
-
-        <DashboardPanel
-          badge="Categorias"
-          badgeClassName="bg-secondary text-secondary-foreground"
-          className="border-[#eadfba] bg-white/92 shadow-[0_20px_55px_-40px_rgba(255,215,0,0.2)]"
-          description="Distribuição atual das categorias para entender concentração e ociosidade."
-          title="Mapa de categorias"
-        >
-          <div className="flex flex-wrap gap-2">
-            <MetricChip label="Ativas" tone="blue" value={isSnapshotLoading ? '--' : `${activeCategories.length}`} />
-            <MetricChip label="Em uso" tone="green" value={isSnapshotLoading ? '--' : `${categoriesInUse.length}`} />
-            <MetricChip
-              label="Inativas"
-              tone={inactiveCategories.length > 0 ? 'yellow' : 'neutral'}
-              value={isSnapshotLoading ? '--' : `${inactiveCategories.length}`}
-            />
-          </div>
-
-          {hasSnapshotError ? (
-            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
-              Não foi possível carregar a distribuição das categorias.
-            </div>
-          ) : isSnapshotLoading ? (
-            <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-4 text-sm text-muted-foreground">
-              Carregando categorias...
-            </div>
-          ) : topCategories.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-black/10 bg-slate-50 px-4 py-4 text-sm text-muted-foreground">
-              Nenhuma categoria cadastrada.
-            </div>
-          ) : (
-            <ul className="space-y-3">
-              {topCategories.map((category) => (
-                <li key={category.id} className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-foreground">{category.name}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">{category.productsCount ?? 0} produtos vinculados</p>
-                    </div>
-                    <Badge className={category.isActive ? 'bg-primary text-primary-foreground' : 'bg-slate-700 text-white'}>
-                      {category.isActive ? 'Ativa' : 'Inativa'}
-                    </Badge>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </DashboardPanel>
-
-        <DashboardPanel
-          badge="Movimentação"
-          badgeClassName="bg-primary/10 text-primary"
-          className="border-[#dfe6f7] bg-white/92 shadow-[0_24px_60px_-44px_rgba(37,99,235,0.2)]"
-          description="Últimos produtos atualizados para acompanhar o ritmo das alterações."
-          title="Atualizacoes recentes"
-        >
-          <div className="flex flex-wrap gap-2">
-            <MetricChip label="Ofertas" tone="yellow" value={isSnapshotLoading ? '--' : `${offerProducts.length}`} />
-            <MetricChip label="Novidades" tone="blue" value={isSnapshotLoading ? '--' : `${newProducts.length}`} />
-            <MetricChip label="Sem imagem" tone="red" value={isSnapshotLoading ? '--' : `${missingImageProducts.length}`} />
-          </div>
-
-          {hasSnapshotError ? (
-            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
-              Não foi possível carregar a movimentação recente do catálogo.
-            </div>
-          ) : isSnapshotLoading ? (
-            <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-4 text-sm text-muted-foreground">
-              Atualizando histórico recente...
-            </div>
-          ) : recentProducts.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-black/10 bg-slate-50 px-4 py-4 text-sm text-muted-foreground">
-              Nenhum produto encontrado no catálogo.
-            </div>
-          ) : (
-            <ul className="space-y-3">
-              {recentProducts.map((product) => (
-                <li key={product.id} className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-foreground">{product.name}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {product.category?.name ?? 'Sem categoria'} | atualizado em {formatSnapshotDate(product.updatedAt)}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Clock3 className="h-4 w-4" />
-                      {formatSnapshotDate(product.updatedAt)}
-                    </div>
-                  </div>
-                </li>
-              ))}
+              {attentionItems.length > 5 ? (
+                <p className="text-center text-xs text-muted-foreground">
+                  +{attentionItems.length - 5} itens. <Link to={`${ADMIN_BASE_PATH}/produtos`} className="text-primary underline">Ver todos</Link>
+                </p>
+              ) : null}
             </ul>
           )}
         </DashboardPanel>
