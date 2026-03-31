@@ -60,7 +60,7 @@ function NavItem({ icon: Icon, label, active, badge, onClick }: {
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors ${
+      className={`flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors ${
         active ? 'bg-primary/10 text-primary' : 'text-foreground/60 hover:bg-slate-50 hover:text-foreground'
       }`}
     >
@@ -182,10 +182,10 @@ const CustomerDashboard = () => {
   ];
 
   return (
-    <div className="flex h-screen w-full bg-slate-50/80 overflow-hidden">
+    <div className="min-h-screen bg-slate-50/80 lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]">
       {/* ━━ Sidebar ━━ */}
-      <aside className="relative z-40 hidden w-60 shrink-0 flex-col overflow-y-auto border-r border-slate-200/80 bg-white lg:flex">
-        <div className="sticky top-0 z-10 border-b border-slate-100 bg-white px-4 py-4 shrink-0">
+      <aside className="hidden border-r border-slate-200/80 bg-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-60 lg:flex-col">
+        <div className="border-b border-slate-100 px-4 py-4">
           <p className="text-xs font-bold uppercase tracking-widest text-primary">Painel do cliente</p>
         </div>
 
@@ -195,33 +195,33 @@ const CustomerDashboard = () => {
           ))}
         </nav>
 
-        <div className="sticky bottom-0 z-10 border-t border-slate-100 bg-white p-3 space-y-3 shrink-0">
+        <div className="mt-auto space-y-3 border-t border-slate-100 bg-white p-3">
           <div className="rounded-xl bg-slate-50 px-3 py-2.5">
             <p className="truncate text-sm font-semibold text-foreground">{user?.name || user?.identifier || 'Cliente'}</p>
             <p className="truncate text-xs text-muted-foreground">{user?.whatsapp ? formatWhatsapp(user.whatsapp) : user?.email || ''}</p>
           </div>
-          <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground relative z-20" onClick={() => void handleLogout()}>
+          <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground" onClick={() => void handleLogout()}>
             <LogOut className="h-4 w-4" /> Sair
           </Button>
         </div>
       </aside>
 
       {/* ━━ Main ━━ */}
-      <main className="relative z-0 flex-1 flex flex-col min-w-0 overflow-y-auto">
+      <main className="min-w-0">
         {/* Header */}
-        <header className="sticky top-0 z-20 shrink-0 border-b border-slate-200/60 bg-white/90 backdrop-blur-sm">
+        <header className="sticky top-0 z-10 border-b border-slate-200/60 bg-white/90 backdrop-blur-sm">
           <div className="flex items-center justify-between px-4 py-3 md:px-6">
             {/* Mobile nav */}
             <div className="flex flex-1 items-center gap-2 overflow-x-auto lg:hidden">
               {navItems.map((item) => (
                 <button key={item.id} type="button" onClick={() => handleTabChange(item.id)}
-                  className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${activeTab === item.id ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                  className={`flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${activeTab === item.id ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                 >
                   <item.icon className="h-3.5 w-3.5" />
                   {item.label}
                 </button>
               ))}
-              <button type="button" onClick={() => void handleLogout()} className="flex shrink-0 items-center gap-1.5 rounded-lg border border-red-100 bg-red-50/50 px-3 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50">
+              <button type="button" onClick={() => void handleLogout()} className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border border-red-100 bg-red-50/50 px-3 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50">
                 <LogOut className="h-3.5 w-3.5" />
                 Sair
               </button>
