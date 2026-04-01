@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowRight,
+  BadgeCheck,
   Camera,
+  Clock3,
   FileText,
   Home,
   KeyRound,
@@ -11,6 +13,7 @@ import {
   Plus,
   ScanText,
   Shield,
+  Sparkles,
   Trash2,
   User,
 } from 'lucide-react';
@@ -26,7 +29,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { clearProvisionalCredentials, readProvisionalCredentials } from '@/lib/provisional-credentials';
-import { formatQuoteTimestamp } from '@/lib/quote-ui';
+import { formatQuoteTimestamp, getQuoteStatusLabel } from '@/lib/quote-ui';
 import { createAuthenticatedQuoteDraft, fetchMyQuotes, submitMyQuote, updateMyQuoteDraft } from '@/services/api/quotes';
 import type { QuoteItemInputDTO, QuoteRequest } from '@/types';
 
@@ -49,9 +52,17 @@ function buildEditorState(quote?: QuoteRequest | null): DraftEditorState {
 
 /* ━━━━━━━━━━━━━━ Nav Item ━━━━━━━━━━━━━━ */
 
-function NavItem({ icon: Icon, label, active, badge, onClick }: {
+function NavItem({
+  icon: Icon,
+  label,
+  description,
+  active,
+  badge,
+  onClick,
+}: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
+  description: string;
   active: boolean;
   badge?: string;
   onClick: () => void;
@@ -60,14 +71,57 @@ function NavItem({ icon: Icon, label, active, badge, onClick }: {
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors ${
-        active ? 'bg-primary/10 text-primary' : 'text-foreground/60 hover:bg-slate-50 hover:text-foreground'
+      className={`group flex w-full cursor-pointer items-start gap-3 rounded-[1.5rem] border px-4 py-3.5 text-left text-sm transition-all ${
+        active
+          ? 'border-primary/20 bg-[linear-gradient(135deg,rgba(239,246,255,0.96),rgba(255,252,237,0.96))] text-foreground shadow-[0_24px_55px_-40px_rgba(37,99,235,0.5)]'
+          : 'border-transparent bg-white/70 text-foreground/70 hover:border-slate-200 hover:bg-white/90 hover:text-foreground'
       }`}
     >
-      <Icon className="h-4 w-4 shrink-0" />
-      <span className="flex-1">{label}</span>
-      {badge ? <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-white">{badge}</span> : null}
+      <span
+        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-colors ${
+          active ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-slate-100 text-slate-500 group-hover:bg-primary/10 group-hover:text-primary'
+        }`}
+      >
+        <Icon className="h-4.5 w-4.5" />
+      </span>
+      <span className="min-w-0 flex-1 pt-0.5">
+        <span className="flex items-center gap-2">
+          <span className="block font-semibold leading-none">{label}</span>
+          {badge ? <span className="rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-primary shadow-sm">{badge}</span> : null}
+        </span>
+        <span className="mt-1.5 block text-xs leading-5 text-muted-foreground">{description}</span>
+      </span>
+      <ArrowRight className={`mt-1 h-4 w-4 shrink-0 transition-all ${active ? 'translate-x-0 text-primary opacity-100' : 'translate-x-[-4px] text-muted-foreground opacity-0 group-hover:translate-x-0 group-hover:opacity-100'}`} />
     </button>
+  );
+}
+
+function MetricCard({
+  icon: Icon,
+  label,
+  value,
+  hint,
+  accentClass,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+  hint: string;
+  accentClass: string;
+}) {
+  return (
+    <div className="rounded-[1.5rem] border border-white/10 bg-white/10 p-4 shadow-[0_18px_50px_-35px_rgba(15,23,42,0.7)] backdrop-blur">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/60">{label}</p>
+          <p className="mt-2 text-2xl font-semibold tracking-tight text-white">{value}</p>
+          <p className="mt-1 text-sm leading-5 text-white/70">{hint}</p>
+        </div>
+        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${accentClass} text-white shadow-lg`}>
+          <Icon className="h-5 w-5" />
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -150,7 +204,15 @@ const CustomerDashboard = () => {
     },
   });
 
-  const quotes = quotesQuery.data ?? [];
+  const quotes = useMemo(() => {
+    const list = quotesQuery.data ?? [];
+    return [...list].sort((a, b) => {
+      const aTime = new Date((a.updatedAt || a.createdAt || 0) as string | number | Date).getTime();
+      const bTime = new Date((b.updatedAt || b.createdAt || 0) as string | number | Date).getTime();
+      return bTime - aTime;
+    });
+  }, [quotesQuery.data]);
+
   const selectedQuote = useMemo(() => {
     if (selectedQuoteId) return quotes.find((q) => q.id === selectedQuoteId) || null;
     return quotes.find((q) => q.status === 'DRAFT') || quotes[0] || null;
@@ -165,6 +227,10 @@ const CustomerDashboard = () => {
   }, [selectedQuote?.id, selectedQuoteId]);
 
   const draftQuotes = quotes.filter((q) => q.status === 'DRAFT');
+  const submittedQuotes = quotes.filter((q) => q.status === 'SUBMITTED');
+  const inReviewQuotes = quotes.filter((q) => q.status === 'IN_REVIEW');
+  const respondedQuotes = quotes.filter((q) => q.status === 'RESPONDED');
+  const latestQuote = quotes[0] || null;
 
   const handleLogout = async () => { await logout(); navigate('/'); };
   const handleSelectQuote = (id: string) => { setSelectedQuoteId(id); setSearchParams({ quoteId: id, tab: 'quotes' }); setActiveTab('quotes'); };
@@ -175,67 +241,127 @@ const CustomerDashboard = () => {
     setSearchParams(params);
   };
 
-  const navItems: Array<{ id: ActiveTab; icon: typeof FileText; label: string; badge?: string }> = [
-    { id: 'quotes', icon: FileText, label: 'Orçamentos', badge: draftQuotes.length > 0 ? `${draftQuotes.length}` : undefined },
-    { id: 'profile', icon: User, label: 'Minha conta' },
-    { id: 'security', icon: Shield, label: 'Segurança', badge: user?.mustChangePassword ? '!' : undefined },
+  const navItems: Array<{ id: ActiveTab; icon: typeof FileText; label: string; description: string; badge?: string }> = [
+    {
+      id: 'quotes',
+      icon: FileText,
+      label: 'Orçamentos',
+      description: 'Criar, revisar e enviar documentos.',
+      badge: draftQuotes.length > 0 ? `${draftQuotes.length}` : undefined,
+    },
+    {
+      id: 'profile',
+      icon: User,
+      label: 'Minha conta',
+      description: 'Dados pessoais e contato de acesso.',
+    },
+    {
+      id: 'security',
+      icon: Shield,
+      label: 'Segurança',
+      description: 'Senha, credenciais e autenticação.',
+      badge: user?.mustChangePassword ? '!' : undefined,
+    },
   ];
 
+  const activeSection = navItems.find((item) => item.id === activeTab) || navItems[0];
+
   return (
-    <div className="min-h-screen bg-slate-50/80 lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]">
+    <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.12),transparent_32%),radial-gradient(circle_at_top_right,rgba(45,212,191,0.1),transparent_28%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_40%,#f8fafc_100%)] lg:grid lg:grid-cols-[19rem_minmax(0,1fr)]">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -left-28 top-16 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute right-0 top-72 h-96 w-96 rounded-full bg-cyan-400/10 blur-3xl" />
+      </div>
       {/* ━━ Sidebar ━━ */}
-      <aside className="hidden border-r border-slate-200/80 bg-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-60 lg:flex-col">
-        <div className="border-b border-slate-100 px-4 py-4">
-          <p className="text-xs font-bold uppercase tracking-widest text-primary">Painel do cliente</p>
+      <aside className="hidden border-r border-white/70 bg-white/70 backdrop-blur-xl lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col">
+        <div className="border-b border-slate-200/60 p-4">
+          <div className="rounded-[1.5rem] border border-slate-200/70 bg-gradient-to-br from-slate-950 to-slate-700 p-4 text-white shadow-[0_20px_60px_-35px_rgba(15,23,42,0.75)]">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/10">
+                <Sparkles className="h-5 w-5 text-cyan-200" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-[0.28em] text-white/60">Painel do cliente</p>
+                <h1 className="mt-1 truncate text-lg font-semibold">{user?.name || user?.identifier || 'Cliente'}</h1>
+              </div>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-white/72">Acompanhe orçamentos, dados da conta e segurança em um único lugar.</p>
+          </div>
         </div>
 
-        <nav className="flex-1 space-y-0.5 p-3">
+        <nav className="flex-1 space-y-2 p-3">
           {navItems.map((item) => (
-            <NavItem key={item.id} icon={item.icon} label={item.label} active={activeTab === item.id} badge={item.badge} onClick={() => handleTabChange(item.id)} />
+            <NavItem
+              key={item.id}
+              icon={item.icon}
+              label={item.label}
+              description={item.description}
+              active={activeTab === item.id}
+              badge={item.badge}
+              onClick={() => handleTabChange(item.id)}
+            />
           ))}
         </nav>
 
-        <div className="mt-auto space-y-3 border-t border-slate-100 bg-white p-3">
-          <div className="rounded-xl bg-slate-50 px-3 py-2.5">
-            <p className="truncate text-sm font-semibold text-foreground">{user?.name || user?.identifier || 'Cliente'}</p>
-            <p className="truncate text-xs text-muted-foreground">{user?.whatsapp ? formatWhatsapp(user.whatsapp) : user?.email || ''}</p>
+        <div className="mt-auto border-t border-slate-200/60 p-4">
+          <div className="rounded-[1.5rem] border border-slate-200/70 bg-white/90 p-4 shadow-sm">
+            <p className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Acesso atual</p>
+            <p className="mt-2 truncate text-sm font-semibold text-foreground">{user?.name || user?.identifier || 'Cliente'}</p>
+            <p className="mt-1 truncate text-xs text-muted-foreground">{user?.whatsapp ? formatWhatsapp(user.whatsapp) : user?.email || 'Sem contato cadastrado'}</p>
+            <Button variant="ghost" className="mt-4 w-full justify-start gap-2 text-muted-foreground hover:bg-slate-50 hover:text-foreground" onClick={() => void handleLogout()}>
+              <LogOut className="h-4 w-4" /> Sair
+            </Button>
           </div>
-          <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground" onClick={() => void handleLogout()}>
-            <LogOut className="h-4 w-4" /> Sair
-          </Button>
         </div>
       </aside>
 
       {/* ━━ Main ━━ */}
       <main className="min-w-0">
         {/* Header */}
-        <header className="sticky top-0 z-10 border-b border-slate-200/60 bg-white/90 backdrop-blur-sm">
-          <div className="flex items-center justify-between px-4 py-3 md:px-6">
-            {/* Mobile nav */}
-            <div className="flex flex-1 items-center gap-2 overflow-x-auto lg:hidden">
+        <header className="sticky top-0 z-20 border-b border-white/70 bg-white/75 backdrop-blur-xl">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 md:px-6">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-cyan-500 text-white shadow-lg shadow-primary/20">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Painel do cliente</p>
+                <h2 className="truncate text-lg font-semibold text-foreground">{activeSection.label}</h2>
+                <p className="hidden text-sm text-muted-foreground md:block">{activeSection.description}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" className="hidden gap-2 border-slate-200/80 bg-white/90 shadow-sm sm:inline-flex" onClick={() => navigate('/')}>
+                <Home className="h-3.5 w-3.5" /> Loja
+              </Button>
+              <Button variant="ghost" size="sm" className="hidden gap-2 text-muted-foreground hover:bg-white/80 hover:text-foreground sm:inline-flex" onClick={() => void handleLogout()}>
+                <LogOut className="h-3.5 w-3.5" /> Sair
+              </Button>
+            </div>
+          </div>
+          <div className="border-t border-slate-200/60 px-4 py-3 md:px-6 lg:hidden">
+            <div className="flex gap-2 overflow-x-auto rounded-[1.5rem] border border-slate-200/70 bg-white/90 p-2 shadow-sm">
               {navItems.map((item) => (
-                <button key={item.id} type="button" onClick={() => handleTabChange(item.id)}
-                  className={`flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${activeTab === item.id ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => handleTabChange(item.id)}
+                  className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-all ${
+                    activeTab === item.id ? 'bg-primary text-white shadow-sm' : 'bg-slate-100/90 text-muted-foreground hover:bg-slate-200/80 hover:text-foreground'
+                  }`}
                 >
                   <item.icon className="h-3.5 w-3.5" />
                   {item.label}
                 </button>
               ))}
-              <button type="button" onClick={() => void handleLogout()} className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border border-red-100 bg-red-50/50 px-3 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50">
+              <button
+                type="button"
+                onClick={() => void handleLogout()}
+                className="flex shrink-0 items-center gap-2 rounded-full border border-red-100 bg-red-50/60 px-4 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
+              >
                 <LogOut className="h-3.5 w-3.5" />
                 Sair
               </button>
-            </div>
-            {/* Desktop title */}
-            <div className="hidden flex-1 lg:flex items-center">
-              <h1 className="text-base font-bold text-foreground">
-                {navItems.find((i) => i.id === activeTab)?.label ?? 'Orçamentos'}
-              </h1>
-            </div>
-            <div className="shrink-0 pl-3">
-              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate('/')}>
-                <Home className="h-3.5 w-3.5" /> Loja
-              </Button>
             </div>
           </div>
         </header>
@@ -252,74 +378,184 @@ const CustomerDashboard = () => {
             </Alert>
           ) : null}
 
+          <section className="relative mb-6 overflow-hidden rounded-[2rem] border border-slate-200/70 bg-[linear-gradient(135deg,rgba(15,23,42,0.96),rgba(37,99,235,0.92))] p-6 text-white shadow-[0_30px_90px_-45px_rgba(15,23,42,0.65)] md:p-8">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.18),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(34,211,238,0.12),transparent_26%)]" />
+            <div className="relative grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)]">
+              <div className="space-y-5">
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-white/75">
+                  <Sparkles className="h-3.5 w-3.5 text-cyan-200" />
+                  Experiência do cliente
+                </div>
+                <div className="space-y-3">
+                  <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">
+                    Olá, {user?.name || user?.identifier || 'cliente'}.
+                  </h2>
+                  <p className="max-w-2xl text-sm leading-6 text-white/78 md:text-base">
+                    Gerencie orçamentos, atualize seus dados e mantenha o atendimento em andamento com uma interface mais clara e direta.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <Button size="sm" className="gap-2 border border-white/10 bg-white text-slate-950 shadow-lg shadow-black/10 hover:bg-slate-100" onClick={() => handleTabChange('quotes')}>
+                    <Camera className="h-3.5 w-3.5" /> Capturar documento
+                  </Button>
+                  <Button size="sm" variant="outline" className="gap-2 border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white" onClick={() => navigate('/')}>
+                    <Home className="h-3.5 w-3.5" /> Voltar à loja
+                  </Button>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  <MetricCard icon={FileText} label="Orçamentos" value={`${quotes.length}`} hint="Total no histórico" accentClass="from-slate-500 to-slate-400" />
+                  <MetricCard icon={Camera} label="Rascunhos" value={`${draftQuotes.length}`} hint="Ajuste antes de enviar" accentClass="from-amber-500 to-orange-400" />
+                  <MetricCard icon={Clock3} label="Em análise" value={`${submittedQuotes.length + inReviewQuotes.length}`} hint="Aguardando retorno" accentClass="from-sky-500 to-cyan-400" />
+                  <MetricCard icon={BadgeCheck} label="Respondidos" value={`${respondedQuotes.length}`} hint="Pedidos concluídos" accentClass="from-emerald-500 to-teal-400" />
+                </div>
+              </div>
+
+              <div className="rounded-[1.75rem] border border-white/12 bg-white/10 p-5 backdrop-blur-xl">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.28em] text-white/60">Resumo rápido</p>
+                    <h3 className="mt-2 text-2xl font-semibold text-white">Tudo sob controle</h3>
+                  </div>
+                  <div className="rounded-2xl bg-white/15 p-3 text-white">
+                    <BadgeCheck className="h-5 w-5 text-emerald-200" />
+                  </div>
+                </div>
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
+                    <p className="text-xs uppercase tracking-[0.24em] text-white/55">Rascunhos</p>
+                    <p className="mt-2 text-2xl font-semibold text-white">{draftQuotes.length}</p>
+                    <p className="mt-1 text-sm text-white/65">Prontos para ajustar</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
+                    <p className="text-xs uppercase tracking-[0.24em] text-white/55">Em análise</p>
+                    <p className="mt-2 text-2xl font-semibold text-white">{submittedQuotes.length + inReviewQuotes.length}</p>
+                    <p className="mt-1 text-sm text-white/65">Aguardando retorno</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
+                    <p className="text-xs uppercase tracking-[0.24em] text-white/55">Respondidos</p>
+                    <p className="mt-2 text-2xl font-semibold text-white">{respondedQuotes.length}</p>
+                    <p className="mt-1 text-sm text-white/65">Pedidos concluídos</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
+                    <p className="text-xs uppercase tracking-[0.24em] text-white/55">Último movimento</p>
+                    <p className="mt-2 truncate text-sm font-semibold text-white">{latestQuote ? latestQuote.referenceCode : 'Sem atividade'}</p>
+                    <p className="mt-1 text-sm text-white/65">{latestQuote ? formatQuoteTimestamp(latestQuote.updatedAt || latestQuote.createdAt) : 'Capture um documento para começar.'}</p>
+                  </div>
+                </div>
+
+                <div className="mt-4 rounded-2xl border border-white/10 bg-white/10 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[10px] uppercase tracking-[0.24em] text-white/55">Último orçamento</p>
+                      <p className="mt-2 truncate text-base font-semibold text-white">{latestQuote ? latestQuote.title || latestQuote.referenceCode : 'Nenhum orçamento ainda'}</p>
+                    </div>
+                    {latestQuote ? <QuoteStatusBadge status={latestQuote.status} /> : null}
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-white/70">{latestQuote ? `${latestQuote.itemCount} item(ns) · ${getQuoteStatusLabel(latestQuote.status)}` : 'Use a câmera para transformar uma foto em orçamento editável.'}</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
           {/* ━━ Orçamentos ━━ */}
           {activeTab === 'quotes' ? (
-            <div className="animate-fade-in-up space-y-5">
-              {/* Scanner */}
-              <QuoteDocumentCaptureCard
-                title="Escanear documento"
-                description="Capture com a câmera e o OCR monta os itens automaticamente."
-                helper=""
-                processing={createDraftMutation.isPending}
-                buttonLabel="Capturar"
-                onSelectFile={async (selection: QuoteDocumentSelection) => {
-                  await createDraftMutation.mutateAsync({ file: selection.file, width: selection.width, height: selection.height });
-                }}
-              />
+            <div className="animate-fade-in-up space-y-6">
+              <section className="rounded-[1.75rem] border border-slate-200/70 bg-white/90 p-5 shadow-sm">
+                <div className="mb-4 flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Scanner</p>
+                    <h3 className="mt-1 text-xl font-semibold text-foreground">Captura inteligente de documentos</h3>
+                    <p className="mt-2 max-w-2xl text-sm text-muted-foreground">Use a câmera ao vivo para gerar um orçamento editável com enquadramento guiado e OCR automático.</p>
+                  </div>
+                  <div className="hidden rounded-2xl bg-primary/10 p-3 text-primary sm:flex">
+                    <ScanText className="h-5 w-5" />
+                  </div>
+                </div>
+                <QuoteDocumentCaptureCard
+                  title="Scanner inteligente"
+                  description="Capture com a câmera ao vivo e gere o orçamento com as bordas corrigidas automaticamente."
+                  helper="A imagem é preparada antes do OCR para melhorar a leitura."
+                  processing={createDraftMutation.isPending}
+                  buttonLabel="Abrir câmera"
+                  onSelectFile={async (selection: QuoteDocumentSelection) => {
+                    await createDraftMutation.mutateAsync({ file: selection.file, width: selection.width, height: selection.height });
+                  }}
+                />
+              </section>
 
-              {/* List + Editor */}
-              <div className="grid gap-5 xl:grid-cols-[0.85fr_1.15fr]">
-                {/* Quote list */}
-                <div className="space-y-2">
-                  <h3 className="text-sm font-bold text-foreground">Meus orçamentos</h3>
+              <div className="grid gap-5 xl:grid-cols-[0.92fr_1.08fr]">
+                <section className="rounded-[1.75rem] border border-slate-200/70 bg-white/90 p-4 shadow-sm">
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Histórico</p>
+                      <h3 className="mt-1 text-lg font-semibold text-foreground">Meus orçamentos</h3>
+                    </div>
+                    <div className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">{quotes.length} total</div>
+                  </div>
+
                   {quotesQuery.isLoading ? (
                     <p className="text-sm text-muted-foreground">Carregando...</p>
                   ) : quotes.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-8 text-center">
+                    <div className="rounded-[1.5rem] border border-dashed border-slate-200 bg-slate-50/80 px-4 py-10 text-center">
                       <Camera className="mx-auto h-6 w-6 text-muted-foreground/40" />
-                      <p className="mt-2 text-sm text-muted-foreground">Nenhum orçamento. Escaneie um documento para começar.</p>
+                      <p className="mt-2 text-sm text-muted-foreground">Nenhum orçamento ainda. Escaneie um documento para começar.</p>
                     </div>
                   ) : (
-                    <div className="max-h-[520px] space-y-1.5 overflow-y-auto">
+                    <div className="max-h-[560px] space-y-2 overflow-y-auto pr-1">
                       {quotes.map((quote) => (
-                        <button key={quote.id} type="button" onClick={() => handleSelectQuote(quote.id)}
-                          className={`w-full rounded-xl border px-3.5 py-3 text-left transition-colors ${
-                            selectedQuote?.id === quote.id ? 'border-primary/30 bg-primary/5' : 'border-slate-200/60 bg-white hover:bg-slate-50'
+                        <button
+                          key={quote.id}
+                          type="button"
+                          onClick={() => handleSelectQuote(quote.id)}
+                          className={`w-full rounded-[1.35rem] border px-4 py-3.5 text-left transition-all ${
+                            selectedQuote?.id === quote.id
+                              ? 'border-primary/30 bg-[linear-gradient(135deg,rgba(239,246,255,0.96),rgba(255,252,237,0.9))] shadow-[0_20px_50px_-40px_rgba(37,99,235,0.45)]'
+                              : 'border-slate-200/70 bg-white hover:border-slate-300 hover:bg-slate-50'
                           }`}
                         >
-                          <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center justify-between gap-3">
                             <span className="truncate text-sm font-semibold text-foreground">{quote.title || quote.referenceCode}</span>
                             <QuoteStatusBadge status={quote.status} />
                           </div>
-                          <p className="mt-1 text-xs text-muted-foreground">{quote.itemCount} itens · {formatQuoteTimestamp(quote.createdAt)}</p>
+                          <div className="mt-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                            <span>{quote.itemCount} item(ns)</span>
+                            <span>{formatQuoteTimestamp(quote.createdAt)}</span>
+                          </div>
                         </button>
                       ))}
                     </div>
                   )}
-                </div>
+                </section>
 
-                {/* Editor */}
-                <div ref={editorCardRef} className="rounded-xl border border-slate-200/60 bg-white p-5">
+                <section ref={editorCardRef} className="rounded-[1.75rem] border border-slate-200/70 bg-white/90 p-5 shadow-sm">
                   {!selectedQuote ? (
-                    <div className="py-8 text-center">
+                    <div className="py-10 text-center">
                       <ScanText className="mx-auto h-6 w-6 text-muted-foreground/40" />
                       <p className="mt-2 text-sm text-muted-foreground">Selecione um orçamento ao lado.</p>
                     </div>
                   ) : selectedQuote.status !== 'DRAFT' ? (
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between gap-3">
+                    <div className="space-y-5">
+                      <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{selectedQuote.referenceCode}</p>
-                          <h3 className="mt-1 text-lg font-bold text-foreground">{selectedQuote.title || 'Orçamento enviado'}</h3>
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">{selectedQuote.referenceCode}</p>
+                          <h3 className="mt-2 text-xl font-semibold text-foreground">{selectedQuote.title || 'Orçamento enviado'}</h3>
                         </div>
                         <QuoteStatusBadge status={selectedQuote.status} />
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        Enviado em {formatQuoteTimestamp(selectedQuote.submittedAt || selectedQuote.updatedAt)} · {selectedQuote.itemCount} itens
-                      </p>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="rounded-2xl border border-slate-200/70 bg-slate-50/80 p-4">
+                          <p className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Enviado em</p>
+                          <p className="mt-2 text-sm font-semibold text-foreground">{formatQuoteTimestamp(selectedQuote.submittedAt || selectedQuote.updatedAt)}</p>
+                        </div>
+                        <div className="rounded-2xl border border-slate-200/70 bg-slate-50/80 p-4">
+                          <p className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Itens</p>
+                          <p className="mt-2 text-sm font-semibold text-foreground">{selectedQuote.itemCount} item(ns)</p>
+                        </div>
+                      </div>
                       <div className="space-y-2">
                         {selectedQuote.items.map((item) => (
-                          <div key={item.id} className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2.5">
+                          <div key={item.id} className="flex items-center justify-between rounded-2xl border border-slate-200/70 bg-white px-4 py-3 shadow-[0_12px_30px_-25px_rgba(15,23,42,0.25)]">
                             <span className="text-sm font-medium text-foreground">{item.name}</span>
                             <span className="text-sm text-muted-foreground">{item.quantity} {item.unit || 'un'}</span>
                           </div>
@@ -330,21 +566,25 @@ const CustomerDashboard = () => {
                     <div className="space-y-4">
                       <div>
                         <Label htmlFor="qt">Título</Label>
-                        <Input id="qt" value={editorState.title} onChange={(e) => setEditorState((s) => ({ ...s, title: e.target.value }))} placeholder="Ex.: Materiais para reforma" className="mt-1.5" />
+                        <Input id="qt" value={editorState.title} onChange={(e) => setEditorState((s) => ({ ...s, title: e.target.value }))} placeholder="Ex.: Materiais para reforma" className="mt-1.5 rounded-xl border-slate-200/80 bg-white" />
                       </div>
                       <div>
                         <Label htmlFor="qn">Observações</Label>
-                        <Textarea id="qn" rows={2} value={editorState.customerNote} onChange={(e) => setEditorState((s) => ({ ...s, customerNote: e.target.value }))} placeholder="Detalhes extras..." className="mt-1.5" />
+                        <Textarea id="qn" rows={2} value={editorState.customerNote} onChange={(e) => setEditorState((s) => ({ ...s, customerNote: e.target.value }))} placeholder="Detalhes extras..." className="mt-1.5 rounded-xl border-slate-200/80 bg-white" />
                       </div>
 
                       <div className="space-y-2">
                         {editorState.items.map((item, idx) => (
-                          <div key={`${item.id || 'n'}-${idx}`} className="rounded-lg border border-slate-100 bg-slate-50 p-3">
-                            <div className="grid gap-2 sm:grid-cols-[1fr_80px_80px_auto]">
-                              <Input value={item.name} onChange={(e) => setEditorState((s) => ({ ...s, items: s.items.map((x, i) => i === idx ? { ...x, name: e.target.value } : x) }))} placeholder="Item" />
-                              <Input inputMode="decimal" value={item.quantity} onChange={(e) => setEditorState((s) => ({ ...s, items: s.items.map((x, i) => i === idx ? { ...x, quantity: Number(e.target.value.replace(',', '.')) || 1 } : x) }))} placeholder="Qtd" />
-                              <Input value={item.unit || ''} onChange={(e) => setEditorState((s) => ({ ...s, items: s.items.map((x, i) => i === idx ? { ...x, unit: e.target.value } : x) }))} placeholder="un" />
-                              <Button type="button" variant="ghost" size="sm" className="text-red-500 hover:text-red-600"
+                          <div key={`${item.id || 'n'}-${idx}`} className="rounded-2xl border border-slate-200/70 bg-slate-50/80 p-3">
+                            <div className="grid gap-2 sm:grid-cols-[1fr_90px_90px_auto]">
+                              <Input value={item.name} onChange={(e) => setEditorState((s) => ({ ...s, items: s.items.map((x, i) => i === idx ? { ...x, name: e.target.value } : x) }))} placeholder="Item" className="rounded-xl border-slate-200/80 bg-white" />
+                              <Input inputMode="decimal" value={item.quantity} onChange={(e) => setEditorState((s) => ({ ...s, items: s.items.map((x, i) => i === idx ? { ...x, quantity: Number(e.target.value.replace(',', '.')) || 1 } : x) }))} placeholder="Qtd" className="rounded-xl border-slate-200/80 bg-white" />
+                              <Input value={item.unit || ''} onChange={(e) => setEditorState((s) => ({ ...s, items: s.items.map((x, i) => i === idx ? { ...x, unit: e.target.value } : x) }))} placeholder="un" className="rounded-xl border-slate-200/80 bg-white" />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="rounded-xl text-red-500 hover:bg-red-50 hover:text-red-600"
                                 onClick={() => setEditorState((s) => ({ ...s, items: s.items.length === 1 ? [{ ...EMPTY_ITEM }] : s.items.filter((_, i) => i !== idx) }))}
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -354,89 +594,139 @@ const CustomerDashboard = () => {
                         ))}
                       </div>
 
-                      <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => setEditorState((s) => ({ ...s, items: [...s.items, { ...EMPTY_ITEM }] }))}>
+                      <Button type="button" variant="outline" size="sm" className="gap-1.5 rounded-full border-slate-200/80 bg-white/90" onClick={() => setEditorState((s) => ({ ...s, items: [...s.items, { ...EMPTY_ITEM }] }))}>
                         <Plus className="h-3.5 w-3.5" /> Adicionar item
                       </Button>
 
-                      <div className="flex gap-2 pt-1">
-                        <Button size="sm" disabled={updateDraftMutation.isPending}
-                          onClick={() => { if (selectedQuote) void updateDraftMutation.mutateAsync({ id: selectedQuote.id, payload: editorState }); }}>
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        <Button
+                          size="sm"
+                          disabled={updateDraftMutation.isPending}
+                          className="rounded-full"
+                          onClick={() => { if (selectedQuote) void updateDraftMutation.mutateAsync({ id: selectedQuote.id, payload: editorState }); }}
+                        >
                           {updateDraftMutation.isPending ? 'Salvando...' : 'Salvar'}
                         </Button>
-                        <Button size="sm" variant="outline" className="gap-1.5"
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1.5 rounded-full border-slate-200/80 bg-white/90"
                           disabled={updateDraftMutation.isPending || submitQuoteMutation.isPending}
                           onClick={() => {
                             if (!selectedQuote) return;
                             void updateDraftMutation.mutateAsync({ id: selectedQuote.id, payload: editorState }).then((q) => submitQuoteMutation.mutateAsync(q.id));
-                          }}>
+                          }}
+                        >
                           {submitQuoteMutation.isPending ? 'Enviando...' : 'Enviar'}
                           <ArrowRight className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                     </div>
                   )}
-                </div>
+                </section>
               </div>
             </div>
           ) : null}
 
           {/* ━━ Minha conta ━━ */}
           {activeTab === 'profile' ? (
-            <div className="animate-fade-in-up space-y-4">
-              <h2 className="text-lg font-bold text-foreground">Minha conta</h2>
-              <div className="rounded-xl border border-slate-200/60 bg-white divide-y divide-slate-100">
-                <Row label="Nome" value={user?.name || '-'} />
-                <Row label="Identificador" value={user?.identifier || '-'} />
-                <Row label="E-mail" value={user?.email || 'Não cadastrado'} />
-                <Row label="WhatsApp" value={user?.whatsapp ? formatWhatsapp(user.whatsapp) : 'Não cadastrado'} />
-                <Row label="Orçamentos" value={`${quotes.length} total · ${draftQuotes.length} rascunhos`} />
-                <Row label="Senha" value={user?.mustChangePassword ? 'Provisória' : 'Atualizada'} />
+            <div className="animate-fade-in-up space-y-5">
+              <div className="flex items-end justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Perfil</p>
+                  <h2 className="mt-1 text-xl font-semibold text-foreground">Minha conta</h2>
+                </div>
+                <div className="hidden rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary sm:flex">{quotes.length} orçamento(s)</div>
+              </div>
+
+              <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+                <div className="rounded-[1.75rem] border border-slate-200/70 bg-white/90 shadow-sm">
+                  <div className="divide-y divide-slate-100">
+                    <Row label="Nome" value={user?.name || '-'} />
+                    <Row label="Identificador" value={user?.identifier || '-'} />
+                    <Row label="E-mail" value={user?.email || 'Não cadastrado'} />
+                    <Row label="WhatsApp" value={user?.whatsapp ? formatWhatsapp(user.whatsapp) : 'Não cadastrado'} />
+                    <Row label="Orçamentos" value={`${quotes.length} total · ${draftQuotes.length} rascunhos`} />
+                    <Row label="Senha" value={user?.mustChangePassword ? 'Provisória' : 'Atualizada'} />
+                  </div>
+                </div>
+
+                <div className="rounded-[1.75rem] border border-slate-200/70 bg-[linear-gradient(135deg,rgba(15,23,42,0.96),rgba(37,99,235,0.9))] p-5 text-white shadow-[0_26px_70px_-40px_rgba(15,23,42,0.65)]">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/60">Visão geral</p>
+                  <h3 className="mt-2 text-2xl font-semibold tracking-tight">{user?.name || user?.identifier || 'Cliente'}</h3>
+                  <p className="mt-2 text-sm leading-6 text-white/72">Mantenha seus dados atualizados para acelerar o atendimento e reduzir retrabalho na loja.</p>
+
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                    <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
+                      <p className="text-xs uppercase tracking-[0.24em] text-white/55">Fluxo atual</p>
+                      <p className="mt-2 text-xl font-semibold text-white">{draftQuotes.length} rascunho(s)</p>
+                      <p className="mt-1 text-sm text-white/65">Prontos para edição ou envio.</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
+                      <p className="text-xs uppercase tracking-[0.24em] text-white/55">Contato</p>
+                      <p className="mt-2 truncate text-sm font-semibold text-white">{user?.whatsapp ? formatWhatsapp(user.whatsapp) : user?.email || 'Sem contato cadastrado'}</p>
+                      <p className="mt-1 text-sm text-white/65">Use este canal para acelerar o atendimento.</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           ) : null}
 
           {/* ━━ Segurança ━━ */}
           {activeTab === 'security' ? (
-            <div className="animate-fade-in-up space-y-4">
-              <h2 className="text-lg font-bold text-foreground">Segurança</h2>
-
-              {user?.mustChangePassword ? (
-                <div className="rounded-xl border border-amber-200/60 bg-amber-50/50 px-4 py-3 text-sm text-amber-800">
-                  ⚠ Você está usando uma senha provisória. Troque-a abaixo.
+            <div className="animate-fade-in-up space-y-5">
+              <div className="flex items-end justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Acesso</p>
+                  <h2 className="mt-1 text-xl font-semibold text-foreground">Segurança</h2>
                 </div>
-              ) : (
-                <div className="rounded-xl border border-emerald-200/60 bg-emerald-50/50 px-4 py-3 text-sm text-emerald-700">
-                  ✓ Sua senha está atualizada.
+                <div className={`rounded-full px-3 py-1 text-xs font-semibold ${user?.mustChangePassword ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-700'}`}>
+                  {user?.mustChangePassword ? 'Senha provisória' : 'Senha atualizada'}
                 </div>
-              )}
+              </div>
 
-              {provisionalCredentials ? (
-                <Alert className="border-amber-200/60 bg-amber-50/50">
-                  <KeyRound className="h-4 w-4 text-amber-600" />
-                  <AlertTitle className="text-amber-900">Credenciais provisórias</AlertTitle>
-                  <AlertDescription className="text-amber-800">
-                    Identificador: <strong>{provisionalCredentials.identifier}</strong> · Senha: <strong>{provisionalCredentials.password}</strong>
-                  </AlertDescription>
-                </Alert>
-              ) : null}
+              <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+                <div className="space-y-4 rounded-[1.75rem] border border-slate-200/70 bg-white/90 p-5 shadow-sm">
+                  {user?.mustChangePassword ? (
+                    <div className="rounded-2xl border border-amber-200/60 bg-amber-50/60 px-4 py-3 text-sm text-amber-800">
+                      Você está usando uma senha provisória. Troque-a abaixo.
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-emerald-200/60 bg-emerald-50/60 px-4 py-3 text-sm text-emerald-700">
+                      Sua senha está atualizada.
+                    </div>
+                  )}
 
-              <div className="rounded-xl border border-slate-200/60 bg-white p-5">
-                <h3 className="text-base font-bold text-foreground">Trocar senha</h3>
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <Label htmlFor="cp">Senha atual</Label>
-                    <Input id="cp" type="password" value={passwordForm.currentPassword} onChange={(e) => setPasswordForm((s) => ({ ...s, currentPassword: e.target.value }))} className="mt-1.5" />
+                  {provisionalCredentials ? (
+                    <Alert className="border-amber-200/60 bg-amber-50/50">
+                      <KeyRound className="h-4 w-4 text-amber-600" />
+                      <AlertTitle className="text-amber-900">Credenciais provisórias</AlertTitle>
+                      <AlertDescription className="text-amber-800">
+                        Identificador: <strong>{provisionalCredentials.identifier}</strong> · Senha: <strong>{provisionalCredentials.password}</strong>
+                      </AlertDescription>
+                    </Alert>
+                  ) : null}
+                </div>
+
+                <div className="rounded-[1.75rem] border border-slate-200/70 bg-white/90 p-5 shadow-sm">
+                  <h3 className="text-base font-semibold text-foreground">Trocar senha</h3>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <Label htmlFor="cp">Senha atual</Label>
+                      <Input id="cp" type="password" value={passwordForm.currentPassword} onChange={(e) => setPasswordForm((s) => ({ ...s, currentPassword: e.target.value }))} className="mt-1.5 rounded-xl border-slate-200/80 bg-white" />
+                    </div>
+                    <div>
+                      <Label htmlFor="np">Nova senha</Label>
+                      <Input id="np" type="password" value={passwordForm.newPassword} onChange={(e) => setPasswordForm((s) => ({ ...s, newPassword: e.target.value }))} className="mt-1.5 rounded-xl border-slate-200/80 bg-white" />
+                    </div>
                   </div>
-                  <div>
-                    <Label htmlFor="np">Nova senha</Label>
-                    <Input id="np" type="password" value={passwordForm.newPassword} onChange={(e) => setPasswordForm((s) => ({ ...s, newPassword: e.target.value }))} className="mt-1.5" />
-                  </div>
+                  <Button className="mt-4 gap-1.5 rounded-full" size="sm" disabled={changePasswordMutation.isPending}
+                    onClick={() => void changePasswordMutation.mutateAsync(passwordForm)}>
+                    <Lock className="h-3.5 w-3.5" />
+                    {changePasswordMutation.isPending ? 'Atualizando...' : 'Atualizar senha'}
+                  </Button>
                 </div>
-                <Button className="mt-4 gap-1.5" size="sm" disabled={changePasswordMutation.isPending}
-                  onClick={() => void changePasswordMutation.mutateAsync(passwordForm)}>
-                  <Lock className="h-3.5 w-3.5" />
-                  {changePasswordMutation.isPending ? 'Atualizando...' : 'Atualizar senha'}
-                </Button>
               </div>
             </div>
           ) : null}
@@ -448,9 +738,9 @@ const CustomerDashboard = () => {
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between px-4 py-3">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-sm font-medium text-foreground">{value}</span>
+    <div className="flex flex-col gap-1 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">{label}</span>
+      <span className="text-sm font-medium text-foreground sm:max-w-[60%] sm:text-right">{value}</span>
     </div>
   );
 }
