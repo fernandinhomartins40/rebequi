@@ -463,7 +463,7 @@ export function QuoteDocumentCaptureCard({
 
                   <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.02),rgba(2,6,23,0.24)_72%)]" />
 
-                  <div className="absolute inset-0 p-4 sm:p-5">
+                  <div className="pointer-events-none absolute inset-0 p-4 sm:p-5">
                     <div className="flex items-start justify-between gap-3">
                       <Badge className="border-none bg-white/90 text-slate-900">
                         {detection ? 'Documento detectado' : 'Procurando documento'}
@@ -478,7 +478,7 @@ export function QuoteDocumentCaptureCard({
                       </Badge>
                     </div>
 
-                    <div className="absolute inset-x-4 bottom-4 rounded-[1.4rem] border border-white/15 bg-slate-950/72 px-4 py-3 text-white backdrop-blur">
+                    <div className="pointer-events-auto absolute inset-x-4 bottom-4 rounded-[1.4rem] border border-white/15 bg-slate-950/72 px-4 py-3 text-white backdrop-blur">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="space-y-2">
                           <p className="text-sm font-semibold">{cameraMessage}</p>
@@ -606,8 +606,12 @@ export function QuoteDocumentCaptureCard({
         </Tabs>
 
         {preview ? (
-          <div className="rounded-[1.5rem] border border-[#e7dcc3] bg-white/90 p-4">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="rounded-[1.25rem] border border-[#e7dcc3] bg-white/92 p-3 shadow-[0_14px_40px_-32px_rgba(15,23,42,0.28)]">
+            <div className="grid gap-4 md:grid-cols-[120px_minmax(0,1fr)] md:items-center">
+              <div className="overflow-hidden rounded-[1rem] border border-black/5 bg-slate-100">
+                <img src={preview.url} alt="Documento tratado para OCR" className="h-24 w-full object-cover md:h-full" />
+              </div>
+
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge className="border-none bg-primary/10 text-primary">
@@ -629,16 +633,13 @@ export function QuoteDocumentCaptureCard({
                     : 'Resolucao padronizada para acelerar o reconhecimento'}{' '}
                   • score {Math.max(0, Math.round(preview.qualityScore * 100))}
                 </p>
+                <div className="pt-1">
+                  <Button type="button" variant="ghost" className="gap-2" onClick={openFilePicker} disabled={busy}>
+                    <RefreshCcw className="h-4 w-4" />
+                    Trocar documento
+                  </Button>
+                </div>
               </div>
-
-              <Button type="button" variant="ghost" className="gap-2" onClick={openFilePicker} disabled={busy}>
-                <RefreshCcw className="h-4 w-4" />
-                Trocar documento
-              </Button>
-            </div>
-
-            <div className="mt-4 overflow-hidden rounded-[1.25rem] border border-black/5 bg-slate-100">
-              <img src={preview.url} alt="Documento tratado para OCR" className="max-h-[360px] w-full object-contain" />
             </div>
           </div>
         ) : null}
