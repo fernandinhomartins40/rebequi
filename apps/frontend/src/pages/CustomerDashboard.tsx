@@ -132,6 +132,47 @@ function MetricCard({
   );
 }
 
+function FlowStepCard({
+  step,
+  title,
+  description,
+  icon: Icon,
+  active,
+  done,
+}: {
+  step: number;
+  title: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+  active: boolean;
+  done?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-[1.4rem] border p-4 transition-all ${
+        active
+          ? 'border-primary/20 bg-[linear-gradient(135deg,rgba(239,246,255,0.98),rgba(255,251,235,0.94))] shadow-sm'
+          : 'border-slate-200/70 bg-slate-50/80'
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <div
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ring-1 ring-inset ring-black/5 ${
+            active ? 'bg-primary text-white' : done ? 'bg-emerald-100 text-emerald-700' : 'bg-white text-slate-500'
+          }`}
+        >
+          {done ? <BadgeCheck className="h-4.5 w-4.5" /> : <Icon className="h-4.5 w-4.5" />}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Passo {step}</p>
+          <h3 className="mt-1 text-sm font-semibold text-foreground">{title}</h3>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">{description}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ━━━━━━━━━━━━━━ Main ━━━━━━━━━━━━━━ */
 
 function BottomNavItem({
@@ -275,9 +316,28 @@ const CustomerDashboard = () => {
   const inReviewQuotes = quotes.filter((q) => q.status === 'IN_REVIEW');
   const respondedQuotes = quotes.filter((q) => q.status === 'RESPONDED');
   const latestQuote = quotes[0] || null;
+  const quoteFlowStage = !selectedQuote ? 1 : selectedQuote.status === 'DRAFT' ? 2 : 3;
 
   const handleLogout = async () => { await logout(); navigate('/'); };
   const handleSelectQuote = (id: string) => { setSelectedQuoteId(id); setSearchParams({ quoteId: id, tab: 'quotes' }); setActiveTab('quotes'); };
+  const handleSaveDraft = async () => {
+    if (!selectedQuote || selectedQuote.status !== 'DRAFT') {
+      return null;
+    }
+
+    return updateDraftMutation.mutateAsync({
+      id: selectedQuote.id,
+      payload: editorState,
+    });
+  };
+  const handleSaveAndSend = async () => {
+    const quote = await handleSaveDraft();
+    if (!quote) {
+      return;
+    }
+
+    await submitQuoteMutation.mutateAsync(quote.id);
+  };
   const handleTabChange = (tab: ActiveTab) => {
     setActiveTab(tab);
     const params: Record<string, string> = { tab };
@@ -482,92 +542,108 @@ const CustomerDashboard = () => {
 
           {/* ━━ Orçamentos ━━ */}
           {activeTab === 'quotes' ? (
-            <div className="animate-fade-in-up space-y-6">
+            <div className="animate-fade-in-up space-y-5">
+              <section className="rounded-[1.75rem] border border-slate-200/70 bg-white/90 p-5 shadow-sm">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Orçamentos em 3 passos</p>
+                    <h3 className="text-2xl font-semibold tracking-tight text-foreground">Capturar, revisar e enviar.</h3>
+                    <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+                      A página agora segue um fluxo simples. Você faz uma etapa por vez, sem blocos grandes competindo pela atenção.
+                    </p>
+                  </div>
+                  <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{quotes.length} orçamento(s)</div>
+                </div>
+
+                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                  <FlowStepCard
+                    step={1}
+                    title="Capturar"
+                    description="Abra a câmera, enquadre o documento e deixe a leitura acontecer."
+                    icon={Camera}
+                    active={quoteFlowStage === 1}
+                    done={quoteFlowStage > 1}
+                  />
+                  <FlowStepCard
+                    step={2}
+                    title="Revisar"
+                    description="Confira o texto reconhecido e ajuste apenas o que for necessário."
+                    icon={FileText}
+                    active={quoteFlowStage === 2}
+                    done={quoteFlowStage > 2}
+                  />
+                  <FlowStepCard
+                    step={3}
+                    title="Enviar"
+                    description="Salve o rascunho e envie quando estiver pronto."
+                    icon={ArrowRight}
+                    active={quoteFlowStage === 3}
+                    done={selectedQuote?.status === 'RESPONDED'}
+                  />
+                </div>
+              </section>
+
               <section className="rounded-[1.75rem] border border-slate-200/70 bg-white/90 p-5 shadow-sm">
                 <div className="mb-4 flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Scanner</p>
-                    <h3 className="mt-1 text-xl font-semibold text-foreground">Captura inteligente de documentos</h3>
-                    <p className="mt-2 max-w-2xl text-sm text-muted-foreground">Use a câmera ao vivo para gerar um orçamento editável com enquadramento guiado e OCR automático.</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Passo 1</p>
+                    <h3 className="mt-1 text-xl font-semibold text-foreground">Capturar documento</h3>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                      Use a câmera ao vivo para gerar um rascunho limpo. O sistema corrige o enquadramento antes de ler o texto.
+                    </p>
                   </div>
                   <div className="hidden rounded-2xl bg-primary/10 p-3 text-primary sm:flex">
                     <ScanText className="h-5 w-5" />
                   </div>
                 </div>
                 <QuoteDocumentCaptureCard
-                  title="Scanner inteligente"
-                  description="Capture com a câmera ao vivo e gere o orçamento com as bordas corrigidas automaticamente."
-                  helper="A imagem é preparada antes do OCR para melhorar a leitura."
+                  title="Scanner simples"
+                  description="Capture com a câmera ao vivo e transforme a imagem em orçamento automaticamente."
+                  helper="Etapa 1 de 3: capture, depois revise e por fim envie."
                   processing={createDraftMutation.isPending}
                   buttonLabel="Abrir câmera"
                   onSelectFile={async (selection: QuoteDocumentSelection) => {
-                    await createDraftMutation.mutateAsync({ file: selection.file, width: selection.width, height: selection.height });
+                    await createDraftMutation.mutateAsync({
+                      file: selection.file,
+                      width: selection.width,
+                      height: selection.height,
+                    });
                   }}
                 />
               </section>
 
-              <div className="grid gap-5 xl:grid-cols-[0.92fr_1.08fr]">
-                <section className="rounded-[1.75rem] border border-slate-200/70 bg-white/90 p-4 shadow-sm">
-                  <div className="mb-4 flex items-center justify-between gap-3">
+              <div className="grid gap-5 lg:grid-cols-[1.06fr_0.94fr]">
+                <section ref={editorCardRef} className="rounded-[1.75rem] border border-slate-200/70 bg-white/90 p-5 shadow-sm">
+                  <div className="mb-4 flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Histórico</p>
-                      <h3 className="mt-1 text-lg font-semibold text-foreground">Meus orçamentos</h3>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Passo 2</p>
+                      <h3 className="mt-1 text-xl font-semibold text-foreground">Revisar rascunho</h3>
+                      <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                        Escolha um orçamento e ajuste apenas o que realmente precisa mudar.
+                      </p>
                     </div>
-                    <div className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">{quotes.length} total</div>
+                    <div className="hidden rounded-2xl bg-slate-100 p-3 text-slate-600 sm:flex">
+                      <FileText className="h-5 w-5" />
+                    </div>
                   </div>
 
-                  {quotesQuery.isLoading ? (
-                    <p className="text-sm text-muted-foreground">Carregando...</p>
-                  ) : quotes.length === 0 ? (
+                  {!selectedQuote ? (
                     <div className="rounded-[1.5rem] border border-dashed border-slate-200 bg-slate-50/80 px-4 py-10 text-center">
                       <Camera className="mx-auto h-6 w-6 text-muted-foreground/40" />
-                      <p className="mt-2 text-sm text-muted-foreground">Nenhum orçamento ainda. Escaneie um documento para começar.</p>
-                    </div>
-                  ) : (
-                    <div className="max-h-[560px] space-y-2 overflow-y-auto pr-1">
-                      {quotes.map((quote) => (
-                        <button
-                          key={quote.id}
-                          type="button"
-                          onClick={() => handleSelectQuote(quote.id)}
-                          className={`w-full rounded-[1.35rem] border px-4 py-3.5 text-left transition-all ${
-                            selectedQuote?.id === quote.id
-                              ? 'border-primary/30 bg-[linear-gradient(135deg,rgba(239,246,255,0.96),rgba(255,252,237,0.9))] shadow-[0_20px_50px_-40px_rgba(37,99,235,0.45)]'
-                              : 'border-slate-200/70 bg-white hover:border-slate-300 hover:bg-slate-50'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="truncate text-sm font-semibold text-foreground">{quote.title || quote.referenceCode}</span>
-                            <QuoteStatusBadge status={quote.status} />
-                          </div>
-                          <div className="mt-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
-                            <span>{quote.itemCount} item(ns)</span>
-                            <span>{formatQuoteTimestamp(quote.createdAt)}</span>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </section>
-
-                <section ref={editorCardRef} className="rounded-[1.75rem] border border-slate-200/70 bg-white/90 p-5 shadow-sm">
-                  {!selectedQuote ? (
-                    <div className="py-10 text-center">
-                      <ScanText className="mx-auto h-6 w-6 text-muted-foreground/40" />
-                      <p className="mt-2 text-sm text-muted-foreground">Selecione um orçamento ao lado.</p>
+                      <p className="mt-2 text-sm text-muted-foreground">Capture um documento no passo 1 para abrir o rascunho.</p>
                     </div>
                   ) : selectedQuote.status !== 'DRAFT' ? (
-                    <div className="space-y-5">
+                    <div className="space-y-4">
                       <div className="flex items-start justify-between gap-3">
-                        <div>
+                        <div className="min-w-0">
                           <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">{selectedQuote.referenceCode}</p>
-                          <h3 className="mt-2 text-xl font-semibold text-foreground">{selectedQuote.title || 'Orçamento enviado'}</h3>
+                          <h4 className="mt-2 truncate text-lg font-semibold text-foreground">{selectedQuote.title || 'Orçamento enviado'}</h4>
                         </div>
                         <QuoteStatusBadge status={selectedQuote.status} />
                       </div>
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="rounded-2xl border border-slate-200/70 bg-slate-50/80 p-4">
-                          <p className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Enviado em</p>
+                          <p className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Atualizado em</p>
                           <p className="mt-2 text-sm font-semibold text-foreground">{formatQuoteTimestamp(selectedQuote.submittedAt || selectedQuote.updatedAt)}</p>
                         </div>
                         <div className="rounded-2xl border border-slate-200/70 bg-slate-50/80 p-4">
@@ -575,39 +651,101 @@ const CustomerDashboard = () => {
                           <p className="mt-2 text-sm font-semibold text-foreground">{selectedQuote.itemCount} item(ns)</p>
                         </div>
                       </div>
-                      <div className="space-y-2">
-                        {selectedQuote.items.map((item) => (
-                          <div key={item.id} className="flex items-center justify-between rounded-2xl border border-slate-200/70 bg-white px-4 py-3 shadow-[0_12px_30px_-25px_rgba(15,23,42,0.25)]">
-                            <span className="text-sm font-medium text-foreground">{item.name}</span>
-                            <span className="text-sm text-muted-foreground">{item.quantity} {item.unit || 'un'}</span>
-                          </div>
-                        ))}
+                      <div className="rounded-2xl border border-slate-200/70 bg-white p-4">
+                        <p className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Itens reconhecidos</p>
+                        <div className="mt-3 space-y-2">
+                          {selectedQuote.items.map((item) => (
+                            <div key={item.id} className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-3 py-2.5">
+                              <span className="min-w-0 truncate text-sm font-medium text-foreground">{item.name}</span>
+                              <span className="shrink-0 text-sm text-muted-foreground">
+                                {item.quantity} {item.unit || 'un'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="qt">Título</Label>
-                        <Input id="qt" value={editorState.title} onChange={(e) => setEditorState((s) => ({ ...s, title: e.target.value }))} placeholder="Ex.: Materiais para reforma" className="mt-1.5 rounded-xl border-slate-200/80 bg-white" />
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div>
+                          <Label htmlFor="qt">Título</Label>
+                          <Input
+                            id="qt"
+                            value={editorState.title}
+                            onChange={(e) => setEditorState((s) => ({ ...s, title: e.target.value }))}
+                            placeholder="Ex.: Materiais para reforma"
+                            className="mt-1.5 rounded-xl border-slate-200/80 bg-white"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="qref">Referência</Label>
+                          <Input id="qref" value={selectedQuote.referenceCode} disabled className="mt-1.5 rounded-xl border-slate-200/80 bg-slate-50" />
+                        </div>
                       </div>
+
                       <div>
                         <Label htmlFor="qn">Observações</Label>
-                        <Textarea id="qn" rows={2} value={editorState.customerNote} onChange={(e) => setEditorState((s) => ({ ...s, customerNote: e.target.value }))} placeholder="Detalhes extras..." className="mt-1.5 rounded-xl border-slate-200/80 bg-white" />
+                        <Textarea
+                          id="qn"
+                          rows={3}
+                          value={editorState.customerNote}
+                          onChange={(e) => setEditorState((s) => ({ ...s, customerNote: e.target.value }))}
+                          placeholder="Detalhes extras..."
+                          className="mt-1.5 rounded-xl border-slate-200/80 bg-white"
+                        />
                       </div>
 
                       <div className="space-y-2">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Itens</p>
                         {editorState.items.map((item, idx) => (
                           <div key={`${item.id || 'n'}-${idx}`} className="rounded-2xl border border-slate-200/70 bg-slate-50/80 p-3">
-                            <div className="grid gap-2 sm:grid-cols-[1fr_90px_90px_auto]">
-                              <Input value={item.name} onChange={(e) => setEditorState((s) => ({ ...s, items: s.items.map((x, i) => i === idx ? { ...x, name: e.target.value } : x) }))} placeholder="Item" className="rounded-xl border-slate-200/80 bg-white" />
-                              <Input inputMode="decimal" value={item.quantity} onChange={(e) => setEditorState((s) => ({ ...s, items: s.items.map((x, i) => i === idx ? { ...x, quantity: Number(e.target.value.replace(',', '.')) || 1 } : x) }))} placeholder="Qtd" className="rounded-xl border-slate-200/80 bg-white" />
-                              <Input value={item.unit || ''} onChange={(e) => setEditorState((s) => ({ ...s, items: s.items.map((x, i) => i === idx ? { ...x, unit: e.target.value } : x) }))} placeholder="un" className="rounded-xl border-slate-200/80 bg-white" />
+                            <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_88px_88px_auto]">
+                              <Input
+                                value={item.name}
+                                onChange={(e) =>
+                                  setEditorState((s) => ({
+                                    ...s,
+                                    items: s.items.map((x, i) => (i === idx ? { ...x, name: e.target.value } : x)),
+                                  }))
+                                }
+                                placeholder="Item"
+                                className="rounded-xl border-slate-200/80 bg-white"
+                              />
+                              <Input
+                                inputMode="decimal"
+                                value={item.quantity}
+                                onChange={(e) =>
+                                  setEditorState((s) => ({
+                                    ...s,
+                                    items: s.items.map((x, i) => (i === idx ? { ...x, quantity: Number(e.target.value.replace(',', '.')) || 1 } : x)),
+                                  }))
+                                }
+                                placeholder="Qtd"
+                                className="rounded-xl border-slate-200/80 bg-white"
+                              />
+                              <Input
+                                value={item.unit || ''}
+                                onChange={(e) =>
+                                  setEditorState((s) => ({
+                                    ...s,
+                                    items: s.items.map((x, i) => (i === idx ? { ...x, unit: e.target.value } : x)),
+                                  }))
+                                }
+                                placeholder="un"
+                                className="rounded-xl border-slate-200/80 bg-white"
+                              />
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="sm"
                                 className="rounded-xl text-red-500 hover:bg-red-50 hover:text-red-600"
-                                onClick={() => setEditorState((s) => ({ ...s, items: s.items.length === 1 ? [{ ...EMPTY_ITEM }] : s.items.filter((_, i) => i !== idx) }))}
+                                onClick={() =>
+                                  setEditorState((s) => ({
+                                    ...s,
+                                    items: s.items.length === 1 ? [{ ...EMPTY_ITEM }] : s.items.filter((_, i) => i !== idx),
+                                  }))
+                                }
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
@@ -616,36 +754,114 @@ const CustomerDashboard = () => {
                         ))}
                       </div>
 
-                      <Button type="button" variant="outline" size="sm" className="gap-1.5 rounded-full border-slate-200/80 bg-white/90" onClick={() => setEditorState((s) => ({ ...s, items: [...s.items, { ...EMPTY_ITEM }] }))}>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 rounded-full border-slate-200/80 bg-white/90"
+                        onClick={() => setEditorState((s) => ({ ...s, items: [...s.items, { ...EMPTY_ITEM }] }))}
+                      >
                         <Plus className="h-3.5 w-3.5" /> Adicionar item
                       </Button>
-
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        <Button
-                          size="sm"
-                          disabled={updateDraftMutation.isPending}
-                          className="rounded-full"
-                          onClick={() => { if (selectedQuote) void updateDraftMutation.mutateAsync({ id: selectedQuote.id, payload: editorState }); }}
-                        >
-                          {updateDraftMutation.isPending ? 'Salvando...' : 'Salvar'}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="gap-1.5 rounded-full border-slate-200/80 bg-white/90"
-                          disabled={updateDraftMutation.isPending || submitQuoteMutation.isPending}
-                          onClick={() => {
-                            if (!selectedQuote) return;
-                            void updateDraftMutation.mutateAsync({ id: selectedQuote.id, payload: editorState }).then((q) => submitQuoteMutation.mutateAsync(q.id));
-                          }}
-                        >
-                          {submitQuoteMutation.isPending ? 'Enviando...' : 'Enviar'}
-                          <ArrowRight className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
                     </div>
                   )}
                 </section>
+
+                <div className="space-y-5">
+                  <section className="rounded-[1.75rem] border border-slate-200/70 bg-white/90 p-5 shadow-sm">
+                    <div className="mb-4 flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Passo 3</p>
+                        <h3 className="mt-1 text-xl font-semibold text-foreground">Enviar para a loja</h3>
+                        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                          Quando o rascunho estiver pronto, salve e envie com um toque.
+                        </p>
+                      </div>
+                      <div className="hidden rounded-2xl bg-emerald-100 p-3 text-emerald-700 sm:flex">
+                        <BadgeCheck className="h-5 w-5" />
+                      </div>
+                    </div>
+
+                    {selectedQuote && selectedQuote.status === 'DRAFT' ? (
+                      <div className="space-y-4">
+                        <div className="rounded-2xl border border-slate-200/70 bg-slate-50/80 p-4">
+                          <p className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Orçamento atual</p>
+                          <p className="mt-2 truncate text-sm font-semibold text-foreground">{selectedQuote.title || selectedQuote.referenceCode}</p>
+                          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                            Revise os itens no passo 2. Depois, use o envio abaixo para mandar tudo para a loja.
+                          </p>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            size="sm"
+                            disabled={updateDraftMutation.isPending}
+                            className="rounded-full"
+                            onClick={() => void handleSaveDraft()}
+                          >
+                            {updateDraftMutation.isPending ? 'Salvando...' : 'Salvar rascunho'}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5 rounded-full border-slate-200/80 bg-white/90"
+                            disabled={updateDraftMutation.isPending || submitQuoteMutation.isPending}
+                            onClick={() => void handleSaveAndSend()}
+                          >
+                            {submitQuoteMutation.isPending ? 'Enviando...' : 'Salvar e enviar'}
+                            <ArrowRight className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="rounded-[1.5rem] border border-dashed border-slate-200 bg-slate-50/80 px-4 py-8 text-sm leading-6 text-muted-foreground">
+                        Selecione um rascunho em revisão ou capture um novo documento no passo 1.
+                      </div>
+                    )}
+                  </section>
+
+                  <section className="rounded-[1.75rem] border border-slate-200/70 bg-white/90 p-5 shadow-sm">
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Histórico recente</p>
+                        <h3 className="mt-1 text-lg font-semibold text-foreground">Últimos orçamentos</h3>
+                      </div>
+                      <div className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">{quotes.length} total</div>
+                    </div>
+
+                    {quotesQuery.isLoading ? (
+                      <p className="text-sm text-muted-foreground">Carregando...</p>
+                    ) : quotes.length === 0 ? (
+                      <div className="rounded-[1.5rem] border border-dashed border-slate-200 bg-slate-50/80 px-4 py-10 text-center">
+                        <Camera className="mx-auto h-6 w-6 text-muted-foreground/40" />
+                        <p className="mt-2 text-sm text-muted-foreground">Nenhum orçamento ainda. Capture o primeiro documento no passo 1.</p>
+                      </div>
+                    ) : (
+                      <div className="max-h-[360px] space-y-2 overflow-y-auto pr-1">
+                        {quotes.map((quote) => (
+                          <button
+                            key={quote.id}
+                            type="button"
+                            onClick={() => handleSelectQuote(quote.id)}
+                            className={`flex w-full items-center justify-between gap-3 rounded-[1.25rem] border px-4 py-3 text-left transition-all ${
+                              selectedQuote?.id === quote.id
+                                ? 'border-primary/30 bg-[linear-gradient(135deg,rgba(239,246,255,0.96),rgba(255,252,237,0.9))] shadow-[0_20px_50px_-40px_rgba(37,99,235,0.45)]'
+                                : 'border-slate-200/70 bg-white hover:border-slate-300 hover:bg-slate-50'
+                            }`}
+                          >
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-sm font-semibold text-foreground">{quote.title || quote.referenceCode}</span>
+                              <span className="mt-1 block text-xs text-muted-foreground">
+                                {quote.itemCount} item(ns) · {formatQuoteTimestamp(quote.createdAt)}
+                              </span>
+                            </span>
+                            <QuoteStatusBadge status={quote.status} />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                </div>
               </div>
             </div>
           ) : null}
