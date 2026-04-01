@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
-import imageCompression from 'browser-image-compression';
 import {
   Camera,
   CheckCircle2,
@@ -92,31 +91,6 @@ export function QuoteDocumentCaptureCard({
   const [videoSize, setVideoSize] = useState({ width: 4, height: 3 });
 
   useEffect(() => {
-    let cancelled = false;
-
-    loadOpenCv()
-      .then(() => {
-        if (cancelled) {
-          return;
-        }
-
-        openCvReadyRef.current = true;
-        setScannerReady(true);
-      })
-      .catch(() => {
-        if (cancelled) {
-          return;
-        }
-
-        setLocalError('Nao foi possivel preparar o scanner de documentos no navegador.');
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
     return () => {
       stopCameraStream(streamRef);
 
@@ -206,6 +180,24 @@ export function QuoteDocumentCaptureCard({
     inputRef.current?.click();
   };
 
+  const ensureScannerReady = async () => {
+    if (openCvReadyRef.current) {
+      return true;
+    }
+
+    try {
+      setCameraMessage('Preparando scanner para analise do documento...');
+      await loadOpenCv();
+      openCvReadyRef.current = true;
+      setScannerReady(true);
+      return true;
+    } catch {
+      setLocalError('Nao foi possivel preparar o scanner de documentos no navegador.');
+      setCameraState('error');
+      return false;
+    }
+  };
+
   const handleStartCamera = async () => {
     if (disabled || processing || localBusy) {
       return;
@@ -222,6 +214,11 @@ export function QuoteDocumentCaptureCard({
     setCameraState('requesting');
 
     try {
+      const scannerIsReady = await ensureScannerReady();
+      if (!scannerIsReady) {
+        return;
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
         video: {
@@ -348,6 +345,7 @@ export function QuoteDocumentCaptureCard({
       });
     } catch {
       try {
+        const { default: imageCompression } = await import('browser-image-compression');
         const compressed = await imageCompression(file, {
           maxSizeMB: 2,
           maxWidthOrHeight: 1800,
@@ -465,7 +463,7 @@ export function QuoteDocumentCaptureCard({
 
                   <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.02),rgba(2,6,23,0.24)_72%)]" />
 
-                  <div className="pointer-events-none absolute inset-0 p-4 sm:p-5">
+                  <div className="absolute inset-0 p-4 sm:p-5">
                     <div className="flex items-start justify-between gap-3">
                       <Badge className="border-none bg-white/90 text-slate-900">
                         {detection ? 'Documento detectado' : 'Procurando documento'}
@@ -491,7 +489,7 @@ export function QuoteDocumentCaptureCard({
                           <Progress value={progressValue} className="h-2 bg-white/15" />
                         </div>
 
-                        <div className="flex shrink-0 flex-wrap items-center gap-2">
+                        <div className="pointer-events-auto flex shrink-0 flex-wrap items-center gap-2">
                           <Button
                             type="button"
                             variant="secondary"
@@ -517,7 +515,7 @@ export function QuoteDocumentCaptureCard({
                     </div>
 
                     {polygon ? (
-                      <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full">
+                      <svg viewBox="0 0 100 100" className="pointer-events-none absolute inset-0 h-full w-full">
                         <polygon
                           points={polygon}
                           fill="rgba(59,130,246,0.12)"
@@ -560,7 +558,7 @@ export function QuoteDocumentCaptureCard({
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
-                    <Button type="button" onClick={() => void handleStartCamera()} disabled={busy || !scannerReady} className="gap-2">
+                    <Button type="button" onClick={() => void handleStartCamera()} disabled={busy} className="gap-2">
                       {cameraState === 'requesting' || (busy && activeTab === 'camera') ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
@@ -577,7 +575,7 @@ export function QuoteDocumentCaptureCard({
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Badge variant="secondary">Sem app externo</Badge>
                   <Badge variant="secondary">Recorte automatico</Badge>
-                  <Badge variant="secondary">OCR em seguida</Badge>
+                  <Badge variant="secondary">{scannerReady ? 'Scanner pronto' : 'Preparacao sob demanda'}</Badge>
                 </div>
               </div>
             )}
