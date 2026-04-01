@@ -1,9 +1,13 @@
 # =============================================================================
 # Build Stage
 # =============================================================================
-FROM node:20-alpine AS builder
+FROM node:20-bookworm-slim AS builder
 
 WORKDIR /app
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends python3 make g++ \
+  && rm -rf /var/lib/apt/lists/*
 
 # Copy workspace files
 COPY package*.json ./
@@ -33,13 +37,15 @@ RUN npm run build
 # =============================================================================
 # Production Stage
 # =============================================================================
-FROM node:20-alpine AS production
+FROM node:20-bookworm-slim AS production
 ARG RELEASE_VERSION=dev
 LABEL org.opencontainers.image.revision=$RELEASE_VERSION
 ENV RELEASE_VERSION=$RELEASE_VERSION
 
 # Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends dumb-init wget ca-certificates libgomp1 \
+  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

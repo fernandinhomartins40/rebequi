@@ -93,6 +93,43 @@ function isRelevantFreeformLine(line: string) {
   return /[a-z]/.test(normalized);
 }
 
+function looksLikeMetadataLine(line: string) {
+  const normalized = normalizeText(line);
+
+  if (!normalized) {
+    return true;
+  }
+
+  if (
+    /^(cliente|nome|responsavel|responsável|whatsapp|telefone|celular|contato|email|e mail|endereco|endereço|bairro|cidade|cep|cpf|cnpj|obs|observacao|observações|observacoes|nota|anotacao|anotação|entrega|retirada|prazo|urgente|favor|preciso|solicitacao|solicitação|orcamento|orçamento)\b/i.test(normalized)
+  ) {
+    return true;
+  }
+
+  if (/\b[\w.+-]+@[\w.-]+\.[a-z]{2,}\b/i.test(line)) {
+    return true;
+  }
+
+  if (/\b\d{2}\s?\d{4,5}[-\s]?\d{4}\b/.test(normalized)) {
+    return true;
+  }
+
+  if (/\b(rua|avenida|av\.|travessa|bairro|cidade|cep|numero|número|quadra|lote|apto|bloco)\b/i.test(normalized)) {
+    return true;
+  }
+
+  if (/^(ola|olá|bom dia|boa tarde|boa noite|segue|anexo|por favor|faco|faço|preciso|solicito)\b/i.test(normalized)) {
+    return true;
+  }
+
+  return false;
+}
+
+type ParsedRecognitionResult = {
+  items: ParsedQuoteItem[];
+  customerNote: string | null;
+};
+
 export class QuoteService {
   private quoteRepository: QuoteRepository;
   private productRepository: ProductRepository;
@@ -148,7 +185,7 @@ export class QuoteService {
     });
 
     const recognized = await this.ocrService.recognizeDocument(params.file!.buffer);
-    const parsedItems = await this.parseItemsFromRecognition(recognized.lines);
+    const parsedRecognition = await this.parseItemsFromRecognition(recognized.lines);
 
     const quote = await this.quoteRepository.createQuote({
       referenceCode: this.generateReferenceCode(),
@@ -170,8 +207,9 @@ export class QuoteService {
       lead: {
         connect: { id: lead.id },
       },
+      customerNote: parsedRecognition.customerNote ?? undefined,
       items: {
-        create: parsedItems.map((item) => ({
+        create: parsedRecognition.items.map((item) => ({
           productId: item.productId ?? undefined,
           name: item.name,
           quantity: item.quantity,
@@ -212,7 +250,7 @@ export class QuoteService {
     });
 
     const recognized = await this.ocrService.recognizeDocument(params.file!.buffer);
-    const parsedItems = await this.parseItemsFromRecognition(recognized.lines);
+    const parsedRecognition = await this.parseItemsFromRecognition(recognized.lines);
 
     const quote = await this.quoteRepository.createQuote({
       referenceCode: this.generateReferenceCode(),
@@ -231,8 +269,9 @@ export class QuoteService {
       user: {
         connect: { id: params.userId },
       },
+      customerNote: parsedRecognition.customerNote ?? undefined,
       items: {
-        create: parsedItems.map((item) => ({
+        create: parsedRecognition.items.map((item) => ({
           productId: item.productId ?? undefined,
           name: item.name,
           quantity: item.quantity,
@@ -434,18 +473,26 @@ export class QuoteService {
     });
   }
 
-  private async parseItemsFromRecognition(lines: RecognizedQuoteLine[]): Promise<ParsedQuoteItem[]> {
+  private async parseItemsFromRecognition(lines: RecognizedQuoteLine[]): Promise<ParsedRecognitionResult> {
     const catalog = await this.productRepository.findCatalogForMatching();
     const parsedItems: ParsedQuoteItem[] = [];
+    const customerNoteParts: string[] = [];
 
     lines.forEach((line) => {
-      if (!isRelevantFreeformLine(line.text)) {
+      const text = line.text.trim();
+
+      if (!isRelevantFreeformLine(text)) {
         return;
       }
 
-      const match = this.findBestProductMatch(line.text, catalog);
-      const quantityData = extractQuantity(line.text);
-      const itemName = cleanLineForItem(line.text);
+      if (looksLikeMetadataLine(text)) {
+        customerNoteParts.push(text);
+        return;
+      }
+
+      const match = this.findBestProductMatch(text, catalog);
+      const quantityData = extractQuantity(text);
+      const itemName = cleanLineForItem(text);
 
       if (match) {
         parsedItems.push({
@@ -454,7 +501,7 @@ export class QuoteService {
           quantity: quantityData.quantity,
           unit: quantityData.unit,
           confidence: Number(((match.score + line.confidence / 100) / 2).toFixed(2)),
-          recognitionSourceLine: line.text,
+          recognitionSourceLine: text,
           position: parsedItems.length,
         });
         return;
@@ -465,7 +512,7 @@ export class QuoteService {
         quantity: quantityData.quantity,
         unit: quantityData.unit,
         confidence: Number((line.confidence / 100).toFixed(2)),
-        recognitionSourceLine: line.text,
+        recognitionSourceLine: text,
         position: parsedItems.length,
       });
     });
@@ -478,17 +525,32 @@ export class QuoteService {
       }) === index;
     });
 
+    const customerNote = customerNoteParts.length > 0 ? customerNoteParts.join('\n') : null;
+
     if (deduped.length > 0) {
-      return deduped;
+      return {
+        items: deduped,
+        customerNote,
+      };
     }
 
-    return [
-      {
-        name: 'Item reconhecido manualmente',
-        quantity: 1,
-        position: 0,
-      },
-    ];
+    if (customerNote) {
+      return {
+        items: [],
+        customerNote,
+      };
+    }
+
+    return {
+      items: [
+        {
+          name: 'Item reconhecido manualmente',
+          quantity: 1,
+          position: 0,
+        },
+      ],
+      customerNote: null,
+    };
   }
 
   private findBestProductMatch(line: string, catalog: CatalogProduct[]) {

@@ -32,6 +32,7 @@ const envSchema = z.object({
     .transform((value) => value.split(',').map((item) => item.trim()).filter(Boolean)),
 
   STORE_WHATSAPP: z.string().default('11999999999'),
+  QUOTE_HANDWRITING_MODEL: z.string().default('Xenova/trocr-base-handwritten'),
 
   MAX_FILE_SIZE: z.coerce.number().positive().default(5242880),
   UPLOAD_DIR: z.string().default('./uploads'),
