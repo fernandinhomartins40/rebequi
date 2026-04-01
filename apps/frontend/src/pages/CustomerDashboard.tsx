@@ -117,12 +117,12 @@ function MetricCard({
   accentClass: string;
 }) {
   return (
-    <div className="rounded-[1.5rem] border border-white/10 bg-white/10 p-4 shadow-[0_18px_50px_-35px_rgba(15,23,42,0.7)] backdrop-blur">
+    <div className="rounded-[1.35rem] border border-slate-200/70 bg-white p-3.5 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/60">{label}</p>
-          <p className="mt-2 text-2xl font-semibold tracking-tight text-white">{value}</p>
-          <p className="mt-1 text-sm leading-5 text-white/70">{hint}</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">{label}</p>
+          <p className="mt-2 text-[1.6rem] font-semibold tracking-tight text-foreground">{value}</p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">{hint}</p>
         </div>
         <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${accentClass} text-white shadow-lg`}>
           <Icon className="h-5 w-5" />
@@ -404,31 +404,33 @@ const CustomerDashboard = () => {
           ) : null}
 
           {activeTab === 'overview' ? (
-            <section className="relative mb-6 overflow-hidden rounded-[1.75rem] border border-slate-200/70 bg-[linear-gradient(135deg,rgba(15,23,42,0.96),rgba(37,99,235,0.92))] p-5 text-white shadow-[0_28px_80px_-45px_rgba(15,23,42,0.65)] md:p-6">
-              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.18),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(34,211,238,0.12),transparent_26%)]" />
-              <div className="relative grid gap-5 xl:grid-cols-[minmax(0,1.18fr)_minmax(0,0.82fr)]">
+            <section className="mb-6 rounded-[1.5rem] border border-slate-200/70 bg-white/90 p-4 shadow-sm md:p-5">
+              <div className="grid gap-5 2xl:grid-cols-[minmax(0,1.12fr)_320px]">
                 <div className="space-y-4">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-white/75">
-                    <Sparkles className="h-3.5 w-3.5 text-cyan-200" />
+                  <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-slate-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">
+                    <Sparkles className="h-3.5 w-3.5 text-primary" />
                     Visão geral
                   </div>
+
                   <div className="space-y-2">
-                    <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
+                    <h2 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
                       Olá, {user?.name || user?.identifier || 'cliente'}.
                     </h2>
-                    <p className="max-w-2xl text-sm leading-6 text-white/76">
-                      Acompanhe os pedidos, revise rascunhos e acesse as funções do painel sem repetir blocos grandes em todas as páginas.
+                    <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+                      Resumo rápido do painel com atalhos principais. As telas abaixo ficam focadas na ação, sem repetir esse bloco em todas as páginas.
                     </p>
                   </div>
+
                   <div className="flex flex-wrap gap-3">
-                    <Button size="sm" className="gap-2 border border-white/10 bg-white text-slate-950 shadow-lg shadow-black/10 hover:bg-slate-100" onClick={() => handleTabChange('quotes')}>
+                    <Button size="sm" className="gap-2 shadow-sm" onClick={() => handleTabChange('quotes')}>
                       <Camera className="h-3.5 w-3.5" /> Capturar documento
                     </Button>
-                    <Button size="sm" variant="outline" className="gap-2 border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white" onClick={() => navigate('/')}>
+                    <Button size="sm" variant="outline" className="gap-2 border-slate-200/80 bg-white" onClick={() => navigate('/')}>
                       <Home className="h-3.5 w-3.5" /> Voltar à loja
                     </Button>
                   </div>
-                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+
+                  <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
                     <MetricCard icon={FileText} label="Orçamentos" value={`${quotes.length}`} hint="Total no histórico" accentClass="from-slate-500 to-slate-400" />
                     <MetricCard icon={Camera} label="Rascunhos" value={`${draftQuotes.length}`} hint="Ajuste antes de enviar" accentClass="from-amber-500 to-orange-400" />
                     <MetricCard icon={Clock3} label="Em análise" value={`${submittedQuotes.length + inReviewQuotes.length}`} hint="Aguardando retorno" accentClass="from-sky-500 to-cyan-400" />
@@ -436,51 +438,44 @@ const CustomerDashboard = () => {
                   </div>
                 </div>
 
-                <div className="rounded-[1.5rem] border border-white/12 bg-white/10 p-4 backdrop-blur-xl md:p-5">
-                  <div className="flex items-start justify-between gap-4">
+                <aside className="space-y-3 rounded-[1.35rem] border border-slate-200/70 bg-slate-50/90 p-4">
+                  <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-[10px] uppercase tracking-[0.28em] text-white/60">Resumo rápido</p>
-                      <h3 className="mt-2 text-xl font-semibold text-white">Tudo sob controle</h3>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Resumo rápido</p>
+                      <h3 className="mt-2 text-lg font-semibold text-foreground">Tudo sob controle</h3>
                     </div>
-                    <div className="rounded-2xl bg-white/15 p-3 text-white">
-                      <BadgeCheck className="h-5 w-5 text-emerald-200" />
-                    </div>
-                  </div>
-
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
-                      <p className="text-xs uppercase tracking-[0.24em] text-white/55">Rascunhos</p>
-                      <p className="mt-2 text-xl font-semibold text-white">{draftQuotes.length}</p>
-                      <p className="mt-1 text-sm text-white/65">Prontos para ajustar</p>
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
-                      <p className="text-xs uppercase tracking-[0.24em] text-white/55">Em análise</p>
-                      <p className="mt-2 text-xl font-semibold text-white">{submittedQuotes.length + inReviewQuotes.length}</p>
-                      <p className="mt-1 text-sm text-white/65">Aguardando retorno</p>
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
-                      <p className="text-xs uppercase tracking-[0.24em] text-white/55">Respondidos</p>
-                      <p className="mt-2 text-xl font-semibold text-white">{respondedQuotes.length}</p>
-                      <p className="mt-1 text-sm text-white/65">Pedidos concluídos</p>
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
-                      <p className="text-xs uppercase tracking-[0.24em] text-white/55">Último movimento</p>
-                      <p className="mt-2 truncate text-sm font-semibold text-white">{latestQuote ? latestQuote.referenceCode : 'Sem atividade'}</p>
-                      <p className="mt-1 text-sm text-white/65">{latestQuote ? formatQuoteTimestamp(latestQuote.updatedAt || latestQuote.createdAt) : 'Capture um documento para começar.'}</p>
+                    <div className="rounded-2xl bg-primary/10 p-3 text-primary">
+                      <BadgeCheck className="h-5 w-5" />
                     </div>
                   </div>
 
-                  <div className="mt-4 rounded-2xl border border-white/10 bg-white/10 p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-[10px] uppercase tracking-[0.24em] text-white/55">Último orçamento</p>
-                        <p className="mt-2 truncate text-sm font-semibold text-white">{latestQuote ? latestQuote.title || latestQuote.referenceCode : 'Nenhum orçamento ainda'}</p>
-                      </div>
-                      {latestQuote ? <QuoteStatusBadge status={latestQuote.status} /> : null}
-                    </div>
-                    <p className="mt-2 text-sm leading-6 text-white/70">{latestQuote ? `${latestQuote.itemCount} item(ns) · ${getQuoteStatusLabel(latestQuote.status)}` : 'Use a câmera para transformar uma foto em orçamento editável.'}</p>
+                  <div className="rounded-2xl border border-slate-200/70 bg-white p-4">
+                    <p className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Último orçamento</p>
+                    <p className="mt-2 truncate text-sm font-semibold text-foreground">{latestQuote ? latestQuote.title || latestQuote.referenceCode : 'Nenhum orçamento ainda'}</p>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                      {latestQuote ? `${latestQuote.itemCount} item(ns) · ${getQuoteStatusLabel(latestQuote.status)}` : 'Capture um documento para começar.'}
+                    </p>
                   </div>
-                </div>
+
+                  <div className="grid gap-2 sm:grid-cols-2 2xl:grid-cols-1">
+                    <button
+                      type="button"
+                      onClick={() => handleTabChange('quotes')}
+                      className="flex items-center justify-between rounded-2xl border border-slate-200/70 bg-white px-3 py-3 text-left text-sm font-medium text-foreground transition-colors hover:bg-slate-50"
+                    >
+                      <span>Ir para orçamentos</span>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleTabChange('security')}
+                      className="flex items-center justify-between rounded-2xl border border-slate-200/70 bg-white px-3 py-3 text-left text-sm font-medium text-foreground transition-colors hover:bg-slate-50"
+                    >
+                      <span>Trocar senha</span>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    </button>
+                  </div>
+                </aside>
               </div>
             </section>
           ) : null}
