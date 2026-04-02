@@ -78,25 +78,25 @@ function NavItem({
     <button
       type="button"
       onClick={onClick}
-      className={`group flex w-full cursor-pointer items-start gap-3 rounded-[1.5rem] border px-4 py-3.5 text-left text-sm transition-all ${
+      className={`group flex w-full cursor-pointer items-start gap-3 rounded-[1.35rem] border px-4 py-3 text-left text-sm transition-all ${
         active
           ? 'border-primary/20 bg-[linear-gradient(135deg,rgba(239,246,255,0.96),rgba(255,252,237,0.96))] text-foreground shadow-[0_24px_55px_-40px_rgba(37,99,235,0.5)]'
           : 'border-transparent bg-white/70 text-foreground/70 hover:border-slate-200 hover:bg-white/90 hover:text-foreground'
       }`}
     >
       <span
-        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-colors ${
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl transition-colors ${
           active ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-slate-100 text-slate-500 group-hover:bg-primary/10 group-hover:text-primary'
         }`}
       >
-        <Icon className="h-4.5 w-4.5" />
+        <Icon className="h-4 w-4" />
       </span>
       <span className="min-w-0 flex-1 pt-0.5">
         <span className="flex items-center gap-2">
           <span className="block font-semibold leading-none">{label}</span>
           {badge ? <span className="rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-primary shadow-sm">{badge}</span> : null}
         </span>
-        <span className="mt-1.5 block text-xs leading-5 text-muted-foreground">{description}</span>
+        <span className="mt-1 block text-xs leading-5 text-muted-foreground">{description}</span>
       </span>
       <ArrowRight className={`mt-1 h-4 w-4 shrink-0 transition-all ${active ? 'translate-x-0 text-primary opacity-100' : 'translate-x-[-4px] text-muted-foreground opacity-0 group-hover:translate-x-0 group-hover:opacity-100'}`} />
     </button>
@@ -117,15 +117,15 @@ function MetricCard({
   accentClass: string;
 }) {
   return (
-    <div className="rounded-[1.35rem] border border-slate-200/70 bg-white p-3.5 shadow-sm">
+    <div className="rounded-[1.25rem] border border-slate-200/70 bg-white p-3 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">{label}</p>
-          <p className="mt-2 text-[1.6rem] font-semibold tracking-tight text-foreground">{value}</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-muted-foreground">{label}</p>
+          <p className="mt-1.5 text-[1.45rem] font-semibold tracking-tight text-foreground">{value}</p>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">{hint}</p>
         </div>
-        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${accentClass} text-white shadow-lg`}>
-          <Icon className="h-5 w-5" />
+        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${accentClass} text-white shadow-lg`}>
+          <Icon className="h-4.5 w-4.5" />
         </span>
       </div>
     </div>
@@ -149,7 +149,7 @@ function FlowStepCard({
 }) {
   return (
     <div
-      className={`rounded-[1.4rem] border p-4 transition-all ${
+      className={`rounded-[1.25rem] border p-3.5 transition-all ${
         active
           ? 'border-primary/20 bg-[linear-gradient(135deg,rgba(239,246,255,0.98),rgba(255,251,235,0.94))] shadow-sm'
           : 'border-slate-200/70 bg-slate-50/80'
@@ -157,16 +157,16 @@ function FlowStepCard({
     >
       <div className="flex items-start gap-3">
         <div
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ring-1 ring-inset ring-black/5 ${
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl ring-1 ring-inset ring-black/5 ${
             active ? 'bg-primary text-white' : done ? 'bg-emerald-100 text-emerald-700' : 'bg-white text-slate-500'
           }`}
         >
-          {done ? <BadgeCheck className="h-4.5 w-4.5" /> : <Icon className="h-4.5 w-4.5" />}
+          {done ? <BadgeCheck className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Passo {step}</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-muted-foreground">Passo {step}</p>
           <h3 className="mt-1 text-sm font-semibold text-foreground">{title}</h3>
-          <p className="mt-1 text-sm leading-6 text-muted-foreground">{description}</p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>
         </div>
       </div>
     </div>
@@ -193,7 +193,7 @@ function BottomNavItem({
       type="button"
       onClick={onClick}
       aria-current={active ? 'page' : undefined}
-      className={`relative flex flex-1 flex-col items-center justify-center gap-1 rounded-[1.25rem] px-2 py-2 text-[11px] font-semibold transition-all ${
+      className={`relative flex flex-1 flex-col items-center justify-center gap-1 rounded-[1.15rem] px-2 py-2 text-[11px] font-semibold transition-all ${
         active
           ? 'bg-[linear-gradient(135deg,rgba(37,99,235,0.98),rgba(14,165,233,0.92))] text-white shadow-[0_18px_40px_-24px_rgba(37,99,235,0.7)]'
           : 'text-muted-foreground hover:bg-slate-100/90 hover:text-foreground'
@@ -377,25 +377,25 @@ const CustomerDashboard = () => {
   const activeSection = navItems.find((item) => item.id === activeTab) || navItems[0];
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.12),transparent_32%),radial-gradient(circle_at_top_right,rgba(45,212,191,0.1),transparent_28%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_40%,#f8fafc_100%)] lg:grid lg:grid-cols-[19rem_minmax(0,1fr)]">
+    <div className="relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_48%,#f8fafc_100%)] lg:grid lg:grid-cols-[19rem_minmax(0,1fr)]">
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -left-28 top-16 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
         <div className="absolute right-0 top-72 h-96 w-96 rounded-full bg-cyan-400/10 blur-3xl" />
       </div>
       {/* ━━ Sidebar ━━ */}
-      <aside className="hidden border-r border-white/70 bg-white/70 backdrop-blur-xl lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col">
+      <aside className="hidden border-r border-slate-200/70 bg-white/85 backdrop-blur-xl lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col">
         <div className="border-b border-slate-200/60 p-4">
-          <div className="rounded-[1.5rem] border border-slate-200/70 bg-gradient-to-br from-slate-950 to-slate-700 p-4 text-white shadow-[0_20px_60px_-35px_rgba(15,23,42,0.75)]">
+          <div className="rounded-[1.5rem] border border-slate-200/80 bg-white/95 p-4 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/10">
-                <Sparkles className="h-5 w-5 text-cyan-200" />
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <Sparkles className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <p className="text-[10px] uppercase tracking-[0.28em] text-white/60">Painel do cliente</p>
-                <h1 className="mt-1 truncate text-lg font-semibold">{user?.name || user?.identifier || 'Cliente'}</h1>
+                <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Painel do cliente</p>
+                <h1 className="mt-1 truncate text-lg font-semibold text-foreground">{user?.name || user?.identifier || 'Cliente'}</h1>
               </div>
             </div>
-            <p className="mt-3 text-sm leading-6 text-white/72">Acompanhe orçamentos, dados da conta e segurança em um único lugar.</p>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">Acompanhe orçamentos, conta e segurança em um único lugar.</p>
           </div>
         </div>
 
@@ -414,7 +414,7 @@ const CustomerDashboard = () => {
         </nav>
 
         <div className="mt-auto border-t border-slate-200/60 p-4">
-          <div className="rounded-[1.5rem] border border-slate-200/70 bg-white/90 p-4 shadow-sm">
+          <div className="rounded-[1.5rem] border border-slate-200/80 bg-white/95 p-4 shadow-sm">
             <p className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Acesso atual</p>
             <p className="mt-2 truncate text-sm font-semibold text-foreground">{user?.name || user?.identifier || 'Cliente'}</p>
             <p className="mt-1 truncate text-xs text-muted-foreground">{user?.whatsapp ? formatWhatsapp(user.whatsapp) : user?.email || 'Sem contato cadastrado'}</p>
@@ -464,66 +464,66 @@ const CustomerDashboard = () => {
           ) : null}
 
           {activeTab === 'overview' ? (
-            <section className="mb-6 rounded-[1.5rem] border border-slate-200/70 bg-white/90 p-4 shadow-sm md:p-5">
-              <div className="grid gap-5 2xl:grid-cols-[minmax(0,1.12fr)_320px]">
-                <div className="space-y-4">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-slate-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-                    <Sparkles className="h-3.5 w-3.5 text-primary" />
-                    Visão geral
-                  </div>
-
+            <section className="mb-6 space-y-4">
+              <div className="rounded-[1.5rem] border border-slate-200/70 bg-white/94 p-4 shadow-sm md:p-5">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                   <div className="space-y-2">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-slate-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.26em] text-muted-foreground">
+                      <Sparkles className="h-3.5 w-3.5 text-primary" />
+                      Visão geral
+                    </div>
                     <h2 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
                       Olá, {user?.name || user?.identifier || 'cliente'}.
                     </h2>
                     <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                      Resumo rápido do painel com atalhos principais. As telas abaixo ficam focadas na ação, sem repetir esse bloco em todas as páginas.
+                      Um resumo curto do que precisa de atenção agora. O restante do painel fica focado em uma tarefa por vez.
                     </p>
                   </div>
 
-                  <div className="flex flex-wrap gap-3">
+                  <div className="flex flex-wrap gap-2">
                     <Button size="sm" className="gap-2 shadow-sm" onClick={() => handleTabChange('quotes')}>
-                      <Camera className="h-3.5 w-3.5" /> Capturar documento
+                      <Camera className="h-3.5 w-3.5" /> Capturar
+                    </Button>
+                    <Button size="sm" variant="outline" className="gap-2 border-slate-200/80 bg-white" onClick={() => handleTabChange('quotes')}>
+                      <FileText className="h-3.5 w-3.5" /> Orçamentos
                     </Button>
                     <Button size="sm" variant="outline" className="gap-2 border-slate-200/80 bg-white" onClick={() => navigate('/')}>
-                      <Home className="h-3.5 w-3.5" /> Voltar à loja
+                      <Home className="h-3.5 w-3.5" /> Loja
                     </Button>
                   </div>
+                </div>
+              </div>
 
-                  <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
-                    <MetricCard icon={FileText} label="Orçamentos" value={`${quotes.length}`} hint="Total no histórico" accentClass="from-slate-500 to-slate-400" />
-                    <MetricCard icon={Camera} label="Rascunhos" value={`${draftQuotes.length}`} hint="Ajuste antes de enviar" accentClass="from-amber-500 to-orange-400" />
-                    <MetricCard icon={Clock3} label="Em análise" value={`${submittedQuotes.length + inReviewQuotes.length}`} hint="Aguardando retorno" accentClass="from-sky-500 to-cyan-400" />
-                    <MetricCard icon={BadgeCheck} label="Respondidos" value={`${respondedQuotes.length}`} hint="Pedidos concluídos" accentClass="from-emerald-500 to-teal-400" />
-                  </div>
+              <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  <MetricCard icon={FileText} label="Orçamentos" value={`${quotes.length}`} hint="No histórico" accentClass="from-slate-500 to-slate-400" />
+                  <MetricCard icon={Camera} label="Rascunhos" value={`${draftQuotes.length}`} hint="Prontos para revisar" accentClass="from-amber-500 to-orange-400" />
+                  <MetricCard icon={Clock3} label="Em análise" value={`${submittedQuotes.length + inReviewQuotes.length}`} hint="Aguardando retorno" accentClass="from-sky-500 to-cyan-400" />
+                  <MetricCard icon={BadgeCheck} label="Respondidos" value={`${respondedQuotes.length}`} hint="Finalizados" accentClass="from-emerald-500 to-teal-400" />
                 </div>
 
-                <aside className="space-y-3 rounded-[1.35rem] border border-slate-200/70 bg-slate-50/90 p-4">
+                <aside className="space-y-3 rounded-[1.35rem] border border-slate-200/70 bg-white/90 p-4 shadow-sm">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Resumo rápido</p>
-                      <h3 className="mt-2 text-lg font-semibold text-foreground">Tudo sob controle</h3>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-muted-foreground">Próximo passo</p>
+                      <h3 className="mt-1 text-lg font-semibold text-foreground">Continue de onde parou</h3>
                     </div>
                     <div className="rounded-2xl bg-primary/10 p-3 text-primary">
                       <BadgeCheck className="h-5 w-5" />
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-200/70 bg-white p-4">
-                    <p className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Último orçamento</p>
-                    <p className="mt-2 truncate text-sm font-semibold text-foreground">{latestQuote ? latestQuote.title || latestQuote.referenceCode : 'Nenhum orçamento ainda'}</p>
-                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                      {latestQuote ? `${latestQuote.itemCount} item(ns) · ${getQuoteStatusLabel(latestQuote.status)}` : 'Capture um documento para começar.'}
-                    </p>
-                  </div>
+                  <p className="text-sm leading-6 text-muted-foreground">
+                    {latestQuote ? `${latestQuote.title || latestQuote.referenceCode} · ${latestQuote.itemCount} item(ns) · ${getQuoteStatusLabel(latestQuote.status)}` : 'Capture um documento para começar.'}
+                  </p>
 
-                  <div className="grid gap-2 sm:grid-cols-2 2xl:grid-cols-1">
+                  <div className="grid gap-2">
                     <button
                       type="button"
                       onClick={() => handleTabChange('quotes')}
                       className="flex items-center justify-between rounded-2xl border border-slate-200/70 bg-white px-3 py-3 text-left text-sm font-medium text-foreground transition-colors hover:bg-slate-50"
                     >
-                      <span>Ir para orçamentos</span>
+                      <span>Abrir orçamentos</span>
                       <ArrowRight className="h-4 w-4 text-muted-foreground" />
                     </button>
                     <button
@@ -531,7 +531,7 @@ const CustomerDashboard = () => {
                       onClick={() => handleTabChange('security')}
                       className="flex items-center justify-between rounded-2xl border border-slate-200/70 bg-white px-3 py-3 text-left text-sm font-medium text-foreground transition-colors hover:bg-slate-50"
                     >
-                      <span>Trocar senha</span>
+                      <span>Segurança da conta</span>
                       <ArrowRight className="h-4 w-4 text-muted-foreground" />
                     </button>
                   </div>
@@ -548,9 +548,7 @@ const CustomerDashboard = () => {
                   <div className="space-y-2">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Orçamentos em 3 passos</p>
                     <h3 className="text-2xl font-semibold tracking-tight text-foreground">Capturar, revisar e enviar.</h3>
-                    <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                      A página agora segue um fluxo simples. Você faz uma etapa por vez, sem blocos grandes competindo pela atenção.
-                    </p>
+                    <p className="max-w-2xl text-sm leading-6 text-muted-foreground">Uma etapa por vez. Sem blocos grandes nem explicações repetidas.</p>
                   </div>
                   <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{quotes.length} orçamento(s)</div>
                 </div>
@@ -559,7 +557,7 @@ const CustomerDashboard = () => {
                   <FlowStepCard
                     step={1}
                     title="Capturar"
-                    description="Abra a câmera, enquadre o documento e deixe a leitura acontecer."
+                    description="Abra a câmera e capture o documento."
                     icon={Camera}
                     active={quoteFlowStage === 1}
                     done={quoteFlowStage > 1}
@@ -567,7 +565,7 @@ const CustomerDashboard = () => {
                   <FlowStepCard
                     step={2}
                     title="Revisar"
-                    description="Confira o texto reconhecido e ajuste apenas o que for necessário."
+                    description="Confira o texto e ajuste o que faltar."
                     icon={FileText}
                     active={quoteFlowStage === 2}
                     done={quoteFlowStage > 2}
@@ -575,7 +573,7 @@ const CustomerDashboard = () => {
                   <FlowStepCard
                     step={3}
                     title="Enviar"
-                    description="Salve o rascunho e envie quando estiver pronto."
+                    description="Salve e envie quando estiver pronto."
                     icon={ArrowRight}
                     active={quoteFlowStage === 3}
                     done={selectedQuote?.status === 'RESPONDED'}
@@ -584,22 +582,20 @@ const CustomerDashboard = () => {
               </section>
 
               <section className="rounded-[1.75rem] border border-slate-200/70 bg-white/90 p-5 shadow-sm">
-                <div className="mb-4 flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Passo 1</p>
-                    <h3 className="mt-1 text-xl font-semibold text-foreground">Capturar documento</h3>
-                    <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                      Use a câmera ao vivo para gerar um rascunho limpo. O sistema corrige o enquadramento antes de ler o texto.
-                    </p>
+                  <div className="mb-4 flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Passo 1</p>
+                      <h3 className="mt-1 text-xl font-semibold text-foreground">Capturar documento</h3>
+                      <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Capture uma foto clara. O sistema corrige o enquadramento antes da leitura.</p>
+                    </div>
+                    <div className="hidden rounded-2xl bg-primary/10 p-3 text-primary sm:flex">
+                      <ScanText className="h-5 w-5" />
+                    </div>
                   </div>
-                  <div className="hidden rounded-2xl bg-primary/10 p-3 text-primary sm:flex">
-                    <ScanText className="h-5 w-5" />
-                  </div>
-                </div>
                 <QuoteDocumentCaptureCard
                   title="Scanner simples"
-                  description="Capture com a câmera ao vivo e transforme a imagem em orçamento automaticamente."
-                  helper="Etapa 1 de 3: capture, depois revise e por fim envie."
+                  description="Capture com a câmera ao vivo."
+                  helper="Etapa 1 de 3."
                   processing={createDraftMutation.isPending}
                   buttonLabel="Abrir câmera"
                   onSelectFile={async (selection: QuoteDocumentSelection) => {
@@ -618,9 +614,7 @@ const CustomerDashboard = () => {
                     <div>
                       <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Passo 2</p>
                       <h3 className="mt-1 text-xl font-semibold text-foreground">Revisar rascunho</h3>
-                      <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                        Escolha um orçamento e ajuste apenas o que realmente precisa mudar.
-                      </p>
+                      <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Ajuste só o necessário e siga adiante.</p>
                     </div>
                     <div className="hidden rounded-2xl bg-slate-100 p-3 text-slate-600 sm:flex">
                       <FileText className="h-5 w-5" />
@@ -773,9 +767,7 @@ const CustomerDashboard = () => {
                       <div>
                         <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Passo 3</p>
                         <h3 className="mt-1 text-xl font-semibold text-foreground">Enviar para a loja</h3>
-                        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                          Quando o rascunho estiver pronto, salve e envie com um toque.
-                        </p>
+                        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Quando estiver pronto, salve e envie.</p>
                       </div>
                       <div className="hidden rounded-2xl bg-emerald-100 p-3 text-emerald-700 sm:flex">
                         <BadgeCheck className="h-5 w-5" />
@@ -823,7 +815,7 @@ const CustomerDashboard = () => {
                   <section className="rounded-[1.75rem] border border-slate-200/70 bg-white/90 p-5 shadow-sm">
                     <div className="mb-4 flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Histórico recente</p>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Recentes</p>
                         <h3 className="mt-1 text-lg font-semibold text-foreground">Últimos orçamentos</h3>
                       </div>
                       <div className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">{quotes.length} total</div>
@@ -878,7 +870,7 @@ const CustomerDashboard = () => {
               </div>
 
               <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-                <div className="rounded-[1.75rem] border border-slate-200/70 bg-white/90 shadow-sm">
+                <div className="rounded-[1.75rem] border border-slate-200/70 bg-white/94 shadow-sm">
                   <div className="divide-y divide-slate-100">
                     <Row label="Nome" value={user?.name || '-'} />
                     <Row label="Identificador" value={user?.identifier || '-'} />
@@ -889,22 +881,22 @@ const CustomerDashboard = () => {
                   </div>
                 </div>
 
-                <div className="rounded-[1.75rem] border border-slate-200/70 bg-[linear-gradient(135deg,rgba(15,23,42,0.96),rgba(37,99,235,0.9))] p-5 text-white shadow-[0_26px_70px_-40px_rgba(15,23,42,0.65)]">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/60">Visão geral</p>
-                  <h3 className="mt-2 text-2xl font-semibold tracking-tight">{user?.name || user?.identifier || 'Cliente'}</h3>
-                  <p className="mt-2 text-sm leading-6 text-white/72">Mantenha seus dados atualizados para acelerar o atendimento e reduzir retrabalho na loja.</p>
+                <div className="rounded-[1.75rem] border border-slate-200/70 bg-white/94 p-5 shadow-sm">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Resumo</p>
+                  <h3 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">{user?.name || user?.identifier || 'Cliente'}</h3>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">Mantenha os dados atualizados para acelerar o atendimento e evitar retrabalho.</p>
 
                   <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-                    <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
-                      <p className="text-xs uppercase tracking-[0.24em] text-white/55">Fluxo atual</p>
-                      <p className="mt-2 text-xl font-semibold text-white">{draftQuotes.length} rascunho(s)</p>
-                      <p className="mt-1 text-sm text-white/65">Prontos para edição ou envio.</p>
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
-                      <p className="text-xs uppercase tracking-[0.24em] text-white/55">Contato</p>
-                      <p className="mt-2 truncate text-sm font-semibold text-white">{user?.whatsapp ? formatWhatsapp(user.whatsapp) : user?.email || 'Sem contato cadastrado'}</p>
-                      <p className="mt-1 text-sm text-white/65">Use este canal para acelerar o atendimento.</p>
-                    </div>
+                    <SummarySurface
+                      value={`${draftQuotes.length}`}
+                      label="Rascunhos"
+                      description="Prontos para revisão ou envio."
+                    />
+                    <SummarySurface
+                      value={user?.whatsapp ? formatWhatsapp(user.whatsapp) : user?.email || 'Sem contato cadastrado'}
+                      label="Contato"
+                      description="Canal principal de atendimento."
+                    />
                   </div>
                 </div>
               </div>

@@ -96,10 +96,10 @@ const MerchantPanel = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center bg-gradient-to-br from-slate-50 to-slate-100 px-4 py-8 sm:px-6 sm:py-12">
+    <div className="flex min-h-screen items-center bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_48%,#f8fafc_100%)] px-4 py-8 sm:px-6 sm:py-12">
       <div className="container mx-auto">
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 xl:[grid-template-columns:1.15fr_0.85fr] xl:items-center xl:gap-14">
-          <div className="space-y-6">
+        <div className="mx-auto grid max-w-5xl grid-cols-1 gap-8 xl:[grid-template-columns:1.1fr_0.9fr] xl:items-center xl:gap-12">
+          <div className="space-y-5">
             <header className="space-y-3">
               <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm font-semibold text-primary">
                 <Shield className="h-4 w-4" /> Painel do Lojista
@@ -108,27 +108,27 @@ const MerchantPanel = () => {
               <p className="text-muted-foreground">Entre com uma conta interna para acessar as funcoes liberadas para o seu papel.</p>
             </header>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
               <FeatureCard
                 icon={<PackageSearch className="h-6 w-6 text-primary" />}
                 title="Catalogo"
-                description="Cadastro e manutencao conforme o papel do usuario."
+                description="Cadastro e manutencao do catalogo."
               />
               <FeatureCard
                 icon={<BarChart3 className="h-6 w-6 text-primary" />}
                 title="Operacao"
-                description="Painel com funcoes liberadas por role e sessao autenticada."
+                description="Funcoes liberadas por role."
               />
               <FeatureCard
                 icon={<Settings className="h-6 w-6 text-primary" />}
                 title="Equipe"
-                description="Admin controla acessos internos para funcionarios e gestores."
+                description="Controle de usuarios e acessos."
               />
             </div>
           </div>
 
           <div className="w-full xl:max-w-xl xl:justify-self-end">
-            <Card className="shadow-md">
+            <Card className="border-slate-200/80 shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl">
                   <Lock className="h-5 w-5 text-primary" />
@@ -190,7 +190,7 @@ const FeatureCard = ({
   title: string;
   description: string;
 }) => (
-  <Card className="h-full shadow-sm">
+  <Card className="h-full border-slate-200/80 shadow-sm">
     <CardHeader className="space-y-1">
       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">{icon}</div>
       <CardTitle className="text-lg">{title}</CardTitle>

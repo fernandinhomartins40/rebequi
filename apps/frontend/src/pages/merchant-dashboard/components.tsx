@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { ArrowLeft, LogOut } from 'lucide-react';
 import { getMerchantRoleLabel, isMerchantUserRole } from '@rebequi/shared/constants';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -28,7 +27,7 @@ export function MerchantSidebarHeader() {
       <SidebarHeader className="gap-4 px-4 py-4">
         <Link
           to="/"
-          className="flex flex-col items-start rounded-3xl border border-[#eadfba] bg-white/92 px-4 py-4 shadow-[0_16px_40px_-34px_rgba(37,99,235,0.32)] transition-colors hover:bg-white"
+          className="flex flex-col items-start rounded-2xl border border-slate-200/80 bg-white/95 px-4 py-4 shadow-[0_14px_34px_-34px_rgba(15,23,42,0.28)] transition-colors hover:bg-white"
         >
           <img
             src="/lovable-uploads/73f13341-b66a-4a9f-aa28-4bd40213b85f.png"
@@ -122,14 +121,14 @@ export function MerchantSidebarFooter({
       <SidebarSeparator className="mx-4" />
 
       <SidebarFooter className="gap-3 px-4 pb-4 pt-2">
-        <div className="rounded-3xl border border-[#eadfba] bg-white/90 p-4 shadow-[0_16px_38px_-34px_rgba(37,99,235,0.25)] group-data-[collapsible=icon]:hidden">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Sessão ativa</p>
+        <div className="rounded-2xl border border-slate-200/80 bg-white/95 p-4 shadow-[0_14px_30px_-34px_rgba(15,23,42,0.28)] group-data-[collapsible=icon]:hidden">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Sessao ativa</p>
           <p className="mt-3 break-all text-sm font-semibold text-foreground">{userEmail}</p>
-          <p className="mt-1 text-xs text-muted-foreground">Perfil {roleLabel} validado pelo backend.</p>
+          <p className="mt-1 text-xs text-muted-foreground">{roleLabel}</p>
         </div>
 
         <Button
-          className="w-full justify-start gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90"
+          className="w-full justify-start gap-2 rounded-xl bg-secondary text-secondary-foreground hover:bg-secondary/90"
           onClick={() => void onLogout()}
         >
           <LogOut className="h-4 w-4" />
@@ -139,7 +138,7 @@ export function MerchantSidebarFooter({
         <Button
           asChild
           variant="outline"
-          className="w-full justify-start gap-2 border-black/10 bg-white/75 text-foreground hover:bg-white"
+          className="w-full justify-start gap-2 rounded-xl border-black/10 bg-white/80 text-foreground hover:bg-white"
         >
           <Link to="/">
             <ArrowLeft className="h-4 w-4" />
@@ -166,20 +165,21 @@ export function SectionLeadCard({
 }) {
   const toneClass =
     tone === 'yellow'
-      ? 'border-amber-200/40 bg-amber-50/50'
+      ? 'border-amber-200/50 bg-amber-50/60'
       : tone === 'red'
-        ? 'border-red-200/40 bg-red-50/50'
+        ? 'border-red-200/50 bg-red-50/60'
         : 'border-blue-200/40 bg-blue-50/50';
 
   return (
-    <div className={cn('animate-fade-in-up rounded-2xl border px-5 py-5', toneClass)}>
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <div className={cn('animate-fade-in-up rounded-2xl border px-4 py-4 md:px-5 md:py-5', toneClass)}>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
-          <h2 className="text-xl font-bold text-foreground">{title}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">{badge}</p>
+          <h2 className="mt-2 text-lg font-semibold text-foreground md:text-xl">{title}</h2>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">{description}</p>
         </div>
         {actions ? (
-          <div className="flex shrink-0 flex-wrap gap-2">
+          <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:flex-wrap">
             {actions}
           </div>
         ) : null}
@@ -190,7 +190,7 @@ export function SectionLeadCard({
 
 export function SummaryTile({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
-    <div className="rounded-2xl border border-black/5 bg-white/76 p-4 shadow-[0_18px_42px_-38px_rgba(15,23,42,0.25)]">
+    <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-[0_14px_32px_-36px_rgba(15,23,42,0.24)]">
       <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
       <p className="mt-3 break-words text-lg font-bold text-foreground sm:text-xl">{value}</p>
       <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
@@ -216,12 +216,12 @@ export function DashboardPanel({
   children: ReactNode;
 }) {
   return (
-    <div className={cn('animate-fade-in-up rounded-2xl border border-slate-200/60 bg-white p-5', className)}>
-      <div className="mb-4">
-        <h3 className="text-base font-bold text-foreground">{title}</h3>
-        <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
+    <div className={cn('animate-fade-in-up rounded-2xl border border-slate-200/70 bg-white/94 p-4 shadow-[0_14px_34px_-36px_rgba(15,23,42,0.28)] md:p-5', className)}>
+      <div className="mb-3 md:mb-4">
+        <h3 className="text-[15px] font-semibold text-foreground md:text-base">{title}</h3>
+        <p className="mt-1 text-sm leading-6 text-muted-foreground">{description}</p>
       </div>
-      <div className={cn('space-y-3', contentClassName)}>{children}</div>
+      <div className={cn('space-y-2.5', contentClassName)}>{children}</div>
     </div>
   );
 }
@@ -244,10 +244,10 @@ export function MetricChip({
           ? 'border-red-200 bg-red-50 text-red-700'
           : tone === 'yellow'
             ? 'border-amber-200 bg-amber-50 text-amber-800'
-            : 'border-black/5 bg-slate-50 text-foreground';
+            : 'border-slate-200 bg-slate-50 text-foreground';
 
   return (
-    <div className={cn('rounded-full border px-3 py-2', toneClass)}>
+    <div className={cn('rounded-2xl border px-3 py-2.5', toneClass)}>
       <p className="text-[10px] font-semibold uppercase tracking-[0.2em] opacity-80">{label}</p>
       <p className="mt-1 break-words text-sm font-semibold leading-snug">{value}</p>
     </div>
@@ -288,7 +288,7 @@ export function SignalRow({
             : 'bg-slate-400';
 
   return (
-    <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-4 transition-colors duration-200 hover:bg-slate-100/80">
+    <div className="rounded-2xl border border-slate-200/70 bg-slate-50/85 px-4 py-3.5 transition-colors duration-200 hover:bg-slate-100/80">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <span className={cn('h-2 w-2 shrink-0 rounded-full', dotColor, tone !== 'neutral' && 'animate-pulse-soft')} />
@@ -303,7 +303,7 @@ export function SignalRow({
 
 export function PulseLine({ title, value, toneClass }: { title: string; value: string; toneClass: string }) {
   return (
-    <div className="rounded-2xl border border-black/5 bg-slate-50 p-4">
+    <div className="rounded-2xl border border-slate-200/70 bg-slate-50/85 p-4">
       <div className="flex items-center justify-between gap-3">
         <p className="font-semibold text-foreground">{title}</p>
         <div className={cn('rounded-full px-3 py-1 text-[11px] font-semibold', toneClass)}>ativo</div>
@@ -325,7 +325,7 @@ export function StatCard({
   delta: string;
 }) {
   return (
-    <div className="animate-fade-in-up flex items-center gap-4 rounded-2xl border border-slate-200/60 bg-white px-4 py-4 transition-shadow duration-200 hover:shadow-md">
+    <div className="animate-fade-in-up flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-white px-4 py-4 transition-shadow duration-200 hover:shadow-sm">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/8">{icon}</div>
       <div className="min-w-0">
         <p className="text-sm text-muted-foreground">{label}</p>
@@ -345,7 +345,7 @@ export function SummarySurface({
   description: string;
 }) {
   return (
-    <div className="rounded-2xl border border-black/5 bg-slate-50 p-4">
+    <div className="rounded-2xl border border-slate-200/70 bg-slate-50/85 p-4">
       <p className="text-2xl font-bold text-foreground">{value}</p>
       <p className="mt-1 font-semibold text-foreground">{label}</p>
       <p className="mt-1 text-xs text-muted-foreground">{description}</p>
@@ -355,7 +355,7 @@ export function SummarySurface({
 
 export function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-3">
+    <div className="rounded-2xl border border-slate-200/70 bg-slate-50/85 px-4 py-3">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
       <p className="mt-1 break-all text-sm font-semibold text-foreground">{value}</p>
     </div>
@@ -372,7 +372,7 @@ export function GuaranteeCard({
   badgeClass: string;
 }) {
   return (
-    <div className="rounded-2xl border border-black/5 bg-slate-50 p-4">
+    <div className="rounded-2xl border border-slate-200/70 bg-slate-50/85 p-4">
       <div className={cn('inline-flex rounded-full px-3 py-1 text-[11px] font-semibold', badgeClass)}>{title}</div>
       <p className="mt-3 text-sm leading-6 text-muted-foreground">{description}</p>
     </div>
@@ -401,11 +401,11 @@ export function StateCard({
           Estado atual
         </div>
         <div>
-          <CardTitle className="text-2xl">{title}</CardTitle>
+          <CardTitle className="text-xl">{title}</CardTitle>
           <CardDescription className="mt-2 leading-6 text-muted-foreground">{description}</CardDescription>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-0">
         <ul className="space-y-3">
           {items.map((item) => (
             <li key={item} className={cn('rounded-2xl border px-4 py-3 text-sm leading-6', itemClassName)}>
