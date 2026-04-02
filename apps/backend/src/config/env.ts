@@ -32,7 +32,10 @@ const envSchema = z.object({
     .transform((value) => value.split(',').map((item) => item.trim()).filter(Boolean)),
 
   STORE_WHATSAPP: z.string().default('11999999999'),
-  QUOTE_HANDWRITING_MODEL: z.string().default('Xenova/trocr-base-handwritten'),
+  QUOTE_PADDLE_PYTHON_BIN: z.string().default('python3'),
+  QUOTE_PADDLE_SCRIPT_PATH: z.string().default('apps/backend/scripts/paddleocr_bridge.py'),
+  QUOTE_PADDLE_LANG: z.string().default('latin'),
+  QUOTE_PADDLE_TIMEOUT_MS: z.coerce.number().positive().default(120000),
 
   MAX_FILE_SIZE: z.coerce.number().positive().default(5242880),
   UPLOAD_DIR: z.string().default('./uploads'),

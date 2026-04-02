@@ -1,5 +1,25 @@
+import Jscanify from 'jscanify/client';
+
 type OpenCvNamespace = any;
-type OpenCvMat = any;
+
+type ScannerCornerPoint = {
+  x: number;
+  y: number;
+};
+
+type ScannerCornerPoints = {
+  topLeftCorner?: ScannerCornerPoint;
+  topRightCorner?: ScannerCornerPoint;
+  bottomLeftCorner?: ScannerCornerPoint;
+  bottomRightCorner?: ScannerCornerPoint;
+};
+
+type DetectionDetails = {
+  detection: DocumentDetection;
+  corners: Required<ScannerCornerPoints>;
+  targetWidth: number;
+  targetHeight: number;
+};
 
 export type DocumentScannerPoint = {
   x: number;
@@ -21,32 +41,39 @@ export type ProcessedDocumentResult = {
   qualityScore: number;
 };
 
-const ANALYSIS_MAX_SIDE = 720;
+const ANALYSIS_MAX_SIDE = 960;
 const CAPTURE_MAX_SIDE = 2200;
-const OUTPUT_MAX_SIDE = 1600;
-const MIN_DOCUMENT_COVERAGE = 0.16;
+const OUTPUT_MAX_SIDE = 1700;
+const MIN_DOCUMENT_COVERAGE = 0.12;
 
 let openCvPromise: Promise<OpenCvNamespace> | null = null;
+let scannerPromise: Promise<Jscanify> | null = null;
+
+declare global {
+  interface Window {
+    cv?: OpenCvNamespace;
+  }
+}
 
 export async function loadOpenCv() {
   if (!openCvPromise) {
     openCvPromise = (async () => {
       const module = await import('@techstark/opencv-js');
       const cvModule = module.default || module;
+      const resolved =
+        cvModule instanceof Promise
+          ? await cvModule
+          : typeof cvModule.Mat === 'function'
+            ? cvModule
+            : await new Promise<OpenCvNamespace>((resolve) => {
+                cvModule.onRuntimeInitialized = () => resolve(cvModule);
+              });
 
-      if (cvModule instanceof Promise) {
-        return cvModule;
+      if (typeof window !== 'undefined') {
+        window.cv = resolved;
       }
 
-      if (typeof cvModule.Mat === 'function') {
-        return cvModule;
-      }
-
-      await new Promise<void>((resolve) => {
-        cvModule.onRuntimeInitialized = () => resolve();
-      });
-
-      return cvModule;
+      return resolved;
     })();
   }
 
@@ -59,10 +86,8 @@ export async function prepareDocumentFromVideo(params: {
 }) {
   const sourceCanvas = document.createElement('canvas');
   drawSourceToCanvas(params.video, sourceCanvas, CAPTURE_MAX_SIDE);
-  return processSourceCanvas({
-    sourceCanvas,
-    fileName: params.fileName || 'orcamento-camera.png',
-  });
+
+  return processSourceCanvas(sourceCanvas);
 }
 
 export async function prepareDocumentFromFile(params: {
@@ -74,10 +99,7 @@ export async function prepareDocumentFromFile(params: {
 
   try {
     drawSourceToCanvas(image, sourceCanvas, CAPTURE_MAX_SIDE);
-    return await processSourceCanvas({
-      sourceCanvas,
-      fileName: params.fileName || params.file.name || 'orcamento-galeria.png',
-    });
+    return await processSourceCanvas(sourceCanvas);
   } finally {
     URL.revokeObjectURL(image.src);
   }
@@ -88,17 +110,16 @@ export async function detectDocumentFromVideoFrame(params: {
   analysisCanvas: HTMLCanvasElement;
 }) {
   drawSourceToCanvas(params.video, params.analysisCanvas, ANALYSIS_MAX_SIDE);
-  const cv = await loadOpenCv();
-  return detectDocumentInCanvas(cv, params.analysisCanvas);
+  const details = await detectDocumentInCanvas(params.analysisCanvas);
+  return details?.detection ?? null;
 }
 
-async function processSourceCanvas(params: {
-  sourceCanvas: HTMLCanvasElement;
-  fileName: string;
-}): Promise<ProcessedDocumentResult> {
-  const cv = await loadOpenCv();
-  const detection = detectDocumentInCanvas(cv, params.sourceCanvas);
-  const preparedCanvas = renderPreparedCanvas(cv, params.sourceCanvas, detection);
+async function processSourceCanvas(sourceCanvas: HTMLCanvasElement): Promise<ProcessedDocumentResult> {
+  const [cv, scanner] = await Promise.all([loadOpenCv(), getScanner()]);
+  const details = await detectDocumentInCanvas(sourceCanvas);
+  const preparedCanvas = details
+    ? extractAndEnhanceCanvas(cv, scanner, sourceCanvas, details)
+    : enhanceCanvas(cv, sourceCanvas);
   const blob = await canvasToBlob(preparedCanvas, 'image/png');
   const previewUrl = URL.createObjectURL(blob);
 
@@ -107,90 +128,95 @@ async function processSourceCanvas(params: {
     width: preparedCanvas.width,
     height: preparedCanvas.height,
     previewUrl,
-    autoCropped: Boolean(detection),
-    qualityScore: detection?.score ?? 0,
+    autoCropped: Boolean(details),
+    qualityScore: details?.detection.score ?? 0,
   };
 }
 
-function detectDocumentInCanvas(cv: OpenCvNamespace, canvas: HTMLCanvasElement): DocumentDetection | null {
+async function getScanner() {
+  if (!scannerPromise) {
+    scannerPromise = (async () => {
+      await loadOpenCv();
+      return new Jscanify();
+    })();
+  }
+
+  return scannerPromise;
+}
+
+async function detectDocumentInCanvas(canvas: HTMLCanvasElement): Promise<DetectionDetails | null> {
+  const [cv, scanner] = await Promise.all([loadOpenCv(), getScanner()]);
   const source = cv.imread(canvas);
-  const gray = new cv.Mat();
-  const blurred = new cv.Mat();
-  const edges = new cv.Mat();
-  const dilated = new cv.Mat();
-  const contours = new cv.MatVector();
-  const hierarchy = new cv.Mat();
-  const kernel = cv.Mat.ones(3, 3, cv.CV_8U);
+  let contour: any = null;
 
   try {
-    cv.cvtColor(source, gray, cv.COLOR_RGBA2GRAY, 0);
-    cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0, 0, cv.BORDER_DEFAULT);
-    cv.Canny(blurred, edges, 50, 150, 3, false);
-    cv.dilate(edges, dilated, kernel);
-    cv.findContours(dilated, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
-
-    const imageArea = canvas.width * canvas.height;
-    let bestCandidate: DocumentDetection | null = null;
-
-    for (let index = 0; index < contours.size(); index += 1) {
-      const contour = contours.get(index);
-      const perimeter = cv.arcLength(contour, true);
-      const approximation = new cv.Mat();
-
-      try {
-        cv.approxPolyDP(contour, approximation, 0.02 * perimeter, true);
-
-        if (approximation.rows !== 4) {
-          continue;
-        }
-
-        if (typeof cv.isContourConvex === 'function' && !cv.isContourConvex(approximation)) {
-          continue;
-        }
-
-        const area = Math.abs(cv.contourArea(approximation));
-        const coverage = area / imageArea;
-
-        if (coverage < MIN_DOCUMENT_COVERAGE || coverage > 0.96) {
-          continue;
-        }
-
-        const orderedPoints = normalizePoints(orderPoints(extractPoints(approximation)), canvas.width, canvas.height);
-        const score = scoreDocumentCandidate(orderedPoints, coverage);
-
-        if (!bestCandidate || score > bestCandidate.score) {
-          bestCandidate = {
-            points: orderedPoints,
-            coverage,
-            score,
-          };
-        }
-      } finally {
-        approximation.delete();
-        contour.delete();
-      }
+    contour = scanner.findPaperContour(source);
+    if (!contour) {
+      return null;
     }
 
-    return bestCandidate;
+    const corners = scanner.getCornerPoints(contour);
+
+    if (!hasAllCorners(corners)) {
+      return null;
+    }
+
+    const normalizedPoints = normalizePoints(
+      [corners.topLeftCorner, corners.topRightCorner, corners.bottomRightCorner, corners.bottomLeftCorner],
+      canvas.width,
+      canvas.height
+    );
+    const coverage = polygonArea(normalizedPoints);
+
+    if (coverage < MIN_DOCUMENT_COVERAGE || coverage > 0.98) {
+      return null;
+    }
+
+    const score = scoreDocumentCandidate(normalizedPoints, coverage);
+    return {
+      detection: {
+        points: normalizedPoints,
+        coverage,
+        score,
+      },
+      corners,
+      targetWidth: clampDimension(
+        Math.round(
+          Math.max(
+            distance(corners.topLeftCorner, corners.topRightCorner),
+            distance(corners.bottomLeftCorner, corners.bottomRightCorner)
+          )
+        )
+      ),
+      targetHeight: clampDimension(
+        Math.round(
+          Math.max(
+            distance(corners.topLeftCorner, corners.bottomLeftCorner),
+            distance(corners.topRightCorner, corners.bottomRightCorner)
+          )
+        )
+      ),
+    };
   } finally {
+    contour?.delete?.();
     source.delete();
-    gray.delete();
-    blurred.delete();
-    edges.delete();
-    dilated.delete();
-    contours.delete();
-    hierarchy.delete();
-    kernel.delete();
   }
 }
 
-function renderPreparedCanvas(
+function extractAndEnhanceCanvas(
   cv: OpenCvNamespace,
+  scanner: Jscanify,
   sourceCanvas: HTMLCanvasElement,
-  detection: DocumentDetection | null
+  details: DetectionDetails
 ) {
+  const extractedCanvas =
+    scanner.extractPaper(sourceCanvas, details.targetWidth, details.targetHeight, details.corners) || sourceCanvas;
+  return enhanceCanvas(cv, extractedCanvas);
+}
+
+function enhanceCanvas(cv: OpenCvNamespace, sourceCanvas: HTMLCanvasElement) {
   const source = cv.imread(sourceCanvas);
-  let workingMat: OpenCvMat | null = null;
+  const resized = new cv.Mat();
   const grayscale = new cv.Mat();
   const normalized = new cv.Mat();
   const denoised = new cv.Mat();
@@ -198,21 +224,23 @@ function renderPreparedCanvas(
   const output = new cv.Mat();
 
   try {
-    workingMat = detection ? warpDetectedDocument(cv, source, detection) : source.clone();
+    const longestSide = Math.max(source.cols, source.rows);
 
-    if (Math.max(workingMat.cols, workingMat.rows) > OUTPUT_MAX_SIDE) {
-      const resized = new cv.Mat();
-      const scale = OUTPUT_MAX_SIDE / Math.max(workingMat.cols, workingMat.rows);
-      const targetSize = new cv.Size(
-        Math.max(1, Math.round(workingMat.cols * scale)),
-        Math.max(1, Math.round(workingMat.rows * scale))
+    if (longestSide > OUTPUT_MAX_SIDE) {
+      const scale = OUTPUT_MAX_SIDE / longestSide;
+      cv.resize(
+        source,
+        resized,
+        new cv.Size(Math.max(1, Math.round(source.cols * scale)), Math.max(1, Math.round(source.rows * scale))),
+        0,
+        0,
+        cv.INTER_AREA
       );
-      cv.resize(workingMat, resized, targetSize, 0, 0, cv.INTER_AREA);
-      workingMat.delete();
-      workingMat = resized;
+    } else {
+      source.copyTo(resized);
     }
 
-    cv.cvtColor(workingMat, grayscale, cv.COLOR_RGBA2GRAY, 0);
+    cv.cvtColor(resized, grayscale, cv.COLOR_RGBA2GRAY, 0);
     cv.equalizeHist(grayscale, normalized);
     cv.GaussianBlur(normalized, denoised, new cv.Size(3, 3), 0, 0, cv.BORDER_DEFAULT);
     cv.adaptiveThreshold(
@@ -233,7 +261,7 @@ function renderPreparedCanvas(
     return canvas;
   } finally {
     source.delete();
-    workingMat?.delete();
+    resized.delete();
     grayscale.delete();
     normalized.delete();
     denoised.delete();
@@ -242,95 +270,27 @@ function renderPreparedCanvas(
   }
 }
 
-function warpDetectedDocument(cv: OpenCvNamespace, source: OpenCvMat, detection: DocumentDetection) {
-  const absolutePoints = detection.points.map((point) => ({
-    x: point.x * source.cols,
-    y: point.y * source.rows,
-  }));
-  const [topLeft, topRight, bottomRight, bottomLeft] = absolutePoints;
-
-  const maxWidth = Math.max(distance(topLeft, topRight), distance(bottomLeft, bottomRight));
-  const maxHeight = Math.max(distance(topLeft, bottomLeft), distance(topRight, bottomRight));
-
-  const destinationWidth = Math.max(1, Math.round(maxWidth));
-  const destinationHeight = Math.max(1, Math.round(maxHeight));
-
-  const srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
-    topLeft.x,
-    topLeft.y,
-    topRight.x,
-    topRight.y,
-    bottomRight.x,
-    bottomRight.y,
-    bottomLeft.x,
-    bottomLeft.y,
-  ]);
-  const dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
-    0,
-    0,
-    destinationWidth - 1,
-    0,
-    destinationWidth - 1,
-    destinationHeight - 1,
-    0,
-    destinationHeight - 1,
-  ]);
-  const transform = cv.getPerspectiveTransform(srcTri, dstTri);
-  const warped = new cv.Mat();
-
-  try {
-    cv.warpPerspective(
-      source,
-      warped,
-      transform,
-      new cv.Size(destinationWidth, destinationHeight),
-      cv.INTER_LINEAR,
-      cv.BORDER_REPLICATE,
-      new cv.Scalar()
-    );
-
-    return warped;
-  } finally {
-    srcTri.delete();
-    dstTri.delete();
-    transform.delete();
-  }
+function hasAllCorners(corners: ScannerCornerPoints): corners is Required<ScannerCornerPoints> {
+  return Boolean(corners.topLeftCorner && corners.topRightCorner && corners.bottomLeftCorner && corners.bottomRightCorner);
 }
 
-function extractPoints(mat: OpenCvMat) {
-  const points: DocumentScannerPoint[] = [];
+function polygonArea(points: DocumentScannerPoint[]) {
+  let total = 0;
 
-  for (let index = 0; index < mat.rows; index += 1) {
-    const coordinates = mat.intPtr(index, 0);
-    points.push({
-      x: coordinates[0],
-      y: coordinates[1],
-    });
+  for (let index = 0; index < points.length; index += 1) {
+    const current = points[index];
+    const next = points[(index + 1) % points.length];
+    total += current.x * next.y - next.x * current.y;
   }
 
-  return points;
+  return Math.abs(total / 2);
 }
 
-function normalizePoints(points: DocumentScannerPoint[], width: number, height: number) {
+function normalizePoints(points: ScannerCornerPoint[], width: number, height: number) {
   return points.map((point) => ({
     x: clamp(point.x / width, 0, 1),
     y: clamp(point.y / height, 0, 1),
   }));
-}
-
-function orderPoints(points: DocumentScannerPoint[]) {
-  const sortedBySum = [...points].sort((left, right) => left.x + left.y - (right.x + right.y));
-  const topLeft = sortedBySum[0];
-  const bottomRight = sortedBySum[sortedBySum.length - 1];
-
-  const remaining = points.filter((point) => point !== topLeft && point !== bottomRight);
-  const [candidateA, candidateB] = remaining;
-
-  if (candidateA.x < candidateB.x) {
-    return [topLeft, candidateB, bottomRight, candidateA];
-  }
-
-  return [topLeft, candidateA, bottomRight, candidateB];
 }
 
 function scoreDocumentCandidate(points: DocumentScannerPoint[], coverage: number) {
@@ -341,17 +301,21 @@ function scoreDocumentCandidate(points: DocumentScannerPoint[], coverage: number
     1 -
     Math.abs(0.5 - average(points.map((point) => point.x))) -
     Math.abs(0.5 - average(points.map((point) => point.y)));
-  const geometryPenalty = Math.min(0.5, horizontalSkew + verticalSkew);
+  const geometryPenalty = Math.min(0.55, horizontalSkew + verticalSkew);
 
-  return coverage * 0.75 + clamp(centeredness, 0, 1) * 0.35 - geometryPenalty * 0.25;
+  return coverage * 0.78 + clamp(centeredness, 0, 1) * 0.32 - geometryPenalty * 0.24;
 }
 
 function average(values: number[]) {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-function distance(first: DocumentScannerPoint, second: DocumentScannerPoint) {
+function distance(first: ScannerCornerPoint, second: ScannerCornerPoint) {
   return Math.hypot(first.x - second.x, first.y - second.y);
+}
+
+function clampDimension(value: number) {
+  return Math.max(720, Math.min(OUTPUT_MAX_SIDE, value || OUTPUT_MAX_SIDE));
 }
 
 function drawSourceToCanvas(

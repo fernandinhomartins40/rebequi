@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
+import Webcam from 'react-webcam';
 import {
   Camera,
   CheckCircle2,
@@ -59,6 +60,17 @@ type CameraState = 'idle' | 'requesting' | 'ready' | 'denied' | 'unsupported' | 
 const ANALYSIS_INTERVAL = 320;
 const AUTO_CAPTURE_COOLDOWN = 2200;
 const AUTO_CAPTURE_STABLE_FRAMES = 3;
+const VIDEO_CONSTRAINTS: MediaTrackConstraints = {
+  facingMode: {
+    ideal: 'environment',
+  },
+  width: {
+    ideal: 1920,
+  },
+  height: {
+    ideal: 1080,
+  },
+};
 
 export function QuoteDocumentCaptureCard({
   title,
@@ -70,9 +82,8 @@ export function QuoteDocumentCaptureCard({
   onSelectFile,
 }: QuoteDocumentCaptureCardProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const webcamRef = useRef<Webcam | null>(null);
   const analysisCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const previousDetectionRef = useRef<DocumentDetection | null>(null);
   const stableFramesRef = useRef(0);
@@ -80,8 +91,10 @@ export function QuoteDocumentCaptureCard({
   const lastAnalysisAtRef = useRef(0);
   const openCvReadyRef = useRef(false);
   const scannerWarmupPromiseRef = useRef<Promise<void> | null>(null);
+  const cameraOpenRef = useRef(false);
   const [activeTab, setActiveTab] = useState<'camera' | 'upload'>('camera');
   const [cameraState, setCameraState] = useState<CameraState>('idle');
+  const [cameraOpen, setCameraOpen] = useState(false);
   const [scannerReady, setScannerReady] = useState(false);
   const [localBusy, setLocalBusy] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -92,9 +105,11 @@ export function QuoteDocumentCaptureCard({
   const [videoSize, setVideoSize] = useState({ width: 4, height: 3 });
 
   useEffect(() => {
-    return () => {
-      stopCameraStream(streamRef);
+    cameraOpenRef.current = cameraOpen;
+  }, [cameraOpen]);
 
+  useEffect(() => {
+    return () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
@@ -116,7 +131,7 @@ export function QuoteDocumentCaptureCard({
   }, [activeTab]);
 
   useEffect(() => {
-    if (activeTab !== 'camera' || cameraState !== 'ready' || localBusy || processing) {
+    if (activeTab !== 'camera' || !cameraOpen || cameraState !== 'ready' || localBusy || processing) {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
@@ -131,7 +146,7 @@ export function QuoteDocumentCaptureCard({
         lastAnalysisAtRef.current = now;
 
         try {
-          const video = videoRef.current;
+          const video = getVideoElement(webcamRef);
           const analysisCanvas = analysisCanvasRef.current;
 
           if (video && analysisCanvas && video.readyState >= 2 && openCvReadyRef.current) {
@@ -175,7 +190,7 @@ export function QuoteDocumentCaptureCard({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [activeTab, autoCaptureEnabled, cameraState, localBusy, processing]);
+  }, [activeTab, autoCaptureEnabled, cameraOpen, cameraState, localBusy, processing]);
 
   const openFilePicker = () => {
     inputRef.current?.click();
@@ -193,12 +208,12 @@ export function QuoteDocumentCaptureCard({
           await loadOpenCv();
           openCvReadyRef.current = true;
           setScannerReady(true);
-          if (streamRef.current) {
+          if (cameraOpenRef.current) {
             setCameraMessage('Scanner pronto. Centralize o documento dentro da moldura.');
           }
         } catch {
           setScannerReady(false);
-          if (streamRef.current) {
+          if (cameraOpenRef.current) {
             setCameraMessage('Scanner avancado indisponivel. A captura manual continua funcionando.');
           }
         } finally {
@@ -216,6 +231,12 @@ export function QuoteDocumentCaptureCard({
       return;
     }
 
+    if (typeof window !== 'undefined' && !window.isSecureContext) {
+      setCameraState('unsupported');
+      setLocalError('A camera no navegador exige HTTPS ou localhost. Use o envio manual se preferir.');
+      return;
+    }
+
     if (!navigator.mediaDevices?.getUserMedia) {
       setActiveTab('upload');
       setCameraState('unsupported');
@@ -223,64 +244,63 @@ export function QuoteDocumentCaptureCard({
       return;
     }
 
+    setActiveTab('camera');
     setLocalError(null);
+    setDetection(null);
     setCameraState('requesting');
+    setCameraOpen(true);
+    setCameraMessage('Solicitando permissao da camera...');
+    void warmupScanner();
+  };
 
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: {
-          facingMode: {
-            ideal: 'environment',
-          },
-          width: {
-            ideal: 1920,
-          },
-          height: {
-            ideal: 1080,
-          },
-        },
-      });
+  const handleCameraReady = async () => {
+    const video = getVideoElement(webcamRef);
 
-      stopCameraStream(streamRef);
-      streamRef.current = stream;
+    setCameraState('ready');
+    setLocalError(null);
+    setCameraMessage(
+      openCvReadyRef.current
+        ? 'Camera ativa. Centralize o documento dentro da moldura.'
+        : 'Camera ativa. O scanner avancado vai carregar em segundo plano.'
+    );
 
-      let video = videoRef.current;
+    if (!video) {
+      return;
+    }
 
-      if (!video) {
-        await new Promise<void>((resolve) => {
-          requestAnimationFrame(() => resolve());
-        });
-        video = videoRef.current;
-      }
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve());
+    });
 
-      if (!video) {
-        throw new Error('Video nao disponivel');
-      }
+    setVideoSize({
+      width: video.videoWidth || 4,
+      height: video.videoHeight || 3,
+    });
 
-      video.srcObject = stream;
-      await video.play();
-
-      setVideoSize({
-        width: video.videoWidth || 4,
-        height: video.videoHeight || 3,
-      });
-      setCameraState('ready');
-      setCameraMessage('Camera ativa. O scanner avancado vai carregar em segundo plano.');
+    if (!openCvReadyRef.current) {
       void warmupScanner();
-    } catch (error) {
-      const message =
-        error instanceof DOMException && error.name === 'NotAllowedError'
-          ? 'Permissao da camera negada. Libere o acesso para usar o scanner ao vivo.'
-          : 'Nao foi possivel iniciar a camera. Use o envio manual se preferir.';
-
-      setCameraState(error instanceof DOMException && error.name === 'NotAllowedError' ? 'denied' : 'error');
-      setLocalError(message);
     }
   };
 
+  const handleCameraError = (error: string | DOMException) => {
+    const denied =
+      (typeof error === 'string' && error.toLowerCase().includes('permission')) ||
+      (error instanceof DOMException && error.name === 'NotAllowedError');
+
+    setCameraOpen(false);
+    setCameraState(denied ? 'denied' : 'error');
+    setDetection(null);
+    stableFramesRef.current = 0;
+    previousDetectionRef.current = null;
+    setLocalError(
+      denied
+        ? 'Permissao da camera negada. Libere o acesso para usar o scanner ao vivo.'
+        : 'Nao foi possivel iniciar a camera. Use o envio manual se preferir.'
+    );
+  };
+
   const handleStopCamera = () => {
-    stopCameraStream(streamRef);
+    setCameraOpen(false);
     setCameraState('idle');
     setDetection(null);
     stableFramesRef.current = 0;
@@ -289,7 +309,7 @@ export function QuoteDocumentCaptureCard({
   };
 
   const handleCameraCapture = async (autoCaptured = false) => {
-    const video = videoRef.current;
+    const video = getVideoElement(webcamRef);
 
     if (!video || disabled || processing || localBusy) {
       return;
@@ -442,7 +462,7 @@ export function QuoteDocumentCaptureCard({
   };
 
   const busy = disabled || processing || localBusy;
-  const showCameraPreview = cameraState === 'requesting' || cameraState === 'ready';
+  const showCameraPreview = cameraOpen;
   const polygon = detection ? buildPolygon(detection.points) : '';
   const progressValue = detection ? Math.min(100, Math.round(detection.coverage * 100)) : 0;
 
@@ -480,12 +500,20 @@ export function QuoteDocumentCaptureCard({
                   className="relative overflow-hidden rounded-[1.75rem] border border-black/5 bg-slate-950 shadow-[0_24px_60px_-36px_rgba(15,23,42,0.6)]"
                   style={{ aspectRatio: `${videoSize.width} / ${videoSize.height}` }}
                 >
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    muted
-                    playsInline
+                  <Webcam
+                    ref={webcamRef}
+                    audio={false}
                     className="h-full w-full object-cover"
+                    disablePictureInPicture
+                    forceScreenshotSourceSize
+                    imageSmoothing
+                    mirrored={false}
+                    onUserMedia={handleCameraReady}
+                    onUserMediaError={handleCameraError}
+                    playsInline
+                    screenshotFormat="image/png"
+                    screenshotQuality={1}
+                    videoConstraints={VIDEO_CONSTRAINTS}
                   />
 
                   <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.02),rgba(2,6,23,0.24)_72%)]" />
@@ -531,7 +559,7 @@ export function QuoteDocumentCaptureCard({
                               variant="secondary"
                               className="gap-2 bg-white/95 text-slate-900 hover:bg-white"
                               onClick={() => void handleCameraCapture(false)}
-                              disabled={busy}
+                              disabled={busy || cameraState !== 'ready'}
                             >
                               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
                               {busy ? 'Processando...' : buttonLabel}
@@ -569,7 +597,7 @@ export function QuoteDocumentCaptureCard({
                   <div>
                     <p className="font-semibold text-foreground">Captura dentro da pagina</p>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      O quadro e analisado ao vivo, o documento e corrigido automaticamente e so depois segue para o OCR.
+                      A camera abre dentro do painel e o scanner tenta corrigir o documento antes do OCR.
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
@@ -584,12 +612,12 @@ export function QuoteDocumentCaptureCard({
                   <div className="space-y-3">
                     <div className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-primary shadow-sm">
                       <Sparkles className="h-4 w-4" />
-                      Capture sem sair da tela
+                      Camera com captura nativa
                     </div>
                     <div>
-                      <p className="text-lg font-semibold text-foreground">Camera ao vivo com recorte automatico</p>
+                      <p className="text-lg font-semibold text-foreground">Abrir camera ao vivo</p>
                       <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                        Ative a camera traseira, enquadre o documento e deixe o scanner corrigir perspectiva, contraste e corte antes do OCR.
+                        O navegador cuida da camera e o scanner tenta recortar o documento automaticamente antes da leitura.
                       </p>
                     </div>
                   </div>
@@ -610,8 +638,8 @@ export function QuoteDocumentCaptureCard({
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <Badge variant="secondary">Sem app externo</Badge>
-                  <Badge variant="secondary">Recorte automatico</Badge>
+                  <Badge variant="secondary">react-webcam</Badge>
+                  <Badge variant="secondary">jscanify</Badge>
                   <Badge variant="secondary">{scannerReady ? 'Scanner pronto' : 'Preparacao sob demanda'}</Badge>
                 </div>
               </div>
@@ -718,15 +746,8 @@ export function QuoteDocumentCaptureCard({
   );
 }
 
-function stopCameraStream(streamRef: MutableRefObject<MediaStream | null>) {
-  const stream = streamRef.current;
-
-  if (!stream) {
-    return;
-  }
-
-  stream.getTracks().forEach((track) => track.stop());
-  streamRef.current = null;
+function getVideoElement(webcamRef: MutableRefObject<Webcam | null>) {
+  return webcamRef.current?.video ?? null;
 }
 
 function buildCameraGuidance(detection: DocumentDetection | null) {

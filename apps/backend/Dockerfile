@@ -55,7 +55,9 @@ ENV RELEASE_VERSION=$RELEASE_VERSION
 
 # Install dumb-init for proper signal handling
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends dumb-init wget ca-certificates libgomp1 \
+  && apt-get install -y --no-install-recommends dumb-init wget ca-certificates libgomp1 libgl1 libglib2.0-0 libsm6 libxext6 libxrender1 python3 python3-pip \
+  && python3 -m pip install --no-cache-dir --break-system-packages paddlepaddle==3.0.0 -i https://www.paddlepaddle.org.cn/packages/stable/cpu/ \
+  && python3 -m pip install --no-cache-dir --break-system-packages paddleocr \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -82,6 +84,7 @@ RUN --mount=type=cache,target=/root/.npm \
 # Copy built application
 COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
 COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
+COPY --from=builder /app/apps/backend/scripts ./apps/backend/scripts
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist

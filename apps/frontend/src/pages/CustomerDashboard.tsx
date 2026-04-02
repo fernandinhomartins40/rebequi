@@ -597,7 +597,7 @@ const CustomerDashboard = () => {
                   description="Capture com a câmera ao vivo."
                   helper="Etapa 1 de 3."
                   processing={createDraftMutation.isPending}
-                  buttonLabel="Abrir câmera"
+                  buttonLabel="Capturar documento"
                   onSelectFile={async (selection: QuoteDocumentSelection) => {
                     await createDraftMutation.mutateAsync({
                       file: selection.file,
