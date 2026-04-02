@@ -79,6 +79,7 @@ export function QuoteDocumentCaptureCard({
   const autoCaptureLockRef = useRef(0);
   const lastAnalysisAtRef = useRef(0);
   const openCvReadyRef = useRef(false);
+  const scannerWarmupPromiseRef = useRef<Promise<void> | null>(null);
   const [activeTab, setActiveTab] = useState<'camera' | 'upload'>('camera');
   const [cameraState, setCameraState] = useState<CameraState>('idle');
   const [scannerReady, setScannerReady] = useState(false);
@@ -180,22 +181,34 @@ export function QuoteDocumentCaptureCard({
     inputRef.current?.click();
   };
 
-  const ensureScannerReady = async () => {
+  const warmupScanner = async () => {
     if (openCvReadyRef.current) {
       return true;
     }
 
-    try {
-      setCameraMessage('Preparando scanner para analise do documento...');
-      await loadOpenCv();
-      openCvReadyRef.current = true;
-      setScannerReady(true);
-      return true;
-    } catch {
-      setLocalError('Nao foi possivel preparar o scanner de documentos no navegador.');
-      setCameraState('error');
-      return false;
+    if (!scannerWarmupPromiseRef.current) {
+      scannerWarmupPromiseRef.current = (async () => {
+        try {
+          setCameraMessage('Preparando scanner para analise do documento...');
+          await loadOpenCv();
+          openCvReadyRef.current = true;
+          setScannerReady(true);
+          if (streamRef.current) {
+            setCameraMessage('Scanner pronto. Centralize o documento dentro da moldura.');
+          }
+        } catch {
+          setScannerReady(false);
+          if (streamRef.current) {
+            setCameraMessage('Scanner avancado indisponivel. A captura manual continua funcionando.');
+          }
+        } finally {
+          scannerWarmupPromiseRef.current = null;
+        }
+      })();
     }
+
+    await scannerWarmupPromiseRef.current;
+    return openCvReadyRef.current;
   };
 
   const handleStartCamera = async () => {
@@ -214,11 +227,6 @@ export function QuoteDocumentCaptureCard({
     setCameraState('requesting');
 
     try {
-      const scannerIsReady = await ensureScannerReady();
-      if (!scannerIsReady) {
-        return;
-      }
-
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
         video: {
@@ -237,7 +245,14 @@ export function QuoteDocumentCaptureCard({
       stopCameraStream(streamRef);
       streamRef.current = stream;
 
-      const video = videoRef.current;
+      let video = videoRef.current;
+
+      if (!video) {
+        await new Promise<void>((resolve) => {
+          requestAnimationFrame(() => resolve());
+        });
+        video = videoRef.current;
+      }
 
       if (!video) {
         throw new Error('Video nao disponivel');
@@ -251,7 +266,8 @@ export function QuoteDocumentCaptureCard({
         height: video.videoHeight || 3,
       });
       setCameraState('ready');
-      setCameraMessage('Documento detectado em tempo real. Centralize o papel dentro da moldura.');
+      setCameraMessage('Camera ativa. O scanner avancado vai carregar em segundo plano.');
+      void warmupScanner();
     } catch (error) {
       const message =
         error instanceof DOMException && error.name === 'NotAllowedError'
@@ -282,17 +298,27 @@ export function QuoteDocumentCaptureCard({
     setLocalBusy(true);
     setLocalError(null);
 
-    let prepared;
+    let prepared: ProcessedDocumentResult | null = null;
 
     try {
-      prepared = await prepareDocumentFromVideo({
-        video,
-        fileName: autoCaptured ? 'orcamento-auto-capturado.png' : 'orcamento-capturado.png',
-      });
+      if (openCvReadyRef.current) {
+        prepared = await prepareDocumentFromVideo({
+          video,
+          fileName: autoCaptured ? 'orcamento-auto-capturado.png' : 'orcamento-capturado.png',
+        });
+      }
     } catch {
-      setLocalError('Nao foi possivel capturar o documento pela camera. Tente novamente ou envie a imagem manualmente.');
-      setLocalBusy(false);
-      return;
+      prepared = null;
+    }
+
+    if (!prepared) {
+      try {
+        prepared = await captureRawVideoFrame(video);
+      } catch {
+        setLocalError('Nao foi possivel capturar o documento pela camera. Tente novamente ou envie a imagem manualmente.');
+        setLocalBusy(false);
+        return;
+      }
     }
 
     const file = buildFileFromBlob(prepared.blob, autoCaptured ? 'orcamento-auto' : 'orcamento-camera', 'png');
@@ -318,7 +344,7 @@ export function QuoteDocumentCaptureCard({
       setCameraMessage(
         prepared.autoCropped
           ? 'Documento corrigido e enviado para OCR.'
-          : 'Frame enviado para OCR sem recorte automatico.'
+          : 'Documento capturado e enviado para OCR.'
       );
       handleStopCamera();
     } catch {
@@ -416,6 +442,7 @@ export function QuoteDocumentCaptureCard({
   };
 
   const busy = disabled || processing || localBusy;
+  const showCameraPreview = cameraState === 'requesting' || cameraState === 'ready';
   const polygon = detection ? buildPolygon(detection.points) : '';
   const progressValue = detection ? Math.min(100, Math.round(detection.coverage * 100)) : 0;
 
@@ -447,7 +474,7 @@ export function QuoteDocumentCaptureCard({
           </TabsList>
 
           <TabsContent value="camera" className="space-y-4">
-            {cameraState === 'ready' ? (
+            {showCameraPreview ? (
               <div className="space-y-4">
                 <div
                   className="relative overflow-hidden rounded-[1.75rem] border border-black/5 bg-slate-950 shadow-[0_24px_60px_-36px_rgba(15,23,42,0.6)]"
@@ -463,69 +490,79 @@ export function QuoteDocumentCaptureCard({
 
                   <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.02),rgba(2,6,23,0.24)_72%)]" />
 
-                  <div className="pointer-events-none absolute inset-0 p-4 sm:p-5">
-                    <div className="flex items-start justify-between gap-3">
-                      <Badge className="border-none bg-white/90 text-slate-900">
-                        {detection ? 'Documento detectado' : 'Procurando documento'}
-                      </Badge>
-                      <Badge
-                        className={cn(
-                          'border-none',
-                          autoCaptureEnabled ? 'bg-emerald-500/90 text-white' : 'bg-slate-900/70 text-white'
-                        )}
-                      >
-                        {autoCaptureEnabled ? 'Auto captura ligada' : 'Captura manual'}
-                      </Badge>
-                    </div>
-
-                    <div className="pointer-events-auto absolute inset-x-4 bottom-4 rounded-[1.4rem] border border-white/15 bg-slate-950/72 px-4 py-3 text-white backdrop-blur">
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="space-y-2">
-                          <p className="text-sm font-semibold">{cameraMessage}</p>
-                          <div className="flex items-center gap-3 text-xs text-white/80">
-                            <span>{detection ? `${Math.round(detection.coverage * 100)}% do quadro ocupado` : 'Aproxime o documento'}</span>
-                            <span>{scannerReady ? 'Recorte automatico pronto' : 'Carregando scanner'}</span>
-                          </div>
-                          <Progress value={progressValue} className="h-2 bg-white/15" />
-                        </div>
-
-                        <div className="pointer-events-auto flex shrink-0 flex-wrap items-center gap-2">
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            className="gap-2 bg-white/95 text-slate-900 hover:bg-white"
-                            onClick={() => void handleCameraCapture(false)}
-                            disabled={busy}
-                          >
-                            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
-                            {busy ? 'Processando...' : buttonLabel}
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            className="gap-2 border border-white/15 text-white hover:bg-white/10 hover:text-white"
-                            onClick={handleStopCamera}
-                            disabled={busy}
-                          >
-                            <XCircle className="h-4 w-4" />
-                            Pausar
-                          </Button>
-                        </div>
+                  {cameraState === 'requesting' ? (
+                    <div className="absolute inset-0 flex items-center justify-center bg-slate-950/70 px-6 text-center text-white backdrop-blur-sm">
+                      <div className="space-y-3">
+                        <Loader2 className="mx-auto h-8 w-8 animate-spin text-white/90" />
+                        <p className="text-sm font-semibold">Abrindo camera...</p>
+                        <p className="text-xs leading-5 text-white/75">{cameraMessage}</p>
                       </div>
                     </div>
+                  ) : (
+                    <div className="pointer-events-none absolute inset-0 p-4 sm:p-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <Badge className="border-none bg-white/90 text-slate-900">
+                          {detection ? 'Documento detectado' : 'Procurando documento'}
+                        </Badge>
+                        <Badge
+                          className={cn(
+                            'border-none',
+                            autoCaptureEnabled ? 'bg-emerald-500/90 text-white' : 'bg-slate-900/70 text-white'
+                          )}
+                        >
+                          {autoCaptureEnabled ? 'Auto captura ligada' : 'Captura manual'}
+                        </Badge>
+                      </div>
 
-                    {polygon ? (
-                      <svg viewBox="0 0 100 100" className="pointer-events-none absolute inset-0 h-full w-full">
-                        <polygon
-                          points={polygon}
-                          fill="rgba(59,130,246,0.12)"
-                          stroke="rgba(255,255,255,0.92)"
-                          strokeWidth="1.2"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    ) : null}
-                  </div>
+                      <div className="pointer-events-auto absolute inset-x-4 bottom-4 rounded-[1.4rem] border border-white/15 bg-slate-950/72 px-4 py-3 text-white backdrop-blur">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="space-y-2">
+                            <p className="text-sm font-semibold">{cameraMessage}</p>
+                            <div className="flex items-center gap-3 text-xs text-white/80">
+                              <span>{detection ? `${Math.round(detection.coverage * 100)}% do quadro ocupado` : 'Aproxime o documento'}</span>
+                              <span>{scannerReady ? 'Recorte automatico pronto' : 'Carregando scanner'}</span>
+                            </div>
+                            <Progress value={progressValue} className="h-2 bg-white/15" />
+                          </div>
+
+                          <div className="pointer-events-auto flex shrink-0 flex-wrap items-center gap-2">
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              className="gap-2 bg-white/95 text-slate-900 hover:bg-white"
+                              onClick={() => void handleCameraCapture(false)}
+                              disabled={busy}
+                            >
+                              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                              {busy ? 'Processando...' : buttonLabel}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              className="gap-2 border border-white/15 text-white hover:bg-white/10 hover:text-white"
+                              onClick={handleStopCamera}
+                              disabled={busy}
+                            >
+                              <XCircle className="h-4 w-4" />
+                              Pausar
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {polygon ? (
+                        <svg viewBox="0 0 100 100" className="pointer-events-none absolute inset-0 h-full w-full">
+                          <polygon
+                            points={polygon}
+                            fill="rgba(59,130,246,0.12)"
+                            stroke="rgba(255,255,255,0.92)"
+                            strokeWidth="1.2"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      ) : null}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex flex-col gap-3 rounded-[1.4rem] border border-[#e7dcc3] bg-slate-50/85 p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -748,6 +785,57 @@ function buildFileFromBlob(blob: Blob, baseName: string, extension: 'png' | 'jpg
   return new File([blob], `${baseName}-${Date.now()}.${extension}`, {
     type: blob.type,
     lastModified: Date.now(),
+  });
+}
+
+async function captureRawVideoFrame(video: HTMLVideoElement): Promise<ProcessedDocumentResult> {
+  const canvas = document.createElement('canvas');
+  drawVideoToCanvas(video, canvas, 1800);
+  const blob = await canvasToBlob(canvas, 'image/png');
+  const previewUrl = URL.createObjectURL(blob);
+
+  return {
+    blob,
+    width: canvas.width,
+    height: canvas.height,
+    previewUrl,
+    autoCropped: false,
+    qualityScore: 0,
+  };
+}
+
+function drawVideoToCanvas(video: HTMLVideoElement, canvas: HTMLCanvasElement, maxSide: number) {
+  const sourceWidth = video.videoWidth || video.clientWidth || 1280;
+  const sourceHeight = video.videoHeight || video.clientHeight || 720;
+  const longestSide = Math.max(sourceWidth, sourceHeight);
+  const scale = longestSide > maxSide ? maxSide / longestSide : 1;
+
+  canvas.width = Math.max(1, Math.round(sourceWidth * scale));
+  canvas.height = Math.max(1, Math.round(sourceHeight * scale));
+
+  const context = canvas.getContext('2d');
+
+  if (!context) {
+    throw new Error('Nao foi possivel preparar o canvas da camera.');
+  }
+
+  context.drawImage(video, 0, 0, canvas.width, canvas.height);
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement, type: string) {
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          reject(new Error('Nao foi possivel gerar a imagem capturada.'));
+          return;
+        }
+
+        resolve(blob);
+      },
+      type,
+      1
+    );
   });
 }
 
