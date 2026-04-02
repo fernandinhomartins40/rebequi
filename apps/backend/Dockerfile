@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.7
+
 # =============================================================================
 # Build Stage
 # =============================================================================
@@ -15,8 +17,17 @@ COPY apps/backend/package*.json ./apps/backend/
 COPY apps/frontend/package*.json ./apps/frontend/
 COPY packages/shared/package*.json ./packages/shared/
 
-# Install dependencies
-RUN npm ci --workspace=apps/backend --workspace=packages/shared
+# Install dependencies with retry and cache support to reduce transient network failures
+RUN --mount=type=cache,target=/root/.npm \
+  npm ci \
+    --workspace=apps/backend \
+    --workspace=packages/shared \
+    --prefer-offline \
+    --no-audit \
+    --no-fund \
+    --fetch-retries=5 \
+    --fetch-retry-factor=2 \
+    --fetch-retry-maxtimeout=120000
 
 # Copy source code
 COPY apps/backend ./apps/backend
@@ -56,7 +67,17 @@ COPY apps/frontend/package*.json ./apps/frontend/
 COPY packages/shared/package*.json ./packages/shared/
 
 # Install production dependencies only
-RUN npm ci --workspace=apps/backend --workspace=packages/shared --omit=dev
+RUN --mount=type=cache,target=/root/.npm \
+  npm ci \
+    --workspace=apps/backend \
+    --workspace=packages/shared \
+    --omit=dev \
+    --prefer-offline \
+    --no-audit \
+    --no-fund \
+    --fetch-retries=5 \
+    --fetch-retry-factor=2 \
+    --fetch-retry-maxtimeout=120000
 
 # Copy built application
 COPY --from=builder /app/apps/backend/dist ./apps/backend/dist

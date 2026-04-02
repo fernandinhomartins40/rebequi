@@ -1,19 +1,31 @@
+# syntax=docker/dockerfile:1.7
+
 # Stage 1: Build
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy workspace root files
+# Copy workspace manifests first so dependency install can be cached longer
 COPY package*.json ./
 COPY tsconfig.json ./
-COPY apps/backend/package*.json ./apps/backend/
+COPY apps/frontend/package*.json ./apps/frontend/
+COPY packages/shared/package*.json ./packages/shared/
 
-# Copy workspaces
+# Install only the workspaces needed by the frontend build
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci \
+      --workspace=apps/frontend \
+      --workspace=packages/shared \
+      --prefer-offline \
+      --no-audit \
+      --no-fund \
+      --fetch-retries=5 \
+      --fetch-retry-factor=2 \
+      --fetch-retry-maxtimeout=120000
+
+# Copy source after dependencies are installed
 COPY apps/frontend ./apps/frontend
 COPY packages/shared ./packages/shared
-
-# Install dependencies
-RUN npm ci
 
 # Build shared workspace first so frontend resolves package exports from dist
 WORKDIR /app
