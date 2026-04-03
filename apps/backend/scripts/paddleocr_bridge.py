@@ -29,6 +29,19 @@ def normalize_polygon(value):
     return points or None
 
 
+def ensure_sequence(value):
+    if value is None:
+        return []
+
+    if hasattr(value, "tolist"):
+        value = value.tolist()
+
+    if isinstance(value, (list, tuple)):
+        return list(value)
+
+    return [value]
+
+
 def polygon_to_bbox(value):
     points = normalize_polygon(value)
     if not points:
@@ -47,14 +60,20 @@ def polygon_to_bbox(value):
 def parse_predict_result(result):
     lines = []
 
-    for entry in result or []:
+    for entry in result if result is not None else []:
         payload = entry.get("res") if isinstance(entry, dict) else getattr(entry, "res", None)
         if not isinstance(payload, dict):
             continue
 
-        texts = list(payload.get("rec_texts") or [])
-        scores = list(payload.get("rec_scores") or [])
-        boxes = payload.get("rec_polys") or payload.get("dt_polys") or payload.get("rec_boxes") or []
+        texts = ensure_sequence(payload.get("rec_texts"))
+        scores = ensure_sequence(payload.get("rec_scores"))
+
+        boxes = payload.get("rec_polys")
+        if boxes is None:
+            boxes = payload.get("dt_polys")
+        if boxes is None:
+            boxes = payload.get("rec_boxes")
+        boxes = ensure_sequence(boxes)
 
         for index, text in enumerate(texts):
             cleaned = normalize_text(text)
@@ -81,7 +100,7 @@ def parse_legacy_result(result):
     if isinstance(result, list) and len(result) == 1 and isinstance(result[0], list):
         entries = result[0]
 
-    for entry in entries or []:
+    for entry in entries if entries is not None else []:
         if not isinstance(entry, (list, tuple)) or len(entry) < 2:
             continue
 
@@ -122,7 +141,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--image")
-    parser.add_argument("--lang", default="latin")
+    parser.add_argument("--lang", default="la")
     args = parser.parse_args()
 
     if args.check:

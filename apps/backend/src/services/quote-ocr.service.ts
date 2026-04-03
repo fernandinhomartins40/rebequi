@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process';
 import { access, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import sharp from 'sharp';
 import { env } from '../config/env.js';
@@ -178,5 +179,6 @@ export class QuoteOcrService {
 }
 
 function resolveBridgeScriptPath() {
-  return path.resolve(process.cwd(), env.QUOTE_PADDLE_SCRIPT_PATH);
+  const backendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+  return path.resolve(backendRoot, env.QUOTE_PADDLE_SCRIPT_PATH);
 }
