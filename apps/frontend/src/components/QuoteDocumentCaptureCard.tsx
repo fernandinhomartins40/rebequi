@@ -12,19 +12,13 @@ import {
   XCircle,
 } from 'lucide-react';
 import {
-  type DocumentDetection,
   type ProcessedDocumentResult,
-  detectDocumentFromVideoFrame,
-  loadOpenCv,
   prepareDocumentFromFile,
-  prepareDocumentFromVideo,
 } from '@/lib/document-scanner';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export type QuoteDocumentSelection = {
@@ -57,18 +51,17 @@ type ScannerPreview = {
 
 type CameraState = 'idle' | 'requesting' | 'ready' | 'denied' | 'unsupported' | 'error';
 
-const ANALYSIS_INTERVAL = 320;
-const AUTO_CAPTURE_COOLDOWN = 2200;
-const AUTO_CAPTURE_STABLE_FRAMES = 3;
 const VIDEO_CONSTRAINTS: MediaTrackConstraints = {
   facingMode: {
     ideal: 'environment',
   },
   width: {
-    ideal: 1920,
+    ideal: 1280,
+    max: 1280,
   },
   height: {
-    ideal: 1080,
+    ideal: 720,
+    max: 720,
   },
 };
 
@@ -83,38 +76,14 @@ export function QuoteDocumentCaptureCard({
 }: QuoteDocumentCaptureCardProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const webcamRef = useRef<Webcam | null>(null);
-  const analysisCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
-  const previousDetectionRef = useRef<DocumentDetection | null>(null);
-  const stableFramesRef = useRef(0);
-  const autoCaptureLockRef = useRef(0);
-  const lastAnalysisAtRef = useRef(0);
-  const openCvReadyRef = useRef(false);
-  const scannerWarmupPromiseRef = useRef<Promise<void> | null>(null);
-  const cameraOpenRef = useRef(false);
   const [activeTab, setActiveTab] = useState<'camera' | 'upload'>('camera');
   const [cameraState, setCameraState] = useState<CameraState>('idle');
   const [cameraOpen, setCameraOpen] = useState(false);
-  const [scannerReady, setScannerReady] = useState(false);
   const [localBusy, setLocalBusy] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
-  const [cameraMessage, setCameraMessage] = useState('Scanner preparado para capturar o documento sem sair da pagina.');
-  const [detection, setDetection] = useState<DocumentDetection | null>(null);
-  const [autoCaptureEnabled, setAutoCaptureEnabled] = useState(true);
+  const [cameraMessage, setCameraMessage] = useState('Abra a camera, enquadre o documento e toque em capturar.');
   const [preview, setPreview] = useState<ScannerPreview | null>(null);
   const [videoSize, setVideoSize] = useState({ width: 4, height: 3 });
-
-  useEffect(() => {
-    cameraOpenRef.current = cameraOpen;
-  }, [cameraOpen]);
-
-  useEffect(() => {
-    return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-    };
-  }, []);
 
   useEffect(() => {
     return () => {
@@ -130,100 +99,8 @@ export function QuoteDocumentCaptureCard({
     }
   }, [activeTab]);
 
-  useEffect(() => {
-    if (activeTab !== 'camera' || !cameraOpen || cameraState !== 'ready' || localBusy || processing) {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-
-      return;
-    }
-
-    const analyzeFrame = async () => {
-      const now = performance.now();
-
-      if (now - lastAnalysisAtRef.current >= ANALYSIS_INTERVAL) {
-        lastAnalysisAtRef.current = now;
-
-        try {
-          const video = getVideoElement(webcamRef);
-          const analysisCanvas = analysisCanvasRef.current;
-
-          if (video && analysisCanvas && video.readyState >= 2 && openCvReadyRef.current) {
-            const nextDetection = await detectDocumentFromVideoFrame({
-              video,
-              analysisCanvas,
-            });
-
-            setDetection(nextDetection);
-            updateDetectionState(nextDetection, previousDetectionRef, stableFramesRef);
-
-            if (
-              autoCaptureEnabled &&
-              nextDetection &&
-              stableFramesRef.current >= AUTO_CAPTURE_STABLE_FRAMES &&
-              Date.now() > autoCaptureLockRef.current
-            ) {
-              autoCaptureLockRef.current = Date.now() + AUTO_CAPTURE_COOLDOWN;
-              void handleCameraCapture(true);
-              return;
-            }
-
-            setCameraMessage(buildCameraGuidance(nextDetection));
-          }
-        } catch {
-          setCameraMessage('Centralize o documento e tente novamente com mais luz.');
-        }
-      }
-
-      animationFrameRef.current = requestAnimationFrame(() => {
-        void analyzeFrame();
-      });
-    };
-
-    animationFrameRef.current = requestAnimationFrame(() => {
-      void analyzeFrame();
-    });
-
-    return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-    };
-  }, [activeTab, autoCaptureEnabled, cameraOpen, cameraState, localBusy, processing]);
-
   const openFilePicker = () => {
     inputRef.current?.click();
-  };
-
-  const warmupScanner = async () => {
-    if (openCvReadyRef.current) {
-      return true;
-    }
-
-    if (!scannerWarmupPromiseRef.current) {
-      scannerWarmupPromiseRef.current = (async () => {
-        try {
-          setCameraMessage('Preparando scanner para analise do documento...');
-          await loadOpenCv();
-          openCvReadyRef.current = true;
-          setScannerReady(true);
-          if (cameraOpenRef.current) {
-            setCameraMessage('Scanner pronto. Centralize o documento dentro da moldura.');
-          }
-        } catch {
-          setScannerReady(false);
-          if (cameraOpenRef.current) {
-            setCameraMessage('Scanner avancado indisponivel. A captura manual continua funcionando.');
-          }
-        } finally {
-          scannerWarmupPromiseRef.current = null;
-        }
-      })();
-    }
-
-    await scannerWarmupPromiseRef.current;
-    return openCvReadyRef.current;
   };
 
   const handleStartCamera = async () => {
@@ -246,11 +123,9 @@ export function QuoteDocumentCaptureCard({
 
     setActiveTab('camera');
     setLocalError(null);
-    setDetection(null);
     setCameraState('requesting');
     setCameraOpen(true);
     setCameraMessage('Solicitando permissao da camera...');
-    void warmupScanner();
   };
 
   const handleCameraReady = async () => {
@@ -258,11 +133,7 @@ export function QuoteDocumentCaptureCard({
 
     setCameraState('ready');
     setLocalError(null);
-    setCameraMessage(
-      openCvReadyRef.current
-        ? 'Camera ativa. Centralize o documento dentro da moldura.'
-        : 'Camera ativa. O scanner avancado vai carregar em segundo plano.'
-    );
+    setCameraMessage('Camera ativa. Enquadre o documento e toque em capturar.');
 
     if (!video) {
       return;
@@ -276,10 +147,6 @@ export function QuoteDocumentCaptureCard({
       width: video.videoWidth || 4,
       height: video.videoHeight || 3,
     });
-
-    if (!openCvReadyRef.current) {
-      void warmupScanner();
-    }
   };
 
   const handleCameraError = (error: string | DOMException) => {
@@ -289,9 +156,6 @@ export function QuoteDocumentCaptureCard({
 
     setCameraOpen(false);
     setCameraState(denied ? 'denied' : 'error');
-    setDetection(null);
-    stableFramesRef.current = 0;
-    previousDetectionRef.current = null;
     setLocalError(
       denied
         ? 'Permissao da camera negada. Libere o acesso para usar o scanner ao vivo.'
@@ -302,13 +166,10 @@ export function QuoteDocumentCaptureCard({
   const handleStopCamera = () => {
     setCameraOpen(false);
     setCameraState('idle');
-    setDetection(null);
-    stableFramesRef.current = 0;
-    previousDetectionRef.current = null;
-    setCameraMessage('Scanner pausado. Voce pode reativar a camera quando quiser.');
+    setCameraMessage('Camera pausada. Voce pode reativar quando quiser.');
   };
 
-  const handleCameraCapture = async (autoCaptured = false) => {
+  const handleCameraCapture = async () => {
     const video = getVideoElement(webcamRef);
 
     if (!video || disabled || processing || localBusy) {
@@ -321,27 +182,15 @@ export function QuoteDocumentCaptureCard({
     let prepared: ProcessedDocumentResult | null = null;
 
     try {
-      if (openCvReadyRef.current) {
-        prepared = await prepareDocumentFromVideo({
-          video,
-          fileName: autoCaptured ? 'orcamento-auto-capturado.png' : 'orcamento-capturado.png',
-        });
-      }
+      prepared = await captureRawVideoFrame(video);
+      handleStopCamera();
     } catch {
-      prepared = null;
+      setLocalError('Nao foi possivel capturar o documento pela camera. Tente novamente ou envie a imagem manualmente.');
+      setLocalBusy(false);
+      return;
     }
 
-    if (!prepared) {
-      try {
-        prepared = await captureRawVideoFrame(video);
-      } catch {
-        setLocalError('Nao foi possivel capturar o documento pela camera. Tente novamente ou envie a imagem manualmente.');
-        setLocalBusy(false);
-        return;
-      }
-    }
-
-    const file = buildFileFromBlob(prepared.blob, autoCaptured ? 'orcamento-auto' : 'orcamento-camera', 'png');
+    const file = buildFileFromBlob(prepared.blob, 'orcamento-camera', prepared.blob.type === 'image/jpeg' ? 'jpg' : 'png');
     updatePreview(setPreview, {
       url: prepared.previewUrl,
       width: prepared.width,
@@ -358,15 +207,9 @@ export function QuoteDocumentCaptureCard({
         height: prepared.height,
         captureMode: 'camera',
         autoCropped: prepared.autoCropped,
-        autoCaptured,
       });
 
-      setCameraMessage(
-        prepared.autoCropped
-          ? 'Documento corrigido e enviado para OCR.'
-          : 'Documento capturado e enviado para OCR.'
-      );
-      handleStopCamera();
+      setCameraMessage('Documento capturado e enviado para leitura.');
     } catch {
       setLocalError('O documento foi capturado, mas o envio para OCR falhou. Tente novamente.');
     } finally {
@@ -463,8 +306,6 @@ export function QuoteDocumentCaptureCard({
 
   const busy = disabled || processing || localBusy;
   const showCameraPreview = cameraOpen;
-  const polygon = detection ? buildPolygon(detection.points) : '';
-  const progressValue = detection ? Math.min(100, Math.round(detection.coverage * 100)) : 0;
 
   return (
     <Card className="border-black/5 bg-white/92 shadow-[0_20px_55px_-40px_rgba(15,23,42,0.22)]">
@@ -529,28 +370,17 @@ export function QuoteDocumentCaptureCard({
                   ) : (
                     <div className="pointer-events-none absolute inset-0 p-4 sm:p-5">
                       <div className="flex items-start justify-between gap-3">
-                        <Badge className="border-none bg-white/90 text-slate-900">
-                          {detection ? 'Documento detectado' : 'Procurando documento'}
-                        </Badge>
-                        <Badge
-                          className={cn(
-                            'border-none',
-                            autoCaptureEnabled ? 'bg-emerald-500/90 text-white' : 'bg-slate-900/70 text-white'
-                          )}
-                        >
-                          {autoCaptureEnabled ? 'Auto captura ligada' : 'Captura manual'}
-                        </Badge>
+                        <Badge className="border-none bg-white/90 text-slate-900">Camera ao vivo</Badge>
+                        <Badge className="border-none bg-slate-900/70 text-white">Captura manual</Badge>
                       </div>
 
                       <div className="pointer-events-auto absolute inset-x-4 bottom-4 rounded-[1.4rem] border border-white/15 bg-slate-950/72 px-4 py-3 text-white backdrop-blur">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div className="space-y-2">
                             <p className="text-sm font-semibold">{cameraMessage}</p>
-                            <div className="flex items-center gap-3 text-xs text-white/80">
-                              <span>{detection ? `${Math.round(detection.coverage * 100)}% do quadro ocupado` : 'Aproxime o documento'}</span>
-                              <span>{scannerReady ? 'Recorte automatico pronto' : 'Carregando scanner'}</span>
-                            </div>
-                            <Progress value={progressValue} className="h-2 bg-white/15" />
+                            <p className="text-xs text-white/80">
+                              Use boa luz, aproxime o documento e toque em capturar quando o texto estiver nitido.
+                            </p>
                           </div>
 
                           <div className="pointer-events-auto flex shrink-0 flex-wrap items-center gap-2">
@@ -558,7 +388,7 @@ export function QuoteDocumentCaptureCard({
                               type="button"
                               variant="secondary"
                               className="gap-2 bg-white/95 text-slate-900 hover:bg-white"
-                              onClick={() => void handleCameraCapture(false)}
+                              onClick={() => void handleCameraCapture()}
                               disabled={busy || cameraState !== 'ready'}
                             >
                               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
@@ -577,33 +407,18 @@ export function QuoteDocumentCaptureCard({
                           </div>
                         </div>
                       </div>
-
-                      {polygon ? (
-                        <svg viewBox="0 0 100 100" className="pointer-events-none absolute inset-0 h-full w-full">
-                          <polygon
-                            points={polygon}
-                            fill="rgba(59,130,246,0.12)"
-                            stroke="rgba(255,255,255,0.92)"
-                            strokeWidth="1.2"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      ) : null}
                     </div>
                   )}
                 </div>
 
                 <div className="flex flex-col gap-3 rounded-[1.4rem] border border-[#e7dcc3] bg-slate-50/85 p-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="font-semibold text-foreground">Captura dentro da pagina</p>
+                    <p className="font-semibold text-foreground">Captura leve dentro da pagina</p>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      A camera abre dentro do painel e o scanner tenta corrigir o documento antes do OCR.
+                      A camera fica leve e estavel. O documento so e processado depois da captura, para evitar travar a pagina.
                     </p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-muted-foreground">Auto captura</span>
-                    <Switch checked={autoCaptureEnabled} onCheckedChange={setAutoCaptureEnabled} disabled={busy} />
-                  </div>
+                  <Badge variant="secondary">Sem analise em tempo real</Badge>
                 </div>
               </div>
             ) : (
@@ -617,7 +432,7 @@ export function QuoteDocumentCaptureCard({
                     <div>
                       <p className="text-lg font-semibold text-foreground">Abrir camera ao vivo</p>
                       <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                        O navegador cuida da camera e o scanner tenta recortar o documento automaticamente antes da leitura.
+                        A camera abre dentro da pagina com menos carga no celular. O processamento da imagem acontece so depois da captura.
                       </p>
                     </div>
                   </div>
@@ -638,9 +453,9 @@ export function QuoteDocumentCaptureCard({
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <Badge variant="secondary">react-webcam</Badge>
-                  <Badge variant="secondary">jscanify</Badge>
-                  <Badge variant="secondary">{scannerReady ? 'Scanner pronto' : 'Preparacao sob demanda'}</Badge>
+                  <Badge variant="secondary">Fluxo leve para mobile</Badge>
+                  <Badge variant="secondary">Sem sair do painel</Badge>
+                  <Badge variant="secondary">Fallback por envio manual</Badge>
                 </div>
               </div>
             )}
@@ -739,8 +554,6 @@ export function QuoteDocumentCaptureCard({
             event.currentTarget.value = '';
           }}
         />
-
-        <canvas ref={analysisCanvasRef} className="hidden" />
       </CardContent>
     </Card>
   );
@@ -748,58 +561,6 @@ export function QuoteDocumentCaptureCard({
 
 function getVideoElement(webcamRef: MutableRefObject<Webcam | null>) {
   return webcamRef.current?.video ?? null;
-}
-
-function buildCameraGuidance(detection: DocumentDetection | null) {
-  if (!detection) {
-    return 'Aproxime o documento e mantenha as bordas visiveis.';
-  }
-
-  if (detection.coverage < 0.26) {
-    return 'Aproxime mais o documento da camera.';
-  }
-
-  if (detection.coverage > 0.85) {
-    return 'Afaste um pouco para enquadrar o documento inteiro.';
-  }
-
-  if (detection.score < 0.42) {
-    return 'Alinhe o documento para reduzir a perspectiva antes da captura.';
-  }
-
-  return 'Documento pronto. Segure firme por um instante.';
-}
-
-function updateDetectionState(
-  detection: DocumentDetection | null,
-  previousDetectionRef: MutableRefObject<DocumentDetection | null>,
-  stableFramesRef: MutableRefObject<number>
-) {
-  const previous = previousDetectionRef.current;
-
-  if (!detection || !previous) {
-    stableFramesRef.current = detection ? 1 : 0;
-    previousDetectionRef.current = detection;
-    return;
-  }
-
-  const averageMovement =
-    detection.points.reduce((total, point, index) => {
-      const previousPoint = previous.points[index];
-      return total + Math.hypot(point.x - previousPoint.x, point.y - previousPoint.y);
-    }, 0) / detection.points.length;
-
-  if (averageMovement < 0.03 && detection.coverage > 0.26) {
-    stableFramesRef.current += 1;
-  } else {
-    stableFramesRef.current = 1;
-  }
-
-  previousDetectionRef.current = detection;
-}
-
-function buildPolygon(points: DocumentDetection['points']) {
-  return points.map((point) => `${Math.round(point.x * 100)},${Math.round(point.y * 100)}`).join(' ');
 }
 
 function buildFileFromBlob(blob: Blob, baseName: string, extension: 'png' | 'jpg') {
@@ -812,7 +573,7 @@ function buildFileFromBlob(blob: Blob, baseName: string, extension: 'png' | 'jpg
 async function captureRawVideoFrame(video: HTMLVideoElement): Promise<ProcessedDocumentResult> {
   const canvas = document.createElement('canvas');
   drawVideoToCanvas(video, canvas, 1800);
-  const blob = await canvasToBlob(canvas, 'image/png');
+  const blob = await canvasToBlob(canvas, 'image/jpeg', 0.92);
   const previewUrl = URL.createObjectURL(blob);
 
   return {
@@ -843,7 +604,7 @@ function drawVideoToCanvas(video: HTMLVideoElement, canvas: HTMLCanvasElement, m
   context.drawImage(video, 0, 0, canvas.width, canvas.height);
 }
 
-function canvasToBlob(canvas: HTMLCanvasElement, type: string) {
+function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number) {
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
       (blob) => {
@@ -855,7 +616,7 @@ function canvasToBlob(canvas: HTMLCanvasElement, type: string) {
         resolve(blob);
       },
       type,
-      1
+      quality
     );
   });
 }
