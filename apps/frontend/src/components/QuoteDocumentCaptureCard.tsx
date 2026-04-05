@@ -131,17 +131,23 @@ export function QuoteDocumentCaptureCard({
   const handleCameraReady = async () => {
     const video = getVideoElement(webcamRef);
 
-    setCameraState('ready');
-    setLocalError(null);
-    setCameraMessage('Camera ativa. Enquadre o documento e toque em capturar.');
-
     if (!video) {
+      setCameraState('error');
+      setLocalError('A camera abriu sem entregar o video. Tente novamente.');
       return;
     }
 
-    await new Promise<void>((resolve) => {
-      requestAnimationFrame(() => resolve());
-    });
+    try {
+      await ensureVideoFrameReady(video);
+    } catch {
+      setCameraState('error');
+      setLocalError('A camera abriu, mas nao ficou pronta para capturar. Tente novamente.');
+      return;
+    }
+
+    setCameraState('ready');
+    setLocalError(null);
+    setCameraMessage('Camera ativa. Enquadre o documento e toque em capturar.');
 
     setVideoSize({
       width: video.videoWidth || 4,
@@ -182,7 +188,8 @@ export function QuoteDocumentCaptureCard({
     let prepared: ProcessedDocumentResult | null = null;
 
     try {
-      prepared = await captureRawVideoFrame(video);
+      await ensureVideoFrameReady(video);
+      prepared = await captureWebcamFrame(webcamRef, video);
       handleStopCamera();
     } catch {
       setLocalError('Nao foi possivel capturar o documento pela camera. Tente novamente ou envie a imagem manualmente.');
@@ -563,6 +570,23 @@ function getVideoElement(webcamRef: MutableRefObject<Webcam | null>) {
   return webcamRef.current?.video ?? null;
 }
 
+async function captureWebcamFrame(
+  webcamRef: MutableRefObject<Webcam | null>,
+  video: HTMLVideoElement
+): Promise<ProcessedDocumentResult> {
+  const screenshot = webcamRef.current?.getScreenshot();
+
+  if (screenshot) {
+    try {
+      return await createProcessedResultFromDataUrl(screenshot);
+    } catch {
+      // Falls back to direct canvas capture below.
+    }
+  }
+
+  return captureRawVideoFrame(video);
+}
+
 function buildFileFromBlob(blob: Blob, baseName: string, extension: 'png' | 'jpg') {
   return new File([blob], `${baseName}-${Date.now()}.${extension}`, {
     type: blob.type,
@@ -574,12 +598,33 @@ async function captureRawVideoFrame(video: HTMLVideoElement): Promise<ProcessedD
   const canvas = document.createElement('canvas');
   drawVideoToCanvas(video, canvas, 1800);
   const blob = await canvasToBlob(canvas, 'image/jpeg', 0.92);
+
+  if (canvas.width < 10 || canvas.height < 10) {
+    throw new Error('A camera nao retornou dimensoes validas para a captura.');
+  }
+
   const previewUrl = URL.createObjectURL(blob);
 
   return {
     blob,
     width: canvas.width,
     height: canvas.height,
+    previewUrl,
+    autoCropped: false,
+    qualityScore: 0,
+  };
+}
+
+async function createProcessedResultFromDataUrl(dataUrl: string): Promise<ProcessedDocumentResult> {
+  const response = await fetch(dataUrl);
+  const blob = await response.blob();
+  const dimensions = await readBlobDimensions(blob);
+  const previewUrl = URL.createObjectURL(blob);
+
+  return {
+    blob,
+    width: dimensions.width,
+    height: dimensions.height,
     previewUrl,
     autoCropped: false,
     qualityScore: 0,
@@ -604,6 +649,58 @@ function drawVideoToCanvas(video: HTMLVideoElement, canvas: HTMLCanvasElement, m
   context.drawImage(video, 0, 0, canvas.width, canvas.height);
 }
 
+async function ensureVideoFrameReady(video: HTMLVideoElement) {
+  if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.videoWidth > 0 && video.videoHeight > 0) {
+    await waitForNextVideoFrame(video);
+    return;
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    let timeoutId: ReturnType<typeof window.setTimeout> | null = null;
+
+    const cleanup = () => {
+      video.removeEventListener('loadeddata', handleReady);
+      video.removeEventListener('canplay', handleReady);
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+
+    const handleReady = () => {
+      if (video.videoWidth > 0 && video.videoHeight > 0) {
+        cleanup();
+        resolve();
+      }
+    };
+
+    timeoutId = window.setTimeout(() => {
+      cleanup();
+      reject(new Error('Timeout aguardando a camera.'));
+    }, 4000);
+
+    video.addEventListener('loadeddata', handleReady);
+    video.addEventListener('canplay', handleReady);
+    handleReady();
+  });
+
+  await waitForNextVideoFrame(video);
+}
+
+async function waitForNextVideoFrame(video: HTMLVideoElement) {
+  if ('requestVideoFrameCallback' in video) {
+    await new Promise<void>((resolve) => {
+      (video as HTMLVideoElement & {
+        requestVideoFrameCallback: (callback: () => void) => number;
+      }).requestVideoFrameCallback(() => resolve());
+    });
+    return;
+  }
+
+  await new Promise<void>((resolve) => {
+    requestAnimationFrame(() => resolve());
+  });
+}
+
 function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number) {
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
@@ -618,6 +715,28 @@ function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number)
       type,
       quality
     );
+  });
+}
+
+function readBlobDimensions(blob: Blob) {
+  return new Promise<{ width: number; height: number }>((resolve, reject) => {
+    const image = new Image();
+    const objectUrl = URL.createObjectURL(blob);
+
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve({
+        width: image.naturalWidth || image.width,
+        height: image.naturalHeight || image.height,
+      });
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Nao foi possivel ler a imagem capturada.'));
+    };
+
+    image.src = objectUrl;
   });
 }
 
