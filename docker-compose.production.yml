@@ -41,7 +41,7 @@ services:
     depends_on:
       ollama:
         condition: service_healthy
-    command: ["sh", "-lc", "ollama pull \"${QUOTE_OLLAMA_MODEL:-qwen2.5vl:3b}\""]
+    command: ["pull", "${QUOTE_OLLAMA_MODEL:-qwen2.5vl:3b}"]
     restart: "no"
     networks:
       - rebequi-network
@@ -125,6 +125,7 @@ volumes:
     name: rebequi-postgres-data
   rebequi-ollama-data:
     name: rebequi-ollama-data
+    external: true
   rebequi-uploads:
     name: rebequi-uploads
   rebequi-logs:
