@@ -85,9 +85,9 @@ export function CustomerQuotesPanel({
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Novo orcamento</p>
-                <h3 className="mt-1 text-xl font-semibold text-foreground">Capturar documento</h3>
+                <h3 className="mt-1 text-xl font-semibold text-foreground">Adicionar foto do pedido</h3>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  Crie um novo rascunho a partir de uma imagem e continue a revisao sem trocar de tela.
+                  Use a camera do aparelho ou a galeria para criar um novo rascunho sem trocar de tela.
                 </p>
               </div>
               <div className="hidden rounded-2xl bg-primary/10 p-3 text-primary sm:flex">
@@ -96,9 +96,9 @@ export function CustomerQuotesPanel({
             </div>
 
             <QuoteDocumentCaptureCard
-              title="Entrada do documento"
-              description="Capture uma imagem clara. O sistema transforma isso em um rascunho editavel."
-              helper="Quando a camera falhar, troque para envio manual."
+              title="Foto do pedido"
+              description="Tire uma foto simples ou escolha uma imagem. O sistema monta um rascunho editavel."
+              helper="Use boa luz e mantenha a lista legivel."
               processing={createDraftPending}
               buttonLabel="Criar rascunho"
               onSelectFile={onCaptureDocument}

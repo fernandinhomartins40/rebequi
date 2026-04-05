@@ -18,6 +18,35 @@ services:
     networks:
       - rebequi-network
 
+  ollama:
+    image: ollama/ollama:latest
+    container_name: rebequi-ollama
+    restart: unless-stopped
+    volumes:
+      - rebequi-ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "OLLAMA_HOST=http://127.0.0.1:11434 ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 20s
+    networks:
+      - rebequi-network
+
+  ollama-pull:
+    image: ollama/ollama:latest
+    container_name: rebequi-ollama-pull
+    restart: "no"
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      QUOTE_OLLAMA_MODEL: ${QUOTE_OLLAMA_MODEL:-qwen2.5vl:3b}
+    depends_on:
+      ollama:
+        condition: service_healthy
+    command: ["sh", "-lc", "ollama pull \"${QUOTE_OLLAMA_MODEL:-qwen2.5vl:3b}\""]
+    networks:
+      - rebequi-network
+
   migrator:
     image: rebequi-migrator:${RELEASE_VERSION:?RELEASE_VERSION is required}
     build:
@@ -44,6 +73,10 @@ services:
       MAX_FILE_SIZE: ${MAX_FILE_SIZE:-5242880}
       UPLOAD_DIR: ${UPLOAD_DIR:-./uploads}
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      QUOTE_OLLAMA_BASE_URL: ${QUOTE_OLLAMA_BASE_URL:-http://ollama:11434}
+      QUOTE_OLLAMA_MODEL: ${QUOTE_OLLAMA_MODEL:-qwen2.5vl:3b}
+      QUOTE_OLLAMA_TIMEOUT_MS: ${QUOTE_OLLAMA_TIMEOUT_MS:-180000}
+      QUOTE_OLLAMA_KEEP_ALIVE: ${QUOTE_OLLAMA_KEEP_ALIVE:-15m}
       BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-admin@rebequi.com.br}
       BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-ChangeMe123!}
       BOOTSTRAP_ADMIN_NAME: ${BOOTSTRAP_ADMIN_NAME:-Administrador Rebequi}
@@ -52,6 +85,8 @@ services:
       BOOTSTRAP_CUSTOMER_NAME: ${BOOTSTRAP_CUSTOMER_NAME:-Cliente de Teste}
     depends_on:
       postgres:
+        condition: service_healthy
+      ollama:
         condition: service_healthy
     command:
       [
@@ -113,6 +148,8 @@ services:
 volumes:
   rebequi-postgres-data:
     name: rebequi-postgres-data
+  rebequi-ollama-data:
+    name: rebequi-ollama-data
   rebequi-uploads:
     name: rebequi-uploads
   rebequi-logs:

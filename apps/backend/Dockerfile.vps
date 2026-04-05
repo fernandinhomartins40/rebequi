@@ -1,6 +1,6 @@
 # Multi-stage build for Rebequi Backend (Production VPS)
 # Stage 1: Builder
-FROM node:20-alpine AS builder
+FROM node:20-bookworm-slim AS builder
 
 WORKDIR /build
 
@@ -24,12 +24,14 @@ RUN cd apps/backend && npx prisma generate
 RUN cd apps/backend && npm run build
 
 # Stage 2: Production
-FROM node:20-alpine
+FROM node:20-bookworm-slim
 
 WORKDIR /app
 
 # Install wget for healthcheck
-RUN apk add --no-cache wget
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends wget ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 
 # Copy package files
 COPY package*.json ./

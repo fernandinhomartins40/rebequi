@@ -111,6 +111,8 @@ jobs:
             compose -f docker-compose.production.yml ps || true
             echo "=== rebequi-postgres logs ==="
             docker logs rebequi-postgres --tail 100 || true
+            echo "=== rebequi-ollama logs ==="
+            docker logs rebequi-ollama --tail 100 || true
             echo "=== rebequi-api logs ==="
             docker logs rebequi-api --tail 100 || true
             echo "=== rebequi-web logs ==="
@@ -289,6 +291,7 @@ jobs:
 
           mkdir -p "$APP_ROOT" "$RELEASE_DIR" /var/www/certbot
           ensure_named_volume "rebequi-postgres-data"
+          ensure_named_volume "rebequi-ollama-data"
           ensure_named_volume "rebequi-uploads"
           ensure_named_volume "rebequi-logs"
 
@@ -383,6 +386,10 @@ jobs:
           ensure_env_value "MAX_FILE_SIZE" "5242880"
           ensure_env_value "UPLOAD_DIR" "./uploads"
           ensure_env_value "LOG_LEVEL" "info"
+          ensure_env_value "QUOTE_OLLAMA_BASE_URL" "http://ollama:11434"
+          ensure_env_value "QUOTE_OLLAMA_MODEL" "qwen2.5vl:3b"
+          ensure_env_value "QUOTE_OLLAMA_TIMEOUT_MS" "180000"
+          ensure_env_value "QUOTE_OLLAMA_KEEP_ALIVE" "15m"
           set_env_value "RELEASE_VERSION" "$RELEASE_VERSION_VALUE"
           export RELEASE_VERSION="$RELEASE_VERSION_VALUE"
 
@@ -395,9 +402,13 @@ jobs:
 
           compose -f docker-compose.production.yml build --pull --no-cache migrator api web
           docker image inspect "$MIGRATOR_IMAGE_REF" "$API_IMAGE_REF" "$WEB_IMAGE_REF" >/dev/null
-          compose -f docker-compose.production.yml up -d postgres
+          compose -f docker-compose.production.yml up -d postgres ollama
 
           wait_for_container_health "rebequi-postgres" 120
+          wait_for_container_health "rebequi-ollama" 180
+
+          docker rm -f rebequi-ollama-pull >/dev/null 2>&1 || true
+          compose -f docker-compose.production.yml run --rm ollama-pull
 
           docker rm -f rebequi-migrator >/dev/null 2>&1 || true
           compose -f docker-compose.production.yml run --rm migrator

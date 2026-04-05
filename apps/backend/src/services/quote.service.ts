@@ -9,17 +9,17 @@ import type {
 } from '@rebequi/shared/schemas';
 import { normalizeWhatsapp } from '@rebequi/shared/utils';
 import { AuthService } from './auth.service.js';
+import { QuoteDocumentIntelligenceService } from './quote-document-intelligence.service.js';
 import { QuoteRepository } from '../repositories/quote.repository.js';
 import { ProductRepository } from '../repositories/product.repository.js';
 import { storeQuoteDocumentImage } from './product-image-storage.service.js';
-import { QuoteOcrService, type RecognizedQuoteLine } from './quote-ocr.service.js';
 import { ForbiddenError, NotFoundError, ValidationError } from '../utils/errors.util.js';
 
 type CatalogProduct = Awaited<ReturnType<ProductRepository['findCatalogForMatching']>>[number];
 type PersistedQuote = NonNullable<Awaited<ReturnType<QuoteRepository['findQuoteById']>>>;
 type PersistedLead = NonNullable<Awaited<ReturnType<QuoteRepository['findLeadById']>>>;
 
-type ParsedQuoteItem = {
+type PreparedQuoteItem = {
   productId?: string | null;
   name: string;
   quantity: number;
@@ -46,91 +46,7 @@ function tokenize(value: string) {
     .filter((token) => token.length >= 2);
 }
 
-function extractQuantity(line: string) {
-  const normalized = line.replace(',', '.');
-  const beginning = normalized.match(/^\s*(\d+(?:\.\d+)?)\s*(x|un|und|unid|pc|pcs|peca|pecas|cx|caixa|kg|m|mt|mts|l|lt)?/i);
-
-  if (beginning) {
-    return {
-      quantity: Number(beginning[1]),
-      unit: beginning[2]?.toLowerCase() ?? null,
-    };
-  }
-
-  const suffix = normalized.match(/(?:^|\s)(\d+(?:\.\d+)?)\s*(un|und|unid|pc|pcs|peca|pecas|cx|caixa|kg|m|mt|mts|l|lt)\s*$/i);
-  if (suffix) {
-    return {
-      quantity: Number(suffix[1]),
-      unit: suffix[2]?.toLowerCase() ?? null,
-    };
-  }
-
-  return {
-    quantity: 1,
-    unit: null,
-  };
-}
-
-function cleanLineForItem(line: string) {
-  return line
-    .replace(/^\s*\d+(?:[.,]\d+)?\s*(x|un|und|unid|pc|pcs|peca|pecas|cx|caixa|kg|m|mt|mts|l|lt)?\s*/i, '')
-    .replace(/\s+\d+(?:[.,]\d+)?\s*(un|und|unid|pc|pcs|peca|pecas|cx|caixa|kg|m|mt|mts|l|lt)\s*$/i, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function isRelevantFreeformLine(line: string) {
-  const normalized = normalizeText(line);
-
-  if (normalized.length < 4) {
-    return false;
-  }
-
-  if (/^\d+$/.test(normalized)) {
-    return false;
-  }
-
-  return /[a-z]/.test(normalized);
-}
-
-function looksLikeMetadataLine(line: string) {
-  const normalized = normalizeText(line);
-
-  if (!normalized) {
-    return true;
-  }
-
-  if (
-    /^(cliente|nome|responsavel|responsável|whatsapp|telefone|celular|contato|email|e mail|endereco|endereço|bairro|cidade|cep|cpf|cnpj|obs|observacao|observações|observacoes|nota|anotacao|anotação|entrega|retirada|prazo|urgente|favor|preciso|solicitacao|solicitação|orcamento|orçamento)\b/i.test(normalized)
-  ) {
-    return true;
-  }
-
-  if (/\b[\w.+-]+@[\w.-]+\.[a-z]{2,}\b/i.test(line)) {
-    return true;
-  }
-
-  if (/\b\d{2}\s?\d{4,5}[-\s]?\d{4}\b/.test(normalized)) {
-    return true;
-  }
-
-  if (/\b(rua|avenida|av\.|travessa|bairro|cidade|cep|numero|número|quadra|lote|apto|bloco)\b/i.test(normalized)) {
-    return true;
-  }
-
-  if (/^(ola|olá|bom dia|boa tarde|boa noite|segue|anexo|por favor|faco|faço|preciso|solicito)\b/i.test(normalized)) {
-    return true;
-  }
-
-  return false;
-}
-
-type ParsedRecognitionResult = {
-  items: ParsedQuoteItem[];
-  customerNote: string | null;
-};
-
-function buildDraftTitle(items: ParsedQuoteItem[], customerNote?: string | null) {
+function buildDraftTitle(items: PreparedQuoteItem[], customerNote?: string | null) {
   const firstItem = items[0]?.name?.trim();
 
   if (firstItem) {
@@ -148,17 +64,27 @@ function buildDraftTitle(items: ParsedQuoteItem[], customerNote?: string | null)
   return 'Novo orcamento';
 }
 
+function mergeCustomerNote(customerNote?: string | null, needsReview?: string[]) {
+  const parts = [customerNote?.trim()].filter(Boolean) as string[];
+
+  if (needsReview && needsReview.length > 0) {
+    parts.push(`Pontos para revisar:\n${needsReview.map((item) => `- ${item}`).join('\n')}`);
+  }
+
+  return parts.length > 0 ? parts.join('\n\n') : null;
+}
+
 export class QuoteService {
   private quoteRepository: QuoteRepository;
   private productRepository: ProductRepository;
   private authService: AuthService;
-  private ocrService: QuoteOcrService;
+  private documentIntelligenceService: QuoteDocumentIntelligenceService;
 
   constructor() {
     this.quoteRepository = new QuoteRepository();
     this.productRepository = new ProductRepository();
     this.authService = new AuthService();
-    this.ocrService = new QuoteOcrService();
+    this.documentIntelligenceService = new QuoteDocumentIntelligenceService();
   }
 
   async startPublicLead(data: StartLeadInput) {
@@ -192,26 +118,26 @@ export class QuoteService {
   }) {
     const lead = await this.quoteRepository.findLeadById(params.leadId);
     if (!lead) {
-      throw new NotFoundError('Lead não encontrado');
+      throw new NotFoundError('Lead nao encontrado');
     }
 
     const storedDocument = await this.persistDocument({
       file: params.file,
-      alt: `Documento do orçamento - ${lead.nameSnapshot}`,
+      alt: `Documento do orcamento - ${lead.nameSnapshot}`,
       width: params.width,
       height: params.height,
     });
 
-    const recognized = await this.ocrService.recognizeDocument(params.file!.buffer);
-    const parsedRecognition = await this.parseItemsFromRecognition(recognized.lines);
+    const extracted = await this.documentIntelligenceService.extractDocument(params.file!.buffer);
+    const normalizedDraft = await this.normalizeExtractedDraft(extracted);
 
     const quote = await this.quoteRepository.createQuote({
       referenceCode: this.generateReferenceCode(),
       source: 'public_camera',
       status: 'DRAFT',
-      title: buildDraftTitle(parsedRecognition.items, parsedRecognition.customerNote),
-      ocrText: recognized.text,
-      ocrConfidence: recognized.confidence,
+      title: normalizedDraft.title,
+      ocrText: normalizedDraft.transcriptText ?? undefined,
+      ocrConfidence: null,
       documentUrl: storedDocument.url,
       documentStorageKey: storedDocument.storageKey,
       documentFilename: storedDocument.filename,
@@ -225,9 +151,9 @@ export class QuoteService {
       lead: {
         connect: { id: lead.id },
       },
-      customerNote: parsedRecognition.customerNote ?? undefined,
+      customerNote: normalizedDraft.customerNote ?? undefined,
       items: {
-        create: parsedRecognition.items.map((item) => ({
+        create: normalizedDraft.items.map((item) => ({
           productId: item.productId ?? undefined,
           name: item.name,
           quantity: item.quantity,
@@ -262,21 +188,21 @@ export class QuoteService {
   }) {
     const storedDocument = await this.persistDocument({
       file: params.file,
-      alt: 'Documento do orçamento',
+      alt: 'Documento do orcamento',
       width: params.width,
       height: params.height,
     });
 
-    const recognized = await this.ocrService.recognizeDocument(params.file!.buffer);
-    const parsedRecognition = await this.parseItemsFromRecognition(recognized.lines);
+    const extracted = await this.documentIntelligenceService.extractDocument(params.file!.buffer);
+    const normalizedDraft = await this.normalizeExtractedDraft(extracted);
 
     const quote = await this.quoteRepository.createQuote({
       referenceCode: this.generateReferenceCode(),
       source: 'customer_dashboard',
       status: 'DRAFT',
-      title: buildDraftTitle(parsedRecognition.items, parsedRecognition.customerNote),
-      ocrText: recognized.text,
-      ocrConfidence: recognized.confidence,
+      title: normalizedDraft.title,
+      ocrText: normalizedDraft.transcriptText ?? undefined,
+      ocrConfidence: null,
       documentUrl: storedDocument.url,
       documentStorageKey: storedDocument.storageKey,
       documentFilename: storedDocument.filename,
@@ -287,9 +213,9 @@ export class QuoteService {
       user: {
         connect: { id: params.userId },
       },
-      customerNote: parsedRecognition.customerNote ?? undefined,
+      customerNote: normalizedDraft.customerNote ?? undefined,
       items: {
-        create: parsedRecognition.items.map((item) => ({
+        create: normalizedDraft.items.map((item) => ({
           productId: item.productId ?? undefined,
           name: item.name,
           quantity: item.quantity,
@@ -318,7 +244,7 @@ export class QuoteService {
     const quote = await this.ensureCustomerQuoteAccess(userId, quoteId);
 
     if (quote.status !== 'DRAFT') {
-      throw new ValidationError('Somente orçamentos em rascunho podem ser editados');
+      throw new ValidationError('Somente orcamentos em rascunho podem ser editados');
     }
 
     const normalizedItems = await this.normalizeManualItems(data.items);
@@ -343,7 +269,7 @@ export class QuoteService {
     );
 
     if (!updatedQuote) {
-      throw new NotFoundError('Orçamento não encontrado');
+      throw new NotFoundError('Orcamento nao encontrado');
     }
 
     return this.formatQuote(updatedQuote);
@@ -353,7 +279,7 @@ export class QuoteService {
     const quote = await this.ensureCustomerQuoteAccess(userId, quoteId);
 
     if (quote.items.length === 0) {
-      throw new ValidationError('Adicione pelo menos um item antes de enviar o orçamento');
+      throw new ValidationError('Adicione pelo menos um item antes de enviar o orcamento');
     }
 
     const updatedQuote = await this.quoteRepository.updateQuote(quote.id, {
@@ -435,7 +361,7 @@ export class QuoteService {
   async updateQuoteStatus(quoteId: string, data: UpdateQuoteStatusInput) {
     const quote = await this.quoteRepository.findQuoteById(quoteId);
     if (!quote) {
-      throw new NotFoundError('Orçamento não encontrado');
+      throw new NotFoundError('Orcamento nao encontrado');
     }
 
     const updatedQuote = await this.quoteRepository.updateQuote(quoteId, {
@@ -449,7 +375,7 @@ export class QuoteService {
   async updateLeadStatus(leadId: string, data: UpdateLeadStatusInput) {
     const lead = await this.quoteRepository.findLeadById(leadId);
     if (!lead) {
-      throw new NotFoundError('Lead não encontrado');
+      throw new NotFoundError('Lead nao encontrado');
     }
 
     const updatedLead = await this.quoteRepository.updateLead(leadId, {
@@ -463,11 +389,11 @@ export class QuoteService {
   private async ensureCustomerQuoteAccess(userId: string, quoteId: string) {
     const quote = await this.quoteRepository.findQuoteById(quoteId);
     if (!quote) {
-      throw new NotFoundError('Orçamento não encontrado');
+      throw new NotFoundError('Orcamento nao encontrado');
     }
 
     if (quote.userId !== userId) {
-      throw new ForbiddenError('Você não tem acesso a este orçamento');
+      throw new ForbiddenError('Voce nao tem acesso a este orcamento');
     }
 
     return quote;
@@ -491,83 +417,24 @@ export class QuoteService {
     });
   }
 
-  private async parseItemsFromRecognition(lines: RecognizedQuoteLine[]): Promise<ParsedRecognitionResult> {
-    const catalog = await this.productRepository.findCatalogForMatching();
-    const parsedItems: ParsedQuoteItem[] = [];
-    const customerNoteParts: string[] = [];
-
-    lines.forEach((line) => {
-      const text = line.text.trim();
-
-      if (!isRelevantFreeformLine(text)) {
-        return;
-      }
-
-      if (looksLikeMetadataLine(text)) {
-        customerNoteParts.push(text);
-        return;
-      }
-
-      const match = this.findBestProductMatch(text, catalog);
-      const quantityData = extractQuantity(text);
-      const itemName = cleanLineForItem(text);
-
-      if (match) {
-        parsedItems.push({
-          productId: match.product.id,
-          name: match.product.name,
-          quantity: quantityData.quantity,
-          unit: quantityData.unit,
-          confidence: Number(((match.score + line.confidence / 100) / 2).toFixed(2)),
-          recognitionSourceLine: text,
-          position: parsedItems.length,
-        });
-        return;
-      }
-
-      parsedItems.push({
-        name: itemName || line.text.trim(),
-        quantity: quantityData.quantity,
-        unit: quantityData.unit,
-        confidence: Number((line.confidence / 100).toFixed(2)),
-        recognitionSourceLine: text,
-        position: parsedItems.length,
-      });
-    });
-
-    const deduped = parsedItems.filter((item, index, collection) => {
-      const signature = `${item.productId ?? 'manual'}:${normalizeText(item.name)}:${item.quantity}:${item.unit ?? ''}`;
-      return collection.findIndex((candidate) => {
-        const candidateSignature = `${candidate.productId ?? 'manual'}:${normalizeText(candidate.name)}:${candidate.quantity}:${candidate.unit ?? ''}`;
-        return candidateSignature === signature;
-      }) === index;
-    });
-
-    const customerNote = customerNoteParts.length > 0 ? customerNoteParts.join('\n') : null;
-
-    if (deduped.length > 0) {
-      return {
-        items: deduped,
-        customerNote,
-      };
-    }
-
-    if (customerNote) {
-      return {
-        items: [],
-        customerNote,
-      };
-    }
+  private async normalizeExtractedDraft(
+    extracted: Awaited<ReturnType<QuoteDocumentIntelligenceService['extractDocument']>>
+  ) {
+    const customerNote = mergeCustomerNote(extracted.customerNote, extracted.needsReview);
+    const normalizedItems = await this.normalizeManualItems(
+      extracted.items.map((item) => ({
+        name: item.name,
+        quantity: item.quantity,
+        unit: item.unit,
+        notes: item.notes,
+      }))
+    );
 
     return {
-      items: [
-        {
-          name: 'Item reconhecido manualmente',
-          quantity: 1,
-          position: 0,
-        },
-      ],
-      customerNote: null,
+      title: extracted.title?.trim() || buildDraftTitle(normalizedItems, customerNote),
+      customerNote,
+      transcriptText: extracted.transcriptText?.trim() || null,
+      items: normalizedItems,
     };
   }
 
@@ -616,21 +483,24 @@ export class QuoteService {
   private async normalizeManualItems(items: UpdateQuoteDraftInput['items']) {
     const catalog = await this.productRepository.findCatalogForMatching();
 
-    return items.map((item, index) => {
-      const explicitProduct = item.productId ? catalog.find((product) => product.id === item.productId) : null;
-      const bestMatch = explicitProduct ? null : this.findBestProductMatch(item.name, catalog);
+    return items
+      .map((item, index) => {
+        const explicitProduct = item.productId ? catalog.find((product) => product.id === item.productId) : null;
+        const bestMatch = explicitProduct ? null : this.findBestProductMatch(item.name, catalog);
 
-      return {
-        productId: explicitProduct?.id ?? bestMatch?.product.id ?? null,
-        name: item.name.trim(),
-        quantity: item.quantity ?? 1,
-        unit: item.unit ?? null,
-        notes: item.notes ?? null,
-        confidence: bestMatch ? Number(bestMatch.score.toFixed(2)) : null,
-        recognitionSourceLine: item.name.trim(),
-        position: index,
-      };
-    });
+        return {
+          productId: explicitProduct?.id ?? bestMatch?.product.id ?? null,
+          name: item.name.trim(),
+          quantity:
+            typeof item.quantity === 'number' && Number.isFinite(item.quantity) && item.quantity > 0 ? item.quantity : 1,
+          unit: item.unit?.trim() || null,
+          notes: item.notes?.trim() || null,
+          confidence: bestMatch ? Number(bestMatch.score.toFixed(2)) : null,
+          recognitionSourceLine: item.name.trim(),
+          position: index,
+        };
+      })
+      .filter((item) => item.name.length > 0);
   }
 
   private generateReferenceCode() {

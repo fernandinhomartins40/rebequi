@@ -7,24 +7,8 @@ import { z } from 'zod';
 
 dotenv.config();
 
-function normalizePaddleLang(value: string) {
-  const normalized = value.trim().toLowerCase();
-
-  if (!normalized || normalized === 'latin') {
-    return 'la';
-  }
-
-  return normalized;
-}
-
-function normalizeBridgeScriptPath(value: string) {
-  const normalized = value.trim().replace(/\\/g, '/');
-
-  if (!normalized) {
-    return 'scripts/paddleocr_bridge.py';
-  }
-
-  return normalized.replace(/^(?:\.\/)?apps\/backend\//i, '');
+function normalizeUrl(value: string) {
+  return value.trim().replace(/\/+$/, '');
 }
 
 const envSchema = z.object({
@@ -52,10 +36,10 @@ const envSchema = z.object({
     .transform((value) => value.split(',').map((item) => item.trim()).filter(Boolean)),
 
   STORE_WHATSAPP: z.string().default('11999999999'),
-  QUOTE_PADDLE_PYTHON_BIN: z.string().default('python3'),
-  QUOTE_PADDLE_SCRIPT_PATH: z.string().default('scripts/paddleocr_bridge.py').transform(normalizeBridgeScriptPath),
-  QUOTE_PADDLE_LANG: z.string().default('la').transform(normalizePaddleLang),
-  QUOTE_PADDLE_TIMEOUT_MS: z.coerce.number().positive().default(120000),
+  QUOTE_OLLAMA_BASE_URL: z.string().default('http://ollama:11434').transform(normalizeUrl),
+  QUOTE_OLLAMA_MODEL: z.string().default('qwen2.5vl:3b'),
+  QUOTE_OLLAMA_TIMEOUT_MS: z.coerce.number().positive().default(180000),
+  QUOTE_OLLAMA_KEEP_ALIVE: z.string().default('15m'),
 
   MAX_FILE_SIZE: z.coerce.number().positive().default(5242880),
   UPLOAD_DIR: z.string().default('./uploads'),

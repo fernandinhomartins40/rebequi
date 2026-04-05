@@ -152,8 +152,8 @@ export default function RequestQuotePage() {
                 />
                 <JourneyStep
                   number={2}
-                  title="Documento"
-                  description="Camera ao vivo ou envio manual da imagem."
+                    title="Foto"
+                    description="Camera do aparelho ou imagem da galeria."
                   active={currentStage === 2}
                   done={currentStage > 2}
                   icon={<FileScan className="h-4 w-4" />}
@@ -276,9 +276,9 @@ export default function RequestQuotePage() {
                     Etapa 2
                   </div>
                   <div>
-                    <CardTitle className="text-2xl">Capture o documento</CardTitle>
+                    <CardTitle className="text-2xl">Adicione a foto do pedido</CardTitle>
                     <CardDescription className="mt-2 max-w-2xl text-sm leading-7 text-muted-foreground">
-                      O sistema gera um rascunho a partir da imagem enviada. Se a camera do aparelho falhar, use o envio manual.
+                      O sistema gera um rascunho a partir da imagem enviada. Use a camera do aparelho ou escolha uma imagem ja salva.
                     </CardDescription>
                   </div>
                 </CardHeader>
@@ -294,9 +294,9 @@ export default function RequestQuotePage() {
                   ) : null}
 
                   <QuoteDocumentCaptureCard
-                    title="Documento do pedido"
-                    description="Capture uma imagem legivel para que o rascunho seja montado com mais consistencia."
-                    helper="Use boa luz e mantenha o texto nitido."
+                    title="Foto do pedido"
+                    description="Tire uma foto legivel para que o rascunho seja montado com mais consistencia."
+                    helper="Use boa luz e mantenha a lista visivel."
                     processing={quoteMutation.isPending}
                     onSelectFile={handleProcessDocument}
                   />
