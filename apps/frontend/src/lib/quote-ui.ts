@@ -1,5 +1,5 @@
 import { formatDateTime } from '@rebequi/shared/utils';
-import type { LeadStatus, QuoteStatus } from '@/types';
+import type { LeadStatus, QuoteRequest, QuoteStatus } from '@/types';
 
 export function getQuoteStatusLabel(status: QuoteStatus) {
   switch (status) {
@@ -32,6 +32,23 @@ export function getQuoteStatusClassName(status: QuoteStatus) {
       return 'bg-slate-100 text-slate-700';
     default:
       return 'bg-slate-100 text-slate-700';
+  }
+}
+
+export function getQuoteStatusDescription(status: QuoteStatus) {
+  switch (status) {
+    case 'DRAFT':
+      return 'Rascunho pronto para revisao e ajustes antes do envio.';
+    case 'SUBMITTED':
+      return 'Solicitacao enviada para a equipe comercial.';
+    case 'IN_REVIEW':
+      return 'Equipe analisando itens, quantidades e disponibilidade.';
+    case 'RESPONDED':
+      return 'Loja ja devolveu o retorno comercial ao cliente.';
+    case 'ARCHIVED':
+      return 'Fluxo encerrado e mantido apenas para historico.';
+    default:
+      return 'Status do orcamento.';
   }
 }
 
@@ -69,10 +86,78 @@ export function getLeadStatusClassName(status: LeadStatus) {
   }
 }
 
+export function getLeadStatusDescription(status: LeadStatus) {
+  switch (status) {
+    case 'STARTED':
+      return 'Cliente informou os dados, mas ainda nao gerou um rascunho.';
+    case 'QUOTE_DRAFTED':
+      return 'Documento processado e aguardando conclusao do cliente.';
+    case 'QUOTE_SUBMITTED':
+      return 'Lead convertido em solicitacao enviada.';
+    case 'CONTACTED':
+      return 'Equipe ja retomou o contato manualmente.';
+    case 'ARCHIVED':
+      return 'Lead retirado da fila operacional.';
+    default:
+      return 'Status do lead capturado.';
+  }
+}
+
 export function formatQuoteTimestamp(value?: Date | string | null) {
   if (!value) {
     return '-';
   }
 
   return formatDateTime(value);
+}
+
+export function buildQuoteDisplayTitle(quote: Pick<QuoteRequest, 'title' | 'referenceCode' | 'items'>) {
+  const explicitTitle = quote.title?.trim();
+
+  if (explicitTitle) {
+    return explicitTitle;
+  }
+
+  const firstItem = quote.items[0]?.name?.trim();
+
+  if (!firstItem) {
+    return quote.referenceCode;
+  }
+
+  if (quote.items.length === 1) {
+    return firstItem;
+  }
+
+  return `${firstItem} + ${quote.items.length - 1} item(ns)`;
+}
+
+export function buildQuoteStageLabel(quote: Pick<QuoteRequest, 'status'> | null | undefined) {
+  if (!quote) {
+    return 'Aguardando captura';
+  }
+
+  switch (quote.status) {
+    case 'DRAFT':
+      return 'Em revisao';
+    case 'SUBMITTED':
+    case 'IN_REVIEW':
+      return 'Acompanhamento';
+    case 'RESPONDED':
+      return 'Concluido';
+    case 'ARCHIVED':
+      return 'Arquivado';
+    default:
+      return 'Acompanhamento';
+  }
+}
+
+export function buildQuoteSourceLabel(source?: string | null) {
+  switch (source) {
+    case 'public_camera':
+      return 'Capturado na pagina publica';
+    case 'customer_dashboard':
+      return 'Criado pelo cliente no painel';
+    default:
+      return source || 'Fluxo de orcamento';
+  }
 }

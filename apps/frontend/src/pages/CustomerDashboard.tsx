@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { formatWhatsapp } from '@rebequi/shared/utils';
+import { CustomerQuotesPanel } from '@/components/CustomerQuotesPanel';
 import { QuoteDocumentCaptureCard, type QuoteDocumentSelection } from '@/components/QuoteDocumentCaptureCard';
 import { QuoteStatusBadge } from '@/components/QuoteStatusBadge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -316,6 +317,7 @@ const CustomerDashboard = () => {
   const inReviewQuotes = quotes.filter((q) => q.status === 'IN_REVIEW');
   const respondedQuotes = quotes.filter((q) => q.status === 'RESPONDED');
   const latestQuote = quotes[0] || null;
+  const editableItemCount = editorState.items.filter((item) => item.name.trim()).length;
   const quoteFlowStage = !selectedQuote ? 1 : selectedQuote.status === 'DRAFT' ? 2 : 3;
 
   const handleLogout = async () => { await logout(); navigate('/'); };
@@ -542,6 +544,30 @@ const CustomerDashboard = () => {
 
           {/* ━━ Orçamentos ━━ */}
           {activeTab === 'quotes' ? (
+            <CustomerQuotesPanel
+              quotes={quotes}
+              quotesLoading={quotesQuery.isLoading}
+              selectedQuote={selectedQuote}
+              editorState={editorState}
+              setEditorState={setEditorState}
+              editorCardRef={editorCardRef}
+              createDraftPending={createDraftMutation.isPending}
+              saveDraftPending={updateDraftMutation.isPending}
+              submitPending={submitQuoteMutation.isPending}
+              onCaptureDocument={async (selection) => {
+                await createDraftMutation.mutateAsync({
+                  file: selection.file,
+                  width: selection.width,
+                  height: selection.height,
+                });
+              }}
+              onSelectQuote={handleSelectQuote}
+              onSaveDraft={handleSaveDraft}
+              onSaveAndSend={handleSaveAndSend}
+            />
+          ) : null}
+
+          {false && activeTab === 'quotes' ? (
             <div className="animate-fade-in-up space-y-5">
               <section className="rounded-[1.75rem] border border-slate-200/70 bg-white/90 p-5 shadow-sm">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">

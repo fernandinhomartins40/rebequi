@@ -130,6 +130,24 @@ type ParsedRecognitionResult = {
   customerNote: string | null;
 };
 
+function buildDraftTitle(items: ParsedQuoteItem[], customerNote?: string | null) {
+  const firstItem = items[0]?.name?.trim();
+
+  if (firstItem) {
+    if (items.length === 1) {
+      return firstItem;
+    }
+
+    return `${firstItem} + ${items.length - 1} item(ns)`;
+  }
+
+  if (customerNote?.trim()) {
+    return 'Solicitacao de orcamento';
+  }
+
+  return 'Novo orcamento';
+}
+
 export class QuoteService {
   private quoteRepository: QuoteRepository;
   private productRepository: ProductRepository;
@@ -191,7 +209,7 @@ export class QuoteService {
       referenceCode: this.generateReferenceCode(),
       source: 'public_camera',
       status: 'DRAFT',
-      title: 'Orçamento a partir de documento',
+      title: buildDraftTitle(parsedRecognition.items, parsedRecognition.customerNote),
       ocrText: recognized.text,
       ocrConfidence: recognized.confidence,
       documentUrl: storedDocument.url,
@@ -256,7 +274,7 @@ export class QuoteService {
       referenceCode: this.generateReferenceCode(),
       source: 'customer_dashboard',
       status: 'DRAFT',
-      title: 'Novo orçamento',
+      title: buildDraftTitle(parsedRecognition.items, parsedRecognition.customerNote),
       ocrText: recognized.text,
       ocrConfidence: recognized.confidence,
       documentUrl: storedDocument.url,
@@ -305,7 +323,7 @@ export class QuoteService {
 
     const normalizedItems = await this.normalizeManualItems(data.items);
     await this.quoteRepository.updateQuote(quote.id, {
-      title: data.title ?? null,
+      title: data.title?.trim() || buildDraftTitle(normalizedItems, data.customerNote ?? quote.customerNote),
       customerNote: data.customerNote ?? null,
     });
 
