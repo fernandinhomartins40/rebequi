@@ -9,7 +9,7 @@ import type {
 } from '@rebequi/shared/schemas';
 import { normalizeWhatsapp } from '@rebequi/shared/utils';
 import { AuthService } from './auth.service.js';
-import { QuoteDocumentIntelligenceService } from './quote-document-intelligence.service.js';
+import { QuoteOcrService, type RecognizedQuoteLine } from './quote-ocr.service.js';
 import { QuoteRepository } from '../repositories/quote.repository.js';
 import { ProductRepository } from '../repositories/product.repository.js';
 import { storeQuoteDocumentImage } from './product-image-storage.service.js';
@@ -46,6 +46,90 @@ function tokenize(value: string) {
     .filter((token) => token.length >= 2);
 }
 
+function extractQuantity(line: string) {
+  const normalized = line.replace(',', '.');
+  const beginning = normalized.match(/^\s*(\d+(?:\.\d+)?)\s*(x|un|und|unid|pc|pcs|peca|pecas|cx|caixa|kg|m|mt|mts|l|lt)?/i);
+
+  if (beginning) {
+    return {
+      quantity: Number(beginning[1]),
+      unit: beginning[2]?.toLowerCase() ?? null,
+    };
+  }
+
+  const suffix = normalized.match(/(?:^|\s)(\d+(?:\.\d+)?)\s*(un|und|unid|pc|pcs|peca|pecas|cx|caixa|kg|m|mt|mts|l|lt)\s*$/i);
+  if (suffix) {
+    return {
+      quantity: Number(suffix[1]),
+      unit: suffix[2]?.toLowerCase() ?? null,
+    };
+  }
+
+  return {
+    quantity: 1,
+    unit: null,
+  };
+}
+
+function cleanLineForItem(line: string) {
+  return line
+    .replace(/^\s*\d+(?:[.,]\d+)?\s*(x|un|und|unid|pc|pcs|peca|pecas|cx|caixa|kg|m|mt|mts|l|lt)?\s*/i, '')
+    .replace(/\s+\d+(?:[.,]\d+)?\s*(un|und|unid|pc|pcs|peca|pecas|cx|caixa|kg|m|mt|mts|l|lt)\s*$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isRelevantFreeformLine(line: string) {
+  const normalized = normalizeText(line);
+
+  if (normalized.length < 4) {
+    return false;
+  }
+
+  if (/^\d+$/.test(normalized)) {
+    return false;
+  }
+
+  return /[a-z]/.test(normalized);
+}
+
+function looksLikeMetadataLine(line: string) {
+  const normalized = normalizeText(line);
+
+  if (!normalized) {
+    return true;
+  }
+
+  if (
+    /^(cliente|nome|responsavel|responsavel|whatsapp|telefone|celular|contato|email|e mail|endereco|endereco|bairro|cidade|cep|cpf|cnpj|obs|observacao|observacoes|nota|anotacao|entrega|retirada|prazo|urgente|favor|preciso|solicitacao|orcamento)\b/i.test(normalized)
+  ) {
+    return true;
+  }
+
+  if (/\b[\w.+-]+@[\w.-]+\.[a-z]{2,}\b/i.test(line)) {
+    return true;
+  }
+
+  if (/\b\d{2}\s?\d{4,5}[-\s]?\d{4}\b/.test(normalized)) {
+    return true;
+  }
+
+  if (/\b(rua|avenida|av\.|travessa|bairro|cidade|cep|numero|quadra|lote|apto|bloco)\b/i.test(normalized)) {
+    return true;
+  }
+
+  if (/^(ola|bom dia|boa tarde|boa noite|segue|anexo|por favor|faco|preciso|solicito)\b/i.test(normalized)) {
+    return true;
+  }
+
+  return false;
+}
+
+type ParsedRecognitionResult = {
+  items: PreparedQuoteItem[];
+  customerNote: string | null;
+};
+
 function buildDraftTitle(items: PreparedQuoteItem[], customerNote?: string | null) {
   const firstItem = items[0]?.name?.trim();
 
@@ -64,27 +148,17 @@ function buildDraftTitle(items: PreparedQuoteItem[], customerNote?: string | nul
   return 'Novo orcamento';
 }
 
-function mergeCustomerNote(customerNote?: string | null, needsReview?: string[]) {
-  const parts = [customerNote?.trim()].filter(Boolean) as string[];
-
-  if (needsReview && needsReview.length > 0) {
-    parts.push(`Pontos para revisar:\n${needsReview.map((item) => `- ${item}`).join('\n')}`);
-  }
-
-  return parts.length > 0 ? parts.join('\n\n') : null;
-}
-
 export class QuoteService {
   private quoteRepository: QuoteRepository;
   private productRepository: ProductRepository;
   private authService: AuthService;
-  private documentIntelligenceService: QuoteDocumentIntelligenceService;
+  private ocrService: QuoteOcrService;
 
   constructor() {
     this.quoteRepository = new QuoteRepository();
     this.productRepository = new ProductRepository();
     this.authService = new AuthService();
-    this.documentIntelligenceService = new QuoteDocumentIntelligenceService();
+    this.ocrService = new QuoteOcrService();
   }
 
   async startPublicLead(data: StartLeadInput) {
@@ -128,16 +202,16 @@ export class QuoteService {
       height: params.height,
     });
 
-    const extracted = await this.documentIntelligenceService.extractDocument(params.file!.buffer);
-    const normalizedDraft = await this.normalizeExtractedDraft(extracted);
+    const recognized = await this.ocrService.recognizeDocument(params.file!.buffer);
+    const parsedRecognition = await this.parseItemsFromRecognition(recognized.lines);
 
     const quote = await this.quoteRepository.createQuote({
       referenceCode: this.generateReferenceCode(),
       source: 'public_camera',
       status: 'DRAFT',
-      title: normalizedDraft.title,
-      ocrText: normalizedDraft.transcriptText ?? undefined,
-      ocrConfidence: null,
+      title: buildDraftTitle(parsedRecognition.items, parsedRecognition.customerNote),
+      ocrText: recognized.text,
+      ocrConfidence: recognized.confidence,
       documentUrl: storedDocument.url,
       documentStorageKey: storedDocument.storageKey,
       documentFilename: storedDocument.filename,
@@ -151,9 +225,9 @@ export class QuoteService {
       lead: {
         connect: { id: lead.id },
       },
-      customerNote: normalizedDraft.customerNote ?? undefined,
+      customerNote: parsedRecognition.customerNote ?? undefined,
       items: {
-        create: normalizedDraft.items.map((item) => ({
+        create: parsedRecognition.items.map((item) => ({
           productId: item.productId ?? undefined,
           name: item.name,
           quantity: item.quantity,
@@ -193,16 +267,16 @@ export class QuoteService {
       height: params.height,
     });
 
-    const extracted = await this.documentIntelligenceService.extractDocument(params.file!.buffer);
-    const normalizedDraft = await this.normalizeExtractedDraft(extracted);
+    const recognized = await this.ocrService.recognizeDocument(params.file!.buffer);
+    const parsedRecognition = await this.parseItemsFromRecognition(recognized.lines);
 
     const quote = await this.quoteRepository.createQuote({
       referenceCode: this.generateReferenceCode(),
       source: 'customer_dashboard',
       status: 'DRAFT',
-      title: normalizedDraft.title,
-      ocrText: normalizedDraft.transcriptText ?? undefined,
-      ocrConfidence: null,
+      title: buildDraftTitle(parsedRecognition.items, parsedRecognition.customerNote),
+      ocrText: recognized.text,
+      ocrConfidence: recognized.confidence,
       documentUrl: storedDocument.url,
       documentStorageKey: storedDocument.storageKey,
       documentFilename: storedDocument.filename,
@@ -213,9 +287,9 @@ export class QuoteService {
       user: {
         connect: { id: params.userId },
       },
-      customerNote: normalizedDraft.customerNote ?? undefined,
+      customerNote: parsedRecognition.customerNote ?? undefined,
       items: {
-        create: normalizedDraft.items.map((item) => ({
+        create: parsedRecognition.items.map((item) => ({
           productId: item.productId ?? undefined,
           name: item.name,
           quantity: item.quantity,
@@ -417,24 +491,85 @@ export class QuoteService {
     });
   }
 
-  private async normalizeExtractedDraft(
-    extracted: Awaited<ReturnType<QuoteDocumentIntelligenceService['extractDocument']>>
-  ) {
-    const customerNote = mergeCustomerNote(extracted.customerNote, extracted.needsReview);
-    const normalizedItems = await this.normalizeManualItems(
-      extracted.items.map((item) => ({
-        name: item.name,
-        quantity: item.quantity,
-        unit: item.unit,
-        notes: item.notes,
-      }))
-    );
+  private async parseItemsFromRecognition(lines: RecognizedQuoteLine[]): Promise<ParsedRecognitionResult> {
+    const catalog = await this.productRepository.findCatalogForMatching();
+    const parsedItems: PreparedQuoteItem[] = [];
+    const customerNoteParts: string[] = [];
+
+    lines.forEach((line) => {
+      const text = line.text.trim();
+
+      if (!isRelevantFreeformLine(text)) {
+        return;
+      }
+
+      if (looksLikeMetadataLine(text)) {
+        customerNoteParts.push(text);
+        return;
+      }
+
+      const match = this.findBestProductMatch(text, catalog);
+      const quantityData = extractQuantity(text);
+      const itemName = cleanLineForItem(text);
+
+      if (match) {
+        parsedItems.push({
+          productId: match.product.id,
+          name: match.product.name,
+          quantity: quantityData.quantity,
+          unit: quantityData.unit,
+          confidence: Number(((match.score + line.confidence / 100) / 2).toFixed(2)),
+          recognitionSourceLine: text,
+          position: parsedItems.length,
+        });
+        return;
+      }
+
+      parsedItems.push({
+        name: itemName || line.text.trim(),
+        quantity: quantityData.quantity,
+        unit: quantityData.unit,
+        confidence: Number((line.confidence / 100).toFixed(2)),
+        recognitionSourceLine: text,
+        position: parsedItems.length,
+      });
+    });
+
+    const deduped = parsedItems.filter((item, index, collection) => {
+      const signature = `${item.productId ?? 'manual'}:${normalizeText(item.name)}:${item.quantity}:${item.unit ?? ''}`;
+      return (
+        collection.findIndex((candidate) => {
+          const candidateSignature = `${candidate.productId ?? 'manual'}:${normalizeText(candidate.name)}:${candidate.quantity}:${candidate.unit ?? ''}`;
+          return candidateSignature === signature;
+        }) === index
+      );
+    });
+
+    const customerNote = customerNoteParts.length > 0 ? customerNoteParts.join('\n') : null;
+
+    if (deduped.length > 0) {
+      return {
+        items: deduped,
+        customerNote,
+      };
+    }
+
+    if (customerNote) {
+      return {
+        items: [],
+        customerNote,
+      };
+    }
 
     return {
-      title: extracted.title?.trim() || buildDraftTitle(normalizedItems, customerNote),
-      customerNote,
-      transcriptText: extracted.transcriptText?.trim() || null,
-      items: normalizedItems,
+      items: [
+        {
+          name: 'Item reconhecido manualmente',
+          quantity: 1,
+          position: 0,
+        },
+      ],
+      customerNote: null,
     };
   }
 
