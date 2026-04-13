@@ -25,7 +25,7 @@ const ProductSection = ({
   items,
   showViewAll = true,
   viewAllHref,
-  viewAllLabel = "Ver Todos",
+  viewAllLabel = "Ver todos",
 }: ProductSectionProps) => {
   const sectionItems: ProductSectionItem[] =
     items ??
@@ -34,18 +34,18 @@ const ProductSection = ({
     }));
 
   return (
-    <section className="py-12 sm:py-16">
+    <section className="py-10 sm:py-14">
       <div className="container mx-auto px-4 sm:px-6">
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-2xl font-bold text-foreground sm:text-3xl">{title}</h2>
+        <div className="mb-6 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-xl font-bold text-foreground sm:text-2xl lg:text-3xl">{title}</h2>
           {showViewAll && (
-            <Button asChild={Boolean(viewAllHref)} variant="outline" className="w-full sm:w-auto">
+            <Button asChild={Boolean(viewAllHref)} variant="outline" size="sm" className="w-full sm:w-auto">
               {viewAllHref ? <Link to={viewAllHref}>{viewAllLabel}</Link> : <span>{viewAllLabel}</span>}
             </Button>
           )}
         </div>
         
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
           {sectionItems.map(({ product, href, promotion }) => {
             const primaryImage =
               promotion?.image?.url ||

@@ -17,7 +17,7 @@ const Categories = () => {
     .slice(0, 8);
 
   return (
-    <section className="bg-muted py-12 sm:py-16">
+    <section className="bg-muted py-10 sm:py-14">
       <div className="container mx-auto px-4 sm:px-6">
         <div className="mb-10 flex flex-col gap-4 text-center sm:mb-12 sm:flex-row sm:items-end sm:justify-between sm:text-left">
           <div>

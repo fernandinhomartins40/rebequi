@@ -39,13 +39,13 @@ const Footer = () => {
           </div>
 
           <div>
-            <h4 className="mb-4 font-semibold">Links uteis</h4>
+            <h4 className="mb-4 font-semibold">Links úteis</h4>
             <ul className="space-y-2">
-              <li><a href="/sobre" className="text-sm transition-colors hover:text-brand-yellow">Sobre nos</a></li>
-              <li><a href="/politica-privacidade" className="text-sm transition-colors hover:text-brand-yellow">Politica de Privacidade</a></li>
+              <li><a href="/sobre" className="text-sm transition-colors hover:text-brand-yellow">Sobre nós</a></li>
+              <li><a href="/politica-privacidade" className="text-sm transition-colors hover:text-brand-yellow">Política de Privacidade</a></li>
               <li><a href="/termos-uso" className="text-sm transition-colors hover:text-brand-yellow">Termos de Uso</a></li>
-              <li><a href="/faq" className="text-sm transition-colors hover:text-brand-yellow">Duvidas Frequentes</a></li>
-              <li><a href="/trocas-devolucoes" className="text-sm transition-colors hover:text-brand-yellow">Trocas e Devolucoes</a></li>
+              <li><a href="/faq" className="text-sm transition-colors hover:text-brand-yellow">Dúvidas Frequentes</a></li>
+              <li><a href="/trocas-devolucoes" className="text-sm transition-colors hover:text-brand-yellow">Trocas e Devoluções</a></li>
             </ul>
           </div>
 
@@ -65,7 +65,7 @@ const Footer = () => {
           </div>
 
           <div>
-            <h4 className="mb-4 font-semibold">Horario de Funcionamento</h4>
+            <h4 className="mb-4 font-semibold">Horário de Funcionamento</h4>
             <div className="space-y-2">
               <div className="flex items-center space-x-2">
                 <Clock className="h-4 w-4 text-brand-yellow" />
@@ -83,7 +83,7 @@ const Footer = () => {
           <Button asChild className="w-full bg-brand-red text-white hover:bg-brand-red/80 sm:w-auto">
             <Link to="/painel-lojista">Painel do Lojista</Link>
           </Button>
-          <p className="text-sm text-background/80">© 2024 Rebequi. Todos os direitos reservados.</p>
+          <p className="text-sm text-background/80">© 2025 Rebequi. Todos os direitos reservados.</p>
         </div>
       </div>
     </footer>

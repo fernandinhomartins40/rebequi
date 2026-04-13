@@ -135,7 +135,7 @@ const Index = () => {
         <ProductSectionSkeleton />
       ) : paintsResponse?.products && paintsResponse.products.length > 0 ? (
         <ProductSection
-          title="Tintas e acessorios"
+          title="Tintas e acessórios"
           products={paintsResponse.products}
           viewAllHref="/categorias/tintas-acessorios"
         />
@@ -159,7 +159,7 @@ const Index = () => {
         <ProductSectionSkeleton />
       ) : electricResponse?.products && electricResponse.products.length > 0 ? (
         <ProductSection
-          title="Materiais eletricos"
+          title="Materiais elétricos"
           products={electricResponse.products}
           viewAllHref="/categorias/materiais-eletricos"
         />

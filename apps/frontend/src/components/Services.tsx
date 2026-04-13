@@ -3,13 +3,13 @@ import { ClipboardCheck, Hammer, Home, Truck } from "lucide-react";
 const services = [
   {
     title: "Entrega expressa",
-    description: "Frota e parceiros para chegar rapido na obra ou retirada agendada.",
+    description: "Frota e parceiros para chegar rápido na obra ou retirada agendada.",
     icon: Truck,
     accent: "from-brand-red/10 to-brand-red/5",
   },
   {
     title: "Projeto sob medida",
-    description: "Acompanhamento tecnico para montar lista de materiais completa.",
+    description: "Consultoria técnica para montar a lista de materiais completa.",
     icon: ClipboardCheck,
     accent: "from-brand-blue/10 to-brand-blue/5",
   },
@@ -29,17 +29,17 @@ const services = [
 
 const Services = () => {
   return (
-    <section className="bg-white py-12 sm:py-16">
-      <div className="container mx-auto space-y-8 px-4 sm:px-6 sm:space-y-10">
+    <section className="bg-white py-10 sm:py-14">
+      <div className="container mx-auto space-y-8 px-4 sm:px-6">
         <div className="flex flex-col gap-3 text-center">
-          <p className="text-sm font-semibold uppercase text-primary">Solucoes para a obra</p>
-          <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Servicos que aceleram seu projeto</h2>
+          <p className="text-sm font-semibold uppercase text-primary">Soluções para a obra</p>
+          <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Serviços que aceleram seu projeto</h2>
           <p className="mx-auto max-w-2xl text-sm text-muted-foreground sm:text-base">
             Combine entrega, consultoria e aluguel para manter o cronograma sem surpresas.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-4">
           {services.map((item) => (
             <div
               key={item.title}

@@ -11,7 +11,7 @@ const Marquee = () => {
   ];
 
   return (
-    <div className="py-3 overflow-hidden" style={{ backgroundColor: '#cc2227' }}>
+    <div className="py-2.5 overflow-hidden" style={{ backgroundColor: '#cc2227' }}>
       <div className="marquee">
         <div className="marquee-content">
           {/* Duplicate items to ensure continuous scroll */}

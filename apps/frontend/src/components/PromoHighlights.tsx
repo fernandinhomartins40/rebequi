@@ -20,14 +20,14 @@ const PromoHighlights = () => {
   }
 
   return (
-    <section className="bg-white py-12 sm:py-16">
-      <div className="container mx-auto space-y-6 px-4 sm:px-6 sm:space-y-8">
+    <section className="bg-white py-10 sm:py-14">
+      <div className="container mx-auto space-y-6 px-4 sm:px-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-2 text-center lg:text-left">
             <p className="text-sm font-semibold uppercase text-primary">Ofertas em destaque</p>
             <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Campanhas promocionais</h2>
             <p className="mx-auto max-w-2xl text-sm text-muted-foreground sm:text-base lg:mx-0">
-              Cards promocionais organizam coleções especiais com produtos de uma ou mais categorias.
+              Coleções com curadoria de produtos por tema e período.
             </p>
           </div>
 
@@ -47,7 +47,7 @@ const PromoHighlights = () => {
         ) : null}
 
         {isLoading ? (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-4">
             {Array.from({ length: 4 }).map((_, index) => (
               <div key={index} className="overflow-hidden rounded-[1.75rem] border border-black/5 bg-white">
                 <Skeleton className="aspect-[16/10] w-full" />
@@ -63,7 +63,7 @@ const PromoHighlights = () => {
         ) : null}
 
         {!isLoading && promotions.length > 0 ? (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-4">
             {promotions.map((promotion) => (
               <PromotionCard key={promotion.id} promotion={promotion} />
             ))}

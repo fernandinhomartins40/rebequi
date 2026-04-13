@@ -31,7 +31,7 @@ const Header = () => {
   return (
     <header className="sticky top-0 z-50 shadow-md" style={{ backgroundColor: '#f9ef38' }}>
       <div className="container mx-auto px-4 sm:px-6">
-        <div className="flex min-h-[88px] items-center justify-between gap-3 py-3 lg:min-h-[104px] xl:h-[115px] xl:py-0">
+        <div className="flex min-h-[72px] items-center justify-between gap-3 py-2 lg:min-h-[88px] xl:h-[104px] xl:py-0">
           <div className="flex-shrink-0">
             <img
               src="/lovable-uploads/73f13341-b66a-4a9f-aa28-4bd40213b85f.png"
@@ -109,7 +109,7 @@ const Header = () => {
           </div>
         </div>
 
-        <div className="py-3 lg:hidden">
+        <div className="py-2 md:hidden">
           <PublicProductSearch
             inputId="public-product-search-mobile"
             onNavigate={() => setIsMobileMenuOpen(false)}

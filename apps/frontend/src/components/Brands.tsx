@@ -11,13 +11,13 @@ const brands = [
 
 const Brands = () => {
   return (
-    <section className="bg-muted/60 py-12 sm:py-16">
-      <div className="container mx-auto space-y-6 px-4 sm:px-6 sm:space-y-8">
+    <section className="bg-muted/60 py-10 sm:py-14">
+      <div className="container mx-auto space-y-6 px-4 sm:px-6">
         <div className="flex flex-col gap-3 text-center">
           <p className="text-sm font-semibold uppercase text-primary">Marcas parceiras</p>
-          <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Quem constroi com a gente</h2>
+          <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Quem constrói com a gente</h2>
           <p className="mx-auto max-w-2xl text-sm text-muted-foreground sm:text-base">
-            Catalogo com fabricantes consolidados para garantir qualidade em cada etapa.
+            Fabricantes de confiança em cada etapa da obra.
           </p>
         </div>
 

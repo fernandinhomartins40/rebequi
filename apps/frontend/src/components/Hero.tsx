@@ -55,7 +55,7 @@ const Hero = () => {
 
   return (
     <section 
-      className="relative h-[420px] overflow-hidden sm:h-[500px] xl:h-[600px]"
+      className="relative h-[340px] overflow-hidden sm:h-[460px] xl:h-[560px]"
       onMouseEnter={() => setIsAutoPlaying(false)}
       onMouseLeave={() => setIsAutoPlaying(true)}
     >
@@ -81,10 +81,10 @@ const Hero = () => {
             {/* Content */}
             <div className="relative z-10 container mx-auto flex h-full items-center px-4 sm:px-6">
               <div className="max-w-xl text-white lg:max-w-2xl">
-                <h2 className="mb-4 text-3xl font-bold animate-fade-in sm:text-4xl lg:text-6xl">
+                <h2 className="mb-3 text-2xl font-bold animate-fade-in sm:text-4xl lg:text-6xl">
                   {slide.title}
                 </h2>
-                <p className="mb-6 text-base animate-fade-in sm:text-xl lg:mb-8 lg:text-2xl">
+                <p className="mb-4 text-sm animate-fade-in sm:text-xl lg:mb-8 lg:text-2xl">
                   {slide.subtitle}
                 </p>
                 <div className="flex flex-col gap-3 sm:flex-row">
