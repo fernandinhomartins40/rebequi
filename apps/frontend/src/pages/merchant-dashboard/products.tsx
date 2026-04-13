@@ -6,7 +6,6 @@ import { Link } from 'react-router-dom';
 import { PromotionCountdown } from '@/components/PromotionCountdown';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/components/ui/use-toast';
@@ -15,7 +14,7 @@ import { deleteCategory, fetchCategories } from '@/services/api/categories';
 import { deleteProduct, fetchAdminProducts } from '@/services/api/products';
 import { CategoryEditorDialog } from './category-editor-dialog';
 import { ADMIN_BASE_PATH } from './config';
-import { SectionLeadCard, StatCard } from './components';
+import { DashboardPanel, PageHeader, SectionHeader, StatCard } from './components';
 import { ProductEditorDialog } from './product-editor-dialog';
 import { fetchAllAdminPromotionsSnapshot, buildSingleProductOfferMap, pickPrimaryPromotion } from './promotion-admin';
 import { PromotionEditorDialog } from './promotion-editor-dialog';
@@ -23,7 +22,7 @@ import { PromotionEditorDialog } from './promotion-editor-dialog';
 type ProductStatusFilter = 'all' | 'active' | 'inactive';
 
 function getPrimaryImage(product: Product) {
-  return product.images?.find((image) => image.isPrimary) || product.images?.[0];
+  return product.images?.find((img) => img.isPrimary) || product.images?.[0];
 }
 
 function trimText(value?: string | null) {
@@ -81,17 +80,14 @@ export function MerchantDashboardProducts() {
   const deleteMutation = useMutation({
     mutationFn: deleteProduct,
     onSuccess: async () => {
-      toast({
-        title: 'Produto excluido',
-        description: 'Produto removido com sucesso.',
-      });
+      toast({ title: 'Produto excluído', description: 'Produto removido com sucesso.' });
       await refreshQueries();
     },
     onError: (error) => {
       toast({
         variant: 'destructive',
         title: 'Falha ao excluir produto',
-        description: error instanceof Error ? error.message : 'Erro inesperado ao excluir o produto.',
+        description: error instanceof Error ? error.message : 'Erro inesperado.',
       });
     },
   });
@@ -99,17 +95,14 @@ export function MerchantDashboardProducts() {
   const deleteCategoryMutation = useMutation({
     mutationFn: deleteCategory,
     onSuccess: async () => {
-      toast({
-        title: 'Categoria excluida',
-        description: 'Categoria removida com sucesso.',
-      });
+      toast({ title: 'Categoria excluída', description: 'Categoria removida com sucesso.' });
       await refreshQueries();
     },
     onError: (error) => {
       toast({
         variant: 'destructive',
         title: 'Falha ao excluir categoria',
-        description: error instanceof Error ? error.message : 'Erro inesperado ao excluir a categoria.',
+        description: error instanceof Error ? error.message : 'Erro inesperado.',
       });
     },
   });
@@ -118,18 +111,15 @@ export function MerchantDashboardProducts() {
   const singleProductOffers = offersSnapshot?.promotions ?? [];
   const singleProductOffersByProduct = buildSingleProductOfferMap(singleProductOffers);
   const managedCategories = categoriesData?.categories ?? [];
-  const activeProducts = products.filter((product) => product.isActive);
-  const activeCategories = managedCategories.filter((category) => category.isActive);
-  const categoriesInUse = managedCategories.filter((category) => (category.productsCount ?? 0) > 0);
-  const activeSingleProductOffers = singleProductOffers.filter((offer) => offer.status === 'active');
+  const activeProducts = products.filter((p) => p.isActive);
+  const activeCategories = managedCategories.filter((c) => c.isActive);
+  const categoriesInUse = managedCategories.filter((c) => (c.productsCount ?? 0) > 0);
+  const activeSingleProductOffers = singleProductOffers.filter((o) => o.status === 'active');
   const productsWithSingleProductOffer = Array.from(singleProductOffersByProduct.keys()).length;
 
   const categories = managedCategories
-    .filter((category) => category.isActive || category.id === selectedProduct?.categoryId)
-    .map((category) => ({
-      id: category.id,
-      name: category.isActive ? category.name : `${category.name} (inativa)`,
-    }));
+    .filter((c) => c.isActive || c.id === selectedProduct?.categoryId)
+    .map((c) => ({ id: c.id, name: c.isActive ? c.name : `${c.name} (inativa)` }));
 
   const canCreateProduct = activeCategories.length > 0;
 
@@ -142,7 +132,6 @@ export function MerchantDashboardProducts() {
       });
       return;
     }
-
     setSelectedProduct(null);
     setEditorOpen(true);
   };
@@ -161,7 +150,6 @@ export function MerchantDashboardProducts() {
       });
       return;
     }
-
     setSelectedOfferProduct(product);
     setSelectedOffer(offer ?? null);
     setOfferEditorOpen(true);
@@ -178,10 +166,7 @@ export function MerchantDashboardProducts() {
   };
 
   const handleDelete = async (product: Product) => {
-    if (!window.confirm(`Excluir o produto "${product.name}"?`)) {
-      return;
-    }
-
+    if (!window.confirm(`Excluir o produto "${product.name}"?`)) return;
     await deleteMutation.mutateAsync(product.id);
   };
 
@@ -194,484 +179,382 @@ export function MerchantDashboardProducts() {
       });
       return;
     }
-
-    if (!window.confirm(`Excluir a categoria "${category.name}"?`)) {
-      return;
-    }
-
+    if (!window.confirm(`Excluir a categoria "${category.name}"?`)) return;
     await deleteCategoryMutation.mutateAsync(category.id);
   };
 
   return (
     <div className="space-y-6">
-      <SectionLeadCard
-        badge="Produtos"
+      {/* Page header */}
+      <PageHeader
         title="Gestão de produtos"
-        description="Cadastre, edite e remova produtos com persistência de dados e imagens. As categorias e as ofertas rápidas de produto único também são administradas nesta tela."
-        tone="blue"
+        description="Cadastre, edite e remova produtos, categorias e ofertas individuais."
         actions={
           <>
-            <Button onClick={openCreateDialog} className="gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90">
-              <Plus className="h-4 w-4" />
+            <Button onClick={openCreateDialog} size="sm" className="gap-1.5" disabled={!canCreateProduct}>
+              <Plus className="h-3.5 w-3.5" />
               Novo produto
             </Button>
-            <Button
-              variant="outline"
-              onClick={openCreateCategoryDialog}
-              className="gap-2 border-black/10 bg-white/80 text-foreground hover:bg-white"
-            >
-              <Tags className="h-4 w-4" />
+            <Button variant="outline" size="sm" onClick={openCreateCategoryDialog} className="gap-1.5">
+              <Tags className="h-3.5 w-3.5" />
               Nova categoria
             </Button>
             <Button
               variant="outline"
+              size="sm"
               onClick={() => void refetch()}
-              className="gap-2 border-black/10 bg-white/80 text-foreground hover:bg-white"
+              className="gap-1.5"
             >
-              <RefreshCcw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+              <RefreshCcw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
               Atualizar
-            </Button>
-            <Button asChild variant="outline" className="border-black/10 bg-white/80 text-foreground hover:bg-white">
-              <Link to={ADMIN_BASE_PATH}>Visão geral</Link>
             </Button>
           </>
         }
       />
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {/* KPIs */}
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          icon={<Boxes className="h-5 w-5 text-primary" />}
+          icon={<Boxes className="h-4 w-4" />}
           label="Produtos cadastrados"
           value={`${adminProducts?.total ?? 0}`}
-          delta="Base administrativa"
+          tone="default"
         />
         <StatCard
-          icon={<Boxes className="h-5 w-5 text-primary" />}
+          icon={<Boxes className="h-4 w-4" />}
           label="Produtos ativos"
           value={`${activeProducts.length}`}
-          delta="Visiveis na vitrine"
+          tone="green"
+          delta="Visíveis na vitrine"
         />
         <StatCard
-          icon={<Clock3 className="h-5 w-5 text-primary" />}
-          label="Produtos com oferta"
+          icon={<Clock3 className="h-4 w-4" />}
+          label="Com oferta individual"
           value={`${productsWithSingleProductOffer}`}
-          delta="Com oferta individual vinculada"
+          tone="blue"
         />
         <StatCard
-          icon={<Clock3 className="h-5 w-5 text-primary" />}
+          icon={<Clock3 className="h-4 w-4" />}
           label="Ofertas ativas agora"
           value={`${activeSingleProductOffers.length}`}
-          delta="Exibidas em Promoções imperdíveis"
+          tone={activeSingleProductOffers.length > 0 ? 'yellow' : 'default'}
         />
       </section>
 
-      <Card className="border-[#eadfba] bg-white/92 shadow-[0_20px_55px_-40px_rgba(15,23,42,0.22)]">
-        <CardHeader className="space-y-2 pb-4">
-          <Badge className="w-fit border-none bg-accent text-accent-foreground">Categorias</Badge>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="space-y-2">
-              <CardTitle className="text-xl sm:text-2xl">Gerenciamento de categorias</CardTitle>
-              <CardDescription>Crie, edite e remova categorias usadas no cadastro e na edição de produtos.</CardDescription>
-              <div className="flex flex-wrap gap-2">
-                <Badge variant="outline" className="border-black/10 bg-white/70 text-foreground">
-                  {managedCategories.length} cadastradas
-                </Badge>
-                <Badge variant="outline" className="border-black/10 bg-white/70 text-foreground">
-                  {activeCategories.length} ativas
-                </Badge>
-                <Badge variant="outline" className="border-black/10 bg-white/70 text-foreground">
-                  {categoriesInUse.length} em uso
-                </Badge>
-              </div>
-            </div>
-            <Button onClick={openCreateCategoryDialog} size="sm" className="w-full gap-2 sm:w-auto">
-              <Plus className="h-4 w-4" />
-              Cadastrar categoria
-            </Button>
+      {/* Categories */}
+      <DashboardPanel
+        title="Categorias"
+        description={`${managedCategories.length} cadastradas · ${activeCategories.length} ativas · ${categoriesInUse.length} em uso`}
+        action={
+          <Button size="sm" onClick={openCreateCategoryDialog} className="gap-1.5">
+            <Plus className="h-3.5 w-3.5" />
+            Nova
+          </Button>
+        }
+      >
+        {!canCreateProduct ? (
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            Nenhuma categoria ativa. Cadastre uma categoria para liberar o cadastro de produtos.
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {!canCreateProduct ? (
-            <div className="rounded-3xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
-              Nenhuma categoria ativa disponível. Cadastre uma categoria para liberar o cadastro de produtos.
-            </div>
-          ) : null}
+        ) : null}
 
-          {isLoadingCategories ? (
-            <div className="flex items-center justify-center gap-2 rounded-3xl border border-black/5 bg-slate-50 px-5 py-16 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Carregando categorias...
-            </div>
-          ) : null}
+        {isLoadingCategories ? (
+          <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Carregando categorias…
+          </div>
+        ) : managedCategories.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-slate-200 py-10 text-center text-sm text-muted-foreground">
+            Nenhuma categoria cadastrada.
+          </div>
+        ) : (
+          <>
+            {/* Desktop table */}
+            <div className="hidden overflow-hidden rounded-lg border border-slate-200/70 md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-slate-50/80 hover:bg-slate-50/80">
+                    <TableHead className="font-semibold">Categoria</TableHead>
+                    <TableHead className="font-semibold">Detalhes</TableHead>
+                    <TableHead className="w-28 text-center font-semibold">Produtos</TableHead>
+                    <TableHead className="w-44 text-right font-semibold">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {managedCategories.map((category) => {
+                    const productsCount = category.productsCount ?? 0;
+                    const hasLinkedProducts = productsCount > 0;
+                    const canDelete = !hasLinkedProducts && !deleteCategoryMutation.isPending;
+                    const description = trimText(category.description) || 'Sem descrição.';
+                    const icon = trimText(category.icon) || '—';
 
-          {!isLoadingCategories && managedCategories.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-black/10 bg-slate-50 px-5 py-16 text-center text-sm text-muted-foreground">
-              Nenhuma categoria cadastrada.
-            </div>
-          ) : null}
-
-          {!isLoadingCategories && managedCategories.length > 0 ? (
-            <>
-              <div className="hidden overflow-hidden rounded-2xl border border-black/5 bg-white md:block">
-                <div className="max-h-[28rem] overflow-auto">
-                  <Table>
-                    <TableHeader className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur supports-[backdrop-filter]:bg-slate-50/80">
-                      <TableRow className="hover:bg-transparent">
-                        <TableHead className="w-[40%]">Categoria</TableHead>
-                        <TableHead>Detalhes</TableHead>
-                        <TableHead className="w-28 text-center">Produtos</TableHead>
-                        <TableHead className="w-[18rem] text-right">Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {managedCategories.map((category) => {
-                        const productsCount = category.productsCount ?? 0;
-                        const hasLinkedProducts = productsCount > 0;
-                        const canDeleteCategory = !hasLinkedProducts && !deleteCategoryMutation.isPending;
-                        const categoryDescription = trimText(category.description) || 'Sem descrição cadastrada para esta categoria.';
-                        const categoryIcon = trimText(category.icon) || 'Não definido';
-
-                        return (
-                          <TableRow key={category.id} className="bg-white/90">
-                            <TableCell>
-                              <div className="min-w-0 space-y-1">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <p className="font-semibold text-foreground">{category.name}</p>
-                                  <Badge className={category.isActive ? 'bg-primary text-primary-foreground' : 'bg-slate-700 text-white'}>
-                                    {category.isActive ? 'Ativa' : 'Inativa'}
-                                  </Badge>
-                                  {hasLinkedProducts ? (
-                                    <Badge className="border border-amber-200 bg-amber-50 text-amber-900">Em uso</Badge>
-                                  ) : null}
-                                </div>
-                                <p className="text-xs text-muted-foreground">Slug: {category.slug}</p>
-                                <p className="max-w-[30rem] truncate text-sm text-muted-foreground" title={categoryDescription}>
-                                  {categoryDescription}
-                                </p>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex flex-wrap gap-2">
-                                <span className="inline-flex items-center rounded-full border border-black/5 bg-slate-50 px-3 py-1 text-xs text-foreground">
-                                  Icone:
-                                  <span className="ml-1 font-medium">{categoryIcon}</span>
-                                </span>
-                                <span
-                                  className={
-                                    category.isActive
-                                      ? 'inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs text-primary'
-                                      : 'inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs text-slate-700'
-                                  }
-                                >
-                                  {category.isActive ? 'Disponivel no formulario' : 'Oculta no formulario'}
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <span className="inline-flex min-w-12 items-center justify-center rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-foreground">
-                                {productsCount}
-                              </span>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center justify-end gap-2">
-                                <Button size="sm" onClick={() => openEditCategoryDialog(category)} className="gap-2">
-                                  <Pencil className="h-4 w-4" />
-                                  Editar
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => void handleDeleteCategory(category)}
-                                  disabled={!canDeleteCategory}
-                                  className="gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                  Excluir
-                                </Button>
-                              </div>
-                              {hasLinkedProducts ? (
-                                <p className="mt-2 text-right text-xs text-amber-800">
-                                  Remova ou recategorize os produtos vinculados antes de excluir.
-                                </p>
-                              ) : null}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-
-              <div className="max-h-[30rem] space-y-3 overflow-y-auto pr-1 md:hidden">
-                {managedCategories.map((category) => {
-                  const productsCount = category.productsCount ?? 0;
-                  const hasLinkedProducts = productsCount > 0;
-                  const canDeleteCategory = !hasLinkedProducts && !deleteCategoryMutation.isPending;
-                  const categoryDescription = trimText(category.description) || 'Sem descrição cadastrada para esta categoria.';
-                  const categoryIcon = trimText(category.icon) || 'Não definido';
-
-                  return (
-                    <article
-                      key={category.id}
-                      className="rounded-2xl border border-black/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.94))] p-4 shadow-[0_18px_45px_-42px_rgba(15,23,42,0.22)]"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0 space-y-1">
+                    return (
+                      <TableRow key={category.id} className="hover:bg-slate-50/60">
+                        <TableCell>
                           <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="text-base font-semibold text-foreground">{category.name}</h3>
-                            <Badge className={category.isActive ? 'bg-primary text-primary-foreground' : 'bg-slate-700 text-white'}>
+                            <p className="font-medium text-foreground">{category.name}</p>
+                            <Badge
+                              variant="outline"
+                              className={category.isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-100 text-slate-600'}
+                            >
                               {category.isActive ? 'Ativa' : 'Inativa'}
                             </Badge>
+                            {hasLinkedProducts ? (
+                              <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">Em uso</Badge>
+                            ) : null}
                           </div>
-                          <p className="text-xs text-muted-foreground">Slug: {category.slug}</p>
-                        </div>
-
-                        <div className="rounded-xl border border-black/5 bg-slate-50 px-3 py-2 text-center">
-                          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Produtos</p>
-                          <p className="mt-1 text-lg font-bold text-foreground">{productsCount}</p>
-                        </div>
-                      </div>
-
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <span className="inline-flex items-center rounded-full border border-black/5 bg-slate-50 px-3 py-1 text-xs text-foreground">
-                          Icone:
-                          <span className="ml-1 font-medium">{categoryIcon}</span>
-                        </span>
-                        <span
-                          className={
-                            category.isActive
-                              ? 'inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs text-primary'
-                              : 'inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs text-slate-700'
-                          }
-                        >
-                          {category.isActive ? 'Disponivel no formulario' : 'Oculta no formulario'}
-                        </span>
-                        {hasLinkedProducts ? (
-                          <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs text-amber-900">
-                            Em uso
+                          <p className="mt-0.5 max-w-xs truncate text-xs text-muted-foreground" title={description}>
+                            {description}
+                          </p>
+                        </TableCell>
+                        <TableCell>
+                          <p className="text-xs text-muted-foreground">Slug: <span className="font-mono font-medium text-foreground">{category.slug}</span></p>
+                          <p className="text-xs text-muted-foreground">Ícone: <span className="font-medium text-foreground">{icon}</span></p>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className="inline-flex min-w-[2rem] items-center justify-center rounded-full bg-slate-100 px-2.5 py-0.5 text-sm font-semibold text-foreground">
+                            {productsCount}
                           </span>
-                        ) : null}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-end gap-2">
+                            <Button size="sm" variant="outline" onClick={() => openEditCategoryDialog(category)} className="gap-1.5">
+                              <Pencil className="h-3.5 w-3.5" />
+                              Editar
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => void handleDeleteCategory(category)}
+                              disabled={!canDelete}
+                              className="gap-1.5 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              Excluir
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile cards */}
+            <div className="space-y-2 md:hidden">
+              {managedCategories.map((category) => {
+                const productsCount = category.productsCount ?? 0;
+                const hasLinkedProducts = productsCount > 0;
+                const canDelete = !hasLinkedProducts && !deleteCategoryMutation.isPending;
+                const description = trimText(category.description) || 'Sem descrição.';
+
+                return (
+                  <div
+                    key={category.id}
+                    className="rounded-lg border border-slate-200/70 bg-white p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="font-semibold text-foreground">{category.name}</h3>
+                          <Badge
+                            variant="outline"
+                            className={category.isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-100 text-slate-600'}
+                          >
+                            {category.isActive ? 'Ativa' : 'Inativa'}
+                          </Badge>
+                        </div>
+                        <p className="mt-0.5 text-xs text-muted-foreground">Slug: {category.slug}</p>
+                      </div>
+                      <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-center">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Produtos</p>
+                        <p className="text-lg font-bold text-foreground">{productsCount}</p>
+                      </div>
+                    </div>
+                    <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{description}</p>
+                    <div className="mt-3 flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => openEditCategoryDialog(category)} className="gap-1.5">
+                        <Pencil className="h-3.5 w-3.5" />
+                        Editar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => void handleDeleteCategory(category)}
+                        disabled={!canDelete}
+                        className="gap-1.5 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Excluir
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </DashboardPanel>
+
+      {/* Products */}
+      <DashboardPanel title="Produtos cadastrados" description="Base administrativa com acesso a ofertas individuais.">
+        {/* Filters */}
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por nome, SKU ou descrição…"
+              className="pl-9"
+            />
+          </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as ProductStatusFilter)}
+            className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm sm:w-44"
+          >
+            <option value="all">Todos os status</option>
+            <option value="active">Somente ativos</option>
+            <option value="inactive">Somente inativos</option>
+          </select>
+          <Button onClick={openCreateDialog} size="sm" className="gap-1.5" disabled={!canCreateProduct}>
+            <Plus className="h-3.5 w-3.5" />
+            Cadastrar
+          </Button>
+        </div>
+
+        {isLoading ? (
+          <div className="grid gap-3 xl:grid-cols-2">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-40 animate-pulse rounded-lg bg-slate-100" />
+            ))}
+          </div>
+        ) : products.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-slate-200 py-10 text-center text-sm text-muted-foreground">
+            Nenhum produto encontrado para esse filtro.
+          </div>
+        ) : (
+          <div className="grid gap-3 xl:grid-cols-2">
+            {products.map((product) => {
+              const primaryImage = getPrimaryImage(product);
+              const productSummary = product.shortDesc || product.description || 'Sem descrição.';
+              const productOffers = singleProductOffersByProduct.get(product.id) ?? [];
+              const primaryOffer = pickPrimaryPromotion(productOffers);
+              const additionalOffersCount = Math.max(0, productOffers.length - 1);
+
+              return (
+                <article
+                  key={product.id}
+                  className="overflow-hidden rounded-xl border border-slate-200/70 bg-white shadow-sm"
+                >
+                  <div className="flex gap-0">
+                    {/* Image */}
+                    <div className="relative w-28 shrink-0 bg-slate-50 sm:w-36">
+                      {primaryImage ? (
+                        <img
+                          src={primaryImage.url}
+                          alt={primaryImage.alt || product.name}
+                          className="h-full w-full object-cover"
+                          style={{ minHeight: '9rem' }}
+                        />
+                      ) : (
+                        <div className="flex h-full min-h-36 w-full items-center justify-center text-xs text-muted-foreground">
+                          Sem imagem
+                        </div>
+                      )}
+                      <div className="absolute left-2 top-2 flex flex-col gap-1">
+                        <Badge
+                          className={product.isActive ? 'bg-emerald-600 text-white' : 'bg-slate-600 text-white'}
+                        >
+                          {product.isActive ? 'Ativo' : 'Inativo'}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex min-w-0 flex-1 flex-col gap-2.5 p-3.5">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {product.isFeatured ? <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700 text-[10px]">Destaque</Badge> : null}
+                          {product.isOffer ? <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700 text-[10px]">Oferta</Badge> : null}
+                          {product.isNew ? <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 text-[10px]">Novo</Badge> : null}
+                        </div>
+                        <h3 className="mt-1 line-clamp-2 text-[15px] font-semibold leading-tight text-foreground">
+                          {product.name}
+                        </h3>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {product.category?.name ?? 'Sem categoria'}
+                          {product.sku ? ` · SKU ${product.sku}` : ''}
+                        </p>
                       </div>
 
-                      <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">{categoryDescription}</p>
+                      <div className="flex items-center gap-3">
+                        <p className="text-lg font-bold text-foreground">R$ {product.price.toFixed(2)}</p>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <span className={`font-medium ${product.stock <= 0 ? 'text-red-600' : product.stock <= product.minStock ? 'text-amber-600' : 'text-foreground'}`}>
+                            Estoque: {product.stock}
+                          </span>
+                          <span>·</span>
+                          <span>Mín: {product.minStock}</span>
+                        </div>
+                      </div>
 
-                      {hasLinkedProducts ? (
-                        <p className="mt-3 text-xs text-amber-800">
-                          Remova ou recategorize os produtos vinculados antes de excluir.
-                        </p>
-                      ) : null}
+                      {/* Offer section */}
+                      <div className="rounded-lg border border-slate-100 bg-slate-50/80 px-3 py-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-semibold text-foreground">Oferta individual</p>
+                            {primaryOffer ? (
+                              <div className="mt-0.5 flex items-center gap-1.5">
+                                <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${getPromotionStatusTone(primaryOffer.status)}`}>
+                                  {formatPromotionStatusLabel(primaryOffer.status)}
+                                </span>
+                                <PromotionCountdown expiresAt={primaryOffer.expiresAt} compact />
+                              </div>
+                            ) : (
+                              <p className="text-[11px] text-muted-foreground">Nenhuma oferta ativa</p>
+                            )}
+                          </div>
+                          <Button
+                            size="sm"
+                            variant={primaryOffer ? 'outline' : 'default'}
+                            onClick={() => openOfferDialog(product, primaryOffer)}
+                            disabled={!product.isActive}
+                            className="shrink-0 gap-1.5 text-xs"
+                          >
+                            <Clock3 className="h-3 w-3" />
+                            {primaryOffer ? 'Editar' : 'Criar'}
+                          </Button>
+                        </div>
+                      </div>
 
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <Button size="sm" onClick={() => openEditCategoryDialog(category)} className="gap-2">
-                          <Pencil className="h-4 w-4" />
+                      {/* Actions */}
+                      <div className="flex flex-wrap gap-2">
+                        <Button size="sm" variant="outline" onClick={() => openEditDialog(product)} className="gap-1.5">
+                          <Pencil className="h-3.5 w-3.5" />
                           Editar
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => void handleDeleteCategory(category)}
-                          disabled={!canDeleteCategory}
-                          className="gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                          onClick={() => void handleDelete(product)}
+                          disabled={deleteMutation.isPending}
+                          className="gap-1.5 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3.5 w-3.5" />
                           Excluir
                         </Button>
                       </div>
-                    </article>
-                  );
-                })}
-              </div>
-            </>
-          ) : null}
-        </CardContent>
-      </Card>
-
-      <Card className="border-[#eadfba] bg-white/92 shadow-[0_20px_55px_-40px_rgba(15,23,42,0.22)]">
-        <CardHeader className="space-y-3">
-          <Badge className="w-fit border-none bg-accent text-accent-foreground">Admin</Badge>
-          <div>
-            <CardTitle className="text-2xl">Produtos cadastrados</CardTitle>
-            <CardDescription>Consulta administrativa da base de produtos com atalho para ofertas individuais.</CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_220px_auto]">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Buscar por nome, SKU ou descrição"
-                className="pl-9"
-              />
-            </div>
-
-            <select
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value as ProductStatusFilter)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            >
-              <option value="all">Todos os status</option>
-              <option value="active">Somente ativos</option>
-              <option value="inactive">Somente inativos</option>
-            </select>
-
-            <Button onClick={openCreateDialog} className="w-full gap-2 xl:w-auto" disabled={!canCreateProduct}>
-              <Plus className="h-4 w-4" />
-              Cadastrar
-            </Button>
-          </div>
-
-          {isLoading ? (
-            <div className="flex items-center justify-center gap-2 rounded-3xl border border-black/5 bg-slate-50 px-5 py-16 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Carregando produtos...
-            </div>
-          ) : null}
-
-          {!isLoading && products.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-black/10 bg-slate-50 px-5 py-16 text-center text-sm text-muted-foreground">
-              Nenhum produto encontrado para esse filtro.
-            </div>
-          ) : null}
-
-          {!isLoading ? (
-            <div className="grid gap-4 xl:grid-cols-2">
-              {products.map((product) => {
-                const primaryImage = getPrimaryImage(product);
-                const productSummary = product.shortDesc || product.description || 'Sem descrição.';
-                const productOffers = singleProductOffersByProduct.get(product.id) ?? [];
-                const primaryOffer = pickPrimaryPromotion(productOffers);
-                const additionalOffersCount = Math.max(0, productOffers.length - 1);
-
-                return (
-                  <article
-                    key={product.id}
-                    className="overflow-hidden rounded-2xl border border-black/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.94))] shadow-[0_18px_45px_-42px_rgba(15,23,42,0.2)]"
-                  >
-                    <div className="grid gap-0 sm:grid-cols-[144px_minmax(0,1fr)]">
-                      <div className="relative bg-slate-100">
-                        {primaryImage ? (
-                          <img
-                            src={primaryImage.url}
-                            alt={primaryImage.alt || product.name}
-                            className="aspect-[16/10] w-full object-cover sm:aspect-[4/5] sm:h-full"
-                          />
-                        ) : (
-                          <div className="flex aspect-[16/10] items-center justify-center text-sm text-muted-foreground sm:aspect-[4/5] sm:h-full">
-                            Sem imagem
-                          </div>
-                        )}
-                        <div className="absolute left-3 top-3 flex flex-wrap gap-2">
-                          <Badge className={product.isActive ? 'bg-primary text-primary-foreground' : 'bg-slate-700 text-white'}>
-                            {product.isActive ? 'Ativo' : 'Inativo'}
-                          </Badge>
-                          {product.isFeatured ? <Badge className="border-none bg-secondary text-secondary-foreground">Destaque</Badge> : null}
-                          {product.isOffer ? <Badge variant="outline">Oferta</Badge> : null}
-                          {product.isNew ? <Badge variant="outline">Novo</Badge> : null}
-                        </div>
-                      </div>
-
-                      <div className="space-y-2.5 p-3.5">
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div className="min-w-0 flex-1">
-                            <h3 className="line-clamp-2 text-base font-semibold leading-snug text-foreground sm:text-lg">{product.name}</h3>
-                            <p className="truncate text-sm text-muted-foreground">
-                              {product.category?.name ?? 'Sem categoria'}{product.sku ? ` | SKU ${product.sku}` : ''}
-                            </p>
-                          </div>
-                          <div className="rounded-xl border border-black/5 bg-slate-50 px-3 py-2 sm:text-right">
-                            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Preço</p>
-                            <p className="mt-1 text-lg font-bold leading-none text-foreground sm:text-xl">R$ {product.price.toFixed(2)}</p>
-                          </div>
-                        </div>
-
-                        <p className="line-clamp-1 text-sm leading-6 text-muted-foreground" title={productSummary}>
-                          {productSummary}
-                        </p>
-
-                        <div className="rounded-2xl border border-black/5 bg-white/90 px-3 py-2.5">
-                          <div className="flex flex-wrap items-center justify-between gap-3">
-                            <div className="space-y-1">
-                              <p className="text-sm font-semibold text-foreground">Oferta individual</p>
-                              <p className="text-xs leading-5 text-muted-foreground">
-                                {primaryOffer
-                                  ? primaryOffer.offerPricing?.shortLabel || primaryOffer.title
-                                  : 'Publique este produto em Promoções imperdíveis com um cadastro rápido.'}
-                              </p>
-                            </div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              {primaryOffer ? (
-                                <span className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-semibold ${getPromotionStatusTone(primaryOffer.status)}`}>
-                                  {formatPromotionStatusLabel(primaryOffer.status)}
-                                </span>
-                              ) : (
-                                <span className="inline-flex rounded-full border border-dashed border-black/10 px-3 py-1 text-[11px] font-semibold text-muted-foreground">
-                                  Sem oferta
-                                </span>
-                              )}
-                              <Button
-                                size="sm"
-                                variant={primaryOffer ? 'outline' : 'default'}
-                                onClick={() => openOfferDialog(product, primaryOffer)}
-                                disabled={!product.isActive}
-                                className="w-full gap-2 sm:w-auto"
-                              >
-                                <Clock3 className="h-4 w-4" />
-                                {primaryOffer ? 'Gerenciar' : 'Criar'}
-                              </Button>
-                            </div>
-                          </div>
-
-                          {primaryOffer ? (
-                            <div className="mt-2 flex flex-wrap items-center gap-2">
-                              <PromotionCountdown expiresAt={primaryOffer.expiresAt} compact />
-                              {additionalOffersCount > 0 ? (
-                                <span className="text-xs text-amber-800">
-                                  +{additionalOffersCount} oferta{additionalOffersCount > 1 ? 's' : ''} extra
-                                </span>
-                              ) : null}
-                            </div>
-                          ) : null}
-                        </div>
-
-                        <div className="flex flex-wrap gap-2">
-                          <span className="inline-flex items-center rounded-full border border-black/5 bg-slate-50 px-3 py-1 text-xs text-foreground">
-                            Estoque
-                            <span className="ml-1.5 font-semibold">{product.stock}</span>
-                          </span>
-                          <span className="inline-flex items-center rounded-full border border-black/5 bg-slate-50 px-3 py-1.5 text-xs text-foreground">
-                            Mínimo
-                            <span className="ml-1.5 font-semibold">{product.minStock}</span>
-                          </span>
-                        </div>
-
-                        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                          <Button size="sm" onClick={() => openEditDialog(product)} className="w-full gap-2 sm:w-auto">
-                            <Pencil className="h-4 w-4" />
-                            Editar
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => void handleDelete(product)}
-                            disabled={deleteMutation.isPending}
-                            className="w-full gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 sm:w-auto"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            Excluir
-                          </Button>
-                        </div>
-                      </div>
                     </div>
-                  </article>
-                );
-              })}
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </DashboardPanel>
 
       <ProductEditorDialog
         open={editorOpen}
@@ -679,13 +562,9 @@ export function MerchantDashboardProducts() {
         categories={categories}
         onOpenChange={(nextOpen) => {
           setEditorOpen(nextOpen);
-          if (!nextOpen) {
-            setSelectedProduct(null);
-          }
+          if (!nextOpen) setSelectedProduct(null);
         }}
-        onSaved={() => {
-          void refreshQueries();
-        }}
+        onSaved={() => { void refreshQueries(); }}
       />
 
       <PromotionEditorDialog
@@ -702,9 +581,7 @@ export function MerchantDashboardProducts() {
             setSelectedOffer(null);
           }
         }}
-        onSaved={() => {
-          void refreshQueries();
-        }}
+        onSaved={() => { void refreshQueries(); }}
       />
 
       <CategoryEditorDialog
@@ -712,13 +589,9 @@ export function MerchantDashboardProducts() {
         category={selectedCategory}
         onOpenChange={(nextOpen) => {
           setCategoryEditorOpen(nextOpen);
-          if (!nextOpen) {
-            setSelectedCategory(null);
-          }
+          if (!nextOpen) setSelectedCategory(null);
         }}
-        onSaved={() => {
-          void refreshQueries();
-        }}
+        onSaved={() => { void refreshQueries(); }}
       />
     </div>
   );

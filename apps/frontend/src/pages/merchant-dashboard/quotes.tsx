@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock3, FileText, MessageCircle, ScanText, Send, UserRound } from 'lucide-react';
+import { Clock3, FileText, MessageCircle, Send, UserRound } from 'lucide-react';
 import { formatDateTime, formatWhatsapp } from '@rebequi/shared/utils';
 import { LeadStatusBadge, QuoteStatusBadge } from '@/components/QuoteStatusBadge';
 import { Button } from '@/components/ui/button';
-import { SectionLeadCard, StatCard } from './components';
+import { PageHeader, StatCard } from './components';
 import {
   fetchAdminQuotes,
   fetchCapturedLeads,
@@ -62,211 +62,250 @@ export function MerchantDashboardQuotes() {
   const quotes = quotesQuery.data?.quotes ?? [];
   const leads = leadsQuery.data?.leads ?? [];
 
-  const draftLeads = leads.filter((lead) => lead.status === 'QUOTE_DRAFTED').length;
-  const freshLeads = leads.filter((lead) => lead.status === 'STARTED').length;
-  const inReviewQuotes = quotes.filter((quote) => quote.status === 'IN_REVIEW').length;
-  const respondedQuotes = quotes.filter((quote) => quote.status === 'RESPONDED').length;
+  const draftLeads = leads.filter((l) => l.status === 'QUOTE_DRAFTED').length;
+  const freshLeads = leads.filter((l) => l.status === 'STARTED').length;
+  const inReviewQuotes = quotes.filter((q) => q.status === 'IN_REVIEW').length;
+  const respondedQuotes = quotes.filter((q) => q.status === 'RESPONDED').length;
 
-  const selectedQuote = useMemo(() => {
-    if (selectedQuoteId) {
-      return quotes.find((quote) => quote.id === selectedQuoteId) ?? null;
-    }
+  const selectedQuote = useMemo(
+    () => (selectedQuoteId ? quotes.find((q) => q.id === selectedQuoteId) ?? null : quotes[0] ?? null),
+    [quotes, selectedQuoteId]
+  );
 
-    return quotes[0] ?? null;
-  }, [quotes, selectedQuoteId]);
-
-  const selectedLead = useMemo(() => {
-    if (selectedLeadId) {
-      return leads.find((lead) => lead.id === selectedLeadId) ?? null;
-    }
-
-    return leads[0] ?? null;
-  }, [leads, selectedLeadId]);
+  const selectedLead = useMemo(
+    () => (selectedLeadId ? leads.find((l) => l.id === selectedLeadId) ?? null : leads[0] ?? null),
+    [leads, selectedLeadId]
+  );
 
   return (
     <div className="space-y-6">
-      <SectionLeadCard
-        badge="Orcamentos"
-        title="Fila comercial de solicitacoes e leads"
-        description="Todo o fluxo de orcamentos agora fica em uma fila unica: documentos enviados de um lado e contatos que ainda nao concluiram do outro."
-        tone="blue"
-        actions={
-          <>
-            <Button
-              variant={activeTab === 'quotes' ? 'default' : 'outline'}
-              className="rounded-xl"
-              onClick={() => setActiveTab('quotes')}
-            >
-              Orcamentos enviados
-            </Button>
-            <Button
-              variant={activeTab === 'leads' ? 'default' : 'outline'}
-              className="rounded-xl"
-              onClick={() => setActiveTab('leads')}
-            >
-              Leads incompletos
-            </Button>
-          </>
-        }
+      {/* Page header */}
+      <PageHeader
+        title="Orçamentos e leads"
+        description="Acompanhe orçamentos enviados e clientes que não concluíram o fluxo."
       />
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard icon={<Send className="h-5 w-5 text-primary" />} label="Orcamentos" value={`${quotes.length}`} delta="Fluxos enviados pelo cliente." />
-        <StatCard icon={<Clock3 className="h-5 w-5 text-primary" />} label="Em acompanhamento" value={`${inReviewQuotes}`} delta="Aguardando tratamento interno." />
-        <StatCard icon={<UserRound className="h-5 w-5 text-primary" />} label="Leads abertos" value={`${leads.length}`} delta={`${freshLeads} sem documento e ${draftLeads} com rascunho.`} />
-        <StatCard icon={<MessageCircle className="h-5 w-5 text-primary" />} label="Respondidos" value={`${respondedQuotes}`} delta="Solicitacoes ja devolvidas ao cliente." />
+      {/* KPIs */}
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          icon={<Send className="h-4 w-4" />}
+          label="Orçamentos"
+          value={`${quotes.length}`}
+          tone="default"
+        />
+        <StatCard
+          icon={<Clock3 className="h-4 w-4" />}
+          label="Em acompanhamento"
+          value={`${inReviewQuotes}`}
+          tone={inReviewQuotes > 0 ? 'blue' : 'default'}
+        />
+        <StatCard
+          icon={<UserRound className="h-4 w-4" />}
+          label="Leads abertos"
+          value={`${leads.length}`}
+          delta={`${freshLeads} sem doc · ${draftLeads} com rascunho`}
+          tone={leads.length > 0 ? 'yellow' : 'default'}
+        />
+        <StatCard
+          icon={<MessageCircle className="h-4 w-4" />}
+          label="Respondidos"
+          value={`${respondedQuotes}`}
+          tone="green"
+        />
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
-        <div className="rounded-2xl border border-slate-200/70 bg-white/94 p-4 shadow-[0_14px_34px_-36px_rgba(15,23,42,0.28)] md:p-5">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-                {activeTab === 'quotes' ? 'Orcamentos enviados' : 'Leads incompletos'}
-              </p>
-              <h3 className="mt-1 text-base font-semibold text-foreground">
-                {activeTab === 'quotes' ? 'Fila operacional' : 'Retomada comercial'}
-              </h3>
-            </div>
-            <div className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-              {activeTab === 'quotes' ? quotes.length : leads.length} total
-            </div>
+      {/* Tab switcher */}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab('quotes')}
+          className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-all ${
+            activeTab === 'quotes'
+              ? 'border-primary/30 bg-primary/5 text-primary'
+              : 'border-slate-200 bg-white text-muted-foreground hover:border-slate-300 hover:text-foreground'
+          }`}
+        >
+          <FileText className="h-4 w-4" />
+          Orçamentos enviados
+          {quotes.length > 0 ? (
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+              {quotes.length}
+            </span>
+          ) : null}
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('leads')}
+          className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-all ${
+            activeTab === 'leads'
+              ? 'border-amber-300/50 bg-amber-50 text-amber-700'
+              : 'border-slate-200 bg-white text-muted-foreground hover:border-slate-300 hover:text-foreground'
+          }`}
+        >
+          <UserRound className="h-4 w-4" />
+          Leads incompletos
+          {leads.length > 0 ? (
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+              {leads.length}
+            </span>
+          ) : null}
+        </button>
+      </div>
+
+      {/* Master-detail layout */}
+      <section className="grid gap-4 xl:grid-cols-[340px_minmax(0,1fr)]">
+        {/* List pane */}
+        <div className="rounded-xl border border-slate-200/70 bg-white shadow-sm">
+          <div className="border-b border-slate-100 px-4 py-3.5">
+            <p className="text-sm font-semibold text-foreground">
+              {activeTab === 'quotes' ? 'Fila operacional' : 'Retomada comercial'}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {activeTab === 'quotes' ? quotes.length : leads.length} item(ns)
+            </p>
           </div>
 
-          {activeTab === 'quotes' ? (
-            quotesQuery.isLoading ? (
-              <p className="text-sm text-muted-foreground">Carregando orcamentos...</p>
-            ) : quotes.length === 0 ? (
-              <EmptyList message="Nenhum orcamento enviado ate o momento." />
+          <div className="p-3">
+            {activeTab === 'quotes' ? (
+              quotesQuery.isLoading ? (
+                <ListSkeleton />
+              ) : quotes.length === 0 ? (
+                <EmptyList message="Nenhum orçamento enviado." />
+              ) : (
+                <div className="max-h-[600px] space-y-1.5 overflow-y-auto">
+                  {quotes.map((quote) => (
+                    <button
+                      key={quote.id}
+                      type="button"
+                      onClick={() => setSelectedQuoteId(quote.id)}
+                      className={`w-full rounded-lg border px-3 py-3 text-left text-sm transition-all ${
+                        selectedQuote?.id === quote.id
+                          ? 'border-primary/30 bg-primary/5 text-foreground'
+                          : 'border-transparent bg-transparent text-foreground hover:border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium">{buildQuoteDisplayTitle(quote)}</p>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            {quote.user?.name || 'Cliente'} · {formatQuoteTimestamp(quote.submittedAt || quote.updatedAt)}
+                          </p>
+                        </div>
+                        <QuoteStatusBadge status={quote.status} />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )
+            ) : leadsQuery.isLoading ? (
+              <ListSkeleton />
+            ) : leads.length === 0 ? (
+              <EmptyList message="Nenhum lead incompleto." />
             ) : (
-              <div className="max-h-[720px] space-y-2 overflow-y-auto pr-1">
-                {quotes.map((quote) => (
+              <div className="max-h-[600px] space-y-1.5 overflow-y-auto">
+                {leads.map((lead) => (
                   <button
-                    key={quote.id}
+                    key={lead.id}
                     type="button"
-                    onClick={() => setSelectedQuoteId(quote.id)}
-                    className={`w-full rounded-2xl border px-4 py-3 text-left transition-all ${
-                      selectedQuote?.id === quote.id
-                        ? 'border-primary/30 bg-[linear-gradient(135deg,rgba(239,246,255,0.96),rgba(255,252,237,0.9))] shadow-[0_20px_50px_-40px_rgba(37,99,235,0.45)]'
-                        : 'border-slate-200/70 bg-white hover:border-slate-300 hover:bg-slate-50'
+                    onClick={() => setSelectedLeadId(lead.id)}
+                    className={`w-full rounded-lg border px-3 py-3 text-left text-sm transition-all ${
+                      selectedLead?.id === lead.id
+                        ? 'border-amber-300/50 bg-amber-50'
+                        : 'border-transparent bg-transparent text-foreground hover:border-slate-200 hover:bg-slate-50'
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-foreground">{buildQuoteDisplayTitle(quote)}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {quote.user?.name || 'Cliente'} · {formatQuoteTimestamp(quote.submittedAt || quote.updatedAt)}
+                        <p className="truncate font-medium">{lead.nameSnapshot}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {formatWhatsapp(lead.whatsapp)} · {formatDateTime(lead.createdAt)}
                         </p>
                       </div>
-                      <QuoteStatusBadge status={quote.status} />
+                      <LeadStatusBadge status={lead.status} />
                     </div>
                   </button>
                 ))}
               </div>
-            )
-          ) : leadsQuery.isLoading ? (
-            <p className="text-sm text-muted-foreground">Carregando leads...</p>
-          ) : leads.length === 0 ? (
-            <EmptyList message="Nenhum lead incompleto no momento." />
-          ) : (
-            <div className="max-h-[720px] space-y-2 overflow-y-auto pr-1">
-              {leads.map((lead) => (
-                <button
-                  key={lead.id}
-                  type="button"
-                  onClick={() => setSelectedLeadId(lead.id)}
-                  className={`w-full rounded-2xl border px-4 py-3 text-left transition-all ${
-                    selectedLead?.id === lead.id
-                      ? 'border-primary/30 bg-[linear-gradient(135deg,rgba(239,246,255,0.96),rgba(255,252,237,0.9))] shadow-[0_20px_50px_-40px_rgba(37,99,235,0.45)]'
-                      : 'border-slate-200/70 bg-white hover:border-slate-300 hover:bg-slate-50'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-foreground">{lead.nameSnapshot}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {formatWhatsapp(lead.whatsapp)} · {formatDateTime(lead.createdAt)}
-                      </p>
-                    </div>
-                    <LeadStatusBadge status={lead.status} />
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200/70 bg-white/94 p-4 shadow-[0_14px_34px_-36px_rgba(15,23,42,0.28)] md:p-5">
+        {/* Detail pane */}
+        <div className="rounded-xl border border-slate-200/70 bg-white shadow-sm">
           {activeTab === 'quotes' ? (
             selectedQuote ? (
-              <div className="space-y-5">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="p-5">
+                {/* Header */}
+                <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
                   <div className="min-w-0">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">{selectedQuote.referenceCode}</p>
-                    <h3 className="mt-2 text-xl font-semibold text-foreground">{buildQuoteDisplayTitle(selectedQuote)}</h3>
-                    <p className="mt-2 text-sm leading-6 text-muted-foreground">{getQuoteStatusDescription(selectedQuote.status)}</p>
+                    <p className="font-mono text-xs text-muted-foreground">{selectedQuote.referenceCode}</p>
+                    <h3 className="mt-1 text-lg font-semibold text-foreground">{buildQuoteDisplayTitle(selectedQuote)}</h3>
+                    <p className="mt-0.5 text-sm text-muted-foreground">{getQuoteStatusDescription(selectedQuote.status)}</p>
                   </div>
                   <QuoteStatusBadge status={selectedQuote.status} />
                 </div>
 
-                <div className="grid gap-3 md:grid-cols-3">
+                {/* Meta grid */}
+                <div className="mt-4 grid gap-2 sm:grid-cols-3">
                   <InfoTile label="Cliente" value={selectedQuote.user?.name || 'Cliente'} />
-                  <InfoTile label="Contato" value={selectedQuote.user?.whatsapp ? formatWhatsapp(selectedQuote.user.whatsapp) : selectedQuote.user?.identifier || '-'} />
+                  <InfoTile
+                    label="Contato"
+                    value={selectedQuote.user?.whatsapp ? formatWhatsapp(selectedQuote.user.whatsapp) : selectedQuote.user?.identifier || '—'}
+                  />
                   <InfoTile label="Origem" value={buildQuoteSourceLabel(selectedQuote.source)} />
                 </div>
-
-                <div className="grid gap-3 md:grid-cols-3">
-                  <InfoTile label="Itens" value={`${selectedQuote.itemCount} item(ns)`} />
+                <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                  <InfoTile label="Itens" value={`${selectedQuote.itemCount}`} />
                   <InfoTile label="Enviado em" value={formatQuoteTimestamp(selectedQuote.submittedAt || selectedQuote.updatedAt)} />
-                  <InfoTile label="Confianca OCR" value={selectedQuote.ocrConfidence ? `${Math.round(selectedQuote.ocrConfidence)}%` : '-'} />
+                  <InfoTile label="Confiança OCR" value={selectedQuote.ocrConfidence ? `${Math.round(selectedQuote.ocrConfidence)}%` : '—'} />
                 </div>
 
-                <div className="rounded-2xl border border-slate-200/70 bg-slate-50/85 p-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Itens do orcamento</p>
-                  <div className="mt-3 space-y-3">
+                {/* Items */}
+                <div className="mt-4">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Itens do orçamento</p>
+                  <div className="space-y-1.5">
                     {selectedQuote.items.map((item) => (
-                      <div key={item.id} className="rounded-2xl border border-slate-200/70 bg-white px-4 py-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold text-foreground">{item.name}</p>
-                            {item.notes ? <p className="mt-1 text-sm text-muted-foreground">{item.notes}</p> : null}
-                          </div>
-                          <div className="shrink-0 text-sm font-medium text-muted-foreground">
-                            {item.quantity} {item.unit || 'un'}
-                          </div>
+                      <div key={item.id} className="flex items-start justify-between gap-3 rounded-lg border border-slate-100 bg-slate-50/60 px-3.5 py-2.5">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-foreground">{item.name}</p>
+                          {item.notes ? <p className="mt-0.5 text-xs text-muted-foreground">{item.notes}</p> : null}
                         </div>
+                        <span className="shrink-0 text-sm font-semibold text-muted-foreground">
+                          {item.quantity} {item.unit || 'un'}
+                        </span>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 {selectedQuote.customerNote ? (
-                  <div className="rounded-2xl border border-slate-200/70 bg-slate-50/85 p-4">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Observacao do cliente</p>
-                    <p className="mt-2 text-sm leading-6 text-foreground">{selectedQuote.customerNote}</p>
+                  <div className="mt-4 rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3">
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Observação do cliente</p>
+                    <p className="text-sm text-foreground">{selectedQuote.customerNote}</p>
                   </div>
                 ) : null}
 
                 {selectedQuote.ocrText ? (
-                  <div className="rounded-2xl border border-slate-200/70 bg-slate-50/85 p-4">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Texto reconhecido</p>
-                    <p className="mt-2 max-h-44 overflow-y-auto whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
+                  <div className="mt-4 rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3">
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Texto reconhecido</p>
+                    <p className="max-h-40 overflow-y-auto whitespace-pre-wrap text-xs text-muted-foreground">
                       {selectedQuote.ocrText}
                     </p>
                   </div>
                 ) : null}
 
-                <div className="flex flex-wrap gap-2">
+                {/* Actions */}
+                <div className="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
                   <Button
                     variant="outline"
-                    className="rounded-xl"
+                    size="sm"
                     disabled={quoteStatusMutation.isPending}
                     onClick={() => quoteStatusMutation.mutate({ id: selectedQuote.id, status: 'IN_REVIEW' })}
                   >
-                    Em analise
+                    Em análise
                   </Button>
                   <Button
-                    className="rounded-xl"
+                    size="sm"
                     disabled={quoteStatusMutation.isPending}
                     onClick={() => quoteStatusMutation.mutate({ id: selectedQuote.id, status: 'RESPONDED' })}
                   >
@@ -274,7 +313,7 @@ export function MerchantDashboardQuotes() {
                   </Button>
                   <Button
                     variant="outline"
-                    className="rounded-xl"
+                    size="sm"
                     disabled={quoteStatusMutation.isPending}
                     onClick={() => quoteStatusMutation.mutate({ id: selectedQuote.id, status: 'ARCHIVED' })}
                   >
@@ -283,57 +322,67 @@ export function MerchantDashboardQuotes() {
                 </div>
               </div>
             ) : (
-              <EmptyList message="Selecione um orcamento para abrir os detalhes." />
+              <div className="flex h-full min-h-64 items-center justify-center p-8">
+                <EmptyList message="Selecione um orçamento para ver os detalhes." />
+              </div>
             )
           ) : selectedLead ? (
-            <div className="space-y-5">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="p-5">
+              {/* Header */}
+              <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
                 <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Lead capturado</p>
-                  <h3 className="mt-2 text-xl font-semibold text-foreground">{selectedLead.nameSnapshot}</h3>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{getLeadStatusDescription(selectedLead.status)}</p>
+                  <p className="text-xs text-muted-foreground">Lead capturado</p>
+                  <h3 className="mt-1 text-lg font-semibold text-foreground">{selectedLead.nameSnapshot}</h3>
+                  <p className="mt-0.5 text-sm text-muted-foreground">{getLeadStatusDescription(selectedLead.status)}</p>
                 </div>
                 <LeadStatusBadge status={selectedLead.status} />
               </div>
 
-              <div className="grid gap-3 md:grid-cols-3">
+              {/* Meta */}
+              <div className="mt-4 grid gap-2 sm:grid-cols-3">
                 <InfoTile label="WhatsApp" value={formatWhatsapp(selectedLead.whatsapp)} />
                 <InfoTile label="Criado em" value={formatDateTime(selectedLead.createdAt)} />
                 <InfoTile label="Rascunhos" value={`${selectedLead.quoteCount}`} />
               </div>
 
-              <div className="rounded-2xl border border-slate-200/70 bg-slate-50/85 p-4">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Leitura operacional</p>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  Use essa fila para retomar clientes que pararam na identificacao ou criaram rascunho e nao enviaram a solicitacao final.
+              <div className="mt-4 rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3">
+                <p className="text-sm text-muted-foreground">
+                  Use essa fila para retomar clientes que pararam na identificação ou criaram rascunho e não enviaram a solicitação final.
                 </p>
               </div>
 
-              <div className="flex flex-wrap gap-2">
+              {/* Actions */}
+              <div className="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
                 <Button
-                  className="rounded-xl"
                   variant="outline"
+                  size="sm"
                   disabled={leadStatusMutation.isPending}
                   onClick={() => leadStatusMutation.mutate({ id: selectedLead.id, status: 'CONTACTED' })}
                 >
                   Marcar contato
                 </Button>
                 <Button
-                  className="rounded-xl"
+                  size="sm"
+                  asChild
+                >
+                  <a href={buildWhatsappLink(selectedLead.whatsapp)} target="_blank" rel="noreferrer">
+                    Falar no WhatsApp
+                  </a>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
                   disabled={leadStatusMutation.isPending}
                   onClick={() => leadStatusMutation.mutate({ id: selectedLead.id, status: 'ARCHIVED' })}
                 >
                   Arquivar
                 </Button>
-                <Button asChild className="rounded-xl">
-                  <a href={buildWhatsappLink(selectedLead.whatsapp)} target="_blank" rel="noreferrer">
-                    Falar no WhatsApp
-                  </a>
-                </Button>
               </div>
             </div>
           ) : (
-            <EmptyList message="Selecione um lead para abrir os detalhes." />
+            <div className="flex h-full min-h-64 items-center justify-center p-8">
+              <EmptyList message="Selecione um lead para ver os detalhes." />
+            </div>
           )}
         </div>
       </section>
@@ -347,17 +396,27 @@ function buildWhatsappLink(value: string) {
 
 function EmptyList({ message }: { message: string }) {
   return (
-    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-10 text-center text-sm text-muted-foreground">
+    <div className="rounded-lg border border-dashed border-slate-200 py-8 text-center text-sm text-muted-foreground">
       {message}
+    </div>
+  );
+}
+
+function ListSkeleton() {
+  return (
+    <div className="space-y-1.5">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="h-14 animate-pulse rounded-lg bg-slate-100" />
+      ))}
     </div>
   );
 }
 
 function InfoTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200/70 bg-slate-50/85 p-4">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">{label}</p>
-      <p className="mt-2 text-sm font-semibold text-foreground">{value}</p>
+    <div className="rounded-lg border border-slate-100 bg-slate-50/60 px-3 py-2.5">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="mt-0.5 text-sm font-semibold text-foreground">{value}</p>
     </div>
   );
 }

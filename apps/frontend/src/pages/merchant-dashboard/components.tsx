@@ -24,24 +24,23 @@ import type { MerchantNavItem } from './config';
 export function MerchantSidebarHeader() {
   return (
     <>
-      <SidebarHeader className="gap-4 px-4 py-4">
+      <SidebarHeader className="px-3 py-4">
         <Link
           to="/"
-          className="flex flex-col items-start rounded-2xl border border-slate-200/80 bg-white/95 px-4 py-4 shadow-[0_14px_34px_-34px_rgba(15,23,42,0.28)] transition-colors hover:bg-white"
+          className="flex items-center gap-3 rounded-xl border border-slate-200/60 bg-white px-3 py-3 shadow-sm transition-all hover:bg-slate-50 hover:shadow-md"
         >
           <img
             src="/lovable-uploads/73f13341-b66a-4a9f-aa28-4bd40213b85f.png"
             alt="Rebequi Logo"
-            className="h-10 w-auto shrink-0"
+            className="h-8 w-auto shrink-0"
           />
-          <div className="mt-3 space-y-1 group-data-[collapsible=icon]:hidden">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Admin</p>
-            <p className="text-sm font-semibold text-foreground">Painel administrativo</p>
+          <div className="min-w-0 group-data-[collapsible=icon]:hidden">
+            <p className="truncate text-sm font-semibold text-foreground">Rebequi</p>
+            <p className="truncate text-xs text-muted-foreground">Painel admin</p>
           </div>
         </Link>
       </SidebarHeader>
-
-      <SidebarSeparator className="mx-4" />
+      <SidebarSeparator className="mx-3" />
     </>
   );
 }
@@ -56,13 +55,13 @@ export function AdminSidebarNavigation({
   const { isMobile, setOpenMobile } = useSidebar();
 
   return (
-    <SidebarContent className="merchant-dashboard-scroll px-2 pb-4 pt-2">
+    <SidebarContent className="merchant-dashboard-scroll px-2 py-2">
       <SidebarGroup>
-        <SidebarGroupLabel className="px-3 text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-          Navegacao
+        <SidebarGroupLabel className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+          Menu
         </SidebarGroupLabel>
         <SidebarGroupContent>
-          <SidebarMenu>
+          <SidebarMenu className="gap-0.5">
             {items.map((item) => {
               const isActive = activePath === item.href;
 
@@ -73,25 +72,33 @@ export function AdminSidebarNavigation({
                     tooltip={item.label}
                     isActive={isActive}
                     onClick={() => {
-                      if (isMobile) {
-                        setOpenMobile(false);
-                      }
+                      if (isMobile) setOpenMobile(false);
                     }}
                     className={cn(
-                      'h-auto min-h-12 rounded-2xl px-3 py-3 text-sidebar-foreground/80 hover:bg-white hover:text-foreground',
-                      'data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground data-[active=true]:shadow-[0_20px_40px_-28px_rgba(255,215,0,0.75)]'
+                      'h-auto min-h-11 rounded-xl px-3 py-2.5',
+                      'text-sidebar-foreground/75 transition-all hover:bg-white hover:text-foreground hover:shadow-sm',
+                      'data-[active=true]:bg-white data-[active=true]:text-foreground data-[active=true]:shadow-sm data-[active=true]:ring-1 data-[active=true]:ring-sidebar-accent/40'
                     )}
                   >
                     <NavLink to={item.href}>
-                      <item.icon className="h-4 w-4 shrink-0" />
+                      <div
+                        className={cn(
+                          'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
+                          isActive
+                            ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                            : 'bg-slate-100/80 text-muted-foreground'
+                        )}
+                      >
+                        <item.icon className="h-4 w-4" />
+                      </div>
                       <div className="flex min-w-0 flex-1 flex-col text-left group-data-[collapsible=icon]:hidden">
-                        <span className="font-semibold">{item.label}</span>
-                        <span className="text-xs text-current/60">{item.description}</span>
+                        <span className="text-[13px] font-semibold leading-tight">{item.label}</span>
+                        <span className="truncate text-[11px] text-current/55">{item.description}</span>
                       </div>
                     </NavLink>
                   </SidebarMenuButton>
                   {item.badge ? (
-                    <SidebarMenuBadge className="rounded-full bg-primary/10 px-2 text-[10px] text-primary">
+                    <SidebarMenuBadge className="rounded-full bg-primary/15 px-2 text-[10px] font-semibold text-primary">
                       {item.badge}
                     </SidebarMenuBadge>
                   ) : null}
@@ -118,43 +125,180 @@ export function MerchantSidebarFooter({
 
   return (
     <>
-      <SidebarSeparator className="mx-4" />
-
-      <SidebarFooter className="gap-3 px-4 pb-4 pt-2">
-        <div className="rounded-2xl border border-slate-200/80 bg-white/95 p-4 shadow-[0_14px_30px_-34px_rgba(15,23,42,0.28)] group-data-[collapsible=icon]:hidden">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Sessao ativa</p>
-          <p className="mt-3 break-all text-sm font-semibold text-foreground">{userEmail}</p>
-          <p className="mt-1 text-xs text-muted-foreground">{roleLabel}</p>
+      <SidebarSeparator className="mx-3" />
+      <SidebarFooter className="gap-2 px-3 pb-4 pt-3">
+        <div className="rounded-xl border border-slate-200/60 bg-white/80 px-3 py-3 group-data-[collapsible=icon]:hidden">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary">
+              {userEmail.slice(0, 1).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-[12px] font-semibold text-foreground">{userEmail}</p>
+              <p className="text-[11px] text-muted-foreground">{roleLabel}</p>
+            </div>
+          </div>
         </div>
 
         <Button
-          className="w-full justify-start gap-2 rounded-xl bg-secondary text-secondary-foreground hover:bg-secondary/90"
-          onClick={() => void onLogout()}
+          size="sm"
+          variant="outline"
+          className="w-full justify-start gap-2 rounded-xl border-slate-200/80 bg-white/80 text-foreground/70 hover:bg-white hover:text-foreground"
+          asChild
         >
-          <LogOut className="h-4 w-4" />
-          <span className="group-data-[collapsible=icon]:hidden">Sair do painel</span>
+          <Link to="/">
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span className="group-data-[collapsible=icon]:hidden">Ver loja</span>
+          </Link>
         </Button>
 
         <Button
-          asChild
-          variant="outline"
-          className="w-full justify-start gap-2 rounded-xl border-black/10 bg-white/80 text-foreground hover:bg-white"
+          size="sm"
+          className="w-full justify-start gap-2 rounded-xl"
+          variant="ghost"
+          onClick={() => void onLogout()}
         >
-          <Link to="/">
-            <ArrowLeft className="h-4 w-4" />
-            <span className="group-data-[collapsible=icon]:hidden">Voltar para a loja</span>
-          </Link>
+          <LogOut className="h-3.5 w-3.5" />
+          <span className="group-data-[collapsible=icon]:hidden">Sair</span>
         </Button>
       </SidebarFooter>
     </>
   );
 }
 
-export function SectionLeadCard({
-  badge,
+// ─── Page-level header strip ─────────────────────────────────────────────────
+
+export function PageHeader({
   title,
   description,
-  tone,
+  actions,
+}: {
+  title: string;
+  description?: string;
+  actions?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">{title}</h2>
+        {description ? (
+          <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
+        ) : null}
+      </div>
+      {actions ? (
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {actions}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// ─── Section divider with optional action ────────────────────────────────────
+
+export function SectionHeader({
+  title,
+  description,
+  action,
+}: {
+  title: string;
+  description?: string;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <div className="min-w-0">
+        <h3 className="text-base font-semibold text-foreground">{title}</h3>
+        {description ? (
+          <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
+        ) : null}
+      </div>
+      {action ? <div className="shrink-0">{action}</div> : null}
+    </div>
+  );
+}
+
+// ─── Metric cards ────────────────────────────────────────────────────────────
+
+type MetricTone = 'default' | 'blue' | 'green' | 'yellow' | 'red';
+
+const metricToneStyles: Record<MetricTone, { icon: string; value: string; bg: string }> = {
+  default: { icon: 'bg-slate-100 text-slate-500', value: 'text-foreground', bg: '' },
+  blue: { icon: 'bg-blue-50 text-blue-600', value: 'text-blue-700', bg: '' },
+  green: { icon: 'bg-emerald-50 text-emerald-600', value: 'text-emerald-700', bg: '' },
+  yellow: { icon: 'bg-amber-50 text-amber-600', value: 'text-amber-700', bg: '' },
+  red: { icon: 'bg-red-50 text-red-600', value: 'text-red-700', bg: '' },
+};
+
+export function StatCard({
+  icon,
+  label,
+  value,
+  delta,
+  tone = 'default',
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+  delta?: string;
+  tone?: MetricTone;
+}) {
+  const styles = metricToneStyles[tone];
+
+  return (
+    <div className="flex items-start gap-3 rounded-xl border border-slate-200/70 bg-white p-4 shadow-sm">
+      <div className={cn('mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', styles.icon)}>
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[12px] font-medium text-muted-foreground">{label}</p>
+        <p className={cn('mt-0.5 text-xl font-bold leading-none', styles.value)}>{value}</p>
+        {delta ? <p className="mt-1 text-[11px] text-muted-foreground">{delta}</p> : null}
+      </div>
+    </div>
+  );
+}
+
+// ─── Content panels ──────────────────────────────────────────────────────────
+
+export function DashboardPanel({
+  className,
+  contentClassName,
+  description,
+  title,
+  action,
+  children,
+}: {
+  className?: string;
+  contentClassName?: string;
+  description?: string;
+  title: string;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className={cn('rounded-xl border border-slate-200/70 bg-white shadow-sm', className)}>
+      <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
+        <div className="min-w-0">
+          <h3 className="text-[15px] font-semibold text-foreground">{title}</h3>
+          {description ? (
+            <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
+          ) : null}
+        </div>
+        {action ? <div className="shrink-0">{action}</div> : null}
+      </div>
+      <div className={cn('p-5', contentClassName)}>{children}</div>
+    </div>
+  );
+}
+
+// ─── Retained legacy exports (used elsewhere) ────────────────────────────────
+
+/** @deprecated Use PageHeader instead */
+export function SectionLeadCard({
+  badge: _badge,
+  title,
+  description,
+  tone: _tone,
   actions,
 }: {
   badge: string;
@@ -163,65 +307,17 @@ export function SectionLeadCard({
   tone: 'yellow' | 'blue' | 'red';
   actions?: ReactNode;
 }) {
-  const toneClass =
-    tone === 'yellow'
-      ? 'border-amber-200/50 bg-amber-50/60'
-      : tone === 'red'
-        ? 'border-red-200/50 bg-red-50/60'
-        : 'border-blue-200/40 bg-blue-50/50';
-
   return (
-    <div className={cn('animate-fade-in-up rounded-2xl border px-4 py-4 md:px-5 md:py-5', toneClass)}>
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">{badge}</p>
-          <h2 className="mt-2 text-lg font-semibold text-foreground md:text-xl">{title}</h2>
-          <p className="mt-1 text-sm leading-6 text-muted-foreground">{description}</p>
-        </div>
-        {actions ? (
-          <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:flex-wrap">
-            {actions}
-          </div>
-        ) : null}
-      </div>
-    </div>
+    <PageHeader title={title} description={description} actions={actions} />
   );
 }
 
 export function SummaryTile({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-[0_14px_32px_-36px_rgba(15,23,42,0.24)]">
-      <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
-      <p className="mt-3 break-words text-lg font-bold text-foreground sm:text-xl">{value}</p>
-      <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
-    </div>
-  );
-}
-
-export function DashboardPanel({
-  badge,
-  badgeClassName,
-  className,
-  contentClassName,
-  description,
-  title,
-  children,
-}: {
-  badge?: string;
-  badgeClassName?: string;
-  className?: string;
-  contentClassName?: string;
-  description: string;
-  title: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className={cn('animate-fade-in-up rounded-2xl border border-slate-200/70 bg-white/94 p-4 shadow-[0_14px_34px_-36px_rgba(15,23,42,0.28)] md:p-5', className)}>
-      <div className="mb-3 md:mb-4">
-        <h3 className="text-[15px] font-semibold text-foreground md:text-base">{title}</h3>
-        <p className="mt-1 text-sm leading-6 text-muted-foreground">{description}</p>
-      </div>
-      <div className={cn('space-y-2.5', contentClassName)}>{children}</div>
+    <div className="rounded-xl border border-slate-200/70 bg-white p-4 shadow-sm">
+      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="mt-2 text-xl font-bold text-foreground">{value}</p>
+      <p className="mt-0.5 text-xs text-muted-foreground">{detail}</p>
     </div>
   );
 }
@@ -237,7 +333,7 @@ export function MetricChip({
 }) {
   const toneClass =
     tone === 'blue'
-      ? 'border-primary/15 bg-primary/5 text-primary'
+      ? 'border-blue-200 bg-blue-50 text-blue-700'
       : tone === 'green'
         ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
         : tone === 'red'
@@ -247,12 +343,14 @@ export function MetricChip({
             : 'border-slate-200 bg-slate-50 text-foreground';
 
   return (
-    <div className={cn('rounded-2xl border px-3 py-2.5', toneClass)}>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] opacity-80">{label}</p>
-      <p className="mt-1 break-words text-sm font-semibold leading-snug">{value}</p>
+    <div className={cn('rounded-lg border px-3 py-2', toneClass)}>
+      <p className="text-[10px] font-semibold uppercase tracking-wider opacity-70">{label}</p>
+      <p className="mt-0.5 text-sm font-semibold">{value}</p>
     </div>
   );
 }
+
+// ─── Signal/status rows ──────────────────────────────────────────────────────
 
 export function SignalRow({
   description,
@@ -265,16 +363,16 @@ export function SignalRow({
   tone?: 'blue' | 'green' | 'neutral' | 'red' | 'yellow';
   title: string;
 }) {
-  const toneClass =
-    tone === 'blue'
-      ? 'bg-primary/10 text-primary'
-      : tone === 'green'
-        ? 'bg-emerald-100 text-emerald-700'
-        : tone === 'red'
-          ? 'bg-red-100 text-red-700'
-          : tone === 'yellow'
-            ? 'bg-amber-100 text-amber-800'
-            : 'bg-slate-100 text-slate-700';
+  const badgeClass =
+    tone === 'green'
+      ? 'bg-emerald-100 text-emerald-700 ring-emerald-200'
+      : tone === 'red'
+        ? 'bg-red-100 text-red-700 ring-red-200'
+        : tone === 'yellow'
+          ? 'bg-amber-100 text-amber-700 ring-amber-200'
+          : tone === 'blue'
+            ? 'bg-blue-100 text-blue-700 ring-blue-200'
+            : 'bg-slate-100 text-slate-600 ring-slate-200';
 
   const dotColor =
     tone === 'green'
@@ -288,49 +386,29 @@ export function SignalRow({
             : 'bg-slate-400';
 
   return (
-    <div className="rounded-2xl border border-slate-200/70 bg-slate-50/85 px-4 py-3.5 transition-colors duration-200 hover:bg-slate-100/80">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <span className={cn('h-2 w-2 shrink-0 rounded-full', dotColor, tone !== 'neutral' && 'animate-pulse-soft')} />
-          <p className="font-semibold text-foreground">{title}</p>
+    <div className="flex items-start gap-3 rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3 transition-colors hover:bg-slate-50">
+      <span className={cn('mt-1.5 h-2 w-2 shrink-0 rounded-full', dotColor, tone !== 'neutral' && 'shadow-[0_0_6px_0px_currentColor]')} />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm font-semibold text-foreground">{title}</p>
+          <span className={cn('shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset', badgeClass)}>
+            {status}
+          </span>
         </div>
-        <div className={cn('rounded-full px-3 py-1 text-[11px] font-semibold', toneClass)}>{status}</div>
+        <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
       </div>
-      <p className="mt-2 pl-[18px] text-sm leading-6 text-muted-foreground">{description}</p>
     </div>
   );
 }
 
 export function PulseLine({ title, value, toneClass }: { title: string; value: string; toneClass: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200/70 bg-slate-50/85 p-4">
+    <div className="rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3">
       <div className="flex items-center justify-between gap-3">
-        <p className="font-semibold text-foreground">{title}</p>
-        <div className={cn('rounded-full px-3 py-1 text-[11px] font-semibold', toneClass)}>ativo</div>
+        <p className="text-sm font-semibold text-foreground">{title}</p>
+        <div className={cn('rounded-full px-2.5 py-0.5 text-[11px] font-semibold', toneClass)}>ativo</div>
       </div>
-      <p className="mt-2 text-sm leading-6 text-muted-foreground">{value}</p>
-    </div>
-  );
-}
-
-export function StatCard({
-  icon,
-  label,
-  value,
-  delta,
-}: {
-  icon: ReactNode;
-  label: string;
-  value: string;
-  delta: string;
-}) {
-  return (
-    <div className="animate-fade-in-up flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-white px-4 py-4 transition-shadow duration-200 hover:shadow-sm">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/8">{icon}</div>
-      <div className="min-w-0">
-        <p className="text-sm text-muted-foreground">{label}</p>
-        <p className="text-lg font-bold text-foreground">{value}</p>
-      </div>
+      <p className="mt-1 text-xs text-muted-foreground">{value}</p>
     </div>
   );
 }
@@ -345,19 +423,19 @@ export function SummarySurface({
   description: string;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200/70 bg-slate-50/85 p-4">
+    <div className="rounded-lg border border-slate-100 bg-slate-50/60 p-4">
       <p className="text-2xl font-bold text-foreground">{value}</p>
-      <p className="mt-1 font-semibold text-foreground">{label}</p>
-      <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+      <p className="mt-0.5 font-semibold text-foreground">{label}</p>
+      <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
     </div>
   );
 }
 
 export function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200/70 bg-slate-50/85 px-4 py-3">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
-      <p className="mt-1 break-all text-sm font-semibold text-foreground">{value}</p>
+    <div className="rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="mt-0.5 break-all text-sm font-semibold text-foreground">{value}</p>
     </div>
   );
 }
@@ -372,9 +450,9 @@ export function GuaranteeCard({
   badgeClass: string;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200/70 bg-slate-50/85 p-4">
-      <div className={cn('inline-flex rounded-full px-3 py-1 text-[11px] font-semibold', badgeClass)}>{title}</div>
-      <p className="mt-3 text-sm leading-6 text-muted-foreground">{description}</p>
+    <div className="rounded-lg border border-slate-100 bg-slate-50/60 p-4">
+      <div className={cn('inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold', badgeClass)}>{title}</div>
+      <p className="mt-2 text-sm text-muted-foreground">{description}</p>
     </div>
   );
 }
@@ -397,18 +475,18 @@ export function StateCard({
   return (
     <Card className={className}>
       <CardHeader className="space-y-3">
-        <div className={cn('inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold', badgeClassName)}>
+        <div className={cn('inline-flex w-fit rounded-full px-2.5 py-0.5 text-xs font-semibold', badgeClassName)}>
           Estado atual
         </div>
         <div>
           <CardTitle className="text-xl">{title}</CardTitle>
-          <CardDescription className="mt-2 leading-6 text-muted-foreground">{description}</CardDescription>
+          <CardDescription className="mt-1 text-muted-foreground">{description}</CardDescription>
         </div>
       </CardHeader>
       <CardContent className="pt-0">
-        <ul className="space-y-3">
+        <ul className="space-y-2">
           {items.map((item) => (
-            <li key={item} className={cn('rounded-2xl border px-4 py-3 text-sm leading-6', itemClassName)}>
+            <li key={item} className={cn('rounded-lg border px-4 py-3 text-sm', itemClassName)}>
               {item}
             </li>
           ))}
