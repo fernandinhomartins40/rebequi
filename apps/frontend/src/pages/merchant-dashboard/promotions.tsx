@@ -207,7 +207,7 @@ export function MerchantDashboardPromotions() {
             </p>
           </div>
           <div className="rounded-xl border border-slate-200/70 bg-white px-4 py-3.5 shadow-sm">
-            <p className="text-xs font-semibold text-muted-foreground">Fila de publicação</p>
+            <p className="text-xs font-semibold text-muted-foreground">Aguardando publicação</p>
             <p className="mt-1 text-sm text-foreground">
               {scheduledPromotions.length > 0
                 ? `${scheduledPromotions.length} campanha(s) aguardam a data configurada.`
@@ -215,7 +215,7 @@ export function MerchantDashboardPromotions() {
             </p>
           </div>
           <div className="rounded-xl border border-slate-200/70 bg-white px-4 py-3.5 shadow-sm">
-            <p className="text-xs font-semibold text-muted-foreground">Manutenção pendente</p>
+            <p className="text-xs font-semibold text-muted-foreground">Para revisar</p>
             <p className="mt-1 text-sm text-foreground">
               {inactivePromotions.length + expiredPromotions.length > 0
                 ? `${inactivePromotions.length} inativas · ${expiredPromotions.length} encerradas aguardando revisão.`
@@ -229,7 +229,7 @@ export function MerchantDashboardPromotions() {
       <DashboardPanel title="Promoções cadastradas" description="Filtre, acompanhe o status e mantenha os cards atualizados.">
         {!canCreatePromotion ? (
           <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            Campanhas com página dedicada exigem pelo menos dois produtos ativos.
+            Ative pelo menos dois produtos para criar uma nova campanha.
           </div>
         ) : null}
 

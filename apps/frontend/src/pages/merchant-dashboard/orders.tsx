@@ -117,22 +117,22 @@ export function MerchantDashboardOrders() {
     <div className="space-y-6">
       <PageHeader
         title="Pedidos"
-        description="Triagem rápida dos pedidos que precisam de ação. Para notas e acompanhamento completo, abra o pedido individualmente."
+        description="Acompanhe e gerencie os pedidos recebidos. Clique em um pedido para ver detalhes completos."
       />
 
       {/* KPIs */}
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           icon={<ShoppingCart className="h-4 w-4" />}
-          label="Visíveis agora"
+          label="Pedidos no filtro"
           value={`${orders.length}`}
-          delta="Resultado do filtro atual"
+          delta="Resultado atual"
         />
         <StatCard
           icon={<MessageCircleMore className="h-4 w-4" />}
-          label="Fila de recuperação"
+          label="Para recuperar"
           value={`${recoveryCount}`}
-          delta={`${metrics.recovery} em tratamento manual`}
+          delta={`${metrics.recovery} em contato manual`}
           tone={recoveryCount > 0 ? 'yellow' : 'green'}
         />
         <StatCard
@@ -143,9 +143,9 @@ export function MerchantDashboardOrders() {
         />
         <StatCard
           icon={<Search className="h-4 w-4" />}
-          label="Em aberto"
+          label="Sem resposta"
           value={`${openCount}`}
-          delta="Sem fechamento"
+          delta="Aguardando ação"
           tone={openCount > 0 ? 'red' : 'green'}
         />
       </section>
@@ -180,7 +180,7 @@ export function MerchantDashboardOrders() {
         <Tabs value={queueView} onValueChange={(v) => setQueueView(v as QueueView)}>
           <TabsList className="mb-4">
             <TabsTrigger value="recovery">
-              Fila de recuperação
+              Pedidos para recuperar
               {recoveryCount > 0 ? (
                 <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
                   {recoveryCount}

@@ -398,7 +398,7 @@ export function MerchantDashboardProducts() {
       </DashboardPanel>
 
       {/* Products */}
-      <DashboardPanel title="Produtos cadastrados" description="Base administrativa com acesso a ofertas individuais.">
+      <DashboardPanel title="Produtos cadastrados" description="Gerencie seus produtos, preços e ofertas.">
         {/* Filters */}
         <div className="mb-4 flex flex-col gap-3 sm:flex-row">
           <div className="relative flex-1">

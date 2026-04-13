@@ -81,29 +81,29 @@ export function MerchantDashboardQuotes() {
     <div className="space-y-6">
       {/* Page header */}
       <PageHeader
-        title="Orçamentos e leads"
-        description="Acompanhe orçamentos enviados e clientes que não concluíram o fluxo."
+        title="Orçamentos e clientes"
+        description="Gerencie orçamentos recebidos e acompanhe clientes que não finalizaram a solicitação."
       />
 
       {/* KPIs */}
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           icon={<Send className="h-4 w-4" />}
-          label="Orçamentos"
+          label="Orçamentos recebidos"
           value={`${quotes.length}`}
           tone="default"
         />
         <StatCard
           icon={<Clock3 className="h-4 w-4" />}
-          label="Em acompanhamento"
+          label="Em análise"
           value={`${inReviewQuotes}`}
           tone={inReviewQuotes > 0 ? 'blue' : 'default'}
         />
         <StatCard
           icon={<UserRound className="h-4 w-4" />}
-          label="Leads abertos"
+          label="Clientes para retomar"
           value={`${leads.length}`}
-          delta={`${freshLeads} sem doc · ${draftLeads} com rascunho`}
+          delta={`${freshLeads} sem documento · ${draftLeads} com rascunho`}
           tone={leads.length > 0 ? 'yellow' : 'default'}
         />
         <StatCard
@@ -158,7 +158,7 @@ export function MerchantDashboardQuotes() {
         <div className="rounded-xl border border-slate-200/70 bg-white shadow-sm">
           <div className="border-b border-slate-100 px-4 py-3.5">
             <p className="text-sm font-semibold text-foreground">
-              {activeTab === 'quotes' ? 'Fila operacional' : 'Retomada comercial'}
+              {activeTab === 'quotes' ? 'Orçamentos' : 'Clientes para retomar'}
             </p>
             <p className="text-xs text-muted-foreground">
               {activeTab === 'quotes' ? quotes.length : leads.length} item(ns)
@@ -257,7 +257,7 @@ export function MerchantDashboardQuotes() {
                 <div className="mt-2 grid gap-2 sm:grid-cols-3">
                   <InfoTile label="Itens" value={`${selectedQuote.itemCount}`} />
                   <InfoTile label="Enviado em" value={formatQuoteTimestamp(selectedQuote.submittedAt || selectedQuote.updatedAt)} />
-                  <InfoTile label="Confiança OCR" value={selectedQuote.ocrConfidence ? `${Math.round(selectedQuote.ocrConfidence)}%` : '—'} />
+                  <InfoTile label="Precisão da leitura" value={selectedQuote.ocrConfidence ? `${Math.round(selectedQuote.ocrConfidence)}%` : '—'} />
                 </div>
 
                 {/* Items */}
@@ -287,7 +287,7 @@ export function MerchantDashboardQuotes() {
 
                 {selectedQuote.ocrText ? (
                   <div className="mt-4 rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3">
-                    <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Texto reconhecido</p>
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Texto do documento original</p>
                     <p className="max-h-40 overflow-y-auto whitespace-pre-wrap text-xs text-muted-foreground">
                       {selectedQuote.ocrText}
                     </p>
@@ -331,7 +331,7 @@ export function MerchantDashboardQuotes() {
               {/* Header */}
               <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
                 <div className="min-w-0">
-                  <p className="text-xs text-muted-foreground">Lead capturado</p>
+                  <p className="text-xs text-muted-foreground">Cliente identificado</p>
                   <h3 className="mt-1 text-lg font-semibold text-foreground">{selectedLead.nameSnapshot}</h3>
                   <p className="mt-0.5 text-sm text-muted-foreground">{getLeadStatusDescription(selectedLead.status)}</p>
                 </div>
@@ -347,7 +347,7 @@ export function MerchantDashboardQuotes() {
 
               <div className="mt-4 rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3">
                 <p className="text-sm text-muted-foreground">
-                  Use essa fila para retomar clientes que pararam na identificação ou criaram rascunho e não enviaram a solicitação final.
+                  Este cliente iniciou o processo mas não concluiu o envio do orçamento. Entre em contato para ajudá-lo a finalizar a solicitação.
                 </p>
               </div>
 
