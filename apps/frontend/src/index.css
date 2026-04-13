@@ -333,3 +333,48 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* ── Customer dashboard sidebar (dark navy, mesma linguagem do painel admin) ── */
+.customer-sidebar {
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
+}
+
+.customer-sidebar-section {
+  border-bottom: 1px solid var(--sidebar-border);
+}
+
+.customer-sidebar-logo-link {
+  color: var(--sidebar-fg);
+}
+
+.customer-sidebar-logo-link:hover {
+  background: var(--sidebar-hover);
+}
+
+.customer-sidebar-logo-box {
+  background: rgba(255, 255, 255, 0.10);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+
+.customer-sidebar-fg {
+  color: var(--sidebar-fg);
+}
+
+.customer-sidebar-muted {
+  color: var(--sidebar-muted);
+}
+
+.customer-sidebar-avatar {
+  background: var(--sidebar-accent);
+  color: var(--sidebar-accent-fg);
+}
+
+.customer-sidebar-action-btn {
+  color: var(--sidebar-muted);
+}
+
+.customer-sidebar-action-btn:hover {
+  background: var(--sidebar-hover);
+  color: var(--sidebar-fg);
+}

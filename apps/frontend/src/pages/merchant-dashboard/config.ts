@@ -5,13 +5,13 @@ import type { UserRole } from '@rebequi/shared/types';
 export const ADMIN_BASE_PATH = '/painel-lojista/painel';
 
 export const SIDEBAR_THEME = {
-  '--sidebar-background': '222 47% 11%',       /* slate-900 deep navy */
-  '--sidebar-foreground': '213 31% 91%',        /* slate-200 */
+  '--sidebar-background': '220 25% 10%',        /* neutral dark navy — sem tom petróleo */
+  '--sidebar-foreground': '215 20% 88%',        /* quase branco quente */
   '--sidebar-primary': '217 91% 60%',           /* brand blue */
   '--sidebar-primary-foreground': '0 0% 100%',
-  '--sidebar-accent': '51 100% 50%',            /* brand yellow */
+  '--sidebar-accent': '47 100% 50%',            /* brand yellow #FFD700 */
   '--sidebar-accent-foreground': '0 0% 9%',
-  '--sidebar-border': '215 28% 17%',            /* slate-800 */
+  '--sidebar-border': '220 20% 16%',            /* divisor sutil */
   '--sidebar-ring': '217 91% 60%',
 } as const;
 

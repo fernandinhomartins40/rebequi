@@ -3,7 +3,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { SectionPanel } from './components';
+import { ContentPanel } from './components';
 
 interface SecurityTabProps {
   user: { mustChangePassword?: boolean } | null;
@@ -23,11 +23,12 @@ export function SecurityTab({
   onChangePassword,
 }: SecurityTabProps) {
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
+      {/* Título da seção */}
       <div className="flex items-end justify-between gap-3">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Acesso</p>
-          <h2 className="mt-1 text-xl font-semibold text-foreground">Segurança</h2>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Acesso</p>
+          <h2 className="mt-1 text-xl font-bold tracking-tight text-foreground">Segurança</h2>
         </div>
         <span
           className={`rounded-full px-3 py-1 text-xs font-semibold ${
@@ -40,15 +41,15 @@ export function SecurityTab({
 
       <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
         {/* Status */}
-        <SectionPanel className="p-5">
+        <ContentPanel title="Status da senha">
           <div className="space-y-3">
             {user?.mustChangePassword ? (
-              <div className="rounded-xl border border-amber-200/60 bg-amber-50/60 px-4 py-3 text-sm text-amber-800">
+              <div className="rounded-lg border border-amber-200/60 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                 Você está usando uma senha provisória. Troque-a ao lado.
               </div>
             ) : (
-              <div className="rounded-xl border border-emerald-200/60 bg-emerald-50/60 px-4 py-3 text-sm text-emerald-700">
-                Sua senha está atualizada.
+              <div className="rounded-lg border border-emerald-200/60 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                Sua senha está atualizada e segura.
               </div>
             )}
 
@@ -56,19 +57,25 @@ export function SecurityTab({
               <Alert className="border-amber-200/60 bg-amber-50/50">
                 <KeyRound className="h-4 w-4 text-amber-600" />
                 <AlertTitle className="text-amber-900">Credenciais provisórias</AlertTitle>
-                <AlertDescription className="text-amber-800">
-                  Identificador: <strong>{provisionalCredentials.identifier}</strong> · Senha:{' '}
-                  <strong>{provisionalCredentials.password}</strong>
+                <AlertDescription className="mt-1 text-amber-800">
+                  <div className="space-y-0.5">
+                    <p>
+                      Identificador:{' '}
+                      <strong className="font-mono">{provisionalCredentials.identifier}</strong>
+                    </p>
+                    <p>
+                      Senha: <strong className="font-mono">{provisionalCredentials.password}</strong>
+                    </p>
+                  </div>
                 </AlertDescription>
               </Alert>
             ) : null}
           </div>
-        </SectionPanel>
+        </ContentPanel>
 
-        {/* Change password form */}
-        <SectionPanel className="p-5">
-          <h3 className="text-base font-semibold text-foreground">Trocar senha</h3>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        {/* Formulário */}
+        <ContentPanel title="Trocar senha" description="Use uma senha forte com letras, números e símbolos.">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <Label htmlFor="cp">Senha atual</Label>
               <Input
@@ -76,7 +83,7 @@ export function SecurityTab({
                 type="password"
                 value={passwordForm.currentPassword}
                 onChange={(e) => setPasswordForm((s) => ({ ...s, currentPassword: e.target.value }))}
-                className="mt-1.5 rounded-xl border-slate-200/80 bg-white"
+                className="mt-1.5 rounded-lg border-slate-200 bg-white"
               />
             </div>
             <div>
@@ -86,7 +93,7 @@ export function SecurityTab({
                 type="password"
                 value={passwordForm.newPassword}
                 onChange={(e) => setPasswordForm((s) => ({ ...s, newPassword: e.target.value }))}
-                className="mt-1.5 rounded-xl border-slate-200/80 bg-white"
+                className="mt-1.5 rounded-lg border-slate-200 bg-white"
               />
             </div>
           </div>
@@ -99,7 +106,7 @@ export function SecurityTab({
             <Lock className="h-3.5 w-3.5" />
             {changePasswordPending ? 'Atualizando...' : 'Atualizar senha'}
           </Button>
-        </SectionPanel>
+        </ContentPanel>
       </div>
     </div>
   );
