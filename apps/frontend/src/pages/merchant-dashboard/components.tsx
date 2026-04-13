@@ -15,7 +15,6 @@ import {
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
   useSidebar,
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
@@ -23,25 +22,25 @@ import type { MerchantNavItem } from './config';
 
 export function MerchantSidebarHeader() {
   return (
-    <>
-      <SidebarHeader className="px-3 py-4">
-        <Link
-          to="/"
-          className="flex items-center gap-3 rounded-xl border border-slate-200/60 bg-white px-3 py-3 shadow-sm transition-all hover:bg-slate-50 hover:shadow-md"
-        >
+    <SidebarHeader className="px-4 pb-0 pt-4">
+      <Link
+        to="/"
+        className="group flex items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-white/8"
+      >
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white/10 ring-1 ring-white/15">
           <img
             src="/lovable-uploads/73f13341-b66a-4a9f-aa28-4bd40213b85f.png"
             alt="Rebequi Logo"
-            className="h-8 w-auto shrink-0"
+            className="h-6 w-auto object-contain"
           />
-          <div className="min-w-0 group-data-[collapsible=icon]:hidden">
-            <p className="truncate text-sm font-semibold text-foreground">Rebequi</p>
-            <p className="truncate text-xs text-muted-foreground">Painel admin</p>
-          </div>
-        </Link>
-      </SidebarHeader>
-      <SidebarSeparator className="mx-3" />
-    </>
+        </div>
+        <div className="min-w-0 group-data-[collapsible=icon]:hidden">
+          <p className="truncate text-[13px] font-semibold text-sidebar-foreground">Rebequi</p>
+          <p className="truncate text-[11px] text-sidebar-foreground/50">Painel administrativo</p>
+        </div>
+      </Link>
+      <div className="mt-3 h-px bg-sidebar-border" />
+    </SidebarHeader>
   );
 }
 
@@ -55,10 +54,10 @@ export function AdminSidebarNavigation({
   const { isMobile, setOpenMobile } = useSidebar();
 
   return (
-    <SidebarContent className="merchant-dashboard-scroll px-2 py-2">
-      <SidebarGroup>
-        <SidebarGroupLabel className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">
-          Menu
+    <SidebarContent className="merchant-dashboard-scroll px-3 py-3">
+      <SidebarGroup className="p-0">
+        <SidebarGroupLabel className="mb-1 px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/35">
+          Navegação
         </SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu className="gap-0.5">
@@ -75,30 +74,31 @@ export function AdminSidebarNavigation({
                       if (isMobile) setOpenMobile(false);
                     }}
                     className={cn(
-                      'h-auto min-h-11 rounded-xl px-3 py-2.5',
-                      'text-sidebar-foreground/75 transition-all hover:bg-white hover:text-foreground hover:shadow-sm',
-                      'data-[active=true]:bg-white data-[active=true]:text-foreground data-[active=true]:shadow-sm data-[active=true]:ring-1 data-[active=true]:ring-sidebar-accent/40'
+                      'h-auto min-h-[2.625rem] rounded-lg px-2.5 py-2 transition-all',
+                      isActive
+                        ? 'bg-white/12 text-sidebar-foreground shadow-none'
+                        : 'text-sidebar-foreground/60 hover:bg-white/8 hover:text-sidebar-foreground'
                     )}
                   >
                     <NavLink to={item.href}>
                       <div
                         className={cn(
-                          'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
+                          'flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors',
                           isActive
                             ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                            : 'bg-slate-100/80 text-muted-foreground'
+                            : 'bg-white/8 text-sidebar-foreground/60'
                         )}
                       >
-                        <item.icon className="h-4 w-4" />
+                        <item.icon className="h-3.5 w-3.5" />
                       </div>
                       <div className="flex min-w-0 flex-1 flex-col text-left group-data-[collapsible=icon]:hidden">
-                        <span className="text-[13px] font-semibold leading-tight">{item.label}</span>
-                        <span className="truncate text-[11px] text-current/55">{item.description}</span>
+                        <span className="text-[13px] font-medium leading-tight">{item.label}</span>
+                        <span className="truncate text-[11px] opacity-50">{item.description}</span>
                       </div>
                     </NavLink>
                   </SidebarMenuButton>
                   {item.badge ? (
-                    <SidebarMenuBadge className="rounded-full bg-primary/15 px-2 text-[10px] font-semibold text-primary">
+                    <SidebarMenuBadge className="rounded-full bg-sidebar-accent/20 px-2 text-[10px] font-semibold text-sidebar-accent">
                       {item.badge}
                     </SidebarMenuBadge>
                   ) : null}
@@ -124,44 +124,45 @@ export function MerchantSidebarFooter({
   const roleLabel = isMerchantUserRole(userRole) ? getMerchantRoleLabel(userRole) : userRole;
 
   return (
-    <>
-      <SidebarSeparator className="mx-3" />
-      <SidebarFooter className="gap-2 px-3 pb-4 pt-3">
-        <div className="rounded-xl border border-slate-200/60 bg-white/80 px-3 py-3 group-data-[collapsible=icon]:hidden">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary">
-              {userEmail.slice(0, 1).toUpperCase()}
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-[12px] font-semibold text-foreground">{userEmail}</p>
-              <p className="text-[11px] text-muted-foreground">{roleLabel}</p>
-            </div>
-          </div>
-        </div>
+    <SidebarFooter className="px-3 pb-4 pt-2">
+      <div className="mb-2 h-px bg-sidebar-border" />
 
+      {/* User info — hidden when collapsed to icon */}
+      <div className="mb-2 flex items-center gap-2.5 rounded-lg px-2 py-2 group-data-[collapsible=icon]:hidden">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-[12px] font-bold text-sidebar-accent-foreground">
+          {userEmail.slice(0, 1).toUpperCase()}
+        </div>
+        <div className="min-w-0">
+          <p className="truncate text-[12px] font-semibold text-sidebar-foreground">{userEmail}</p>
+          <p className="text-[11px] text-sidebar-foreground/50">{roleLabel}</p>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex flex-col gap-1">
         <Button
           size="sm"
-          variant="outline"
-          className="w-full justify-start gap-2 rounded-xl border-slate-200/80 bg-white/80 text-foreground/70 hover:bg-white hover:text-foreground"
+          variant="ghost"
+          className="h-9 w-full justify-start gap-2 rounded-lg text-sidebar-foreground/60 hover:bg-white/8 hover:text-sidebar-foreground"
           asChild
         >
           <Link to="/">
-            <ArrowLeft className="h-3.5 w-3.5" />
+            <ArrowLeft className="h-3.5 w-3.5 shrink-0" />
             <span className="group-data-[collapsible=icon]:hidden">Ver loja</span>
           </Link>
         </Button>
 
         <Button
           size="sm"
-          className="w-full justify-start gap-2 rounded-xl"
           variant="ghost"
+          className="h-9 w-full justify-start gap-2 rounded-lg text-sidebar-foreground/60 hover:bg-white/8 hover:text-sidebar-foreground"
           onClick={() => void onLogout()}
         >
-          <LogOut className="h-3.5 w-3.5" />
+          <LogOut className="h-3.5 w-3.5 shrink-0" />
           <span className="group-data-[collapsible=icon]:hidden">Sair</span>
         </Button>
-      </SidebarFooter>
-    </>
+      </div>
+    </SidebarFooter>
   );
 }
 

@@ -34,7 +34,7 @@ export function MerchantDashboardLayout() {
         <Sidebar
           variant="inset"
           collapsible="icon"
-          className="border-r border-slate-200/50 bg-[#fafaf9]"
+          className="border-r-0 bg-[hsl(222,47%,11%)]"
         >
           <MerchantSidebarHeader />
           <AdminSidebarNavigation activePath={activeItem.href} items={dashboardData.navItems} />
