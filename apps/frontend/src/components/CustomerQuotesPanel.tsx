@@ -1,5 +1,5 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
-import { ArrowRight, Camera, FileText, Plus, ScanText, Trash2 } from 'lucide-react';
+import { ArrowRight, Camera, FileText, Plus, Trash2 } from 'lucide-react';
 import { QuoteDocumentCaptureCard, type QuoteDocumentSelection } from '@/components/QuoteDocumentCaptureCard';
 import { QuoteStatusBadge } from '@/components/QuoteStatusBadge';
 import { Button } from '@/components/ui/button';
@@ -85,25 +85,20 @@ export function CustomerQuotesPanel({
         <div className="space-y-5">
           {/* Captura */}
           <section className="rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm">
-            <div className="mb-4 flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Novo orçamento</p>
-                <h3 className="mt-1 text-lg font-semibold text-foreground">Fotografar pedido</h3>
-                <p className="mt-1.5 text-sm text-muted-foreground">
-                  Use a câmera ou a galeria para criar um rascunho a partir de uma imagem.
-                </p>
-              </div>
-              <div className="hidden rounded-xl bg-primary/10 p-3 text-primary sm:flex">
-                <ScanText className="h-5 w-5" />
-              </div>
+            <div className="mb-4">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Novo orçamento</p>
+              <h3 className="mt-1 text-base font-semibold text-foreground">Tire uma foto da sua lista</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Fotografe ou escolha uma imagem — montamos o rascunho para você revisar.
+              </p>
             </div>
 
             <QuoteDocumentCaptureCard
               title="Foto do pedido"
-              description="Tire uma foto ou escolha uma imagem. O sistema monta um rascunho editável."
+              description="Tire uma foto ou escolha uma imagem."
               helper="Use boa luz e mantenha a lista legível."
               processing={createDraftPending}
-              buttonLabel="Criar rascunho"
+              buttonLabel="criar rascunho"
               onSelectFile={onCaptureDocument}
             />
           </section>
