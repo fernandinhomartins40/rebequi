@@ -57,13 +57,14 @@ export function CustomerQuotesPanel({
 
   return (
     <div className="animate-fade-in-up space-y-5">
-      <section className="rounded-[1.75rem] border border-slate-200/70 bg-white/92 p-5 shadow-sm">
+      {/* Cabeçalho resumo */}
+      <section className="rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-2">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Workspace de orcamentos</p>
-            <h3 className="text-2xl font-semibold tracking-tight text-foreground">Um fluxo continuo do documento ao envio.</h3>
-            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-              Capture um documento, abra o rascunho na fila e trabalhe sempre em um orcamento por vez.
+          <div className="space-y-1">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Orçamentos</p>
+            <h3 className="text-xl font-semibold tracking-tight text-foreground">Seus orçamentos</h3>
+            <p className="text-sm text-muted-foreground">
+              Capture um documento, revise o rascunho e envie para a loja.
             </p>
           </div>
           <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
@@ -72,54 +73,57 @@ export function CustomerQuotesPanel({
         </div>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <SummarySurface value={`${quotes.length}`} label="Total" description="Historico completo do cliente." />
-          <SummarySurface value={`${draftQuotes.length}`} label="Rascunhos" description="Prontos para revisar ou completar." />
-          <SummarySurface value={`${submittedQuotes.length + inReviewQuotes.length}`} label="Acompanhamento" description="Ja enviados e aguardando retorno." />
-          <SummarySurface value={`${respondedQuotes.length}`} label="Respondidos" description="Solicitacoes encerradas no painel." />
+          <SummarySurface value={`${quotes.length}`} label="Total" description="Histórico completo." />
+          <SummarySurface value={`${draftQuotes.length}`} label="Rascunhos" description="Para revisar ou completar." />
+          <SummarySurface value={`${submittedQuotes.length + inReviewQuotes.length}`} label="Em análise" description="Enviados, aguardando retorno." />
+          <SummarySurface value={`${respondedQuotes.length}`} label="Respondidos" description="Já têm retorno da loja." />
         </div>
       </section>
 
       <div className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
+        {/* Coluna esquerda: captura + lista */}
         <div className="space-y-5">
-          <section className="rounded-[1.75rem] border border-slate-200/70 bg-white/92 p-5 shadow-sm">
+          {/* Captura */}
+          <section className="rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Novo orcamento</p>
-                <h3 className="mt-1 text-xl font-semibold text-foreground">Adicionar foto do pedido</h3>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  Use a camera do aparelho ou a galeria para criar um novo rascunho sem trocar de tela.
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Novo orçamento</p>
+                <h3 className="mt-1 text-lg font-semibold text-foreground">Fotografar pedido</h3>
+                <p className="mt-1.5 text-sm text-muted-foreground">
+                  Use a câmera ou a galeria para criar um rascunho a partir de uma imagem.
                 </p>
               </div>
-              <div className="hidden rounded-2xl bg-primary/10 p-3 text-primary sm:flex">
+              <div className="hidden rounded-xl bg-primary/10 p-3 text-primary sm:flex">
                 <ScanText className="h-5 w-5" />
               </div>
             </div>
 
             <QuoteDocumentCaptureCard
               title="Foto do pedido"
-              description="Tire uma foto simples ou escolha uma imagem. O sistema monta um rascunho editavel."
-              helper="Use boa luz e mantenha a lista legivel."
+              description="Tire uma foto ou escolha uma imagem. O sistema monta um rascunho editável."
+              helper="Use boa luz e mantenha a lista legível."
               processing={createDraftPending}
               buttonLabel="Criar rascunho"
               onSelectFile={onCaptureDocument}
             />
           </section>
 
-          <section className="rounded-[1.75rem] border border-slate-200/70 bg-white/92 p-5 shadow-sm">
+          {/* Lista de orçamentos */}
+          <section className="rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Fila</p>
-                <h3 className="mt-1 text-lg font-semibold text-foreground">Seus orcamentos</h3>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Histórico</p>
+                <h3 className="mt-1 text-lg font-semibold text-foreground">Todos os orçamentos</h3>
               </div>
               <div className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">{quotes.length} total</div>
             </div>
 
             {quotesLoading ? (
-              <p className="text-sm text-muted-foreground">Carregando orcamentos...</p>
+              <p className="text-sm text-muted-foreground">Carregando orçamentos...</p>
             ) : quotes.length === 0 ? (
-              <div className="rounded-[1.5rem] border border-dashed border-slate-200 bg-slate-50/80 px-4 py-10 text-center">
+              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-10 text-center">
                 <Camera className="mx-auto h-6 w-6 text-muted-foreground/40" />
-                <p className="mt-2 text-sm text-muted-foreground">Nenhum orcamento ainda. Capture o primeiro documento acima.</p>
+                <p className="mt-2 text-sm text-muted-foreground">Nenhum orçamento ainda. Capture o primeiro documento acima.</p>
               </div>
             ) : (
               <div className="max-h-[560px] space-y-2 overflow-y-auto pr-1">
@@ -128,9 +132,9 @@ export function CustomerQuotesPanel({
                     key={quote.id}
                     type="button"
                     onClick={() => onSelectQuote(quote.id)}
-                    className={`w-full rounded-[1.25rem] border px-4 py-3 text-left transition-all ${
+                    className={`w-full rounded-xl border px-4 py-3 text-left transition-all ${
                       selectedQuote?.id === quote.id
-                        ? 'border-primary/30 bg-[linear-gradient(135deg,rgba(239,246,255,0.96),rgba(255,252,237,0.9))] shadow-[0_20px_50px_-40px_rgba(37,99,235,0.45)]'
+                        ? 'border-primary/30 bg-blue-50/60 shadow-sm'
                         : 'border-slate-200/70 bg-white hover:border-slate-300 hover:bg-slate-50'
                     }`}
                   >
@@ -150,98 +154,101 @@ export function CustomerQuotesPanel({
           </section>
         </div>
 
+        {/* Coluna direita: detalhe / editor */}
         <div className="space-y-5">
           {!selectedQuote ? (
-            <section className="rounded-[1.75rem] border border-dashed border-slate-200 bg-white/90 px-5 py-16 text-center shadow-sm">
+            <section className="rounded-xl border border-dashed border-slate-200 bg-white px-5 py-16 text-center shadow-sm">
               <FileText className="mx-auto h-8 w-8 text-muted-foreground/40" />
-              <h3 className="mt-4 text-lg font-semibold text-foreground">Selecione um orcamento</h3>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Capture um novo documento ou abra um item da fila para continuar o trabalho.
+              <h3 className="mt-4 text-lg font-semibold text-foreground">Selecione um orçamento</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Capture um novo documento ou escolha um item da lista para continuar.
               </p>
             </section>
           ) : (
             <>
-              <section ref={editorCardRef} className="rounded-[1.75rem] border border-slate-200/70 bg-white/92 p-5 shadow-sm">
+              {/* Cabeçalho do orçamento selecionado */}
+              <section ref={editorCardRef} className="rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="min-w-0 space-y-2">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">
+                  <div className="min-w-0 space-y-1">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                       {selectedQuote.referenceCode}
                     </p>
-                    <h3 className="truncate text-2xl font-semibold tracking-tight text-foreground">
+                    <h3 className="truncate text-xl font-semibold tracking-tight text-foreground">
                       {buildQuoteDisplayTitle(selectedQuote)}
                     </h3>
-                    <p className="text-sm leading-6 text-muted-foreground">{getQuoteStatusDescription(selectedQuote.status)}</p>
+                    <p className="text-sm text-muted-foreground">{getQuoteStatusDescription(selectedQuote.status)}</p>
                   </div>
                   <QuoteStatusBadge status={selectedQuote.status} />
                 </div>
 
                 <div className="mt-4 grid gap-3 md:grid-cols-3">
                   <InfoPanel label="Origem" value={buildQuoteSourceLabel(selectedQuote.source)} />
-                  <InfoPanel label="Atualizacao" value={formatQuoteTimestamp(selectedQuote.updatedAt || selectedQuote.createdAt)} />
+                  <InfoPanel label="Atualização" value={formatQuoteTimestamp(selectedQuote.updatedAt || selectedQuote.createdAt)} />
                   <InfoPanel label="Itens" value={`${selectedQuote.itemCount} item(ns)`} />
                 </div>
 
                 {selectedQuote.customerNote ? (
-                  <div className="mt-4 rounded-[1.35rem] border border-slate-200/70 bg-slate-50/80 p-4">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Observacao do cliente</p>
-                    <p className="mt-2 text-sm leading-6 text-foreground">{selectedQuote.customerNote}</p>
+                  <div className="mt-4 rounded-xl border border-slate-200/70 bg-slate-50/80 p-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Observação</p>
+                    <p className="mt-2 text-sm text-foreground">{selectedQuote.customerNote}</p>
                   </div>
                 ) : null}
               </section>
 
               {selectedQuote.status === 'DRAFT' ? (
                 <>
-                  <section className="rounded-[1.75rem] border border-slate-200/70 bg-white/92 p-5 shadow-sm">
+                  {/* Editor do rascunho */}
+                  <section className="rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm">
                     <div className="mb-4 flex items-start justify-between gap-4">
                       <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Edicao</p>
-                        <h3 className="mt-1 text-xl font-semibold text-foreground">Ajustar rascunho</h3>
-                        <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                          Revise apenas o necessario antes de enviar para a equipe.
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Edição</p>
+                        <h3 className="mt-1 text-lg font-semibold text-foreground">Revisar rascunho</h3>
+                        <p className="mt-1.5 text-sm text-muted-foreground">
+                          Confira os itens e corrija o que for necessário antes de enviar.
                         </p>
                       </div>
-                      <div className="hidden rounded-2xl bg-slate-100 p-3 text-slate-600 sm:flex">
+                      <div className="hidden rounded-xl bg-slate-100 p-3 text-slate-600 sm:flex">
                         <FileText className="h-5 w-5" />
                       </div>
                     </div>
 
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div>
-                        <Label htmlFor="qt">Titulo</Label>
+                        <Label htmlFor="qt">Título</Label>
                         <Input
                           id="qt"
                           value={editorState.title}
                           onChange={(e) => setEditorState((state) => ({ ...state, title: e.target.value }))}
                           placeholder="Ex.: Materiais para reforma"
-                          className="mt-1.5 rounded-xl border-slate-200/80 bg-white"
+                          className="mt-1.5 rounded-lg border-slate-200/80 bg-white"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="qref">Referencia</Label>
-                        <Input id="qref" value={selectedQuote.referenceCode} disabled className="mt-1.5 rounded-xl border-slate-200/80 bg-slate-50" />
+                        <Label htmlFor="qref">Referência</Label>
+                        <Input id="qref" value={selectedQuote.referenceCode} disabled className="mt-1.5 rounded-lg border-slate-200/80 bg-slate-50" />
                       </div>
                     </div>
 
                     <div className="mt-4">
-                      <Label htmlFor="qn">Observacoes</Label>
+                      <Label htmlFor="qn">Observações</Label>
                       <Textarea
                         id="qn"
                         rows={3}
                         value={editorState.customerNote}
                         onChange={(e) => setEditorState((state) => ({ ...state, customerNote: e.target.value }))}
-                        placeholder="Entrega, urgencia, marcas ou qualquer detalhe extra."
-                        className="mt-1.5 rounded-xl border-slate-200/80 bg-white"
+                        placeholder="Entrega, urgência, marcas ou qualquer detalhe extra."
+                        className="mt-1.5 rounded-lg border-slate-200/80 bg-white"
                       />
                     </div>
 
                     <div className="mt-4 space-y-2">
                       <div className="flex items-center justify-between gap-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Itens</p>
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Itens</p>
                         <p className="text-xs text-muted-foreground">{editableItemCount} item(ns) preenchido(s)</p>
                       </div>
 
                       {editorState.items.map((item, idx) => (
-                        <div key={`${item.id || 'n'}-${idx}`} className="rounded-2xl border border-slate-200/70 bg-slate-50/80 p-3">
+                        <div key={`${item.id || 'n'}-${idx}`} className="rounded-lg border border-slate-200/70 bg-slate-50/80 p-3">
                           <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_88px_88px_auto]">
                             <Input
                               value={item.name}
@@ -254,7 +261,7 @@ export function CustomerQuotesPanel({
                                 }))
                               }
                               placeholder="Item"
-                              className="rounded-xl border-slate-200/80 bg-white"
+                              className="rounded-lg border-slate-200/80 bg-white"
                             />
                             <Input
                               inputMode="decimal"
@@ -270,7 +277,7 @@ export function CustomerQuotesPanel({
                                 }))
                               }
                               placeholder="Qtd"
-                              className="rounded-xl border-slate-200/80 bg-white"
+                              className="rounded-lg border-slate-200/80 bg-white"
                             />
                             <Input
                               value={item.unit || ''}
@@ -283,13 +290,13 @@ export function CustomerQuotesPanel({
                                 }))
                               }
                               placeholder="un"
-                              className="rounded-xl border-slate-200/80 bg-white"
+                              className="rounded-lg border-slate-200/80 bg-white"
                             />
                             <Button
                               type="button"
                               variant="ghost"
                               size="sm"
-                              className="rounded-xl text-red-500 hover:bg-red-50 hover:text-red-600"
+                              className="rounded-lg text-red-500 hover:bg-red-50 hover:text-red-600"
                               onClick={() =>
                                 setEditorState((state) => ({
                                   ...state,
@@ -309,41 +316,42 @@ export function CustomerQuotesPanel({
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="gap-1.5 rounded-full border-slate-200/80 bg-white/90"
+                        className="gap-1.5 border-slate-200/80 bg-white"
                         onClick={() => setEditorState((state) => ({ ...state, items: [...state.items, { ...EMPTY_ITEM }] }))}
                       >
                         <Plus className="h-3.5 w-3.5" /> Adicionar item
                       </Button>
-                      <p className="text-xs text-muted-foreground">Itens vazios nao entram no envio.</p>
+                      <p className="text-xs text-muted-foreground">Itens vazios não entram no envio.</p>
                     </div>
 
                     {selectedQuote.ocrText ? (
-                      <div className="mt-4 rounded-[1.35rem] border border-slate-200/70 bg-slate-50/80 p-4">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Texto reconhecido</p>
-                        <p className="mt-2 max-h-36 overflow-y-auto whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
+                      <div className="mt-4 rounded-lg border border-slate-200/70 bg-slate-50/80 p-4">
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Texto do documento original</p>
+                        <p className="mt-2 max-h-36 overflow-y-auto whitespace-pre-wrap text-sm text-muted-foreground">
                           {selectedQuote.ocrText}
                         </p>
                       </div>
                     ) : null}
                   </section>
 
-                  <section className="rounded-[1.75rem] border border-slate-200/70 bg-white/92 p-5 shadow-sm">
+                  {/* Ação de envio */}
+                  <section className="rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                       <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Acao final</p>
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Envio</p>
                         <h3 className="mt-1 text-lg font-semibold text-foreground">Salvar ou enviar para a loja</h3>
-                        <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                          Quando o rascunho estiver correto, envie. O lojista so recebe a solicitacao operacional depois disso.
+                        <p className="mt-1.5 text-sm text-muted-foreground">
+                          Quando o rascunho estiver correto, envie para que a loja processe o seu pedido.
                         </p>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <Button size="sm" disabled={saveDraftPending || editableItemCount === 0} className="rounded-full" onClick={() => void onSaveDraft()}>
+                        <Button size="sm" disabled={saveDraftPending || editableItemCount === 0} onClick={() => void onSaveDraft()}>
                           {saveDraftPending ? 'Salvando...' : 'Salvar rascunho'}
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
-                          className="gap-1.5 rounded-full border-slate-200/80 bg-white/90"
+                          className="gap-1.5 border-slate-200/80 bg-white"
                           disabled={saveDraftPending || submitPending || editableItemCount === 0}
                           onClick={() => void onSaveAndSend()}
                         >
@@ -355,18 +363,19 @@ export function CustomerQuotesPanel({
                   </section>
                 </>
               ) : (
-                <section className="rounded-[1.75rem] border border-slate-200/70 bg-white/92 p-5 shadow-sm">
+                /* Orçamento enviado — somente leitura */
+                <section className="rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm">
                   <div className="mb-4">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Detalhes</p>
-                    <h3 className="mt-1 text-xl font-semibold text-foreground">Orcamento em acompanhamento</h3>
-                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                      Esse item ja saiu da fase de edicao e agora fica apenas para consulta.
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Detalhes</p>
+                    <h3 className="mt-1 text-lg font-semibold text-foreground">Orçamento enviado</h3>
+                    <p className="mt-1.5 text-sm text-muted-foreground">
+                      Este orçamento já foi enviado e está aguardando resposta da loja.
                     </p>
                   </div>
 
                   <div className="space-y-3">
                     {selectedQuote.items.map((item) => (
-                      <div key={item.id} className="rounded-[1.25rem] border border-slate-200/70 bg-slate-50/80 px-4 py-3">
+                      <div key={item.id} className="rounded-lg border border-slate-200/70 bg-slate-50/80 px-4 py-3">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <p className="text-sm font-semibold text-foreground">{item.name}</p>
@@ -381,9 +390,9 @@ export function CustomerQuotesPanel({
                   </div>
 
                   {selectedQuote.ocrText ? (
-                    <div className="mt-4 rounded-[1.35rem] border border-slate-200/70 bg-slate-50/80 p-4">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Texto reconhecido</p>
-                      <p className="mt-2 max-h-40 overflow-y-auto whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
+                    <div className="mt-4 rounded-lg border border-slate-200/70 bg-slate-50/80 p-4">
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Texto do documento original</p>
+                      <p className="mt-2 max-h-40 overflow-y-auto whitespace-pre-wrap text-sm text-muted-foreground">
                         {selectedQuote.ocrText}
                       </p>
                     </div>
@@ -400,19 +409,19 @@ export function CustomerQuotesPanel({
 
 function SummarySurface({ label, value, description }: { label: string; value: string; description: string }) {
   return (
-    <div className="rounded-[1.25rem] border border-slate-200/70 bg-slate-50/80 p-4">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">{label}</p>
-      <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">{value}</p>
-      <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>
+    <div className="rounded-xl border border-slate-200/70 bg-slate-50/80 p-4">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="mt-2 text-2xl font-bold tracking-tight text-foreground">{value}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{description}</p>
     </div>
   );
 }
 
 function InfoPanel({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[1.25rem] border border-slate-200/70 bg-slate-50/80 p-4">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">{label}</p>
-      <p className="mt-2 text-sm font-semibold text-foreground">{value}</p>
+    <div className="rounded-lg border border-slate-200/70 bg-slate-50/80 p-3">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="mt-1.5 text-sm font-semibold text-foreground">{value}</p>
     </div>
   );
 }
