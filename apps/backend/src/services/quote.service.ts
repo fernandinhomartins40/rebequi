@@ -10,6 +10,14 @@ import type {
 import { normalizeWhatsapp } from '@rebequi/shared/utils';
 import { AuthService } from './auth.service.js';
 import { QuoteOcrService, type RecognizedQuoteLine } from './quote-ocr.service.js';
+import {
+  applyOcrCorrections,
+  canonicalUnit,
+  normalizeDomainText,
+  domainTokenize,
+  blendedSimilarity,
+  UNIT_ALIASES,
+} from './quote-text-normalizer.js';
 import { QuoteRepository } from '../repositories/quote.repository.js';
 import { ProductRepository } from '../repositories/product.repository.js';
 import { storeQuoteDocumentImage } from './product-image-storage.service.js';
@@ -30,6 +38,13 @@ type PreparedQuoteItem = {
   position: number;
 };
 
+// All unit aliases for regex pattern
+const ALL_UNIT_PATTERN = Object.keys(UNIT_ALIASES).map((u) => u.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+const QTY_BEGINNING_RE = new RegExp(`^\\s*(\\d+(?:[.,]\\d+)?)\\s*(${ALL_UNIT_PATTERN})?(?=\\s|$)`, 'i');
+const QTY_SUFFIX_RE    = new RegExp(`(?:^|\\s)(\\d+(?:[.,]\\d+)?)\\s*(${ALL_UNIT_PATTERN})\\s*$`, 'i');
+// Inline size specs like "18L", "50kg", "20x20" embedded in a name — NOT a leading quantity
+const INLINE_SIZE_RE = /\b\d+(?:[.,]\d+)?\s*(?:l|lt|litros?|kg|m2|m²|ml|cm|mm|x\d+)\b/i;
+
 function normalizeText(value: string) {
   return value
     .normalize('NFD')
@@ -40,41 +55,41 @@ function normalizeText(value: string) {
     .trim();
 }
 
-function tokenize(value: string) {
-  return normalizeText(value)
-    .split(' ')
-    .filter((token) => token.length >= 2);
-}
+function extractQuantity(line: string): { quantity: number; unit: string | null } {
+  const corrected = applyOcrCorrections(line);
+  const normalized = corrected.replace(',', '.');
 
-function extractQuantity(line: string) {
-  const normalized = line.replace(',', '.');
-  const beginning = normalized.match(/^\s*(\d+(?:\.\d+)?)\s*(x|un|und|unid|pc|pcs|peca|pecas|cx|caixa|kg|m|mt|mts|l|lt)?/i);
-
-  if (beginning) {
-    return {
-      quantity: Number(beginning[1]),
-      unit: beginning[2]?.toLowerCase() ?? null,
-    };
+  // Only treat leading number as quantity if it is NOT part of a product size spec
+  const beginning = normalized.match(QTY_BEGINNING_RE);
+  if (beginning && beginning[1]) {
+    const qty = Number(beginning[1]);
+    // Sanity: reject implausibly large quantities (likely a product code or size)
+    if (qty > 0 && qty <= 9999) {
+      // Check if this number is followed by a size spec (e.g. "18L tinta") → not a quantity
+      const rest = normalized.slice(beginning[0].length).trimStart();
+      const appearsToBeSize = /^\d/.test(rest) === false && INLINE_SIZE_RE.test(beginning[0]);
+      if (!appearsToBeSize) {
+        return { quantity: qty, unit: canonicalUnit(beginning[2] ?? null) };
+      }
+    }
   }
 
-  const suffix = normalized.match(/(?:^|\s)(\d+(?:\.\d+)?)\s*(un|und|unid|pc|pcs|peca|pecas|cx|caixa|kg|m|mt|mts|l|lt)\s*$/i);
-  if (suffix) {
-    return {
-      quantity: Number(suffix[1]),
-      unit: suffix[2]?.toLowerCase() ?? null,
-    };
+  const suffix = normalized.match(QTY_SUFFIX_RE);
+  if (suffix && suffix[1]) {
+    const qty = Number(suffix[1]);
+    if (qty > 0 && qty <= 9999) {
+      return { quantity: qty, unit: canonicalUnit(suffix[2] ?? null) };
+    }
   }
 
-  return {
-    quantity: 1,
-    unit: null,
-  };
+  return { quantity: 1, unit: null };
 }
 
-function cleanLineForItem(line: string) {
-  return line
-    .replace(/^\s*\d+(?:[.,]\d+)?\s*(x|un|und|unid|pc|pcs|peca|pecas|cx|caixa|kg|m|mt|mts|l|lt)?\s*/i, '')
-    .replace(/\s+\d+(?:[.,]\d+)?\s*(un|und|unid|pc|pcs|peca|pecas|cx|caixa|kg|m|mt|mts|l|lt)\s*$/i, '')
+function cleanLineForItem(line: string): string {
+  const corrected = applyOcrCorrections(line);
+  return corrected
+    .replace(QTY_BEGINNING_RE, '')
+    .replace(QTY_SUFFIX_RE, '')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -497,7 +512,8 @@ export class QuoteService {
     const customerNoteParts: string[] = [];
 
     lines.forEach((line) => {
-      const text = line.text.trim();
+      // Apply OCR corrections as the very first step
+      const text = applyOcrCorrections(line.text.trim());
 
       if (!isRelevantFreeformLine(text)) {
         return;
@@ -525,8 +541,14 @@ export class QuoteService {
         return;
       }
 
+      // No product match — store the cleaned line as a generic item
+      // Capitalise first letter for presentation
+      const displayName = itemName
+        ? itemName.charAt(0).toUpperCase() + itemName.slice(1)
+        : line.text.trim();
+
       parsedItems.push({
-        name: itemName || line.text.trim(),
+        name: displayName,
         quantity: quantityData.quantity,
         unit: quantityData.unit,
         confidence: Number((line.confidence / 100).toFixed(2)),
@@ -574,38 +596,59 @@ export class QuoteService {
   }
 
   private findBestProductMatch(line: string, catalog: CatalogProduct[]) {
-    const normalizedLine = normalizeText(line);
-    const lineTokens = tokenize(line);
+    // Apply OCR corrections then full domain normalisation
+    const domainLine   = normalizeDomainText(line);
+    const plainLine    = normalizeText(line);
+    const lineTokens   = domainTokenize(line);
 
-    if (normalizedLine.length < 4) {
-      return null;
-    }
+    if (domainLine.length < 3) return null;
 
     let bestMatch: { product: CatalogProduct; score: number } | null = null;
 
     for (const product of catalog) {
-      const normalizedProductName = normalizeText(product.name);
-      const normalizedSku = normalizeText(product.sku || '');
-      const productTokens = tokenize(product.name);
-      const categoryTokens = tokenize(product.category?.name || '');
+      const normalizedSku     = normalizeText(product.sku || '');
+      const normalizedName    = normalizeText(product.name);
+      const domainProductName = normalizeDomainText(product.name);
+      const productTokens     = domainTokenize(product.name);
+      const categoryTokens    = domainTokenize(product.category?.name || '');
 
       let score = 0;
 
-      if (normalizedSku && normalizedLine.includes(normalizedSku)) {
-        score = 1;
-      } else if (normalizedLine.includes(normalizedProductName)) {
-        score = 0.96;
-      } else {
-        const matchedNameTokens = productTokens.filter((token) => lineTokens.includes(token)).length;
-        const matchedCategoryTokens = categoryTokens.filter((token) => lineTokens.includes(token)).length;
-        const nameScore = matchedNameTokens / Math.max(productTokens.length, 1);
-        const categoryScore = matchedCategoryTokens > 0 ? 0.08 : 0;
-        score = nameScore + categoryScore;
+      // 1. Exact SKU match — highest confidence
+      if (normalizedSku && (plainLine.includes(normalizedSku) || domainLine.includes(normalizedSku))) {
+        score = 1.0;
+      }
+      // 2. Full product name is contained in the line
+      else if (domainLine.includes(domainProductName) || plainLine.includes(normalizedName)) {
+        score = 0.97;
+      }
+      // 3. Line fully contained in product name (user wrote a prefix)
+      else if (domainProductName.includes(domainLine) && domainLine.length >= 5) {
+        score = 0.88;
+      }
+      // 4. Blended fuzzy similarity
+      else {
+        const fuzzy = blendedSimilarity(domainLine, domainProductName);
+
+        // Category affinity bonus
+        const categoryBonus = categoryTokens.some((t) => lineTokens.includes(t)) ? 0.07 : 0;
+
+        // Token overlap ratio (of product tokens present in line)
+        const tokenCoverage =
+          productTokens.length > 0
+            ? productTokens.filter((t) => lineTokens.includes(t)).length / productTokens.length
+            : 0;
+
+        score = fuzzy + categoryBonus;
+
+        // Require at least half the product tokens to be present for short product names
+        if (productTokens.length <= 2 && tokenCoverage < 0.5) {
+          score *= 0.6;
+        }
       }
 
-      if (score < 0.45) {
-        continue;
-      }
+      // Minimum threshold — lower than before because the blended score is more precise
+      if (score < 0.42) continue;
 
       if (!bestMatch || score > bestMatch.score) {
         bestMatch = { product, score };
