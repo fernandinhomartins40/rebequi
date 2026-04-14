@@ -36,8 +36,9 @@ export function QuoteDocumentCaptureCard({
   disabled = false,
   onSelectFile,
 }: QuoteDocumentCaptureCardProps) {
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  const [pendingMode, setPendingMode] = useState<'camera' | 'upload'>('camera');
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
+  const [activeMode, setActiveMode] = useState<'camera' | 'upload' | null>(null);
   const [localBusy, setLocalBusy] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [preview, setPreview] = useState<PreviewState | null>(null);
@@ -50,15 +51,9 @@ export function QuoteDocumentCaptureCard({
 
   const busy = disabled || processing || localBusy;
 
-  const openPicker = (mode: 'camera' | 'upload') => {
+  const handleSelectedFile = async (rawFile: File, mode: 'camera' | 'upload') => {
     if (busy) return;
-    setPendingMode(mode);
-    setLocalError(null);
-    inputRef.current?.click();
-  };
-
-  const handleSelectedFile = async (rawFile: File) => {
-    if (busy) return;
+    setActiveMode(mode);
     setLocalBusy(true);
     setLocalError(null);
 
@@ -71,16 +66,16 @@ export function QuoteDocumentCaptureCard({
         width: normalized.width,
         height: normalized.height,
         fileSize: normalized.file.size,
-        captureMode: pendingMode,
+        captureMode: mode,
       });
 
       await onSelectFile({
         file: normalized.file,
         width: normalized.width,
         height: normalized.height,
-        captureMode: pendingMode,
+        captureMode: mode,
         autoCropped: false,
-        autoCaptured: pendingMode === 'camera',
+        autoCaptured: mode === 'camera',
       });
     } catch (error) {
       setLocalError(
@@ -90,6 +85,7 @@ export function QuoteDocumentCaptureCard({
       );
     } finally {
       setLocalBusy(false);
+      setActiveMode(null);
     }
   };
 
@@ -100,10 +96,10 @@ export function QuoteDocumentCaptureCard({
         <Button
           type="button"
           className="flex-1 gap-2"
-          onClick={() => openPicker('camera')}
+          onClick={() => { if (!busy) cameraInputRef.current?.click(); }}
           disabled={busy}
         >
-          {busy && pendingMode === 'camera'
+          {localBusy && activeMode === 'camera'
             ? <Loader2 className="h-4 w-4 animate-spin" />
             : <Camera className="h-4 w-4" />}
           Abrir câmera
@@ -112,10 +108,10 @@ export function QuoteDocumentCaptureCard({
           type="button"
           variant="outline"
           className="flex-1 gap-2 border-slate-200 bg-white"
-          onClick={() => openPicker('upload')}
+          onClick={() => { if (!busy) uploadInputRef.current?.click(); }}
           disabled={busy}
         >
-          {busy && pendingMode === 'upload'
+          {localBusy && activeMode === 'upload'
             ? <Loader2 className="h-4 w-4 animate-spin" />
             : <ImagePlus className="h-4 w-4" />}
           Escolher da galeria
@@ -139,7 +135,7 @@ export function QuoteDocumentCaptureCard({
             variant="ghost"
             size="icon"
             className="h-8 w-8 shrink-0 text-muted-foreground"
-            onClick={() => openPicker('upload')}
+            onClick={() => { if (!busy) uploadInputRef.current?.click(); }}
             disabled={busy}
             aria-label="Trocar imagem"
           >
@@ -149,32 +145,47 @@ export function QuoteDocumentCaptureCard({
       ) : null}
 
       {/* Dica / erro */}
-      <div
-        className={cn(
-          'flex items-start gap-2 rounded-lg border px-3 py-2.5 text-sm',
-          localError
-            ? 'border-red-200 bg-red-50 text-red-700'
-            : 'border-slate-200/70 bg-slate-50 text-muted-foreground',
-        )}
-      >
-        {localError
-          ? <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
-          : <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />}
-        <p className="leading-snug">
-          {localError || helper || `Após selecionar, avançamos para ${buttonLabel}.`}
-        </p>
-      </div>
+      {(localError || helper) ? (
+        <div
+          className={cn(
+            'flex items-start gap-2 rounded-lg border px-3 py-2.5 text-sm',
+            localError
+              ? 'border-red-200 bg-red-50 text-red-700'
+              : 'border-slate-200/70 bg-slate-50 text-muted-foreground',
+          )}
+        >
+          {localError
+            ? <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+            : <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />}
+          <p className="leading-snug">{localError || helper}</p>
+        </div>
+      ) : null}
 
+      {/* Input câmera — capture fixo, nunca muda */}
       <input
-        ref={inputRef}
+        ref={cameraInputRef}
         type="file"
         accept="image/*"
-        capture={pendingMode === 'camera' ? 'environment' : undefined}
+        capture="environment"
         className="hidden"
         onChange={(event) => {
           const file = event.target.files?.[0];
           if (!file) return;
-          void handleSelectedFile(file);
+          void handleSelectedFile(file, 'camera');
+          event.currentTarget.value = '';
+        }}
+      />
+
+      {/* Input galeria — sem capture */}
+      <input
+        ref={uploadInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (!file) return;
+          void handleSelectedFile(file, 'upload');
           event.currentTarget.value = '';
         }}
       />
