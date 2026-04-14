@@ -13,8 +13,6 @@ export type QuoteDocumentSelection = {
 };
 
 type QuoteDocumentCaptureCardProps = {
-  title: string;
-  description: string;
   helper?: string;
   processing?: boolean;
   buttonLabel?: string;

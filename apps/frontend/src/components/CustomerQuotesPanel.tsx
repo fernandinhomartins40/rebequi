@@ -94,8 +94,6 @@ export function CustomerQuotesPanel({
             </div>
 
             <QuoteDocumentCaptureCard
-              title="Foto do pedido"
-              description="Tire uma foto ou escolha uma imagem."
               helper="Use boa luz e mantenha a lista legível."
               processing={createDraftPending}
               buttonLabel="criar rascunho"
