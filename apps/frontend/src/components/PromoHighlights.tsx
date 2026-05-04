@@ -6,12 +6,16 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { fetchPromotions } from '@/services/api/promotions';
+import { useScrollReveal } from '@/hooks/useScrollReveal';
+import { ArrowRight } from 'lucide-react';
 
 const PromoHighlights = () => {
   const { data, isLoading, error } = useQuery({
     queryKey: ['promotions', 'highlights'],
     queryFn: () => fetchPromotions({ kind: 'collection', page: 1, limit: 4 }),
   });
+
+  const { ref, isVisible } = useScrollReveal<HTMLElement>();
 
   const promotions = data?.promotions ?? [];
 
@@ -20,24 +24,31 @@ const PromoHighlights = () => {
   }
 
   return (
-    <section className="bg-white py-10 sm:py-14">
-      <div className="container mx-auto space-y-6 px-4 sm:px-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <section ref={ref} className="bg-white py-12 sm:py-16">
+      <div className="container mx-auto space-y-8 px-4 sm:px-6">
+        <div className={`flex flex-col gap-4 transition-all duration-700 lg:flex-row lg:items-end lg:justify-between ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
           <div className="space-y-2 text-center lg:text-left">
-            <p className="text-sm font-semibold uppercase text-primary">Ofertas em destaque</p>
-            <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Campanhas promocionais</h2>
+            <span className="inline-block text-xs font-bold uppercase tracking-widest text-brand-red">
+              Ofertas em destaque
+            </span>
+            <h2 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
+              Campanhas promocionais
+            </h2>
             <p className="mx-auto max-w-2xl text-sm text-muted-foreground sm:text-base lg:mx-0">
               Coleções com curadoria de produtos por tema e período.
             </p>
           </div>
 
-          <Button asChild variant="outline" className="rounded-2xl">
-            <Link to="/promocoes">Ver todas as promoções</Link>
+          <Button asChild variant="outline" className="w-full rounded-xl lg:w-auto">
+            <Link to="/promocoes">
+              Ver todas as promoções
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
           </Button>
         </div>
 
         {error ? (
-          <Alert variant="destructive">
+          <Alert variant="destructive" className="rounded-xl">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Falha ao carregar promoções</AlertTitle>
             <AlertDescription>
@@ -49,7 +60,7 @@ const PromoHighlights = () => {
         {isLoading ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-4">
             {Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="overflow-hidden rounded-[1.75rem] border border-black/5 bg-white">
+              <div key={index} className="overflow-hidden rounded-2xl border border-black/5 bg-white shadow-sm">
                 <Skeleton className="aspect-[16/10] w-full" />
                 <div className="space-y-3 p-5">
                   <Skeleton className="h-4 w-24" />
@@ -64,8 +75,14 @@ const PromoHighlights = () => {
 
         {!isLoading && promotions.length > 0 ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-4">
-            {promotions.map((promotion) => (
-              <PromotionCard key={promotion.id} promotion={promotion} />
+            {promotions.map((promotion, index) => (
+              <div
+                key={promotion.id}
+                className={`transition-all duration-500 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+                style={{ transitionDelay: `${100 + index * 100}ms` }}
+              >
+                <PromotionCard promotion={promotion} />
+              </div>
             ))}
           </div>
         ) : null}

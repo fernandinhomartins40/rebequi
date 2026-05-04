@@ -47,12 +47,12 @@ const Index = () => {
   });
 
   const ProductSectionSkeleton = () => (
-    <div className="container mx-auto px-4 py-8">
-      <Skeleton className="mb-6 h-8 w-64" />
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+    <div className="container mx-auto px-4 py-12 sm:px-6">
+      <Skeleton className="mb-8 h-9 w-72" />
+      <div className="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
         {[1, 2, 3, 4].map((i) => (
           <div key={i} className="space-y-3">
-            <Skeleton className="h-48 w-full" />
+            <Skeleton className="h-48 w-full rounded-2xl" />
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-3/4" />
           </div>
@@ -62,8 +62,8 @@ const Index = () => {
   );
 
   const ErrorAlert = ({ error }: { error: Error }) => (
-    <div className="container mx-auto px-4 py-8">
-      <Alert variant="destructive">
+    <div className="container mx-auto px-4 py-8 sm:px-6">
+      <Alert variant="destructive" className="rounded-xl">
         <AlertCircle className="h-4 w-4" />
         <AlertTitle>Erro ao carregar produtos</AlertTitle>
         <AlertDescription>
@@ -77,16 +77,8 @@ const Index = () => {
     offerResponse?.promotions
       ?.map((promotion) => {
         const product = promotion.primaryProduct || promotion.products?.[0];
-
-        if (!product) {
-          return null;
-        }
-
-        return {
-          product,
-          href: `/ofertas/${promotion.slug}`,
-          promotion,
-        };
+        if (!product) return null;
+        return { product, href: `/ofertas/${promotion.slug}`, promotion };
       })
       .filter((item): item is NonNullable<typeof item> => Boolean(item)) ?? [];
 
@@ -97,6 +89,7 @@ const Index = () => {
       <Marquee />
       <Categories />
 
+      {/* Promoções */}
       {errorPromotions ? (
         <ErrorAlert error={errorPromotions as Error} />
       ) : isLoadingPromotions ? (
@@ -106,6 +99,7 @@ const Index = () => {
           title="Promoções imperdíveis"
           items={offerItems}
           showViewAll={false}
+          highlightColor="red"
         />
       ) : null}
 
@@ -113,34 +107,48 @@ const Index = () => {
       <PromoHighlights />
       <Services />
 
-      {errorNew ? (
-        <ErrorAlert error={errorNew as Error} />
-      ) : isLoadingNew ? (
-        <ProductSectionSkeleton />
-      ) : newProducts && newProducts.length > 0 ? (
-        <ProductSection title="Novidades" products={newProducts} />
-      ) : null}
+      {/* Novidades - fundo alternado */}
+      <div className="bg-muted/40">
+        {errorNew ? (
+          <ErrorAlert error={errorNew as Error} />
+        ) : isLoadingNew ? (
+          <ProductSectionSkeleton />
+        ) : newProducts && newProducts.length > 0 ? (
+          <ProductSection title="Novidades" products={newProducts} highlightColor="blue" />
+        ) : null}
+      </div>
 
+      {/* Ferramentas */}
       {errorTools ? (
         <ErrorAlert error={errorTools as Error} />
       ) : isLoadingTools ? (
         <ProductSectionSkeleton />
       ) : toolsResponse?.products && toolsResponse.products.length > 0 ? (
-        <ProductSection title="Ferramentas" products={toolsResponse.products} viewAllHref="/categorias/ferramentas" />
-      ) : null}
-
-      {errorPaints ? (
-        <ErrorAlert error={errorPaints as Error} />
-      ) : isLoadingPaints ? (
-        <ProductSectionSkeleton />
-      ) : paintsResponse?.products && paintsResponse.products.length > 0 ? (
         <ProductSection
-          title="Tintas e acessórios"
-          products={paintsResponse.products}
-          viewAllHref="/categorias/tintas-acessorios"
+          title="Ferramentas"
+          products={toolsResponse.products}
+          viewAllHref="/categorias/ferramentas"
+          highlightColor="yellow"
         />
       ) : null}
 
+      {/* Tintas - fundo alternado */}
+      <div className="bg-muted/40">
+        {errorPaints ? (
+          <ErrorAlert error={errorPaints as Error} />
+        ) : isLoadingPaints ? (
+          <ProductSectionSkeleton />
+        ) : paintsResponse?.products && paintsResponse.products.length > 0 ? (
+          <ProductSection
+            title="Tintas e acessórios"
+            products={paintsResponse.products}
+            viewAllHref="/categorias/tintas-acessorios"
+            highlightColor="blue"
+          />
+        ) : null}
+      </div>
+
+      {/* Cimento */}
       {errorConstruction ? (
         <ErrorAlert error={errorConstruction as Error} />
       ) : isLoadingConstruction ? (
@@ -150,20 +158,25 @@ const Index = () => {
           title="Cimento e argamassa"
           products={constructionResponse.products}
           viewAllHref="/categorias/cimento-argamassa"
+          highlightColor="red"
         />
       ) : null}
 
-      {errorElectric ? (
-        <ErrorAlert error={errorElectric as Error} />
-      ) : isLoadingElectric ? (
-        <ProductSectionSkeleton />
-      ) : electricResponse?.products && electricResponse.products.length > 0 ? (
-        <ProductSection
-          title="Materiais elétricos"
-          products={electricResponse.products}
-          viewAllHref="/categorias/materiais-eletricos"
-        />
-      ) : null}
+      {/* Elétricos - fundo alternado */}
+      <div className="bg-muted/40">
+        {errorElectric ? (
+          <ErrorAlert error={errorElectric as Error} />
+        ) : isLoadingElectric ? (
+          <ProductSectionSkeleton />
+        ) : electricResponse?.products && electricResponse.products.length > 0 ? (
+          <ProductSection
+            title="Materiais elétricos"
+            products={electricResponse.products}
+            viewAllHref="/categorias/materiais-eletricos"
+            highlightColor="yellow"
+          />
+        ) : null}
+      </div>
 
       <Brands />
       <Footer />

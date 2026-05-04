@@ -112,14 +112,57 @@ All colors MUST be HSL.
 }
 
 @layer components {
+  /* Scroll Reveal */
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  .reveal-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  
+  .reveal-scale {
+    opacity: 0;
+    transform: scale(0.96);
+    transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  .reveal-scale.reveal-visible {
+    opacity: 1;
+    transform: scale(1);
+  }
+  
+  .reveal-delay-1 { transition-delay: 0.08s; }
+  .reveal-delay-2 { transition-delay: 0.16s; }
+  .reveal-delay-3 { transition-delay: 0.24s; }
+  .reveal-delay-4 { transition-delay: 0.32s; }
+  .reveal-delay-5 { transition-delay: 0.40s; }
+  .reveal-delay-6 { transition-delay: 0.48s; }
+  
+  /* Glassmorphism */
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+  }
+  
   /* Marquee Animation */
   .marquee {
     @apply flex whitespace-nowrap overflow-hidden;
-    animation: marquee var(--marquee-speed) linear infinite;
   }
   
   .marquee-content {
-    @apply flex items-center space-x-8;
+    @apply flex items-center space-x-12;
+    animation: marquee-scroll var(--marquee-speed) linear infinite;
+  }
+  
+  .marquee-content:hover {
+    animation-play-state: paused;
   }
   
   /* Hero Gradient Backgrounds */
@@ -148,10 +191,63 @@ All colors MUST be HSL.
     @apply scale-110;
     box-shadow: var(--shadow-hover);
   }
+  
+  /* Modern Nav Link Underline */
+  .nav-link-modern {
+    position: relative;
+  }
+  
+  .nav-link-modern::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: hsl(var(--brand-red));
+    transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    border-radius: 2px;
+  }
+  
+  .nav-link-modern:hover::after {
+    width: 100%;
+  }
+  
+  /* Pill Search */
+  .search-pill {
+    @apply rounded-full border border-border/60 bg-white/90 shadow-sm transition-all duration-300;
+  }
+  
+  .search-pill:focus-within {
+    @apply border-primary/30 shadow-md;
+    background: white;
+  }
+  
+  /* Modern Button Styles */
+  .btn-modern {
+    @apply rounded-xl font-semibold transition-all duration-200;
+  }
+  
+  .btn-modern:hover {
+    transform: translateY(-1px);
+  }
+  
+  .btn-modern:active {
+    transform: translateY(0);
+  }
 }
 
 @layer utilities {
   /* Animation Keyframes */
+  @keyframes marquee-scroll {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  
   @keyframes marquee {
     from {
       transform: translateX(100%);

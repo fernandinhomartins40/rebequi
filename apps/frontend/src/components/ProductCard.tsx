@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Heart, Eye, ShoppingCart } from "lucide-react";
+import { Heart, Eye, ShoppingCart, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { Product } from "@/types";
 import { useCart } from "@/contexts/CartContext";
@@ -48,6 +48,7 @@ const ProductCard = ({
   countdownLabel,
 }: ProductCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
   const { addItem } = useCart();
   const { toast } = useToast();
   const productHref = href || `/produto/${slug}`;
@@ -61,9 +62,7 @@ const ProductCard = ({
   };
 
   const handleAddToCart = () => {
-    if (!canAddToCart) {
-      return;
-    }
+    if (!canAddToCart) return;
 
     addItem(
       {
@@ -96,74 +95,117 @@ const ProductCard = ({
 
   return (
     <div
-      className="card-hover group overflow-hidden rounded-lg bg-white"
+      className="group flex flex-col overflow-hidden rounded-2xl border border-border/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
       data-product-id={id}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="relative overflow-hidden">
+      {/* Image Container */}
+      <div className="relative overflow-hidden bg-muted">
         <Link to={productHref} aria-label={`Ver detalhes de ${name}`}>
+          {!isImageLoaded && (
+            <div className="aspect-square w-full animate-pulse bg-muted" />
+          )}
           <img
             src={image}
             alt={name}
-            className="aspect-square w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className={`aspect-square w-full object-cover transition-all duration-500 group-hover:scale-105 ${isImageLoaded ? 'opacity-100' : 'opacity-0'}`}
+            onLoad={() => setIsImageLoaded(true)}
           />
         </Link>
 
-        <div className="absolute left-2 top-2 flex flex-col space-y-1">
-          {isNew ? <Badge className="bg-primary text-primary-foreground">NOVO</Badge> : null}
-          {promotionBadge ? <Badge className="bg-accent text-accent-foreground">{promotionBadge}</Badge> : null}
-          {isOffer && discount ? <Badge className="bg-accent text-accent-foreground">-{discount}%</Badge> : null}
+        {/* Badges */}
+        <div className="absolute left-3 top-3 flex flex-col gap-1.5">
+          {isNew ? (
+            <Badge className="rounded-lg bg-primary px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
+              Novo
+            </Badge>
+          ) : null}
+          {promotionBadge ? (
+            <Badge className="rounded-lg bg-brand-red px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
+              {promotionBadge}
+            </Badge>
+          ) : null}
+          {isOffer && discount ? (
+            <Badge className="rounded-lg bg-brand-yellow px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-foreground shadow-sm">
+              -{discount}%
+            </Badge>
+          ) : null}
         </div>
 
+        {/* Quick Actions */}
         <div
-          className={`absolute right-2 top-2 flex flex-col space-y-1 transition-opacity duration-200 ${
-            isHovered ? "opacity-100" : "opacity-0"
+          className={`absolute right-3 top-3 flex flex-col gap-1.5 transition-all duration-300 ${
+            isHovered ? "translate-x-0 opacity-100" : "translate-x-2 opacity-0"
           }`}
         >
-          <Button size="icon" variant="secondary" className="h-8 w-8">
-            <Heart className="h-4 w-4" />
+          <Button
+            size="icon"
+            variant="secondary"
+            className="h-8 w-8 rounded-full bg-white/90 shadow-md backdrop-blur-sm transition-colors hover:bg-white"
+          >
+            <Heart className="h-3.5 w-3.5" />
           </Button>
-          <Button asChild size="icon" variant="secondary" className="h-8 w-8">
+          <Button
+            asChild
+            size="icon"
+            variant="secondary"
+            className="h-8 w-8 rounded-full bg-white/90 shadow-md backdrop-blur-sm transition-colors hover:bg-white"
+          >
             <Link to={productHref} aria-label={`Abrir ${name}`}>
-              <Eye className="h-4 w-4" />
+              <Eye className="h-3.5 w-3.5" />
             </Link>
           </Button>
         </div>
       </div>
 
-      <div className="p-4">
-        <p className="mb-1 text-sm text-muted-foreground">{category}</p>
-        <Link to={productHref} className="block">
-          <h3 className="mb-2 min-h-[2.5rem] line-clamp-2 font-medium text-foreground transition-colors hover:text-primary">
+      {/* Content */}
+      <div className="flex flex-1 flex-col p-4">
+        <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          {category}
+        </p>
+        <Link to={productHref} className="block flex-1">
+          <h3 className="mb-2 line-clamp-2 text-sm font-semibold leading-snug text-foreground transition-colors hover:text-primary">
             {name}
           </h3>
         </Link>
 
-        <div className="mb-3 flex items-center space-x-2">
-          <span className="text-lg font-bold text-primary">{formatPrice(price)}</span>
+        {/* Pricing */}
+        <div className="mb-2 flex items-baseline gap-2">
+          <span className="text-lg font-extrabold text-primary">{formatPrice(price)}</span>
           {originalPrice ? (
-            <span className="text-sm text-muted-foreground line-through">{formatPrice(originalPrice)}</span>
+            <span className="text-xs text-muted-foreground line-through">{formatPrice(originalPrice)}</span>
           ) : null}
         </div>
 
         {offerSummary ? (
-          <p className="mb-3 line-clamp-2 text-sm leading-5 text-muted-foreground">{offerSummary}</p>
+          <p className="mb-2 line-clamp-1 text-xs leading-5 text-muted-foreground">{offerSummary}</p>
         ) : null}
 
         {countdownTo ? (
           <PromotionCountdown expiresAt={countdownTo} label={countdownLabel || 'Termina em'} className="mb-3" />
         ) : null}
 
-        <div className="grid gap-2 sm:grid-cols-2">
-          <Button size="sm" onClick={handleAddToCart} disabled={!canAddToCart}>
-            <ShoppingCart className="mr-2 h-4 w-4" />
+        {/* Actions */}
+        <div className="mt-auto grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto]">
+          <Button
+            size="sm"
+            onClick={handleAddToCart}
+            disabled={!canAddToCart}
+            className="h-9 rounded-xl text-xs font-semibold transition-all duration-200 hover:-translate-y-0.5"
+          >
+            <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
             {canAddToCart ? "Adicionar" : "Sem estoque"}
           </Button>
-          <Button asChild className="w-full" size="sm" variant="outline">
+          <Button
+            asChild
+            size="sm"
+            variant="outline"
+            className="hidden h-9 rounded-xl sm:inline-flex"
+          >
             <Link to={productHref}>
-              <Eye className="mr-2 h-4 w-4" />
-              Ver produto
+              <Zap className="mr-1.5 h-3.5 w-3.5" />
+              Ver
             </Link>
           </Button>
         </div>

@@ -10,19 +10,23 @@ const Marquee = () => {
     { icon: Award, text: "15 Anos de Experiência" },
   ];
 
+  const allItems = [...items, ...items, ...items, ...items];
+
   return (
-    <div className="py-2.5 overflow-hidden" style={{ backgroundColor: '#cc2227' }}>
-      <div className="marquee">
-        <div className="marquee-content">
-          {/* Duplicate items to ensure continuous scroll */}
-          {[...items, ...items, ...items].map((item, index) => (
+    <div className="overflow-hidden py-3 sm:py-4" style={{ backgroundColor: '#cc2227' }}>
+      <div className="flex">
+        <div className="marquee-content flex items-center gap-10 sm:gap-14">
+          {allItems.map((item, index) => (
             <div
               key={index}
-              className="flex items-center space-x-2 font-semibold"
-              style={{ color: '#f9ef38' }}
+              className="flex items-center gap-2.5 whitespace-nowrap"
             >
-              <item.icon className="h-5 w-5" />
-              <span className="whitespace-nowrap">{item.text}</span>
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10">
+                <item.icon className="h-3.5 w-3.5 text-brand-yellow" />
+              </div>
+              <span className="text-xs font-bold uppercase tracking-widest text-brand-yellow sm:text-sm">
+                {item.text}
+              </span>
             </div>
           ))}
         </div>

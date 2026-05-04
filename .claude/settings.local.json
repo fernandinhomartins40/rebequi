@@ -10,7 +10,11 @@
       "Bash(git add:*)",
       "Bash(git log:*)",
       "Bash(git commit -m \"$(cat <<''EOF''\nRefactor: Migração completa para arquitetura monorepo\n\n- Reestruturação completa do projeto para padrão monorepo\n- Organização em apps/frontend e apps/backend\n- Criação de packages/shared para código compartilhado\n- Configuração de npm workspaces\n- Nomenclatura seguindo melhores práticas (frontend/backend)\n- Tipos TypeScript compartilhados entre apps\n- Validação completa: 10/10 aprovadas\n- Build otimizado e funcional\n\nEstrutura:\n- apps/frontend: Frontend React + Vite\n- apps/backend: Backend preparado para implementação\n- packages/shared: Tipos e utilitários compartilhados\n\nValidações:\n✅ TypeScript: 0 erros\n✅ Build: 3.42s\n✅ Imports: Todos corretos\n✅ Rotas: Funcionando\n✅ Workspaces: Linkados\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(node -e \":*)",
+      "Bash(python3 -c \"from paddleocr import PaddleOCR; print\\(''OK''\\)\")",
+      "Bash(pip3 install:*)",
+      "Bash(pip install:*)"
     ],
     "deny": [],
     "ask": []

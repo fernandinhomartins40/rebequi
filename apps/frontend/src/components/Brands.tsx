@@ -1,3 +1,5 @@
+import { useScrollReveal } from "@/hooks/useScrollReveal";
+
 const brands = [
   { name: "Coral", logo: "https://images.tcdn.com.br/files/1324197/themes/52/img/settings/coral2.png?daed2e0862f003ffc24ef8fbc059a298" },
   { name: "Docol", logo: "https://images.tcdn.com.br/files/1324197/themes/52/img/settings/docol.jpg?daed2e0862f003ffc24ef8fbc059a298" },
@@ -10,27 +12,47 @@ const brands = [
 ];
 
 const Brands = () => {
+  const { ref, isVisible } = useScrollReveal<HTMLElement>();
+  const doubledBrands = [...brands, ...brands, ...brands, ...brands];
+
   return (
-    <section className="bg-muted/60 py-10 sm:py-14">
-      <div className="container mx-auto space-y-6 px-4 sm:px-6">
-        <div className="flex flex-col gap-3 text-center">
-          <p className="text-sm font-semibold uppercase text-primary">Marcas parceiras</p>
-          <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Quem constrói com a gente</h2>
-          <p className="mx-auto max-w-2xl text-sm text-muted-foreground sm:text-base">
+    <section ref={ref} className="bg-muted/60 py-12 sm:py-16">
+      <div className="container mx-auto px-4 sm:px-6">
+        <div className={`mb-8 text-center transition-all duration-700 sm:mb-10 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
+          <span className="mb-2 inline-block text-xs font-bold uppercase tracking-widest text-primary">
+            Marcas parceiras
+          </span>
+          <h2 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
+            Quem constrói com a gente
+          </h2>
+          <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground sm:text-base">
             Fabricantes de confiança em cada etapa da obra.
           </p>
         </div>
 
-        <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
-          <div className="flex items-center gap-4 overflow-x-auto px-4 py-5 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent sm:gap-8 sm:px-6 sm:py-6">
-            {brands.map((brand) => (
-              <div
-                key={brand.name}
-                className="flex h-16 w-28 flex-shrink-0 items-center justify-center rounded-md border bg-white px-3 py-2 transition hover:shadow-sm sm:w-32"
-              >
-                <img src={brand.logo} alt={brand.name} className="max-h-12 object-contain" loading="lazy" />
+        <div className={`overflow-hidden rounded-2xl border border-border/40 bg-white shadow-sm transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{ transitionDelay: "200ms" }}>
+          <div className="relative">
+            {/* Gradient masks */}
+            <div className="pointer-events-none absolute left-0 top-0 z-10 h-full w-16 bg-gradient-to-r from-white to-transparent" />
+            <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-16 bg-gradient-to-l from-white to-transparent" />
+
+            <div className="flex overflow-hidden py-6 sm:py-8">
+              <div className="flex animate-marquee-scroll items-center gap-8 sm:gap-12">
+                {doubledBrands.map((brand, index) => (
+                  <div
+                    key={`${brand.name}-${index}`}
+                    className="flex h-16 w-28 flex-shrink-0 items-center justify-center rounded-xl border border-border/30 bg-white px-4 py-2 grayscale transition-all duration-300 hover:grayscale-0 hover:shadow-sm sm:w-36"
+                  >
+                    <img
+                      src={brand.logo}
+                      alt={brand.name}
+                      className="max-h-10 object-contain"
+                      loading="lazy"
+                    />
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
         </div>
       </div>
