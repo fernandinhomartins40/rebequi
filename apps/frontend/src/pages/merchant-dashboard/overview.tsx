@@ -163,7 +163,7 @@ export default function MerchantDashboardOverview() {
             : `${products.length} produtos · ${publishedProducts.length} publicados · ${activeCategories.length} categorias`
         }
         actions={
-          <Button asChild size="sm">
+          <Button asChild size="sm" className="rounded-xl">
             <Link to={`${ADMIN_BASE_PATH}/produtos`}>Gerenciar produtos</Link>
           </Button>
         }
@@ -200,24 +200,26 @@ export default function MerchantDashboardOverview() {
 
       {/* Completeness bar */}
       {!isSnapshotLoading && publishedProducts.length > 0 ? (
-        <div className="rounded-xl border border-slate-200/70 bg-white px-5 py-4 shadow-sm">
+        <div className="rounded-2xl border border-border/50 bg-white px-5 py-4 shadow-sm">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              <p className="text-sm font-semibold text-foreground">Completude do catálogo</p>
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-blue/10">
+                <TrendingUp className="h-4 w-4 text-brand-blue" />
+              </div>
+              <p className="text-sm font-bold text-foreground">Completude do catálogo</p>
             </div>
             <span
-              className={`text-sm font-bold ${
-                completenessRate >= 80 ? 'text-emerald-600' : completenessRate >= 50 ? 'text-amber-600' : 'text-red-600'
+              className={`text-sm font-extrabold ${
+                completenessRate >= 80 ? 'text-emerald-600' : completenessRate >= 50 ? 'text-brand-yellow' : 'text-brand-red'
               }`}
             >
               {completenessRate}%
             </span>
           </div>
-          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+          <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-muted">
             <div
-              className={`h-full rounded-full transition-all ${
-                completenessRate >= 80 ? 'bg-emerald-500' : completenessRate >= 50 ? 'bg-amber-500' : 'bg-red-500'
+              className={`h-full rounded-full transition-all duration-700 ${
+                completenessRate >= 80 ? 'bg-emerald-500' : completenessRate >= 50 ? 'bg-brand-yellow' : 'bg-brand-red'
               }`}
               style={{ width: `${completenessRate}%` }}
             />
@@ -239,18 +241,18 @@ export default function MerchantDashboardOverview() {
           ].map((item) => (
             <div
               key={item.label}
-              className="rounded-xl border border-slate-200/70 bg-white px-4 py-3 shadow-sm"
+              className="rounded-2xl border border-border/50 bg-white px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
             >
-              <p className="text-xs text-muted-foreground">{item.label}</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{item.label}</p>
               <p
-                className={`mt-1 text-2xl font-bold ${
+                className={`mt-1 text-2xl font-extrabold tracking-tight ${
                   item.tone === 'red' && item.value > 0
-                    ? 'text-red-600'
+                    ? 'text-brand-red'
                     : item.tone === 'yellow'
-                      ? 'text-amber-600'
+                      ? 'text-foreground'
                       : item.tone === 'green'
                         ? 'text-emerald-600'
-                        : 'text-blue-600'
+                        : 'text-brand-blue'
                 }`}
               >
                 {item.value}
@@ -264,7 +266,7 @@ export default function MerchantDashboardOverview() {
       <section className="grid gap-4 xl:grid-cols-2">
         <DashboardPanel title="Radar do catálogo" description="Status geral dos produtos publicados">
           {hasSnapshotError ? (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="rounded-xl border border-brand-red/20 bg-brand-red/5 px-4 py-3 text-sm text-brand-red">
               Não foi possível carregar os dados.
             </div>
           ) : (
@@ -314,24 +316,24 @@ export default function MerchantDashboardOverview() {
           description="Pendências com maior impacto na vitrine"
           action={
             attentionItems.length > 0 ? (
-              <Button asChild variant="ghost" size="sm" className="text-xs">
+              <Button asChild variant="ghost" size="sm" className="text-xs rounded-xl">
                 <Link to={`${ADMIN_BASE_PATH}/produtos`}>Ver todos</Link>
               </Button>
             ) : null
           }
         >
           {hasSnapshotError ? (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="rounded-xl border border-brand-red/20 bg-brand-red/5 px-4 py-3 text-sm text-brand-red">
               Erro ao carregar prioridades.
             </div>
           ) : isSnapshotLoading ? (
             <div className="space-y-2">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-14 animate-pulse rounded-lg bg-slate-100" />
+                <div key={i} className="h-14 animate-pulse rounded-xl bg-muted" />
               ))}
             </div>
           ) : attentionItems.length === 0 ? (
-            <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-700">
+            <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-700">
               <CheckCircle2 className="h-4 w-4 shrink-0" />
               Tudo em dia. Nenhuma pendência encontrada.
             </div>
@@ -340,10 +342,10 @@ export default function MerchantDashboardOverview() {
               {attentionItems.map((item) => (
                 <li
                   key={`${item.name}-${item.updatedAt}`}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-slate-100 bg-white px-4 py-3"
+                  className="flex items-center justify-between gap-3 rounded-xl border border-border/40 bg-white px-4 py-3 transition-all duration-200 hover:shadow-sm"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-foreground">{item.name}</p>
+                    <p className="truncate text-sm font-bold text-foreground">{item.name}</p>
                     <p className="text-xs text-muted-foreground">{item.categoryName}</p>
                   </div>
                   <div className="flex shrink-0 flex-wrap gap-1.5">
@@ -353,10 +355,10 @@ export default function MerchantDashboardOverview() {
                         variant="outline"
                         className={
                           issue.tone === 'red'
-                            ? 'border-red-200 bg-red-50 text-red-700'
+                            ? 'border-brand-red/20 bg-brand-red/5 text-brand-red'
                             : issue.tone === 'yellow'
-                              ? 'border-amber-200 bg-amber-50 text-amber-700'
-                              : 'border-blue-200 bg-blue-50 text-blue-700'
+                              ? 'border-brand-yellow/30 bg-brand-yellow/10 text-foreground'
+                              : 'border-brand-blue/20 bg-brand-blue/5 text-brand-blue'
                         }
                       >
                         {issue.label}

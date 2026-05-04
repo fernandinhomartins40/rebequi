@@ -157,14 +157,14 @@ export function MerchantDashboardOrders() {
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              className="pl-9"
+              className="pl-9 rounded-xl"
               placeholder="Buscar por cliente, referência ou WhatsApp…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
           <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilterValue)}>
-            <SelectTrigger className="sm:w-52">
+            <SelectTrigger className="sm:w-52 rounded-xl">
               <SelectValue placeholder="Filtrar status" />
             </SelectTrigger>
             <SelectContent>
@@ -182,7 +182,7 @@ export function MerchantDashboardOrders() {
             <TabsTrigger value="recovery">
               Pedidos para recuperar
               {recoveryCount > 0 ? (
-                <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                <span className="ml-2 rounded-full bg-brand-yellow/10 px-2 py-0.5 text-[10px] font-semibold text-foreground">
                   {recoveryCount}
                 </span>
               ) : null}
@@ -197,20 +197,20 @@ export function MerchantDashboardOrders() {
         {ordersQuery.isLoading ? (
           <div className="space-y-2">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-16 animate-pulse rounded-lg bg-slate-100" />
+              <div key={i} className="h-16 animate-pulse rounded-lg bg-muted" />
             ))}
           </div>
         ) : orders.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 py-10 text-center text-sm text-muted-foreground">
+          <div className="rounded-lg border border-dashed border-border/50 bg-muted/50 py-10 text-center text-sm text-muted-foreground">
             Nenhum pedido encontrado com os filtros atuais.
           </div>
         ) : (
           <>
             {/* Desktop table */}
-            <div className="hidden overflow-hidden rounded-lg border border-slate-200/70 xl:block">
+            <div className="hidden overflow-hidden rounded-lg border border-border/50/70 xl:block">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-slate-50/80 hover:bg-slate-50/80">
+                  <TableRow className="bg-muted/50/80 hover:bg-muted/50/80">
                     <TableHead className="font-semibold">Cliente</TableHead>
                     <TableHead className="font-semibold">Referência</TableHead>
                     <TableHead className="font-semibold">Status</TableHead>
@@ -222,7 +222,7 @@ export function MerchantDashboardOrders() {
                 </TableHeader>
                 <TableBody>
                   {orders.map((order) => (
-                    <TableRow key={order.id} className="hover:bg-slate-50/60">
+                    <TableRow key={order.id} className="hover:bg-muted/50/60">
                       <TableCell>
                         <p className="font-medium text-foreground">{order.customerNameSnapshot}</p>
                         <p className="text-xs text-muted-foreground">{order.itemCount} item(ns)</p>
@@ -256,7 +256,7 @@ export function MerchantDashboardOrders() {
             {/* Mobile cards */}
             <div className="space-y-2 xl:hidden">
               {orders.map((order) => (
-                <div key={order.id} className="rounded-lg border border-slate-200/70 bg-white p-4">
+                <div key={order.id} className="rounded-lg border border-border/50/70 bg-white p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-semibold text-foreground">{order.customerNameSnapshot}</p>
@@ -273,7 +273,7 @@ export function MerchantDashboardOrders() {
                     <OrderStatusBadge status={order.status} />
                     <span className="text-xs text-muted-foreground">{formatDateTime(order.updatedAt)}</span>
                   </div>
-                  <div className="mt-3 border-t border-slate-100 pt-3">
+                  <div className="mt-3 border-t border-border/40 pt-3">
                     <OrderRowActions
                       order={order}
                       isMutating={statusMutation.isPending}
@@ -314,13 +314,13 @@ function OrderRowActions({
 
   return (
     <div className={compact ? 'flex items-center justify-end gap-1' : 'flex flex-wrap items-center gap-1'}>
-      <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" asChild>
         <Link to={`${ADMIN_BASE_PATH}/pedidos/${order.id}`} aria-label={`Abrir ${order.referenceCode}`}>
           <Eye className="h-4 w-4" />
         </Link>
       </Button>
 
-      <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" asChild>
         <a href={customerChatUrl} target="_blank" rel="noreferrer" aria-label="WhatsApp do cliente">
           <MessageCircleMore className="h-4 w-4" />
         </a>
@@ -339,7 +339,7 @@ function OrderRowActions({
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Mais ações">
+          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" aria-label="Mais ações">
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>

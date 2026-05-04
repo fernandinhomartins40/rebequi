@@ -208,7 +208,7 @@ function ProductImageCard({
   onRemove: () => void;
 }) {
   return (
-    <div className="rounded-3xl border border-black/5 bg-slate-50 p-3">
+    <div className="rounded-3xl border border-black/5 bg-muted/50 p-3">
       <div className="overflow-hidden rounded-2xl border border-black/5 bg-white">
         <img src={image.previewUrl || image.url} alt={image.alt || 'Imagem do produto'} className="aspect-square w-full object-cover" />
       </div>
@@ -216,7 +216,7 @@ function ProductImageCard({
         <Button type="button" variant="outline" className="flex-1" onClick={onMakePrimary}>
           {image.isPrimary ? 'Principal' : 'Tornar principal'}
         </Button>
-        <Button type="button" variant="outline" className="border-red-200 text-red-600" onClick={onRemove}>
+        <Button type="button" variant="outline" className="border-brand-red/20 text-brand-red" onClick={onRemove}>
           <Trash2 className="mr-2 h-4 w-4" />
           Remover
         </Button>
@@ -525,7 +525,7 @@ export function ProductEditorDialog({
                     />
                   ))}
                   {images.length === 0 ? (
-                    <div className="rounded-3xl border border-dashed border-black/10 bg-slate-50 px-5 py-10 text-center text-sm text-muted-foreground md:col-span-2 xl:col-span-3">
+                    <div className="rounded-3xl border border-dashed border-black/10 bg-muted/50 px-5 py-10 text-center text-sm text-muted-foreground md:col-span-2 xl:col-span-3">
                       Nenhuma imagem selecionada.
                     </div>
                   ) : null}
@@ -533,19 +533,19 @@ export function ProductEditorDialog({
               </ModalPanel>
 
               <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-slate-50 px-4 py-3 text-sm">
+                <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-muted/50 px-4 py-3 text-sm">
                   <input type="checkbox" {...register('isOffer')} />
                   Produto em oferta
                 </label>
-                <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-slate-50 px-4 py-3 text-sm">
+                <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-muted/50 px-4 py-3 text-sm">
                   <input type="checkbox" {...register('isNew')} />
                   Sinalizar como novidade
                 </label>
-                <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-slate-50 px-4 py-3 text-sm">
+                <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-muted/50 px-4 py-3 text-sm">
                   <input type="checkbox" {...register('isFeatured')} />
                   Exibir em destaque
                 </label>
-                <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-slate-50 px-4 py-3 text-sm">
+                <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-muted/50 px-4 py-3 text-sm">
                   <input type="checkbox" {...register('isActive')} />
                   Produto ativo
                 </label>

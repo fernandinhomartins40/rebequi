@@ -157,7 +157,7 @@ export function MerchantDashboardOrderDetails() {
             </div>
 
             {order.customerNote ? (
-              <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-4">
+              <div className="rounded-2xl border border-border/40 bg-muted/50 px-4 py-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                   Observacao do cliente
                 </p>
@@ -191,7 +191,7 @@ export function MerchantDashboardOrderDetails() {
           >
             <div className="space-y-3">
               {order.items.map((item) => (
-                <div key={item.id} className="flex flex-col items-start gap-3 rounded-2xl border border-black/5 bg-slate-50 px-4 py-4 sm:flex-row sm:items-center">
+                <div key={item.id} className="flex flex-col items-start gap-3 rounded-2xl border border-border/40 bg-muted/50 px-4 py-4 sm:flex-row sm:items-center">
                   {item.productImageUrlSnapshot ? (
                     <img
                       src={item.productImageUrlSnapshot}

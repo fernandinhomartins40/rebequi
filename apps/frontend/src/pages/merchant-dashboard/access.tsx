@@ -158,7 +158,7 @@ export function MerchantDashboardAccess() {
               <MetricChip label="Usuário logado" tone="blue" value={user?.email || user?.identifier || '-'} />
               <MetricChip label="Seu perfil" tone="yellow" value={getMerchantRoleLabel(user?.role)} />
             </div>
-            <div className="rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3">
+            <div className="rounded-lg border border-border/40 bg-muted/30 px-4 py-3">
               <p className="text-sm font-semibold text-foreground">Como o controle de acesso funciona</p>
               <p className="mt-1.5 text-sm leading-6 text-muted-foreground">
                 Somente administradores acessam esta tela. Os demais colaboradores entram no mesmo painel, mas visualizam apenas as seções liberadas para o perfil definido aqui.
@@ -170,7 +170,7 @@ export function MerchantDashboardAccess() {
         <DashboardPanel title="Distribuição por perfil" description="Composição atual da equipe.">
           <div className="space-y-2">
             {roleTotals.map(({ role, total }) => (
-              <div key={role} className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3">
+              <div key={role} className="flex items-center justify-between rounded-lg border border-border/40 bg-muted/30 px-4 py-3">
                 <div>
                   <p className="text-sm font-semibold text-foreground">{getMerchantRoleLabel(role)}</p>
                   <p className="text-xs text-muted-foreground">{getMerchantRoleDescription(role)}</p>
@@ -193,14 +193,14 @@ export function MerchantDashboardAccess() {
           {INTERNAL_USER_ROLES.map((role) => (
             <article
               key={role}
-              className="rounded-xl border border-slate-200/70 bg-slate-50/60 p-5"
+              className="rounded-xl border border-border/50 bg-muted/30 p-5"
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h3 className="text-sm font-semibold text-foreground">{getMerchantRoleLabel(role)}</h3>
                   <p className="mt-1 text-sm leading-5 text-muted-foreground">{getMerchantRoleDescription(role)}</p>
                 </div>
-                <span className="shrink-0 rounded-full border border-primary/15 bg-primary/5 px-2.5 py-0.5 text-xs font-semibold text-primary">
+                <span className="shrink-0 rounded-full border border-brand-blue/20 bg-brand-blue/5 px-2.5 py-0.5 text-xs font-semibold text-brand-blue">
                   {roleTotals.find((item) => item.role === role)?.total ?? 0} usuário(s)
                 </span>
               </div>
@@ -208,7 +208,7 @@ export function MerchantDashboardAccess() {
                 {MERCHANT_ROLE_PROFILES[role].permissions.map((permission) => (
                   <span
                     key={permission}
-                    className="inline-flex rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-xs font-medium text-foreground"
+                    className="inline-flex rounded-full border border-border/40 bg-white px-2.5 py-0.5 text-xs font-medium text-foreground"
                   >
                     {getMerchantPermissionLabel(permission)}
                   </span>
@@ -238,7 +238,7 @@ export function MerchantDashboardAccess() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por nome, e-mail ou WhatsApp…"
-              className="pl-9"
+              className="pl-9 rounded-xl"
             />
           </div>
           <select
@@ -264,20 +264,20 @@ export function MerchantDashboardAccess() {
         {isLoading ? (
           <div className="space-y-2">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-14 animate-pulse rounded-lg bg-slate-100" />
+              <div key={i} className="h-14 animate-pulse rounded-lg bg-muted" />
             ))}
           </div>
         ) : !hasUsers ? (
-          <div className="rounded-lg border border-dashed border-slate-200 py-10 text-center text-sm text-muted-foreground">
+          <div className="rounded-lg border border-dashed border-border/40 py-10 text-center text-sm text-muted-foreground">
             Nenhum colaborador encontrado para este filtro.
           </div>
         ) : (
           <>
             {/* Desktop table */}
-            <div className="hidden overflow-hidden rounded-lg border border-slate-200/70 xl:block">
+            <div className="hidden overflow-hidden rounded-lg border border-border/50 xl:block">
               <div className="max-h-[34rem] overflow-auto">
                 <Table>
-                  <TableHeader className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur">
+                  <TableHeader className="sticky top-0 z-10 bg-muted/50/95 backdrop-blur">
                     <TableRow className="hover:bg-transparent">
                       <TableHead className="w-[30%] font-semibold">Colaborador</TableHead>
                       <TableHead className="font-semibold">Perfil</TableHead>
@@ -290,13 +290,13 @@ export function MerchantDashboardAccess() {
                     {users.map((u) => {
                       const isCurrentUser = user?.id === u.id;
                       return (
-                        <TableRow key={u.id} className="hover:bg-slate-50/60">
+                        <TableRow key={u.id} className="hover:bg-muted/30">
                           <TableCell>
                             <div className="space-y-0.5">
                               <div className="flex flex-wrap items-center gap-2">
                                 <p className="font-semibold text-foreground">{u.name}</p>
                                 {isCurrentUser ? (
-                                  <span className="rounded-full border border-primary/15 bg-primary/5 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
+                                  <span className="rounded-full border border-brand-blue/20 bg-brand-blue/5 px-2.5 py-0.5 text-[11px] font-semibold text-brand-blue">
                                     Você
                                   </span>
                                 ) : null}
@@ -316,7 +316,7 @@ export function MerchantDashboardAccess() {
                               {MERCHANT_ROLE_PROFILES[u.role as ManagedUserRole].permissions.map((permission) => (
                                 <span
                                   key={`${u.id}-${permission}`}
-                                  className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-medium text-foreground"
+                                  className="inline-flex rounded-full border border-border/40 bg-muted/50 px-2.5 py-0.5 text-xs font-medium text-foreground"
                                 >
                                   {getMerchantPermissionLabel(permission)}
                                 </span>
@@ -325,10 +325,10 @@ export function MerchantDashboardAccess() {
                           </TableCell>
                           <TableCell className="text-center">
                             <div className="flex flex-col items-center gap-1.5">
-                              <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${u.isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-100 text-slate-600'}`}>
+                              <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${u.isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-600' : 'border-border/40 bg-muted text-muted-foreground'}`}>
                                 {u.isActive ? 'Ativo' : 'Inativo'}
                               </span>
-                              <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${u.mustChangePassword ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-primary/15 bg-primary/5 text-primary'}`}>
+                              <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${u.mustChangePassword ? 'border-brand-yellow/30 bg-brand-yellow/10 text-foreground' : 'border-brand-blue/20 bg-brand-blue/5 text-brand-blue'}`}>
                                 {u.mustChangePassword ? 'Troca pendente' : 'Senha regular'}
                               </span>
                             </div>
@@ -354,16 +354,16 @@ export function MerchantDashboardAccess() {
               {users.map((u) => {
                 const isCurrentUser = user?.id === u.id;
                 return (
-                  <article key={u.id} className="rounded-xl border border-slate-200/70 bg-white p-4">
+                  <article key={u.id} className="rounded-xl border border-border/50 bg-white p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-1.5">
                           <h3 className="text-sm font-semibold text-foreground">{u.name}</h3>
-                          <span className={`inline-flex rounded-full border px-2 py-px text-[10px] font-semibold ${u.isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-100 text-slate-600'}`}>
+                          <span className={`inline-flex rounded-full border px-2 py-px text-[10px] font-semibold ${u.isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-600' : 'border-border/40 bg-muted text-muted-foreground'}`}>
                             {u.isActive ? 'Ativo' : 'Inativo'}
                           </span>
                           {isCurrentUser ? (
-                            <span className="rounded-full border border-primary/15 bg-primary/5 px-2 py-px text-[10px] font-semibold text-primary">
+                            <span className="rounded-full border border-brand-blue/20 bg-brand-blue/5 px-2 py-px text-[10px] font-semibold text-brand-blue">
                               Você
                             </span>
                           ) : null}
@@ -373,12 +373,12 @@ export function MerchantDashboardAccess() {
                       </div>
                     </div>
 
-                    <div className="mt-3 rounded-lg border border-slate-100 bg-slate-50/60 px-3 py-3">
+                    <div className="mt-3 rounded-lg border border-border/40 bg-muted/30 px-3 py-3">
                       <p className="text-sm font-semibold text-foreground">{getMerchantRoleLabel(u.role)}</p>
                       <p className="mt-0.5 text-xs text-muted-foreground">{getMerchantRoleDescription(u.role)}</p>
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {MERCHANT_ROLE_PROFILES[u.role as ManagedUserRole].permissions.map((perm) => (
-                          <span key={`${u.id}-${perm}`} className="inline-flex rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-xs font-medium text-foreground">
+                          <span key={`${u.id}-${perm}`} className="inline-flex rounded-full border border-border/40 bg-white px-2.5 py-0.5 text-xs font-medium text-foreground">
                             {getMerchantPermissionLabel(perm)}
                           </span>
                         ))}
@@ -386,7 +386,7 @@ export function MerchantDashboardAccess() {
                     </div>
 
                     <div className="mt-3 flex items-center justify-between gap-2">
-                      <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${u.mustChangePassword ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-primary/15 bg-primary/5 text-primary'}`}>
+                      <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${u.mustChangePassword ? 'border-brand-yellow/30 bg-brand-yellow/10 text-foreground' : 'border-brand-blue/20 bg-brand-blue/5 text-brand-blue'}`}>
                         {u.mustChangePassword ? 'Troca de senha pendente' : 'Senha em dia'}
                       </span>
                       <Button size="sm" variant="outline" onClick={() => openEditDialog(u)} className="gap-1.5">

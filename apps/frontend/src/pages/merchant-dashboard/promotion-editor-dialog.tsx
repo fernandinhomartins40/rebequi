@@ -697,7 +697,7 @@ export function PromotionEditorDialog({
   };
 
   const renderOfferPricingFields = (compact: boolean) => (
-    <div className="space-y-4 rounded-[1.5rem] border border-black/5 bg-slate-50/80 p-4">
+    <div className="space-y-4 rounded-[1.5rem] border border-black/5 bg-muted/30 p-4">
       <div className="space-y-1">
         <p className="text-sm font-semibold text-foreground">{pricingPanelTitle}</p>
         <p className="text-xs leading-5 text-muted-foreground">{pricingPanelDescription}</p>
@@ -845,7 +845,7 @@ export function PromotionEditorDialog({
                       {lockedProduct ? (
                         <article className="overflow-hidden rounded-[1.5rem] border border-black/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))]">
                           <div className="grid gap-0 sm:grid-cols-[120px_minmax(0,1fr)]">
-                            <div className="overflow-hidden bg-slate-100">
+                            <div className="overflow-hidden bg-muted">
                               {lockedProduct.images?.[0]?.url ? (
                                 <img
                                   src={lockedProduct.images[0].url}
@@ -867,11 +867,11 @@ export function PromotionEditorDialog({
                                 </p>
                               </div>
                               <div className="flex flex-wrap gap-2">
-                                <span className="inline-flex rounded-full border border-black/5 bg-slate-50 px-3 py-1 text-xs text-foreground">
+                                <span className="inline-flex rounded-full border border-black/5 bg-muted/50 px-3 py-1 text-xs text-foreground">
                                   Preço:
                                   <span className="ml-1.5 font-semibold">R$ {lockedProduct.price.toFixed(2)}</span>
                                 </span>
-                                <span className="inline-flex rounded-full border border-black/5 bg-slate-50 px-3 py-1 text-xs text-foreground">
+                                <span className="inline-flex rounded-full border border-black/5 bg-muted/50 px-3 py-1 text-xs text-foreground">
                                   Estoque:
                                   <span className="ml-1.5 font-semibold">{lockedProduct.stock}</span>
                                 </span>
@@ -883,7 +883,7 @@ export function PromotionEditorDialog({
                           </div>
                         </article>
                       ) : (
-                        <div className="rounded-2xl border border-dashed border-black/10 bg-slate-50 px-5 py-8 text-sm text-muted-foreground">
+                        <div className="rounded-2xl border border-dashed border-black/10 bg-muted/50 px-5 py-8 text-sm text-muted-foreground">
                           Selecione um produto válido para criar a oferta rápida.
                         </div>
                       )}
@@ -891,7 +891,7 @@ export function PromotionEditorDialog({
 
                     <div className="space-y-2">
                       <Label>Imagem do card</Label>
-                      <div className="overflow-hidden rounded-[1.5rem] border border-black/5 bg-slate-50">
+                      <div className="overflow-hidden rounded-[1.5rem] border border-black/5 bg-muted/50">
                         {draftImage ? (
                           <img
                             src={draftImage.previewUrl || draftImage.url}
@@ -914,7 +914,7 @@ export function PromotionEditorDialog({
                         {draftImage ? 'Trocar imagem' : 'Adicionar imagem'}
                       </Button>
                       {draftImage?.source === 'new' ? (
-                        <Button type="button" variant="outline" onClick={handleRemoveDraftImage} className="gap-2 border-red-200 text-red-600">
+                        <Button type="button" variant="outline" onClick={handleRemoveDraftImage} className="gap-2 border-brand-red/20 text-brand-red">
                           <Trash2 className="h-4 w-4" />
                           {quickModeBaseImage ? 'Voltar para imagem do produto' : 'Remover imagem'}
                         </Button>
@@ -968,12 +968,12 @@ export function PromotionEditorDialog({
                       </div>
                     </div>
 
-                    <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-slate-50 px-4 py-3 text-sm">
+                    <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-muted/50 px-4 py-3 text-sm">
                       <input type="checkbox" {...register('isActive')} />
                       Publicar oferta assim que salvar
                     </label>
 
-                    <details className="rounded-[1.5rem] border border-black/5 bg-slate-50/80 p-4">
+                    <details className="rounded-[1.5rem] border border-black/5 bg-muted/30 p-4">
                       <summary className="cursor-pointer list-none text-sm font-semibold text-foreground">
                         Ajustes avançados
                       </summary>
@@ -1095,7 +1095,7 @@ export function PromotionEditorDialog({
                   <ModalPanel className="space-y-4">
                     <div className="space-y-2">
                       <Label>Imagem do card</Label>
-                      <div className="overflow-hidden rounded-[1.5rem] border border-black/5 bg-slate-50">
+                      <div className="overflow-hidden rounded-[1.5rem] border border-black/5 bg-muted/50">
                         {draftImage ? (
                           <img
                             src={draftImage.previewUrl || draftImage.url}
@@ -1118,7 +1118,7 @@ export function PromotionEditorDialog({
                         {draftImage ? 'Trocar imagem' : 'Adicionar imagem'}
                       </Button>
                       {draftImage ? (
-                        <Button type="button" variant="outline" onClick={handleRemoveDraftImage} className="gap-2 border-red-200 text-red-600">
+                        <Button type="button" variant="outline" onClick={handleRemoveDraftImage} className="gap-2 border-brand-red/20 text-brand-red">
                           <Trash2 className="h-4 w-4" />
                           Remover
                         </Button>
@@ -1155,7 +1155,7 @@ export function PromotionEditorDialog({
                         <Label htmlFor="promotion-sort-order">Ordem</Label>
                         <Input id="promotion-sort-order" inputMode="numeric" placeholder="0" {...register('sortOrder')} />
                       </div>
-                      <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-slate-50 px-4 py-3 text-sm">
+                      <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-muted/50 px-4 py-3 text-sm">
                         <input type="checkbox" {...register('isActive')} />
                         Promoção ativa
                       </label>
@@ -1189,7 +1189,7 @@ export function PromotionEditorDialog({
                           : 'Selecione produtos ativos de uma ou mais categorias para compor este card.'}
                       </p>
                     </div>
-                    <div className="rounded-full border border-black/5 bg-slate-50 px-4 py-2 text-sm font-semibold text-foreground">
+                    <div className="rounded-full border border-black/5 bg-muted/50 px-4 py-2 text-sm font-semibold text-foreground">
                       {selectedProductIds.length} selecionados
                     </div>
                   </div>
@@ -1227,7 +1227,7 @@ export function PromotionEditorDialog({
                           const previewImage = product.images?.[0]?.url;
 
                           return (
-                            <article key={product.id} className="flex gap-3 rounded-2xl border border-black/5 bg-slate-50 p-3">
+                            <article key={product.id} className="flex gap-3 rounded-2xl border border-black/5 bg-muted/50 p-3">
                               <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-white">
                                 {previewImage ? (
                                   <img src={previewImage} alt={product.name} className="h-full w-full object-cover" />
@@ -1251,7 +1251,7 @@ export function PromotionEditorDialog({
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleToggleProduct(product.id)}
-                                className="self-start border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                                className="self-start border-brand-red/20 text-brand-red hover:bg-red-50 hover:text-red-700"
                               >
                                 Remover
                               </Button>
@@ -1283,7 +1283,7 @@ export function PromotionEditorDialog({
                                   : 'border-black/5 bg-white'
                               }`}
                             >
-                              <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-50">
+                              <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-muted/50">
                                 {previewImage ? (
                                   <img src={previewImage} alt={product.name} className="h-full w-full object-cover" />
                                 ) : (

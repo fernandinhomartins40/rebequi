@@ -146,25 +146,25 @@ export function ImageCropDialog({
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-3">
+                <div className="rounded-2xl border border-black/5 bg-muted/50 px-4 py-3">
                   <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Largura</div>
                   <div className="mt-1 text-sm font-semibold text-foreground">
                     {formatPercentCropValue(completedCrop?.width)}%
                   </div>
                 </div>
-                <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-3">
+                <div className="rounded-2xl border border-black/5 bg-muted/50 px-4 py-3">
                   <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Altura</div>
                   <div className="mt-1 text-sm font-semibold text-foreground">
                     {formatPercentCropValue(completedCrop?.height)}%
                   </div>
                 </div>
-                <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-3">
+                <div className="rounded-2xl border border-black/5 bg-muted/50 px-4 py-3">
                   <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Origem X</div>
                   <div className="mt-1 text-sm font-semibold text-foreground">
                     {formatPercentCropValue(completedCrop?.x)}%
                   </div>
                 </div>
-                <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-3">
+                <div className="rounded-2xl border border-black/5 bg-muted/50 px-4 py-3">
                   <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Origem Y</div>
                   <div className="mt-1 text-sm font-semibold text-foreground">
                     {formatPercentCropValue(completedCrop?.y)}%
@@ -172,7 +172,7 @@ export function ImageCropDialog({
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-black/5 bg-slate-50 px-4 py-3 text-xs text-muted-foreground">
+              <div className="rounded-2xl border border-black/5 bg-muted/50 px-4 py-3 text-xs text-muted-foreground">
                 O arquivo final será exportado em WebP com proporção fixa e comprimido em background para reduzir armazenamento.
               </div>
 

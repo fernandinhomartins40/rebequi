@@ -122,7 +122,7 @@ export function MerchantDashboardQuotes() {
           className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-all ${
             activeTab === 'quotes'
               ? 'border-primary/30 bg-primary/5 text-primary'
-              : 'border-slate-200 bg-white text-muted-foreground hover:border-slate-300 hover:text-foreground'
+              : 'border-border/40 bg-white text-muted-foreground hover:border-border/60 hover:text-foreground'
           }`}
         >
           <FileText className="h-4 w-4" />
@@ -138,14 +138,14 @@ export function MerchantDashboardQuotes() {
           onClick={() => setActiveTab('leads')}
           className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-all ${
             activeTab === 'leads'
-              ? 'border-amber-300/50 bg-amber-50 text-amber-700'
-              : 'border-slate-200 bg-white text-muted-foreground hover:border-slate-300 hover:text-foreground'
+              ? 'border-brand-yellow/30 bg-brand-yellow/10 text-foreground'
+              : 'border-border/40 bg-white text-muted-foreground hover:border-border/60 hover:text-foreground'
           }`}
         >
           <UserRound className="h-4 w-4" />
           Leads incompletos
           {leads.length > 0 ? (
-            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-foreground">
               {leads.length}
             </span>
           ) : null}
@@ -155,8 +155,8 @@ export function MerchantDashboardQuotes() {
       {/* Master-detail layout */}
       <section className="grid gap-4 xl:grid-cols-[340px_minmax(0,1fr)]">
         {/* List pane */}
-        <div className="rounded-xl border border-slate-200/70 bg-white shadow-sm">
-          <div className="border-b border-slate-100 px-4 py-3.5">
+        <div className="rounded-xl border border-border/50 bg-white shadow-sm">
+          <div className="border-b border-border/40 px-4 py-3.5">
             <p className="text-sm font-semibold text-foreground">
               {activeTab === 'quotes' ? 'Orçamentos' : 'Clientes para retomar'}
             </p>
@@ -181,7 +181,7 @@ export function MerchantDashboardQuotes() {
                       className={`w-full rounded-lg border px-3 py-3 text-left text-sm transition-all ${
                         selectedQuote?.id === quote.id
                           ? 'border-primary/30 bg-primary/5 text-foreground'
-                          : 'border-transparent bg-transparent text-foreground hover:border-slate-200 hover:bg-slate-50'
+                          : 'border-transparent bg-transparent text-foreground hover:border-border/40 hover:bg-muted/50'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -210,8 +210,8 @@ export function MerchantDashboardQuotes() {
                     onClick={() => setSelectedLeadId(lead.id)}
                     className={`w-full rounded-lg border px-3 py-3 text-left text-sm transition-all ${
                       selectedLead?.id === lead.id
-                        ? 'border-amber-300/50 bg-amber-50'
-                        : 'border-transparent bg-transparent text-foreground hover:border-slate-200 hover:bg-slate-50'
+                        ? 'border-brand-yellow/30 bg-brand-yellow/10'
+                        : 'border-transparent bg-transparent text-foreground hover:border-border/40 hover:bg-muted/50'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -231,12 +231,12 @@ export function MerchantDashboardQuotes() {
         </div>
 
         {/* Detail pane */}
-        <div className="rounded-xl border border-slate-200/70 bg-white shadow-sm">
+        <div className="rounded-xl border border-border/50 bg-white shadow-sm">
           {activeTab === 'quotes' ? (
             selectedQuote ? (
               <div className="p-5">
                 {/* Header */}
-                <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
+                <div className="flex items-start justify-between gap-3 border-b border-border/40 pb-4">
                   <div className="min-w-0">
                     <p className="font-mono text-xs text-muted-foreground">{selectedQuote.referenceCode}</p>
                     <h3 className="mt-1 text-lg font-semibold text-foreground">{buildQuoteDisplayTitle(selectedQuote)}</h3>
@@ -265,7 +265,7 @@ export function MerchantDashboardQuotes() {
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Itens do orçamento</p>
                   <div className="space-y-1.5">
                     {selectedQuote.items.map((item) => (
-                      <div key={item.id} className="flex items-start justify-between gap-3 rounded-lg border border-slate-100 bg-slate-50/60 px-3.5 py-2.5">
+                      <div key={item.id} className="flex items-start justify-between gap-3 rounded-lg border border-border/40 bg-muted/30 px-3.5 py-2.5">
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium text-foreground">{item.name}</p>
                           {item.notes ? <p className="mt-0.5 text-xs text-muted-foreground">{item.notes}</p> : null}
@@ -279,14 +279,14 @@ export function MerchantDashboardQuotes() {
                 </div>
 
                 {selectedQuote.customerNote ? (
-                  <div className="mt-4 rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3">
+                  <div className="mt-4 rounded-lg border border-border/40 bg-muted/30 px-4 py-3">
                     <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Observação do cliente</p>
                     <p className="text-sm text-foreground">{selectedQuote.customerNote}</p>
                   </div>
                 ) : null}
 
                 {selectedQuote.ocrText ? (
-                  <div className="mt-4 rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3">
+                  <div className="mt-4 rounded-lg border border-border/40 bg-muted/30 px-4 py-3">
                     <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Texto do documento original</p>
                     <p className="max-h-40 overflow-y-auto whitespace-pre-wrap text-xs text-muted-foreground">
                       {selectedQuote.ocrText}
@@ -295,7 +295,7 @@ export function MerchantDashboardQuotes() {
                 ) : null}
 
                 {/* Actions */}
-                <div className="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+                <div className="mt-5 flex flex-wrap gap-2 border-t border-border/40 pt-4">
                   <Button
                     variant="outline"
                     size="sm"
@@ -329,7 +329,7 @@ export function MerchantDashboardQuotes() {
           ) : selectedLead ? (
             <div className="p-5">
               {/* Header */}
-              <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
+              <div className="flex items-start justify-between gap-3 border-b border-border/40 pb-4">
                 <div className="min-w-0">
                   <p className="text-xs text-muted-foreground">Cliente identificado</p>
                   <h3 className="mt-1 text-lg font-semibold text-foreground">{selectedLead.nameSnapshot}</h3>
@@ -345,14 +345,14 @@ export function MerchantDashboardQuotes() {
                 <InfoTile label="Rascunhos" value={`${selectedLead.quoteCount}`} />
               </div>
 
-              <div className="mt-4 rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3">
+              <div className="mt-4 rounded-lg border border-border/40 bg-muted/30 px-4 py-3">
                 <p className="text-sm text-muted-foreground">
                   Este cliente iniciou o processo mas não concluiu o envio do orçamento. Entre em contato para ajudá-lo a finalizar a solicitação.
                 </p>
               </div>
 
               {/* Actions */}
-              <div className="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+              <div className="mt-5 flex flex-wrap gap-2 border-t border-border/40 pt-4">
                 <Button
                   variant="outline"
                   size="sm"
@@ -396,7 +396,7 @@ function buildWhatsappLink(value: string) {
 
 function EmptyList({ message }: { message: string }) {
   return (
-    <div className="rounded-lg border border-dashed border-slate-200 py-8 text-center text-sm text-muted-foreground">
+    <div className="rounded-lg border border-dashed border-border/40 py-8 text-center text-sm text-muted-foreground">
       {message}
     </div>
   );
@@ -406,7 +406,7 @@ function ListSkeleton() {
   return (
     <div className="space-y-1.5">
       {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="h-14 animate-pulse rounded-lg bg-slate-100" />
+        <div key={i} className="h-14 animate-pulse rounded-lg bg-muted" />
       ))}
     </div>
   );
@@ -414,7 +414,7 @@ function ListSkeleton() {
 
 function InfoTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-slate-100 bg-slate-50/60 px-3 py-2.5">
+    <div className="rounded-lg border border-border/40 bg-muted/30 px-3 py-2.5">
       <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
       <p className="mt-0.5 text-sm font-semibold text-foreground">{value}</p>
     </div>

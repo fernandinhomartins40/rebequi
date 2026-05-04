@@ -4,14 +4,20 @@ import type { UserRole } from '@rebequi/shared/types';
 
 export const ADMIN_BASE_PATH = '/painel-lojista/painel';
 
+/*
+ * Sidebar Theme — cores da identidade visual Rebequi
+ * Amarelo brand: #FFD700  (hsl 47 100% 50% / 51 100% 50%)
+ * Vermelho brand: #DC2626 / #cc2227  (hsl 0 84% 51%)
+ * Azul brand: #2563EB  (hsl 217 91% 60%)
+ */
 export const SIDEBAR_THEME = {
-  '--sidebar-background': '220 25% 10%',        /* neutral dark navy — sem tom petróleo */
-  '--sidebar-foreground': '215 20% 88%',        /* quase branco quente */
-  '--sidebar-primary': '217 91% 60%',           /* brand blue */
+  '--sidebar-background': '220 25% 10%',
+  '--sidebar-foreground': '215 20% 90%',
+  '--sidebar-primary': '217 91% 60%',
   '--sidebar-primary-foreground': '0 0% 100%',
-  '--sidebar-accent': '47 100% 50%',            /* brand yellow #FFD700 */
+  '--sidebar-accent': '51 100% 50%',
   '--sidebar-accent-foreground': '0 0% 9%',
-  '--sidebar-border': '220 20% 16%',            /* divisor sutil */
+  '--sidebar-border': '220 20% 18%',
   '--sidebar-ring': '217 91% 60%',
 } as const;
 

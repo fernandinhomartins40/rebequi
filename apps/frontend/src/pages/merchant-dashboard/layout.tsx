@@ -29,7 +29,7 @@ export function MerchantDashboardLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/80">
+    <div className="min-h-screen bg-[hsl(220,20%,97%)]">
       <SidebarProvider defaultOpen style={SIDEBAR_THEME as CSSProperties}>
         <Sidebar
           variant="inset"
@@ -42,21 +42,24 @@ export function MerchantDashboardLayout() {
           <SidebarRail />
         </Sidebar>
 
-        <SidebarInset className="min-w-0 overflow-hidden bg-slate-50/80">
+        <SidebarInset className="min-w-0 overflow-hidden bg-[hsl(220,20%,97%)]">
           {/* Top bar */}
-          <header className="sticky top-0 z-20 border-b border-slate-200/60 bg-white/95 backdrop-blur-sm">
+          <header className="sticky top-0 z-20 border-b border-border/40 bg-white/90 backdrop-blur-md">
             <div className="flex h-14 items-center gap-3 px-4 md:px-5">
-              <SidebarTrigger className="h-8 w-8 rounded-lg border border-slate-200/80 bg-white shadow-sm hover:bg-slate-50" />
-              <div className="h-5 w-px bg-slate-200" />
+              <SidebarTrigger className="h-8 w-8 rounded-lg border border-border/60 bg-white shadow-sm transition-colors hover:bg-muted" />
+              <div className="h-5 w-px bg-border/60" />
               <div className="min-w-0">
-                <h1 className="text-[15px] font-semibold text-foreground">{activeItem.title}</h1>
+                <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                  {activeItem.eyebrow}
+                </span>
+                <h1 className="text-[15px] font-bold text-foreground leading-tight">{activeItem.title}</h1>
               </div>
             </div>
           </header>
 
           {/* Page content */}
           <div className="merchant-dashboard-scroll flex-1 overflow-y-auto">
-            <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-5 md:py-7">
+            <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-5 md:py-8">
               <Outlet context={dashboardData} />
             </div>
           </div>

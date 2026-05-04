@@ -157,7 +157,7 @@ export function CategoryEditorDialog({
               />
             </div>
 
-            <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-slate-50/90 px-4 py-3 text-sm">
+            <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-muted/50 px-4 py-3 text-sm">
               <input type="checkbox" {...register('isActive')} />
               Categoria ativa
             </label>

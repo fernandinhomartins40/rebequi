@@ -231,12 +231,12 @@ export function UserEditorDialog({
             </div>
 
             <div className="grid gap-3 md:grid-cols-2">
-              <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-slate-50/90 px-4 py-3 text-sm">
+              <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-muted/50 px-4 py-3 text-sm">
                 <input type="checkbox" {...register('isActive')} />
                 Usuario ativo
               </label>
 
-              <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-slate-50/90 px-4 py-3 text-sm">
+              <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-muted/50 px-4 py-3 text-sm">
                 <input type="checkbox" {...register('mustChangePassword')} />
                 Exigir troca de senha no primeiro acesso
               </label>
