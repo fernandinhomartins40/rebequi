@@ -152,6 +152,7 @@ export function MerchantDashboardAccess() {
         <DashboardPanel
           title="Sessão atual"
           description="Informações da conta autenticada e visão geral dos perfis disponíveis."
+          accent="blue"
         >
           <div className="space-y-4">
             <div className="flex flex-wrap gap-2">
@@ -167,7 +168,7 @@ export function MerchantDashboardAccess() {
           </div>
         </DashboardPanel>
 
-        <DashboardPanel title="Distribuição por perfil" description="Composição atual da equipe.">
+        <DashboardPanel title="Distribuição por perfil" description="Composição atual da equipe." accent="yellow">
           <div className="space-y-2">
             {roleTotals.map(({ role, total }) => (
               <div key={role} className="flex items-center justify-between rounded-lg border border-border/40 bg-muted/30 px-4 py-3">
@@ -188,6 +189,7 @@ export function MerchantDashboardAccess() {
       <DashboardPanel
         title="Perfis disponíveis"
         description="Cada perfil libera um conjunto fixo de funções no painel. Escolha o mais adequado para cada colaborador."
+        accent="blue"
       >
         <div className="grid gap-4 xl:grid-cols-2">
           {INTERNAL_USER_ROLES.map((role) => (
@@ -223,6 +225,7 @@ export function MerchantDashboardAccess() {
       <DashboardPanel
         title="Colaboradores cadastrados"
         description="Gerencie os acessos internos da loja. Use os filtros para localizar usuários por nome ou perfil."
+        accent="red"
         action={
           <Button onClick={openCreateDialog} size="sm" className="gap-1.5">
             <UserCog className="h-3.5 w-3.5" />

@@ -245,6 +245,7 @@ export function MerchantDashboardProducts() {
       <DashboardPanel
         title="Categorias"
         description={`${managedCategories.length} cadastradas · ${activeCategories.length} ativas · ${categoriesInUse.length} em uso`}
+        accent="yellow"
         action={
           <Button size="sm" onClick={openCreateCategoryDialog} className="gap-1.5 rounded-xl">
             <Plus className="h-3.5 w-3.5" />
@@ -398,7 +399,7 @@ export function MerchantDashboardProducts() {
       </DashboardPanel>
 
       {/* Products */}
-      <DashboardPanel title="Produtos cadastrados" description="Gerencie seus produtos, preços e ofertas.">
+      <DashboardPanel title="Produtos cadastrados" description="Gerencie seus produtos, preços e ofertas." accent="blue">
         {/* Filters */}
         <div className="mb-4 flex flex-col gap-3 sm:flex-row">
           <div className="relative flex-1">
@@ -446,7 +447,7 @@ export function MerchantDashboardProducts() {
               return (
                 <article
                   key={product.id}
-                  className="overflow-hidden rounded-2xl border border-border/50 bg-white shadow-sm transition-all duration-200 hover:shadow-md"
+                  className="overflow-hidden rounded-2xl bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
                 >
                   <div className="flex gap-0">
                     {/* Image */}

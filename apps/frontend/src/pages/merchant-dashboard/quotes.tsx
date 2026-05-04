@@ -155,14 +155,17 @@ export function MerchantDashboardQuotes() {
       {/* Master-detail layout */}
       <section className="grid gap-4 xl:grid-cols-[340px_minmax(0,1fr)]">
         {/* List pane */}
-        <div className="rounded-xl border border-border/50 bg-white shadow-sm">
-          <div className="border-b border-border/40 px-4 py-3.5">
-            <p className="text-sm font-semibold text-foreground">
+        <div className="rounded-2xl bg-white shadow-sm">
+          <div className="flex items-center gap-3 border-b border-border/30 px-5 py-4">
+            <div className="h-6 w-1 rounded-full bg-brand-blue" />
+            <div>
+              <p className="text-sm font-bold text-foreground">
               {activeTab === 'quotes' ? 'Orçamentos' : 'Clientes para retomar'}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {activeTab === 'quotes' ? quotes.length : leads.length} item(ns)
-            </p>
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {activeTab === 'quotes' ? quotes.length : leads.length} item(ns)
+              </p>
+            </div>
           </div>
 
           <div className="p-3">
@@ -231,12 +234,12 @@ export function MerchantDashboardQuotes() {
         </div>
 
         {/* Detail pane */}
-        <div className="rounded-xl border border-border/50 bg-white shadow-sm">
+        <div className="rounded-2xl bg-white shadow-sm">
           {activeTab === 'quotes' ? (
             selectedQuote ? (
               <div className="p-5">
                 {/* Header */}
-                <div className="flex items-start justify-between gap-3 border-b border-border/40 pb-4">
+                <div className="flex items-start justify-between gap-3 border-b border-border/30 px-5 pt-5 pb-4">
                   <div className="min-w-0">
                     <p className="font-mono text-xs text-muted-foreground">{selectedQuote.referenceCode}</p>
                     <h3 className="mt-1 text-lg font-semibold text-foreground">{buildQuoteDisplayTitle(selectedQuote)}</h3>
@@ -246,7 +249,7 @@ export function MerchantDashboardQuotes() {
                 </div>
 
                 {/* Meta grid */}
-                <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                <div className="mt-4 grid gap-2 px-5 sm:grid-cols-3">
                   <InfoTile label="Cliente" value={selectedQuote.user?.name || 'Cliente'} />
                   <InfoTile
                     label="Contato"
@@ -254,15 +257,15 @@ export function MerchantDashboardQuotes() {
                   />
                   <InfoTile label="Origem" value={buildQuoteSourceLabel(selectedQuote.source)} />
                 </div>
-                <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                <div className="mt-2 grid gap-2 px-5 sm:grid-cols-3">
                   <InfoTile label="Itens" value={`${selectedQuote.itemCount}`} />
                   <InfoTile label="Enviado em" value={formatQuoteTimestamp(selectedQuote.submittedAt || selectedQuote.updatedAt)} />
                   <InfoTile label="Precisão da leitura" value={selectedQuote.ocrConfidence ? `${Math.round(selectedQuote.ocrConfidence)}%` : '—'} />
                 </div>
 
                 {/* Items */}
-                <div className="mt-4">
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Itens do orçamento</p>
+                <div className="mt-4 px-5">
+                  <p className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">Itens do orçamento</p>
                   <div className="space-y-1.5">
                     {selectedQuote.items.map((item) => (
                       <div key={item.id} className="flex items-start justify-between gap-3 rounded-lg border border-border/40 bg-muted/30 px-3.5 py-2.5">
@@ -279,14 +282,14 @@ export function MerchantDashboardQuotes() {
                 </div>
 
                 {selectedQuote.customerNote ? (
-                  <div className="mt-4 rounded-lg border border-border/40 bg-muted/30 px-4 py-3">
+                  <div className="mx-5 mt-4 rounded-xl bg-muted/30 px-4 py-3">
                     <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Observação do cliente</p>
                     <p className="text-sm text-foreground">{selectedQuote.customerNote}</p>
                   </div>
                 ) : null}
 
                 {selectedQuote.ocrText ? (
-                  <div className="mt-4 rounded-lg border border-border/40 bg-muted/30 px-4 py-3">
+                  <div className="mx-5 mt-4 rounded-xl bg-muted/30 px-4 py-3">
                     <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Texto do documento original</p>
                     <p className="max-h-40 overflow-y-auto whitespace-pre-wrap text-xs text-muted-foreground">
                       {selectedQuote.ocrText}
@@ -322,7 +325,7 @@ export function MerchantDashboardQuotes() {
                 </div>
               </div>
             ) : (
-              <div className="flex h-full min-h-64 items-center justify-center p-8">
+              <div className="flex h-full min-h-64 items-center justify-center px-5 py-8">
                 <EmptyList message="Selecione um orçamento para ver os detalhes." />
               </div>
             )
@@ -345,7 +348,7 @@ export function MerchantDashboardQuotes() {
                 <InfoTile label="Rascunhos" value={`${selectedLead.quoteCount}`} />
               </div>
 
-              <div className="mt-4 rounded-lg border border-border/40 bg-muted/30 px-4 py-3">
+              <div className="mx-5 mt-4 rounded-xl bg-muted/30 px-4 py-3">
                 <p className="text-sm text-muted-foreground">
                   Este cliente iniciou o processo mas não concluiu o envio do orçamento. Entre em contato para ajudá-lo a finalizar a solicitação.
                 </p>
@@ -414,9 +417,9 @@ function ListSkeleton() {
 
 function InfoTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-border/40 bg-muted/30 px-3 py-2.5">
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className="mt-0.5 text-sm font-semibold text-foreground">{value}</p>
+    <div className="rounded-xl bg-muted/30 px-4 py-3">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="mt-1 text-sm font-bold text-foreground">{value}</p>
     </div>
   );
 }

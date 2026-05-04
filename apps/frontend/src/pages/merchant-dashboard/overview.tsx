@@ -200,23 +200,26 @@ export default function MerchantDashboardOverview() {
 
       {/* Completeness bar */}
       {!isSnapshotLoading && publishedProducts.length > 0 ? (
-        <div className="rounded-2xl border border-border/50 bg-white px-5 py-4 shadow-sm">
+        <div className="rounded-2xl bg-white px-5 py-5 shadow-sm">
           <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-blue/10">
-                <TrendingUp className="h-4 w-4 text-brand-blue" />
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-blue/10">
+                <TrendingUp className="h-5 w-5 text-brand-blue" />
               </div>
-              <p className="text-sm font-bold text-foreground">Completude do catálogo</p>
+              <div>
+                <p className="text-sm font-bold text-foreground">Completude do catálogo</p>
+                <p className="text-xs text-muted-foreground">{completeProducts.length} de {publishedProducts.length} produtos com imagem, SKU e descrição</p>
+              </div>
             </div>
             <span
-              className={`text-sm font-extrabold ${
+              className={`text-2xl font-black tracking-tight ${
                 completenessRate >= 80 ? 'text-emerald-600' : completenessRate >= 50 ? 'text-brand-yellow' : 'text-brand-red'
               }`}
             >
               {completenessRate}%
             </span>
           </div>
-          <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-muted">
+          <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-muted">
             <div
               className={`h-full rounded-full transition-all duration-700 ${
                 completenessRate >= 80 ? 'bg-emerald-500' : completenessRate >= 50 ? 'bg-brand-yellow' : 'bg-brand-red'
@@ -224,9 +227,6 @@ export default function MerchantDashboardOverview() {
               style={{ width: `${completenessRate}%` }}
             />
           </div>
-          <p className="mt-2 text-xs text-muted-foreground">
-            {completeProducts.length} de {publishedProducts.length} produtos com imagem, SKU e descrição preenchidos
-          </p>
         </div>
       ) : null}
 
@@ -264,7 +264,7 @@ export default function MerchantDashboardOverview() {
 
       {/* Status panels */}
       <section className="grid gap-4 xl:grid-cols-2">
-        <DashboardPanel title="Radar do catálogo" description="Status geral dos produtos publicados">
+        <DashboardPanel title="Radar do catálogo" description="Status geral dos produtos publicados" accent="blue">
           {hasSnapshotError ? (
             <div className="rounded-xl border border-brand-red/20 bg-brand-red/5 px-4 py-3 text-sm text-brand-red">
               Não foi possível carregar os dados.
@@ -314,6 +314,7 @@ export default function MerchantDashboardOverview() {
         <DashboardPanel
           title="Produtos que precisam de atenção"
           description="Pendências com maior impacto na vitrine"
+          accent="red"
           action={
             attentionItems.length > 0 ? (
               <Button asChild variant="ghost" size="sm" className="text-xs rounded-xl">

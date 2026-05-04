@@ -151,7 +151,7 @@ export function MerchantDashboardOrders() {
       </section>
 
       {/* Orders panel */}
-      <DashboardPanel title="Lista de pedidos">
+      <DashboardPanel title="Lista de pedidos" accent="red">
         {/* Filters */}
         <div className="mb-4 flex flex-col gap-3 sm:flex-row">
           <div className="relative flex-1">

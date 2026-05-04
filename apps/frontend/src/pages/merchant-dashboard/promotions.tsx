@@ -226,7 +226,7 @@ export function MerchantDashboardPromotions() {
       ) : null}
 
       {/* Promotions list */}
-      <DashboardPanel title="Promoções cadastradas" description="Filtre, acompanhe o status e mantenha os cards atualizados.">
+      <DashboardPanel title="Promoções cadastradas" description="Filtre, acompanhe o status e mantenha os cards atualizados." accent="yellow">
         {!canCreatePromotion ? (
           <div className="mb-4 rounded-lg border border-brand-yellow/30 bg-brand-yellow/10 px-4 py-3 text-sm text-foreground">
             Ative pelo menos dois produtos para criar uma nova campanha.

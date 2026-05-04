@@ -29,7 +29,7 @@ export function MerchantDashboardLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-[hsl(220,20%,97%)]">
+    <div className="min-h-screen bg-gradient-to-br from-[hsl(220,20%,97%)] via-[hsl(220,20%,98%)] to-[hsl(220,25%,96%)]">
       <SidebarProvider defaultOpen style={SIDEBAR_THEME as CSSProperties}>
         <Sidebar
           variant="inset"
@@ -42,7 +42,7 @@ export function MerchantDashboardLayout() {
           <SidebarRail />
         </Sidebar>
 
-        <SidebarInset className="min-w-0 overflow-hidden bg-[hsl(220,20%,97%)]">
+        <SidebarInset className="min-w-0 overflow-hidden bg-gradient-to-br from-[hsl(220,20%,97%)] via-[hsl(220,20%,98%)] to-[hsl(220,25%,96%)]">
           {/* Top bar */}
           <header className="sticky top-0 z-20 border-b border-border/40 bg-white/90 backdrop-blur-md">
             <div className="flex h-14 items-center gap-3 px-4 md:px-5">

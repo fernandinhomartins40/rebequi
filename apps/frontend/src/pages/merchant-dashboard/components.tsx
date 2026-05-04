@@ -220,21 +220,38 @@ export function SectionHeader({
 
 // ─── Metric cards ────────────────────────────────────────────────────────────
 
-/*
- * Tones usando a paleta da marca Rebequi:
- * - blue = brand-blue (#2563EB)
- * - red = brand-red (#cc2227 / #DC2626)
- * - yellow = brand-yellow (#f9ef38 / #FFD700)
- * - green = variant of brand-blue (teal-ish)
- */
 type MetricTone = 'default' | 'blue' | 'green' | 'yellow' | 'red';
 
-const metricToneStyles: Record<MetricTone, { icon: string; value: string; bg: string }> = {
-  default: { icon: 'bg-muted text-muted-foreground', value: 'text-foreground', bg: '' },
-  blue: { icon: 'bg-brand-blue/10 text-brand-blue', value: 'text-brand-blue', bg: '' },
-  green: { icon: 'bg-emerald-50 text-emerald-600', value: 'text-emerald-600', bg: '' },
-  yellow: { icon: 'bg-brand-yellow/20 text-foreground', value: 'text-foreground', bg: '' },
-  red: { icon: 'bg-brand-red/10 text-brand-red', value: 'text-brand-red', bg: '' },
+const metricToneDot: Record<MetricTone, string> = {
+  default: 'bg-muted-foreground',
+  blue: 'bg-brand-blue',
+  green: 'bg-emerald-500',
+  yellow: 'bg-brand-yellow',
+  red: 'bg-brand-red',
+};
+
+const metricToneBg: Record<MetricTone, string> = {
+  default: 'bg-muted/40',
+  blue: 'bg-brand-blue/8',
+  green: 'bg-emerald-50',
+  yellow: 'bg-brand-yellow/10',
+  red: 'bg-brand-red/8',
+};
+
+const metricToneText: Record<MetricTone, string> = {
+  default: 'text-foreground',
+  blue: 'text-brand-blue',
+  green: 'text-emerald-600',
+  yellow: 'text-foreground',
+  red: 'text-brand-red',
+};
+
+const metricToneIcon: Record<MetricTone, string> = {
+  default: 'text-muted-foreground',
+  blue: 'text-brand-blue',
+  green: 'text-emerald-600',
+  yellow: 'text-foreground',
+  red: 'text-brand-red',
 };
 
 export function StatCard({
@@ -250,17 +267,24 @@ export function StatCard({
   delta?: string;
   tone?: MetricTone;
 }) {
-  const styles = metricToneStyles[tone];
-
   return (
-    <div className="flex items-start gap-3 rounded-2xl border border-border/50 bg-white p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-      <div className={cn('mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', styles.icon)}>
-        {icon}
+    <div className="group relative overflow-hidden rounded-2xl bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+      {/* Subtle top accent line */}
+      <div className={cn('absolute left-0 top-0 h-1 w-full rounded-t-2xl opacity-60', metricToneBg[tone].replace('/8', '').replace('/10', '').replace('/40', ''))} />
+      
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className={cn('h-2 w-2 rounded-full', metricToneDot[tone])} />
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
+        </div>
+        <div className={cn('flex h-8 w-8 items-center justify-center rounded-lg transition-colors', metricToneBg[tone])}>
+          <span className={metricToneIcon[tone]}>{icon}</span>
+        </div>
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
-        <p className={cn('mt-0.5 text-2xl font-extrabold leading-none tracking-tight', styles.value)}>{value}</p>
-        {delta ? <p className="mt-1 text-[11px] text-muted-foreground">{delta}</p> : null}
+      
+      <div className="mt-3">
+        <p className={cn('text-3xl font-black tracking-tight', metricToneText[tone])}>{value}</p>
+        {delta ? <p className="mt-1 text-xs text-muted-foreground">{delta}</p> : null}
       </div>
     </div>
   );
@@ -274,6 +298,7 @@ export function DashboardPanel({
   description,
   title,
   action,
+  accent = 'blue',
   children,
 }: {
   className?: string;
@@ -281,20 +306,30 @@ export function DashboardPanel({
   description?: string;
   title: string;
   action?: ReactNode;
+  accent?: 'blue' | 'red' | 'yellow';
   children: ReactNode;
 }) {
+  const accentBar = {
+    blue: 'bg-brand-blue',
+    red: 'bg-brand-red',
+    yellow: 'bg-brand-yellow',
+  }[accent];
+
   return (
-    <div className={cn('rounded-2xl border border-border/50 bg-white shadow-sm transition-all duration-200', className)}>
-      <div className="flex items-start justify-between gap-3 border-b border-border/30 px-5 py-4">
-        <div className="min-w-0">
-          <h3 className="text-[15px] font-bold text-foreground">{title}</h3>
-          {description ? (
-            <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
-          ) : null}
+    <div className={cn('rounded-2xl bg-white shadow-sm transition-all duration-200', className)}>
+      <div className="flex items-start justify-between gap-3 px-5 py-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className={cn('h-8 w-1 rounded-full', accentBar)} />
+          <div>
+            <h3 className="text-[15px] font-extrabold text-foreground">{title}</h3>
+            {description ? (
+              <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
+            ) : null}
+          </div>
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
-      <div className={cn('p-5', contentClassName)}>{children}</div>
+      <div className={cn('px-5 pb-5', contentClassName)}>{children}</div>
     </div>
   );
 }
@@ -322,10 +357,13 @@ export function SectionLeadCard({
 
 export function SummaryTile({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
-    <div className="rounded-2xl border border-border/50 bg-white p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className="mt-2 text-2xl font-extrabold tracking-tight text-foreground">{value}</p>
-      <p className="mt-0.5 text-xs text-muted-foreground">{detail}</p>
+    <div className="rounded-2xl bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
+      <div className="flex items-center gap-2">
+        <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+      </div>
+      <p className="mt-3 text-3xl font-black tracking-tight text-foreground">{value}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
     </div>
   );
 }
@@ -341,19 +379,19 @@ export function MetricChip({
 }) {
   const toneClass =
     tone === 'blue'
-      ? 'border-brand-blue/20 bg-brand-blue/5 text-brand-blue'
+      ? 'bg-brand-blue/5 text-brand-blue'
       : tone === 'green'
-        ? 'border-emerald-200 bg-emerald-50 text-emerald-600'
+        ? 'bg-emerald-50 text-emerald-600'
         : tone === 'red'
-          ? 'border-brand-red/20 bg-brand-red/5 text-brand-red'
+          ? 'bg-brand-red/5 text-brand-red'
           : tone === 'yellow'
-            ? 'border-brand-yellow/30 bg-brand-yellow/10 text-foreground'
-            : 'border-border/60 bg-muted text-foreground';
+            ? 'bg-brand-yellow/8 text-foreground'
+            : 'bg-muted text-foreground';
 
   return (
-    <div className={cn('rounded-xl border px-3 py-2', toneClass)}>
-      <p className="text-[10px] font-bold uppercase tracking-wider opacity-70">{label}</p>
-      <p className="mt-0.5 text-sm font-bold">{value}</p>
+    <div className={cn('rounded-xl px-4 py-3', toneClass)}>
+      <p className="text-[10px] font-bold uppercase tracking-wider opacity-60">{label}</p>
+      <p className="mt-1 text-base font-bold">{value}</p>
     </div>
   );
 }
@@ -371,18 +409,7 @@ export function SignalRow({
   tone?: 'blue' | 'green' | 'neutral' | 'red' | 'yellow';
   title: string;
 }) {
-  const badgeClass =
-    tone === 'green'
-      ? 'bg-emerald-50 text-emerald-600 ring-emerald-200'
-      : tone === 'red'
-        ? 'bg-brand-red/8 text-brand-red ring-brand-red/20'
-        : tone === 'yellow'
-          ? 'bg-brand-yellow/15 text-foreground ring-brand-yellow/30'
-          : tone === 'blue'
-            ? 'bg-brand-blue/8 text-brand-blue ring-brand-blue/20'
-            : 'bg-muted text-muted-foreground ring-border';
-
-  const dotColor =
+  const accentColor =
     tone === 'green'
       ? 'bg-emerald-500'
       : tone === 'red'
@@ -393,17 +420,30 @@ export function SignalRow({
             ? 'bg-brand-blue'
             : 'bg-muted-foreground';
 
+  const statusBg =
+    tone === 'green'
+      ? 'bg-emerald-50 text-emerald-600'
+      : tone === 'red'
+        ? 'bg-brand-red/8 text-brand-red'
+        : tone === 'yellow'
+          ? 'bg-brand-yellow/10 text-foreground'
+          : tone === 'blue'
+            ? 'bg-brand-blue/8 text-brand-blue'
+            : 'bg-muted text-muted-foreground';
+
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-border/40 bg-muted/30 px-4 py-3 transition-colors duration-200 hover:bg-muted/50">
-      <span className={cn('mt-1.5 h-2 w-2 shrink-0 rounded-full', dotColor, tone !== 'neutral' && 'shadow-[0_0_6px_0px_currentColor]')} />
+    <div className="group flex items-start gap-4 rounded-xl px-4 py-3.5 transition-all duration-200 hover:bg-muted/30">
+      <div className={cn('mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl', accentColor.replace('bg-', 'bg-opacity-10 bg-').replace('bg-brand-red', 'bg-brand-red/10').replace('bg-brand-blue', 'bg-brand-blue/10').replace('bg-brand-yellow', 'bg-brand-yellow/15').replace('bg-emerald-500', 'bg-emerald-50').replace('bg-muted-foreground', 'bg-muted'))}>
+        <span className={cn('h-2.5 w-2.5 rounded-full', accentColor)} />
+      </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-bold text-foreground">{title}</p>
-          <span className={cn('shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold ring-1 ring-inset', badgeClass)}>
+          <span className={cn('shrink-0 rounded-lg px-2.5 py-0.5 text-[11px] font-bold', statusBg)}>
             {status}
           </span>
         </div>
-        <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{description}</p>
       </div>
     </div>
   );
@@ -411,12 +451,12 @@ export function SignalRow({
 
 export function PulseLine({ title, value, toneClass }: { title: string; value: string; toneClass: string }) {
   return (
-    <div className="rounded-xl border border-border/40 bg-muted/30 px-4 py-3">
+    <div className="rounded-xl bg-muted/30 px-4 py-3.5">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm font-bold text-foreground">{title}</p>
-        <div className={cn('rounded-full px-2.5 py-0.5 text-[11px] font-bold', toneClass)}>ativo</div>
+        <div className={cn('rounded-lg px-2.5 py-0.5 text-[11px] font-bold', toneClass)}>ativo</div>
       </div>
-      <p className="mt-1 text-xs text-muted-foreground">{value}</p>
+      <p className="mt-1.5 text-xs text-muted-foreground">{value}</p>
     </div>
   );
 }
@@ -431,19 +471,19 @@ export function SummarySurface({
   description: string;
 }) {
   return (
-    <div className="rounded-xl border border-border/40 bg-muted/30 p-4">
-      <p className="text-2xl font-extrabold tracking-tight text-foreground">{value}</p>
-      <p className="mt-0.5 font-bold text-foreground">{label}</p>
-      <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+    <div className="rounded-xl bg-muted/30 p-5">
+      <p className="text-3xl font-black tracking-tight text-foreground">{value}</p>
+      <p className="mt-1 font-bold text-foreground">{label}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{description}</p>
     </div>
   );
 }
 
 export function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-border/40 bg-muted/30 px-4 py-3">
+    <div className="rounded-xl bg-muted/30 px-4 py-3">
       <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className="mt-0.5 break-all text-sm font-bold text-foreground">{value}</p>
+      <p className="mt-1 break-all text-sm font-bold text-foreground">{value}</p>
     </div>
   );
 }
@@ -458,9 +498,9 @@ export function GuaranteeCard({
   badgeClass: string;
 }) {
   return (
-    <div className="rounded-xl border border-border/40 bg-muted/30 p-4">
-      <div className={cn('inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-bold', badgeClass)}>{title}</div>
-      <p className="mt-2 text-sm text-muted-foreground">{description}</p>
+    <div className="rounded-xl bg-muted/30 p-5">
+      <div className={cn('inline-flex rounded-lg px-3 py-1 text-[11px] font-bold', badgeClass)}>{title}</div>
+      <p className="mt-3 text-sm text-muted-foreground">{description}</p>
     </div>
   );
 }
