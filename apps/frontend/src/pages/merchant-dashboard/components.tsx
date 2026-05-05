@@ -25,15 +25,8 @@ export function MerchantSidebarHeader() {
     <SidebarHeader className="px-4 pb-0 pt-4">
       <Link
         to="/"
-        className="group flex items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-white/8"
+        className="group block rounded-xl px-2 py-2 transition-colors hover:bg-white/8"
       >
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white/10 ring-1 ring-white/15">
-          <img
-            src="/lovable-uploads/73f13341-b66a-4a9f-aa28-4bd40213b85f.png"
-            alt="Rebequi Logo"
-            className="h-6 w-auto object-contain"
-          />
-        </div>
         <div className="min-w-0 group-data-[collapsible=icon]:hidden">
           <p className="truncate text-[13px] font-bold text-sidebar-foreground">Rebequi</p>
           <p className="truncate text-[11px] text-sidebar-foreground/50">Painel administrativo</p>
