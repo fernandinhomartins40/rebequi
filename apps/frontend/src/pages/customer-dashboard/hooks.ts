@@ -11,7 +11,7 @@ import { EMPTY_ITEM, type ActiveTab, type DraftEditorState } from './types';
 function buildEditorState(quote?: QuoteRequest | null): DraftEditorState {
   if (!quote) return { title: '', customerNote: '', items: [{ ...EMPTY_ITEM }] };
   return {
-    title: quote.title || '',
+    title: quote.title === 'Rascunho em processamento' ? '' : quote.title || '',
     customerNote: quote.customerNote || '',
     items:
       quote.items.length > 0
@@ -44,7 +44,11 @@ export function useCustomerDashboard() {
   const editorCardRef = useRef<HTMLDivElement | null>(null);
 
   // ── Queries ──────────────────────────────────────────────────────────────
-  const quotesQuery = useQuery({ queryKey: ['customer', 'quotes'], queryFn: fetchMyQuotes });
+  const quotesQuery = useQuery({
+    queryKey: ['customer', 'quotes'],
+    queryFn: fetchMyQuotes,
+    refetchInterval: 5000,
+  });
 
   // ── Mutations ─────────────────────────────────────────────────────────────
   const createDraftMutation = useMutation({
@@ -59,7 +63,10 @@ export function useCustomerDashboard() {
       setEditorState(buildEditorState(quote));
       setSearchParams({ quoteId: quote.id, tab: 'quotes' });
       setActiveTab('quotes');
-      toast({ title: 'Rascunho criado', description: `${quote.itemCount} item(ns) reconhecido(s).` });
+      toast({
+        title: 'Rascunho criado',
+        description: 'A leitura automatica continua em segundo plano. Voce pode revisar ou preencher manualmente.',
+      });
     },
     onError: (error) => {
       toast({

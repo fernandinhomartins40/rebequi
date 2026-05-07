@@ -11,6 +11,8 @@ import {
   buildQuoteSourceLabel,
   buildQuoteStageLabel,
   formatQuoteTimestamp,
+  getQuoteOcrStatusDescription,
+  getQuoteOcrStatusLabel,
   getQuoteStatusDescription,
 } from '@/lib/quote-ui';
 import type { QuoteItemInputDTO, QuoteRequest } from '@/types';
@@ -52,7 +54,7 @@ export function CustomerQuotesPanel({
   const draftQuotes = quotes.filter((q) => q.status === 'DRAFT');
   const submittedQuotes = quotes.filter((q) => q.status === 'SUBMITTED');
   const inReviewQuotes = quotes.filter((q) => q.status === 'IN_REVIEW');
-  const respondedQuotes = quotes.filter((q) => q.status === 'RESPONDED');
+  const ocrPendingQuotes = quotes.filter((q) => q.status === 'DRAFT' && (q.ocrStatus === 'PENDING' || q.ocrStatus === 'PROCESSING'));
   const editableItemCount = editorState.items.filter((item) => item.name.trim()).length;
 
   return (
@@ -75,8 +77,8 @@ export function CustomerQuotesPanel({
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <SummarySurface value={`${quotes.length}`} label="Total" description="Histórico completo." />
           <SummarySurface value={`${draftQuotes.length}`} label="Rascunhos" description="Para revisar ou completar." />
+          <SummarySurface value={`${ocrPendingQuotes.length}`} label="Em leitura" description="OCR rodando em segundo plano." />
           <SummarySurface value={`${submittedQuotes.length + inReviewQuotes.length}`} label="Em análise" description="Enviados, aguardando retorno." />
-          <SummarySurface value={`${respondedQuotes.length}`} label="Respondidos" description="Já têm retorno da loja." />
         </div>
       </section>
 
@@ -135,7 +137,7 @@ export function CustomerQuotesPanel({
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-foreground">{buildQuoteDisplayTitle(quote)}</p>
                         <p className="mt-1 text-xs text-muted-foreground">
-                          {quote.itemCount} item(ns) · {formatQuoteTimestamp(quote.updatedAt || quote.createdAt)}
+                          {quote.itemCount} item(ns) · {getQuoteOcrStatusLabel(quote.ocrStatus)}
                         </p>
                       </div>
                       <QuoteStatusBadge status={quote.status} />
@@ -176,9 +178,25 @@ export function CustomerQuotesPanel({
 
                 <div className="mt-4 grid gap-3 md:grid-cols-3">
                   <InfoPanel label="Origem" value={buildQuoteSourceLabel(selectedQuote.source)} />
+                  <InfoPanel label="Leitura" value={getQuoteOcrStatusLabel(selectedQuote.ocrStatus)} />
                   <InfoPanel label="Atualização" value={formatQuoteTimestamp(selectedQuote.updatedAt || selectedQuote.createdAt)} />
-                  <InfoPanel label="Itens" value={`${selectedQuote.itemCount} item(ns)`} />
                 </div>
+
+                {selectedQuote.status === 'DRAFT' ? (
+                  <div className={`mt-4 rounded-xl border p-4 ${
+                    selectedQuote.ocrStatus === 'FAILED'
+                      ? 'border-amber-200 bg-amber-50/80'
+                      : selectedQuote.ocrStatus === 'COMPLETED'
+                        ? 'border-emerald-200 bg-emerald-50/80'
+                        : 'border-sky-200 bg-sky-50/80'
+                  }`}>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      {getQuoteOcrStatusLabel(selectedQuote.ocrStatus)}
+                    </p>
+                    <p className="mt-2 text-sm text-foreground">{getQuoteOcrStatusDescription(selectedQuote.ocrStatus)}</p>
+                    {selectedQuote.ocrError ? <p className="mt-2 text-xs text-muted-foreground">{selectedQuote.ocrError}</p> : null}
+                  </div>
+                ) : null}
 
                 {selectedQuote.customerNote ? (
                   <div className="mt-4 rounded-xl border border-slate-200/70 bg-slate-50/80 p-4">

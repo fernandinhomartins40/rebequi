@@ -1,5 +1,5 @@
 import { formatDateTime } from '@rebequi/shared/utils';
-import type { LeadStatus, QuoteRequest, QuoteStatus } from '@/types';
+import type { LeadStatus, QuoteOcrStatus, QuoteRequest, QuoteStatus } from '@/types';
 
 export function getQuoteStatusLabel(status: QuoteStatus) {
   switch (status) {
@@ -49,6 +49,39 @@ export function getQuoteStatusDescription(status: QuoteStatus) {
       return 'Fluxo encerrado e mantido apenas para historico.';
     default:
       return 'Status do orcamento.';
+  }
+}
+
+export function getQuoteOcrStatusLabel(status?: QuoteOcrStatus | null) {
+  switch (status) {
+    case 'PENDING':
+      return 'Leitura na fila';
+    case 'PROCESSING':
+      return 'Lendo documento';
+    case 'COMPLETED':
+      return 'Leitura concluida';
+    case 'FAILED':
+      return 'Leitura falhou';
+    case 'SKIPPED':
+      return 'Leitura ignorada';
+    default:
+      return 'Leitura pendente';
+  }
+}
+
+export function getQuoteOcrStatusDescription(status?: QuoteOcrStatus | null) {
+  switch (status) {
+    case 'PENDING':
+    case 'PROCESSING':
+      return 'O rascunho ja foi criado. Voce pode aguardar a leitura automatica ou preencher os itens manualmente.';
+    case 'COMPLETED':
+      return 'Confira os itens sugeridos antes de enviar para a loja.';
+    case 'FAILED':
+      return 'Nao foi possivel ler a imagem automaticamente. O rascunho continua disponivel para preenchimento manual.';
+    case 'SKIPPED':
+      return 'Preencha os itens manualmente para concluir a solicitacao.';
+    default:
+      return 'Revise o rascunho antes de enviar.';
   }
 }
 
@@ -114,7 +147,7 @@ export function formatQuoteTimestamp(value?: Date | string | null) {
 export function buildQuoteDisplayTitle(quote: Pick<QuoteRequest, 'title' | 'referenceCode' | 'items'>) {
   const explicitTitle = quote.title?.trim();
 
-  if (explicitTitle) {
+  if (explicitTitle && explicitTitle !== 'Rascunho em processamento') {
     return explicitTitle;
   }
 
@@ -131,9 +164,13 @@ export function buildQuoteDisplayTitle(quote: Pick<QuoteRequest, 'title' | 'refe
   return `${firstItem} + ${quote.items.length - 1} item(ns)`;
 }
 
-export function buildQuoteStageLabel(quote: Pick<QuoteRequest, 'status'> | null | undefined) {
+export function buildQuoteStageLabel(quote: Pick<QuoteRequest, 'status' | 'ocrStatus'> | null | undefined) {
   if (!quote) {
     return 'Aguardando captura';
+  }
+
+  if (quote.status === 'DRAFT' && (quote.ocrStatus === 'PENDING' || quote.ocrStatus === 'PROCESSING')) {
+    return 'Lendo documento';
   }
 
   switch (quote.status) {

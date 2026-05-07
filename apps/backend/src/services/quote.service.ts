@@ -22,6 +22,7 @@ import { QuoteRepository } from '../repositories/quote.repository.js';
 import { ProductRepository } from '../repositories/product.repository.js';
 import { storeQuoteDocumentImage } from './product-image-storage.service.js';
 import { ForbiddenError, NotFoundError, ValidationError } from '../utils/errors.util.js';
+import { logger } from '../utils/logger.util.js';
 
 type CatalogProduct = Awaited<ReturnType<ProductRepository['findCatalogForMatching']>>[number];
 type PersistedQuote = NonNullable<Awaited<ReturnType<QuoteRepository['findQuoteById']>>>;
@@ -145,6 +146,11 @@ type ParsedRecognitionResult = {
   customerNote: string | null;
 };
 
+type OcrJobParams = {
+  quoteId: string;
+  imageBuffer: Buffer;
+};
+
 function buildDraftTitle(items: PreparedQuoteItem[], customerNote?: string | null) {
   const firstItem = items[0]?.name?.trim();
 
@@ -217,16 +223,12 @@ export class QuoteService {
       height: params.height,
     });
 
-    const recognized = await this.ocrService.recognizeDocument(params.file!.buffer);
-    const parsedRecognition = await this.parseItemsFromRecognition(recognized.lines);
-
     const quote = await this.quoteRepository.createQuote({
       referenceCode: this.generateReferenceCode(),
       source: 'public_camera',
       status: 'DRAFT',
-      title: buildDraftTitle(parsedRecognition.items, parsedRecognition.customerNote),
-      ocrText: recognized.text,
-      ocrConfidence: recognized.confidence,
+      title: 'Rascunho em processamento',
+      ocrStatus: 'PENDING',
       documentUrl: storedDocument.url,
       documentStorageKey: storedDocument.storageKey,
       documentFilename: storedDocument.filename,
@@ -240,19 +242,6 @@ export class QuoteService {
       lead: {
         connect: { id: lead.id },
       },
-      customerNote: parsedRecognition.customerNote ?? undefined,
-      items: {
-        create: parsedRecognition.items.map((item) => ({
-          productId: item.productId ?? undefined,
-          name: item.name,
-          quantity: item.quantity,
-          unit: item.unit ?? undefined,
-          notes: item.notes ?? undefined,
-          confidence: item.confidence ?? undefined,
-          recognitionSourceLine: item.recognitionSourceLine ?? undefined,
-          position: item.position,
-        })),
-      },
     });
 
     const updatedLead = await this.quoteRepository.updateLead(lead.id, {
@@ -260,6 +249,10 @@ export class QuoteService {
     });
 
     const session = await this.authService.createSessionForUser(lead.userId);
+    this.scheduleOcrJob({
+      quoteId: quote.id,
+      imageBuffer: Buffer.from(params.file!.buffer),
+    });
 
     return {
       lead: this.formatLead(updatedLead),
@@ -282,16 +275,12 @@ export class QuoteService {
       height: params.height,
     });
 
-    const recognized = await this.ocrService.recognizeDocument(params.file!.buffer);
-    const parsedRecognition = await this.parseItemsFromRecognition(recognized.lines);
-
     const quote = await this.quoteRepository.createQuote({
       referenceCode: this.generateReferenceCode(),
       source: 'customer_dashboard',
       status: 'DRAFT',
-      title: buildDraftTitle(parsedRecognition.items, parsedRecognition.customerNote),
-      ocrText: recognized.text,
-      ocrConfidence: recognized.confidence,
+      title: 'Rascunho em processamento',
+      ocrStatus: 'PENDING',
       documentUrl: storedDocument.url,
       documentStorageKey: storedDocument.storageKey,
       documentFilename: storedDocument.filename,
@@ -302,19 +291,11 @@ export class QuoteService {
       user: {
         connect: { id: params.userId },
       },
-      customerNote: parsedRecognition.customerNote ?? undefined,
-      items: {
-        create: parsedRecognition.items.map((item) => ({
-          productId: item.productId ?? undefined,
-          name: item.name,
-          quantity: item.quantity,
-          unit: item.unit ?? undefined,
-          notes: item.notes ?? undefined,
-          confidence: item.confidence ?? undefined,
-          recognitionSourceLine: item.recognitionSourceLine ?? undefined,
-          position: item.position,
-        })),
-      },
+    });
+
+    this.scheduleOcrJob({
+      quoteId: quote.id,
+      imageBuffer: Buffer.from(params.file!.buffer),
     });
 
     return this.formatQuote(quote);
@@ -506,6 +487,72 @@ export class QuoteService {
     });
   }
 
+  private scheduleOcrJob(params: OcrJobParams) {
+    setTimeout(() => {
+      void this.runOcrJob(params);
+    }, 0);
+  }
+
+  private async runOcrJob(params: OcrJobParams) {
+    try {
+      await this.quoteRepository.updateQuote(params.quoteId, {
+        ocrStatus: 'PROCESSING',
+        ocrError: null,
+      });
+
+      const recognized = await this.ocrService.recognizeDocument(params.imageBuffer);
+      const parsedRecognition = await this.parseItemsFromRecognition(recognized.lines);
+      const currentQuote = await this.quoteRepository.findQuoteById(params.quoteId);
+
+      if (!currentQuote) {
+        return;
+      }
+
+      const baseUpdate = {
+        ocrStatus: 'COMPLETED' as const,
+        ocrText: recognized.text || null,
+        ocrConfidence: recognized.confidence || null,
+        ocrError: null,
+      };
+
+      if (currentQuote.items.length > 0) {
+        await this.quoteRepository.updateQuote(params.quoteId, baseUpdate);
+        return;
+      }
+
+      await this.quoteRepository.updateQuote(params.quoteId, {
+        ...baseUpdate,
+        title: buildDraftTitle(parsedRecognition.items, parsedRecognition.customerNote),
+        customerNote: parsedRecognition.customerNote ?? currentQuote.customerNote,
+      });
+
+      await this.quoteRepository.replaceQuoteItems(
+        params.quoteId,
+        parsedRecognition.items.map((item) => ({
+          quoteRequestId: params.quoteId,
+          productId: item.productId ?? null,
+          name: item.name,
+          quantity: item.quantity,
+          unit: item.unit ?? null,
+          notes: item.notes ?? null,
+          confidence: item.confidence ?? null,
+          recognitionSourceLine: item.recognitionSourceLine ?? null,
+          position: item.position,
+        }))
+      );
+    } catch (error) {
+      logger.error('Background OCR job failed.', {
+        quoteId: params.quoteId,
+        error,
+      });
+
+      await this.quoteRepository.updateQuote(params.quoteId, {
+        ocrStatus: 'FAILED',
+        ocrError: error instanceof Error ? error.message : 'Falha ao processar OCR',
+      });
+    }
+  }
+
   private async parseItemsFromRecognition(lines: RecognizedQuoteLine[]): Promise<ParsedRecognitionResult> {
     const catalog = await this.productRepository.findCatalogForMatching();
     const parsedItems: PreparedQuoteItem[] = [];
@@ -576,22 +623,9 @@ export class QuoteService {
       };
     }
 
-    if (customerNote) {
-      return {
-        items: [],
-        customerNote,
-      };
-    }
-
     return {
-      items: [
-        {
-          name: 'Item reconhecido manualmente',
-          quantity: 1,
-          position: 0,
-        },
-      ],
-      customerNote: null,
+      items: [],
+      customerNote,
     };
   }
 
@@ -700,8 +734,10 @@ export class QuoteService {
       source: quote.source,
       title: quote.title,
       customerNote: quote.customerNote,
+      ocrStatus: quote.ocrStatus,
       ocrText: quote.ocrText,
       ocrConfidence: quote.ocrConfidence,
+      ocrError: quote.ocrError,
       documentUrl: quote.documentUrl,
       documentFilename: quote.documentFilename,
       documentMimeType: quote.documentMimeType,

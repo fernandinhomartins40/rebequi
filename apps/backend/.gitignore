@@ -37,7 +37,5 @@ coverage/
 .DS_Store
 
 # Prisma
-prisma/migrations/*
-!prisma/migrations/.gitkeep
 prisma/*.db
 prisma/*.db-journal

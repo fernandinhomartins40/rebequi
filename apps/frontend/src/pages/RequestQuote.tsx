@@ -81,7 +81,7 @@ export default function RequestQuotePage() {
       await refreshSession();
       toast({
         title: 'Rascunho criado',
-        description: `${result.quote.itemCount} item(ns) reconhecido(s). Revise no painel.`,
+        description: 'A leitura do documento continua em segundo plano. Revise ou preencha os itens no painel.',
       });
     } catch (error) {
       toast({
@@ -161,7 +161,7 @@ export default function RequestQuotePage() {
             {processedQuote ? (
               <div className="rounded-xl border border-emerald-200/70 bg-emerald-50/60 p-4 text-sm">
                 <p className="font-semibold text-emerald-900">Rascunho criado</p>
-                <p className="mt-0.5 text-emerald-800">{processedQuote.itemCount} item(ns) reconhecido(s)</p>
+                <p className="mt-0.5 text-emerald-800">Leitura em segundo plano</p>
               </div>
             ) : null}
           </aside>
@@ -260,10 +260,10 @@ export default function RequestQuotePage() {
                 <div className="mb-5 rounded-lg border border-slate-200/70 bg-slate-50 p-4">
                   <p className="text-sm font-semibold text-foreground">{buildQuoteDisplayTitle(processedQuote)}</p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {processedQuote.itemCount} item(ns) reconhecido(s) · Código {processedQuote.referenceCode}
+                    Rascunho criado · Código {processedQuote.referenceCode}
                   </p>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Abra o painel do cliente para revisar os itens, ajustar quantidades e enviar para a loja.
+                    Abra o painel do cliente para acompanhar a leitura, revisar os itens ou preencher manualmente.
                   </p>
                 </div>
 

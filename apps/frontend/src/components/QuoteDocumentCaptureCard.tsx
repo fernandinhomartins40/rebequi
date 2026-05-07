@@ -29,6 +29,10 @@ type PreviewState = {
   captureMode: 'camera' | 'upload';
 };
 
+type PreparedSelection = QuoteDocumentSelection & {
+  previewUrl: string;
+};
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function QuoteDocumentCaptureCard({
@@ -44,6 +48,7 @@ export function QuoteDocumentCaptureCard({
   const [localBusy, setLocalBusy] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [preview, setPreview] = useState<PreviewState | null>(null);
+  const [preparedSelection, setPreparedSelection] = useState<PreparedSelection | null>(null);
   const [showWebcam, setShowWebcam] = useState(false);
 
   useEffect(() => {
@@ -72,13 +77,14 @@ export function QuoteDocumentCaptureCard({
         captureMode: mode,
       });
 
-      await onSelectFile({
+      setPreparedSelection({
         file: normalized.file,
         width: normalized.width,
         height: normalized.height,
         captureMode: mode,
         autoCropped: false,
         autoCaptured: mode === 'camera',
+        previewUrl: normalized.previewUrl,
       });
     } catch (error) {
       setLocalError(
@@ -95,11 +101,32 @@ export function QuoteDocumentCaptureCard({
 
   const handleCameraClick = () => {
     if (busy) return;
-    // Desktop: usar getUserMedia. Mobile sem suporte: cair no input capture.
-    if (typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
-      setShowWebcam(true);
-    } else {
+    const preferNativeCapture =
+      typeof window !== 'undefined' &&
+      (window.matchMedia?.('(pointer: coarse)').matches || navigator.maxTouchPoints > 0);
+
+    if (preferNativeCapture || !navigator.mediaDevices?.getUserMedia) {
       cameraInputRef.current?.click();
+    } else {
+      setShowWebcam(true);
+    }
+  };
+
+  const handleSubmitPreparedSelection = async () => {
+    if (!preparedSelection || busy) return;
+    setLocalBusy(true);
+    setLocalError(null);
+
+    try {
+      await onSelectFile(preparedSelection);
+    } catch (error) {
+      setLocalError(
+        error instanceof Error
+          ? error.message
+          : 'Nao foi possivel enviar a imagem. Tente novamente.'
+      );
+    } finally {
+      setLocalBusy(false);
     }
   };
 
@@ -135,7 +162,8 @@ export function QuoteDocumentCaptureCard({
 
         {/* Preview */}
         {preview ? (
-          <div className="flex items-center gap-3 rounded-lg border border-slate-200/70 bg-white p-3">
+          <div className="space-y-3 rounded-lg border border-slate-200/70 bg-white p-3">
+            <div className="flex items-center gap-3">
             <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md border border-slate-100 bg-slate-50">
               <img src={preview.url} alt="Documento selecionado" className="h-full w-full object-cover" />
             </div>
@@ -155,6 +183,16 @@ export function QuoteDocumentCaptureCard({
               aria-label="Trocar imagem"
             >
               <RefreshCcw className="h-3.5 w-3.5" />
+            </Button>
+            </div>
+            <Button
+              type="button"
+              className="w-full gap-2"
+              onClick={() => void handleSubmitPreparedSelection()}
+              disabled={busy || !preparedSelection}
+            >
+              {processing || localBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+              {buttonLabel}
             </Button>
           </div>
         ) : null}

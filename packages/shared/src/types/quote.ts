@@ -17,6 +17,14 @@ export enum QuoteStatus {
   ARCHIVED = 'ARCHIVED',
 }
 
+export enum QuoteOcrStatus {
+  PENDING = 'PENDING',
+  PROCESSING = 'PROCESSING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
+  SKIPPED = 'SKIPPED',
+}
+
 export interface QuoteItem {
   id: string;
   quoteRequestId: string;
@@ -58,8 +66,10 @@ export interface QuoteRequest {
   source: string;
   title?: string | null;
   customerNote?: string | null;
+  ocrStatus: QuoteOcrStatus;
   ocrText?: string | null;
   ocrConfidence?: number | null;
+  ocrError?: string | null;
   documentUrl: string;
   documentFilename?: string | null;
   documentMimeType?: string | null;

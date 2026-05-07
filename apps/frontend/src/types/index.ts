@@ -45,6 +45,7 @@ export type {
   UpdateQuoteStatusDTO,
   UpdateLeadStatusDTO,
   QuoteStatus,
+  QuoteOcrStatus,
   LeadStatus,
   User,
   UserRole,

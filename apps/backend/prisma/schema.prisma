@@ -237,6 +237,14 @@ enum QuoteStatus {
   ARCHIVED
 }
 
+enum QuoteOcrStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  SKIPPED
+}
+
 enum OrderStatus {
   PENDING_WHATSAPP
   WHATSAPP_REDIRECTED
@@ -276,8 +284,10 @@ model QuoteRequest {
   source             String       @default("customer_dashboard")
   title              String?
   customerNote       String?
+  ocrStatus          QuoteOcrStatus @default(PENDING)
   ocrText            String?
   ocrConfidence      Float?
+  ocrError           String?
   documentUrl        String
   documentStorageKey String?
   documentFilename   String?
@@ -295,6 +305,7 @@ model QuoteRequest {
   @@index([userId])
   @@index([leadId])
   @@index([status])
+  @@index([ocrStatus])
   @@index([submittedAt])
   @@map("quote_requests")
 }
