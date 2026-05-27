@@ -11,7 +11,11 @@ export const quoteStatusSchema = z.enum(['DRAFT', 'SUBMITTED', 'IN_REVIEW', 'RES
 export const leadStatusSchema = z.enum(['STARTED', 'QUOTE_DRAFTED', 'QUOTE_SUBMITTED', 'CONTACTED', 'ARCHIVED']);
 
 export const startLeadSchema = z.object({
-  name: z.string().min(1, 'Nome e obrigatório').max(255, 'Nome muito longo'),
+  name: z
+    .string()
+    .max(255, 'Nome muito longo')
+    .optional()
+    .transform((value) => value?.trim() || 'Cliente'),
   whatsapp: normalizedWhatsappSchema,
 });
 
