@@ -11,3 +11,4 @@ export * from './auth';
 export * from './quotes';
 export * from './orders';
 export * from './users';
+export * from './integrations';

@@ -6,7 +6,8 @@ export type MerchantPermission =
   | 'promotions:manage'
   | 'orders:manage'
   | 'quotes:manage'
-  | 'access:manage';
+  | 'access:manage'
+  | 'integrations:manage';
 
 export type InternalUserRole = Exclude<UserRole, UserRole.CUSTOMER>;
 
@@ -54,6 +55,10 @@ export const MERCHANT_PERMISSION_PROFILES: Record<MerchantPermission, Permission
     label: 'Acesso',
     description: 'Cria usuarios internos, altera roles e controla a equipe.',
   },
+  'integrations:manage': {
+    label: 'Integracoes',
+    description: 'Configura integracoes externas como OpenRouter (OCR) e chaves de API.',
+  },
 };
 
 export const MERCHANT_ROLE_PROFILES: Record<InternalUserRole, RoleProfile> = {
@@ -67,6 +72,7 @@ export const MERCHANT_ROLE_PROFILES: Record<InternalUserRole, RoleProfile> = {
       'orders:manage',
       'quotes:manage',
       'access:manage',
+      'integrations:manage',
     ],
   },
   [UserRole.MANAGER]: {
@@ -78,6 +84,7 @@ export const MERCHANT_ROLE_PROFILES: Record<InternalUserRole, RoleProfile> = {
       'promotions:manage',
       'orders:manage',
       'quotes:manage',
+      'integrations:manage',
     ],
   },
   [UserRole.CATALOG_MANAGER]: {

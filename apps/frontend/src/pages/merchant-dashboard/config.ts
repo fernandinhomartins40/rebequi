@@ -1,4 +1,4 @@
-import { BadgePercent, BarChart3, Boxes, FileText, ReceiptText, ShieldCheck, type LucideIcon } from 'lucide-react';
+import { BadgePercent, BarChart3, Boxes, FileText, Plug, ReceiptText, ShieldCheck, type LucideIcon } from 'lucide-react';
 import { hasMerchantPermission, isMerchantUserRole, type MerchantPermission } from '@rebequi/shared/constants';
 import type { UserRole } from '@rebequi/shared/types';
 
@@ -21,7 +21,14 @@ export const SIDEBAR_THEME = {
   '--sidebar-ring': '217 91% 60%',
 } as const;
 
-export type MerchantSection = 'visao-geral' | 'produtos' | 'promocoes' | 'pedidos' | 'orcamentos' | 'acesso';
+export type MerchantSection =
+  | 'visao-geral'
+  | 'produtos'
+  | 'promocoes'
+  | 'pedidos'
+  | 'orcamentos'
+  | 'integracoes'
+  | 'acesso';
 
 export type MerchantNavItem = {
   id: MerchantSection;
@@ -91,6 +98,17 @@ export const NAV_SECTIONS: Omit<MerchantNavItem, 'badge'>[] = [
     title: 'Orcamentos e leads',
     intro: 'Acompanhe orcamentos enviados e clientes capturados que ainda nao concluiram o fluxo.',
     requiredPermission: 'quotes:manage',
+  },
+  {
+    id: 'integracoes',
+    href: `${ADMIN_BASE_PATH}/integracoes`,
+    label: 'Integracoes',
+    description: 'OCR via OpenRouter',
+    icon: Plug,
+    eyebrow: 'Integracoes',
+    title: 'Integracoes externas',
+    intro: 'Configure a chave do OpenRouter, escolha os modelos VLM e teste a conexao usada pelo OCR de orcamentos.',
+    requiredPermission: 'integrations:manage',
   },
   {
     id: 'acesso',

@@ -379,3 +379,17 @@ model CustomerOrderItem {
   @@index([productId])
   @@map("customer_order_items")
 }
+
+// ============================================================================
+// SETTING MODEL - Key/value store for integrations and runtime configuration
+// ============================================================================
+model Setting {
+  key         String   @id
+  value       String
+  isSecret    Boolean  @default(false)
+  description String?
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  @@map("settings")
+}

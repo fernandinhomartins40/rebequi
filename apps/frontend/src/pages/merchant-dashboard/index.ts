@@ -5,4 +5,5 @@ export { MerchantDashboardOrders } from './orders';
 export { MerchantDashboardProducts } from './products';
 export { MerchantDashboardPromotions } from './promotions';
 export { MerchantDashboardQuotes } from './quotes';
+export { MerchantDashboardIntegrations } from './integrations';
 export { default } from './overview';

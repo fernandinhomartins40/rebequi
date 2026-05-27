@@ -12,6 +12,7 @@ import quoteRoutes from './quote.routes.js';
 import healthRoutes from './health.routes.js';
 import orderRoutes from './order.routes.js';
 import userRoutes from './user.routes.js';
+import integrationRoutes from './integration.routes.js';
 
 const router: Router = Router();
 
@@ -24,5 +25,6 @@ router.use('/quotes', quoteRoutes);
 router.use('/orders', orderRoutes);
 router.use('/health', healthRoutes);
 router.use('/users', userRoutes);
+router.use('/integrations', integrationRoutes);
 
 export default router;

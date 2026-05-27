@@ -61,11 +61,23 @@ const envSchema = z.object({
   UPLOAD_DIR: z.string().default('./uploads'),
 
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
+
+  // Encryption key for secret settings stored in the database (OpenRouter API key, etc.).
+  // Defaults to JWT_SECRET when not set so dev environments do not break, but in production
+  // a dedicated key is recommended.
+  SETTINGS_ENCRYPTION_KEY: z
+    .string()
+    .min(32, 'SETTINGS_ENCRYPTION_KEY must be at least 32 characters')
+    .optional(),
 });
 
 const parseEnv = () => {
   try {
-    return envSchema.parse(process.env);
+    const parsed = envSchema.parse(process.env);
+    return {
+      ...parsed,
+      SETTINGS_ENCRYPTION_KEY: parsed.SETTINGS_ENCRYPTION_KEY ?? parsed.JWT_SECRET,
+    };
   } catch (error) {
     console.error('Invalid environment variables:', error);
     process.exit(1);
@@ -73,4 +85,4 @@ const parseEnv = () => {
 };
 
 export const env = parseEnv();
-export type Env = z.infer<typeof envSchema>;
+export type Env = z.infer<typeof envSchema> & { SETTINGS_ENCRYPTION_KEY: string };
