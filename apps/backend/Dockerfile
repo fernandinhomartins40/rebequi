@@ -56,8 +56,8 @@ ENV RELEASE_VERSION=$RELEASE_VERSION
 # Install dumb-init for proper signal handling
 RUN apt-get update \
   && apt-get install -y --no-install-recommends dumb-init wget ca-certificates libgomp1 libgl1 libglib2.0-0 libsm6 libxext6 libxrender1 python3 python3-pip \
-  && python3 -m pip install --no-cache-dir --break-system-packages paddlepaddle==3.0.0 -i https://www.paddlepaddle.org.cn/packages/stable/cpu/ \
-  && python3 -m pip install --no-cache-dir --break-system-packages paddleocr \
+  && python3 -m pip install --default-timeout=1000 --no-cache-dir --break-system-packages paddlepaddle==3.0.0 -i https://www.paddlepaddle.org.cn/packages/stable/cpu/ \
+  && python3 -m pip install --default-timeout=1000 --no-cache-dir --break-system-packages paddleocr \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
