@@ -52,8 +52,8 @@ const App = () => (
               <Route path="/categorias" element={<CategoriesPage />} />
               <Route path="/categorias/:slug" element={<CategoryDetailsPage />} />
               <Route path="/ofertas/:slug" element={<PromotionDetailsPage />} />
-              <Route path="/promocoes" element={<PromotionsPage />} />
-              <Route path="/promocoes/:slug" element={<PromotionDetailsPage />} />
+              <Route path="/promoções" element={<PromotionsPage />} />
+              <Route path="/promoções/:slug" element={<PromotionDetailsPage />} />
               <Route path="/novidades" element={<NewsPage />} />
               <Route path="/contato" element={<ContactPage />} />
               <Route path="/buscar" element={<SearchResultsPage />} />
@@ -81,17 +81,17 @@ const App = () => (
                     <Route path="ofertas" element={<Navigate to="/painel-lojista/painel/produtos" replace />} />
                   </Route>
                   <Route element={<MerchantPermissionRoute permission="promotions:manage" />}>
-                    <Route path="promocoes" element={<MerchantDashboardPromotions />} />
+                    <Route path="promoções" element={<MerchantDashboardPromotions />} />
                   </Route>
                   <Route element={<MerchantPermissionRoute permission="orders:manage" />}>
                     <Route path="pedidos" element={<MerchantDashboardOrders />} />
                     <Route path="pedidos/:orderId" element={<MerchantDashboardOrderDetails />} />
                   </Route>
                   <Route element={<MerchantPermissionRoute permission="quotes:manage" />}>
-                    <Route path="orcamentos" element={<MerchantDashboardQuotes />} />
+                    <Route path="orçamentos" element={<MerchantDashboardQuotes />} />
                   </Route>
                   <Route element={<MerchantPermissionRoute permission="integrations:manage" />}>
-                    <Route path="integracoes" element={<MerchantDashboardIntegrations />} />
+                    <Route path="integrações" element={<MerchantDashboardIntegrations />} />
                   </Route>
                   <Route element={<MerchantPermissionRoute permission="access:manage" />}>
                     <Route path="acesso" element={<MerchantDashboardAccess />} />

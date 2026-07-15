@@ -436,10 +436,10 @@ export default function CheckoutPage() {
 
               <Alert>
                 <MessageCircleMore className="h-4 w-4" />
-                <AlertTitle>Recuperacao de venda ativa</AlertTitle>
+                <AlertTitle>Recuperação de venda ativa</AlertTitle>
                 <AlertDescription>
                   Mesmo se o cliente não concluir o envio da mensagem no WhatsApp, este pedido continua visível no painel
-                  administrativo para acompanhamento e recuperacao comercial.
+                  administrativo para acompanhamento e recuperação comercial.
                 </AlertDescription>
               </Alert>
             </div>

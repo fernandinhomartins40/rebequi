@@ -161,7 +161,7 @@ export function MerchantDashboardPromotions() {
               Atualizar
             </Button>
             <Button asChild variant="outline" size="sm">
-              <Link to="/promocoes">Ver página pública</Link>
+              <Link to="/promoções">Ver página pública</Link>
             </Button>
           </>
         }
@@ -305,7 +305,7 @@ export function MerchantDashboardPromotions() {
                               ) : null}
                             </div>
                             <p className="mt-0.5 text-xs text-muted-foreground">
-                              {promotion.name}{promotion.slug ? ` · /promocoes/${promotion.slug}` : ''}
+                              {promotion.name}{promotion.slug ? ` · /promoções/${promotion.slug}` : ''}
                             </p>
                             <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
                               {promotion.subtitle || promotion.description || 'Sem descrição.'}

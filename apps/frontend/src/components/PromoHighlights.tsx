@@ -40,7 +40,7 @@ const PromoHighlights = () => {
           </div>
 
           <Button asChild variant="outline" className="w-full rounded-xl lg:w-auto">
-            <Link to="/promocoes">
+            <Link to="/promoções">
               Ver todas as promoções
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>

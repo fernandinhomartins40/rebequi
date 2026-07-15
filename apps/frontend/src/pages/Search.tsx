@@ -172,14 +172,14 @@ export default function SearchResultsPage() {
               <Search className="mx-auto h-10 w-10 text-primary" />
               <h2 className="mt-4 text-2xl font-semibold text-foreground">Nenhum produto encontrado</h2>
               <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                Tente outro termo, navegue pelas categorias ou veja as promocoes publicas para encontrar alternativas.
+                Tente outro termo, navegue pelas categorias ou veja as promoções publicas para encontrar alternativas.
               </p>
               <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
                 <Button asChild>
                   <Link to="/categorias">Explorar categorias</Link>
                 </Button>
                 <Button asChild variant="outline">
-                  <Link to="/promocoes">Ver promocoes</Link>
+                  <Link to="/promoções">Ver promoções</Link>
                 </Button>
               </div>
             </section>

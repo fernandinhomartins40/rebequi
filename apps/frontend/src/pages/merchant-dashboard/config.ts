@@ -24,10 +24,10 @@ export const SIDEBAR_THEME = {
 export type MerchantSection =
   | 'visão-geral'
   | 'produtos'
-  | 'promocoes'
+  | 'promoções'
   | 'pedidos'
   | 'orçamentos'
-  | 'integracoes'
+  | 'integrações'
   | 'acesso';
 
 export type MerchantNavItem = {
@@ -62,18 +62,18 @@ export const NAV_SECTIONS: Omit<MerchantNavItem, 'badge'>[] = [
     description: 'Cadastro e manutenção',
     icon: Boxes,
     eyebrow: 'Produtos',
-    title: 'Gestao de produtos',
+    title: 'Gestão de produtos',
     intro: 'Cadastre, edite e acompanhe produtos, estoque e imagens.',
     requiredPermission: 'catalog:manage',
   },
   {
-    id: 'promocoes',
-    href: `${ADMIN_BASE_PATH}/promocoes`,
-    label: 'Promocoes',
+    id: 'promoções',
+    href: `${ADMIN_BASE_PATH}/promoções`,
+    label: 'Promoções',
     description: 'Cards e campanhas',
     icon: BadgePercent,
-    eyebrow: 'Promocoes',
-    title: 'Gestao de promocoes',
+    eyebrow: 'Promoções',
+    title: 'Gestão de promoções',
     intro: 'Crie cards promocionais, defina validade e vincule produtos a cada campanha.',
     requiredPermission: 'promotions:manage',
   },
@@ -81,33 +81,33 @@ export const NAV_SECTIONS: Omit<MerchantNavItem, 'badge'>[] = [
     id: 'pedidos',
     href: `${ADMIN_BASE_PATH}/pedidos`,
     label: 'Pedidos',
-    description: 'Checkout e recuperacao',
+    description: 'Checkout e recuperação',
     icon: ReceiptText,
     eyebrow: 'Pedidos',
-    title: 'Gestao de pedidos',
-    intro: 'Acompanhe checkouts enviados ao WhatsApp, pedidos abandonados e a recuperacao de vendas.',
+    title: 'Gestão de pedidos',
+    intro: 'Acompanhe checkouts enviados ao WhatsApp, pedidos abandonados e a recuperação de vendas.',
     requiredPermission: 'orders:manage',
   },
   {
     id: 'orçamentos',
     href: `${ADMIN_BASE_PATH}/orçamentos`,
-    label: 'Orcamentos',
-    description: 'Solicitacoes e leads',
+    label: 'Orçamentos',
+    description: 'Solicitações e leads',
     icon: FileText,
-    eyebrow: 'Orcamentos',
-    title: 'Orcamentos e leads',
+    eyebrow: 'Orçamentos',
+    title: 'Orçamentos e leads',
     intro: 'Acompanhe orçamentos enviados e clientes capturados que ainda não concluíram o fluxo.',
     requiredPermission: 'quotes:manage',
   },
   {
-    id: 'integracoes',
-    href: `${ADMIN_BASE_PATH}/integracoes`,
-    label: 'Integracoes',
+    id: 'integrações',
+    href: `${ADMIN_BASE_PATH}/integrações`,
+    label: 'Integrações',
     description: 'OCR via OpenRouter',
     icon: Plug,
-    eyebrow: 'Integracoes',
-    title: 'Integracoes externas',
-    intro: 'Configure a chave do OpenRouter, escolha os modelos VLM e teste a conexao usada pelo OCR de orçamentos.',
+    eyebrow: 'Integrações',
+    title: 'Integrações externas',
+    intro: 'Configure a chave do OpenRouter, escolha os modelos VLM e teste a conexão usada pelo OCR de orçamentos.',
     requiredPermission: 'integrations:manage',
   },
   {

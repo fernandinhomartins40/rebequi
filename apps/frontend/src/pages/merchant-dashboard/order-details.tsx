@@ -27,7 +27,7 @@ import { ADMIN_BASE_PATH } from './config';
 const STATUS_OPTIONS: Array<{ label: string; value: OrderStatus }> = [
   { label: 'Aguardando WhatsApp', value: 'PENDING_WHATSAPP' },
   { label: 'Enviado ao WhatsApp', value: 'WHATSAPP_REDIRECTED' },
-  { label: 'Em recuperacao', value: 'IN_RECOVERY' },
+  { label: 'Em recuperação', value: 'IN_RECOVERY' },
   { label: 'Concluído', value: 'COMPLETED' },
   { label: 'Cancelado', value: 'CANCELED' },
 ];
@@ -225,9 +225,9 @@ export function MerchantDashboardOrderDetails() {
 
         <div className="space-y-6">
           <DashboardPanel
-            badge="Gestao"
+            badge="Gestão"
             title="Atualizar acompanhamento"
-            description="Centralize aqui aprovacao, recuperacao, cancelamento e observacoes internas."
+            description="Centralize aqui aprovacao, recuperação, cancelamento e observacoes internas."
           >
             <div className="space-y-4">
               <div className="space-y-2">
@@ -266,7 +266,7 @@ export function MerchantDashboardOrderDetails() {
                   onClick={() => void saveOrder('IN_RECOVERY')}
                 >
                   <RotateCcw className="mr-2 h-4 w-4" />
-                  Colocar em recuperacao
+                  Colocar em recuperação
                 </Button>
                 <Button disabled={updateMutation.isPending} onClick={() => void saveOrder('COMPLETED')}>
                   <CheckCircle2 className="mr-2 h-4 w-4" />

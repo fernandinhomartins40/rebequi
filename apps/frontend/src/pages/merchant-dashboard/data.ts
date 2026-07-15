@@ -92,7 +92,7 @@ export function useMerchantDashboardData(): MerchantDashboardOutletContext {
       return { ...item, badge: `${productSummary?.total ?? 0}` };
     }
 
-    if (item.id === 'promocoes') {
+    if (item.id === 'promoções') {
       return { ...item, badge: `${promotionSummary?.total ?? 0}` };
     }
 

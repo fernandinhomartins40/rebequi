@@ -31,7 +31,7 @@ export default function CartPage() {
                 </h1>
                 <p className="max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
                   O pedido e registrado no painel antes do redirecionamento para o WhatsApp, o que permite acompanhar
-                  carrinhos abandonados e acionar a recuperacao de vendas.
+                  carrinhos abandonados e acionar a recuperação de vendas.
                 </p>
               </div>
 

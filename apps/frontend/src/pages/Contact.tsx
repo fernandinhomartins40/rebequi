@@ -58,7 +58,7 @@ const SUPPORT_TOPICS: Array<{
   },
   {
     title: "Acompanhamento de orçamentos",
-    description: "Retorno sobre solicitacoes enviadas, ajustes de itens e atualizacao do status.",
+    description: "Retorno sobre solicitações enviadas, ajustes de itens e atualizacao do status.",
     icon: FileScan,
   },
   {

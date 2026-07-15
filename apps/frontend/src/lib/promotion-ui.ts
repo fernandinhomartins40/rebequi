@@ -205,7 +205,7 @@ export function formatPromotionWindow(params: {
 }
 
 export function getPromotionHref(kind: PromotionKind, slug: string) {
-  return kind === 'single_product' ? `/ofertas/${slug}` : `/promocoes/${slug}`;
+  return kind === 'single_product' ? `/ofertas/${slug}` : `/promoções/${slug}`;
 }
 
 export function getPromotionBadgeLabel(promotion?: Promotion | null) {

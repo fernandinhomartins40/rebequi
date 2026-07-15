@@ -8,7 +8,7 @@ export function getOrderStatusLabel(status: OrderStatus) {
     case 'WHATSAPP_REDIRECTED':
       return 'Cliente enviado ao WhatsApp';
     case 'IN_RECOVERY':
-      return 'Em recuperacao';
+      return 'Em recuperação';
     case 'COMPLETED':
       return 'Concluído';
     case 'CANCELED':

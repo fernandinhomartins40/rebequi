@@ -150,7 +150,7 @@ export default function NewsPage() {
                   <Link to="/categorias">Explorar categorias</Link>
                 </Button>
                 <Button asChild variant="outline">
-                  <Link to="/promocoes">Ver promocoes</Link>
+                  <Link to="/promoções">Ver promoções</Link>
                 </Button>
               </div>
             </section>
@@ -235,12 +235,12 @@ export default function NewsPage() {
                   <div className="rounded-[1.5rem] border border-black/5 bg-white/90 px-5 py-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Proximo passo</p>
                     <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                      Se quiser comparar com campanhas em andamento, use as promocoes publicas ou solicite um orçamento direto para a equipe.
+                      Se quiser comparar com campanhas em andamento, use as promoções publicas ou solicite um orçamento direto para a equipe.
                     </p>
                   </div>
                   <div className="flex flex-col gap-3 sm:flex-row">
                     <Button asChild variant="outline" className="border-black/10 bg-white/85 hover:bg-white">
-                      <Link to="/promocoes">Comparar com promocoes</Link>
+                      <Link to="/promoções">Comparar com promoções</Link>
                     </Button>
                     <Button asChild className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
                       <Link to="/solicitar-orçamento">Solicitar orçamento</Link>

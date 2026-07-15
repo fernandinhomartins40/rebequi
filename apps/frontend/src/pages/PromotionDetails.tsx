@@ -76,7 +76,7 @@ const PromotionDetailsPage = () => {
       <main className="pb-16 pt-10">
         <div className="container mx-auto space-y-8 px-4 sm:px-6">
           <Button asChild variant="outline" className="rounded-2xl">
-            <Link to={isSingleProductPromotion ? '/' : '/promocoes'}>
+            <Link to={isSingleProductPromotion ? '/' : '/promoções'}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               {isSingleProductPromotion ? 'Voltar para a loja' : 'Voltar para promoções'}
             </Link>
