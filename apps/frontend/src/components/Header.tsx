@@ -87,7 +87,7 @@ const Header = () => {
               asChild
               className="hidden gap-2 rounded-xl bg-brand-red text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-brand-red/90 hover:shadow-md lg:inline-flex"
             >
-              <Link to="/solicitar-orcamento">
+              <Link to="/solicitar-orçamento">
                 <FileScan className="h-4 w-4" />
                 <span className="hidden xl:inline">Solicitar orçamento</span>
                 <span className="xl:hidden">Orçamento</span>
@@ -184,7 +184,7 @@ const Header = () => {
                 </Link>
               ))}
               <Link
-                to="/solicitar-orcamento"
+                to="/solicitar-orçamento"
                 className="rounded-xl px-3 py-2.5 text-sm font-medium text-foreground transition-colors duration-200 hover:bg-black/5 hover:text-primary"
                 onClick={() => setIsMobileMenuOpen(false)}
               >

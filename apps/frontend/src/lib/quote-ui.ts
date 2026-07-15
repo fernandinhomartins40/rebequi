@@ -48,7 +48,7 @@ export function getQuoteStatusDescription(status: QuoteStatus) {
     case 'ARCHIVED':
       return 'Fluxo encerrado e mantido apenas para historico.';
     default:
-      return 'Status do orcamento.';
+      return 'Status do orçamento.';
   }
 }
 
@@ -180,7 +180,7 @@ export function buildQuoteStageLabel(quote: Pick<QuoteRequest, 'status' | 'ocrSt
     case 'IN_REVIEW':
       return 'Acompanhamento';
     case 'RESPONDED':
-      return 'Concluido';
+      return 'Concluído';
     case 'ARCHIVED':
       return 'Arquivado';
     default:
@@ -195,6 +195,6 @@ export function buildQuoteSourceLabel(source?: string | null) {
     case 'customer_dashboard':
       return 'Criado pelo cliente no painel';
     default:
-      return source || 'Fluxo de orcamento';
+      return source || 'Fluxo de orçamento';
   }
 }

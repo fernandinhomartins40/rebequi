@@ -19,7 +19,7 @@ const CONTACT_CHANNELS: Array<{
 }> = [
   {
     title: "Telefone",
-    description: "Para duvidas rapidas sobre disponibilidade, atendimento e operacao da loja.",
+    description: "Para dúvidas rápidas sobre disponibilidade, atendimento e operação da loja.",
     detail: STORE_CONTACT.whatsappDisplay,
     cta: "Ligar agora",
     href: `tel:+55${STORE_CONTACT.whatsappDigits}`,
@@ -36,11 +36,11 @@ const CONTACT_CHANNELS: Array<{
     kind: "external",
   },
   {
-    title: "Orcamento",
+    title: "Orçamento",
     description: "Envie a lista da obra e receba retorno do time com mais contexto do pedido.",
     detail: "Fluxo publico com envio de itens e acompanhamento da solicitacao.",
     cta: "Abrir solicitacao",
-    href: "/solicitar-orcamento",
+    href: "/solicitar-orçamento",
     icon: FileScan,
     kind: "internal",
   },
@@ -57,13 +57,13 @@ const SUPPORT_TOPICS: Array<{
     icon: Store,
   },
   {
-    title: "Acompanhamento de orcamentos",
+    title: "Acompanhamento de orçamentos",
     description: "Retorno sobre solicitacoes enviadas, ajustes de itens e atualizacao do status.",
     icon: FileScan,
   },
   {
     title: "Contato institucional",
-    description: "Parcerias, duvidas gerais, suporte de conta e assuntos administrativos.",
+    description: "Parcerias, dúvidas gerais, suporte de conta e assuntos administrativos.",
     icon: Mail,
   },
 ];
@@ -83,8 +83,8 @@ export default function ContactPage() {
                   Fale com a equipe da Rebequi pelo canal mais direto
                 </h1>
                 <p className="max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
-                  Esta pagina concentra os caminhos publicos para atendimento comercial, envio de orcamento e contato
-                  institucional, sem empurrar o cliente para uma pagina vazia ou um formulario sem resposta.
+                  Esta página concentra os caminhos publicos para atendimento comercial, envio de orçamento e contato
+                  institucional, sem empurrar o cliente para uma página vazia ou um formulario sem resposta.
                 </p>
               </div>
 
@@ -173,7 +173,7 @@ export default function ContactPage() {
                   <Badge className="w-fit border-none bg-white text-foreground">Loja fisica</Badge>
                   <CardTitle className="text-2xl">Atendimento presencial e retirada</CardTitle>
                   <CardDescription className="text-sm leading-7 text-muted-foreground">
-                    Se o cliente precisa validar um item de perto, tirar uma duvida rapida ou alinhar retirada, o endereco e o horario ficam claros aqui.
+                    Se o cliente precisa validar um item de perto, tirar uma duvida rápida ou alinhar retirada, o endereço e o horário ficam claros aqui.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -246,21 +246,21 @@ export default function ContactPage() {
           <section className="rounded-[2rem] border border-black/5 bg-white px-6 py-8 shadow-[0_22px_60px_-48px_rgba(15,23,42,0.24)] sm:px-8">
             <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
               <div>
-                <Badge className="border-none bg-primary/10 text-primary">Atalho rapido</Badge>
+                <Badge className="border-none bg-primary/10 text-primary">Atalho rápido</Badge>
                 <h2 className="mt-4 text-2xl font-bold text-foreground sm:text-3xl">
                   Ja tem a lista da obra ou quer explorar antes de falar com a equipe?
                 </h2>
                 <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground">
-                  Voce pode seguir direto para o fluxo de orcamento ou navegar pelas categorias publicas para chegar ao atendimento com a necessidade mais bem definida.
+                  Voce pode seguir direto para o fluxo de orçamento ou navegar pelas categorias publicas para chegar ao atendimento com a necessidade mais bem definida.
                 </p>
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Button asChild className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 sm:w-auto">
-                  <Link to="/solicitar-orcamento">Solicitar orcamento</Link>
+                  <Link to="/solicitar-orçamento">Solicitar orçamento</Link>
                 </Button>
                 <Button asChild variant="outline" className="w-full border-black/10 bg-white hover:bg-white sm:w-auto">
-                  <Link to="/categorias">Ver catalogo</Link>
+                  <Link to="/categorias">Ver catálogo</Link>
                 </Button>
               </div>
             </div>

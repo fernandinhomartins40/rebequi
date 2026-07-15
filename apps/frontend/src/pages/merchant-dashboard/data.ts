@@ -84,7 +84,7 @@ export function useMerchantDashboardData(): MerchantDashboardOutletContext {
   });
 
   const navItems = getMerchantNavItemsForRole(user?.role).map((item) => {
-    if (item.id === 'visao-geral') {
+    if (item.id === 'visão-geral') {
       return { ...item, badge: 'Agora' };
     }
 
@@ -101,7 +101,7 @@ export function useMerchantDashboardData(): MerchantDashboardOutletContext {
       return { ...item, badge: recoveryTotal > 0 ? `${recoveryTotal}` : 'Fila limpa' };
     }
 
-    if (item.id === 'orcamentos') {
+    if (item.id === 'orçamentos') {
       const quotesTotal = quoteSummary?.total ?? 0;
       const leadsTotal = leadSummary?.total ?? 0;
       return { ...item, badge: `${quotesTotal}/${leadsTotal}` };

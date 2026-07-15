@@ -48,7 +48,7 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
-              <Route path="/solicitar-orcamento" element={<RequestQuotePage />} />
+              <Route path="/solicitar-orçamento" element={<RequestQuotePage />} />
               <Route path="/categorias" element={<CategoriesPage />} />
               <Route path="/categorias/:slug" element={<CategoryDetailsPage />} />
               <Route path="/ofertas/:slug" element={<PromotionDetailsPage />} />
@@ -74,7 +74,7 @@ const App = () => (
                 <Route path="/painel-lojista/painel" element={<MerchantDashboardLayout />}>
                   <Route index element={<RoleHomeRedirect />} />
                   <Route element={<MerchantPermissionRoute permission="dashboard:view" />}>
-                    <Route path="visao-geral" element={<MerchantDashboard />} />
+                    <Route path="visão-geral" element={<MerchantDashboard />} />
                   </Route>
                   <Route element={<MerchantPermissionRoute permission="catalog:manage" />}>
                     <Route path="produtos" element={<MerchantDashboardProducts />} />

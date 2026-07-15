@@ -133,7 +133,7 @@ export function UserEditorDialog({
     onSuccess: () => {
       toast({
         title: isEditing ? 'Usuario atualizado' : 'Usuario criado',
-        description: 'As permissoes do colaborador foram salvas com sucesso.',
+        description: 'As permissões do colaborador foram salvas com sucesso.',
       });
       onSaved();
       onOpenChange(false);

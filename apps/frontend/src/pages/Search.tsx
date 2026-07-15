@@ -49,7 +49,7 @@ function SearchResultsSkeleton() {
 export default function SearchResultsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const term = searchParams.get("termo")?.trim() ?? "";
-  const page = parsePage(searchParams.get("pagina"));
+  const page = parsePage(searchParams.get("página"));
   const shouldSearch = term.length >= MIN_SEARCH_LENGTH;
 
   const resultsQuery = useQuery({
@@ -74,9 +74,9 @@ export default function SearchResultsPage() {
     const nextParams = new URLSearchParams(searchParams);
 
     if (nextPage <= 1) {
-      nextParams.delete("pagina");
+      nextParams.delete("página");
     } else {
-      nextParams.set("pagina", String(nextPage));
+      nextParams.set("página", String(nextPage));
     }
 
     setSearchParams(nextParams);
@@ -104,7 +104,7 @@ export default function SearchResultsPage() {
                   Resultados para {term ? `"${term}"` : "sua busca"}
                 </h1>
                 <p className="max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
-                  A busca publica consulta os produtos ativos do catalogo e combina nome, descricao curta, descricao e SKU
+                  A busca publica consulta os produtos ativos do catálogo e combina nome, descrição curta, descrição e SKU
                   para entregar resultados enquanto o cliente navega pela vitrine.
                 </p>
               </div>
@@ -140,7 +140,7 @@ export default function SearchResultsPage() {
               <Search className="mx-auto h-10 w-10 text-primary" />
               <h2 className="mt-4 text-2xl font-semibold text-foreground">Informe um termo para pesquisar</h2>
               <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                Use o campo de busca no topo para procurar produtos publicos por nome, descricao ou codigo.
+                Use o campo de busca no topo para procurar produtos publicos por nome, descrição ou codigo.
               </p>
             </section>
           ) : null}
@@ -150,7 +150,7 @@ export default function SearchResultsPage() {
               <Tag className="mx-auto h-10 w-10 text-primary" />
               <h2 className="mt-4 text-2xl font-semibold text-foreground">Digite pelo menos 2 caracteres</h2>
               <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                Buscas muito curtas geram ruído. A partir de dois caracteres a listagem passa a filtrar o catalogo.
+                Buscas muito curtas geram ruído. A partir de dois caracteres a listagem passa a filtrar o catálogo.
               </p>
             </section>
           ) : null}
@@ -162,7 +162,7 @@ export default function SearchResultsPage() {
               <AlertDescription>
                 {resultsQuery.error instanceof Error
                   ? resultsQuery.error.message
-                  : "Nao foi possivel concluir a busca agora."}
+                  : "Não foi possível concluir a busca agora."}
               </AlertDescription>
             </Alert>
           ) : null}
@@ -197,7 +197,7 @@ export default function SearchResultsPage() {
                     price={product.price}
                     originalPrice={product.originalPrice}
                     image={getProductImage(product)}
-                    category={product.category?.name || "Catalogo"}
+                    category={product.category?.name || "Catálogo"}
                     stock={product.stock}
                     isNew={product.isNew}
                     isOffer={product.isOffer}
@@ -211,7 +211,7 @@ export default function SearchResultsPage() {
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <p className="text-sm font-semibold text-foreground">
-                        Mostrando pagina {page} de {totalPages}
+                        Mostrando página {page} de {totalPages}
                       </p>
                       <p className="mt-1 text-sm text-muted-foreground">{total} produtos encontrados para esta busca.</p>
                     </div>

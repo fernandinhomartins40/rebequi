@@ -90,13 +90,13 @@ export default function NewsPage() {
                   Lancamentos que acabaram de entrar na vitrine
                 </h1>
                 <p className="max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
-                  Reunimos nesta pagina os produtos marcados como novos para facilitar a consulta de itens recem-publicados,
-                  atualizacoes de catalogo e oportunidades para renovar o mix da obra.
+                  Reunimos nesta página os produtos marcados como novos para facilitar a consulta de itens recem-publicados,
+                  atualizações de catálogo e oportunidades para renovar o mix da obra.
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {products.slice(0, 4).map((product) => (
                     <Badge key={product.id} variant="outline" className="rounded-full border-black/10 bg-white/80 px-3 py-1">
-                      {product.category?.name || "Catalogo"}
+                      {product.category?.name || "Catálogo"}
                     </Badge>
                   ))}
                 </div>
@@ -133,7 +133,7 @@ export default function NewsPage() {
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Falha ao carregar novidades</AlertTitle>
               <AlertDescription>
-                {error instanceof Error ? error.message : "Nao foi possivel carregar os produtos novos neste momento."}
+                {error instanceof Error ? error.message : "Não foi possível carregar os produtos novos neste momento."}
               </AlertDescription>
             </Alert>
           ) : null}
@@ -143,7 +143,7 @@ export default function NewsPage() {
               <Sparkles className="mx-auto h-10 w-10 text-primary" />
               <h2 className="mt-4 text-2xl font-semibold text-foreground">Nenhum lancamento publicado agora</h2>
               <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                Assim que novos produtos forem sinalizados no painel administrativo, esta pagina passa a exibidos automaticamente.
+                Assim que novos produtos forem sinalizados no painel administrativo, esta página passa a exibidos automaticamente.
               </p>
               <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
                 <Button asChild>
@@ -171,7 +171,7 @@ export default function NewsPage() {
                   <div className="flex flex-wrap gap-2">
                     <Badge className="border-none bg-secondary text-secondary-foreground">Produto em foco</Badge>
                     <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary">
-                      {featuredProduct.category?.name || "Catalogo"}
+                      {featuredProduct.category?.name || "Catálogo"}
                     </Badge>
                   </div>
 
@@ -216,26 +216,26 @@ export default function NewsPage() {
               </article>
 
               <article className="rounded-[2rem] border border-[#eadfba] bg-[linear-gradient(160deg,rgba(255,251,235,0.95),rgba(255,255,255,0.98))] p-6 shadow-[0_28px_72px_-52px_rgba(217,119,6,0.22)]">
-                <Badge className="border-none bg-white text-foreground">Leitura rapida</Badge>
+                <Badge className="border-none bg-white text-foreground">Leitura rápida</Badge>
                 <div className="mt-4 space-y-4">
                   <div className="rounded-[1.5rem] border border-black/5 bg-white/90 px-5 py-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">O que voce encontra aqui</p>
                     <p className="mt-2 text-sm leading-7 text-muted-foreground">
                       Produtos novos destacados para quem quer acompanhar entradas recentes, revisar o mix disponivel e chegar
-                      rapido aos itens mais frescos da vitrine.
+                      rápido aos itens mais frescos da vitrine.
                     </p>
                   </div>
                   <div className="rounded-[1.5rem] border border-black/5 bg-white/90 px-5 py-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Atualizacao</p>
                     <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                      A pagina puxa direto a listagem publica de produtos marcados como novos. Quando o painel administrativo muda,
-                      esta vitrine acompanha sem depender de manutencao manual.
+                      A página puxa direto a listagem publica de produtos marcados como novos. Quando o painel administrativo muda,
+                      esta vitrine acompanha sem depender de manutenção manual.
                     </p>
                   </div>
                   <div className="rounded-[1.5rem] border border-black/5 bg-white/90 px-5 py-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Proximo passo</p>
                     <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                      Se quiser comparar com campanhas em andamento, use as promocoes publicas ou solicite um orcamento direto para a equipe.
+                      Se quiser comparar com campanhas em andamento, use as promocoes publicas ou solicite um orçamento direto para a equipe.
                     </p>
                   </div>
                   <div className="flex flex-col gap-3 sm:flex-row">
@@ -243,7 +243,7 @@ export default function NewsPage() {
                       <Link to="/promocoes">Comparar com promocoes</Link>
                     </Button>
                     <Button asChild className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
-                      <Link to="/solicitar-orcamento">Solicitar orcamento</Link>
+                      <Link to="/solicitar-orçamento">Solicitar orçamento</Link>
                     </Button>
                   </div>
                 </div>

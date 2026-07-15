@@ -61,7 +61,7 @@ export default function CartPage() {
               </CardHeader>
               <CardContent className="flex justify-center">
                 <Button asChild>
-                  <Link to="/categorias">Explorar catalogo</Link>
+                  <Link to="/categorias">Explorar catálogo</Link>
                 </Button>
               </CardContent>
             </Card>

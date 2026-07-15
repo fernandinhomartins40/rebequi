@@ -28,7 +28,7 @@ const STATUS_OPTIONS: Array<{ label: string; value: OrderStatus }> = [
   { label: 'Aguardando WhatsApp', value: 'PENDING_WHATSAPP' },
   { label: 'Enviado ao WhatsApp', value: 'WHATSAPP_REDIRECTED' },
   { label: 'Em recuperacao', value: 'IN_RECOVERY' },
-  { label: 'Concluido', value: 'COMPLETED' },
+  { label: 'Concluído', value: 'COMPLETED' },
   { label: 'Cancelado', value: 'CANCELED' },
 ];
 
@@ -74,7 +74,7 @@ export function MerchantDashboardOrderDetails() {
       toast({
         variant: 'destructive',
         title: 'Falha ao atualizar pedido',
-        description: error instanceof Error ? error.message : 'Nao foi possivel salvar o pedido.',
+        description: error instanceof Error ? error.message : 'Não foi possível salvar o pedido.',
       });
     },
   });
@@ -112,7 +112,7 @@ export function MerchantDashboardOrderDetails() {
       <Alert variant="destructive">
         <AlertTitle>Pedido indisponivel</AlertTitle>
         <AlertDescription>
-          {orderQuery.error instanceof Error ? orderQuery.error.message : 'Nao foi possivel carregar este pedido.'}
+          {orderQuery.error instanceof Error ? orderQuery.error.message : 'Não foi possível carregar este pedido.'}
         </AlertDescription>
       </Alert>
     );
@@ -130,7 +130,7 @@ export function MerchantDashboardOrderDetails() {
       <SectionLeadCard
         badge="Pedido"
         title={`Gerenciar ${order.referenceCode}`}
-        description="Acompanhamento detalhado do pedido, com conversa direta com o cliente, ajuste de status e notas internas de operacao."
+        description="Acompanhamento detalhado do pedido, com conversa direta com o cliente, ajuste de status e notas internas de operação."
         tone="blue"
         actions={
           <>
@@ -145,7 +145,7 @@ export function MerchantDashboardOrderDetails() {
           <DashboardPanel
             badge="Cliente"
             title="Resumo comercial"
-            description="Informacoes centrais para atendimento rapido sem voltar para a lista."
+            description="Informações centrais para atendimento rápido sem voltar para a lista."
           >
             <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
               <InfoRow label="Cliente" value={order.customerNameSnapshot} />

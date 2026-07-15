@@ -68,7 +68,7 @@ const Register = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-2xl">
             <ShieldCheck className="h-6 w-6 text-primary" />
-            Cadastro rapido
+            Cadastro rápido
           </CardTitle>
           <CardDescription>
             Informe somente seu nome e WhatsApp. O sistema cria um acesso provisório para você entrar no painel.

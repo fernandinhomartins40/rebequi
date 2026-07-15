@@ -10,7 +10,7 @@ export function getOrderStatusLabel(status: OrderStatus) {
     case 'IN_RECOVERY':
       return 'Em recuperacao';
     case 'COMPLETED':
-      return 'Concluido';
+      return 'Concluído';
     case 'CANCELED':
       return 'Cancelado';
     default:

@@ -147,7 +147,7 @@ export default function CheckoutPage() {
       toast({
         variant: 'destructive',
         title: 'Falha ao registrar pedido',
-        description: error instanceof Error ? error.message : 'Nao foi possivel concluir o checkout.',
+        description: error instanceof Error ? error.message : 'Não foi possível concluir o checkout.',
       });
     }
   });
@@ -164,7 +164,7 @@ export default function CheckoutPage() {
       toast({
         variant: 'destructive',
         title: 'Falha ao registrar pedido',
-        description: error instanceof Error ? error.message : 'Nao foi possivel concluir o checkout.',
+        description: error instanceof Error ? error.message : 'Não foi possível concluir o checkout.',
       });
     }
   };
@@ -208,8 +208,8 @@ export default function CheckoutPage() {
                 <div>
                   <CardTitle className="text-3xl">Pedido registrado com sucesso</CardTitle>
                   <CardDescription className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
-                    O pedido {completedOrder.order.referenceCode} ja foi salvo no painel administrativo. Se o WhatsApp
-                    nao abriu ou o cliente desistir de enviar a mensagem, a equipe ainda consegue acompanhar e recuperar
+                    O pedido {completedOrder.order.referenceCode} já foi salvo no painel administrativo. Se o WhatsApp
+                    não abriu ou o cliente desistir de enviar a mensagem, a equipe ainda consegue acompanhar e recuperar
                     a venda por la.
                   </CardDescription>
                 </div>
@@ -303,7 +303,7 @@ export default function CheckoutPage() {
                   <CardHeader>
                     <CardTitle>Dados da conta autenticada</CardTitle>
                     <CardDescription>
-                      O checkout vai usar as informacoes da conta do cliente ja conectada.
+                      O checkout vai usar as informações da conta do cliente já conectada.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -332,7 +332,7 @@ export default function CheckoutPage() {
                   <CardHeader>
                     <CardTitle>Seus dados para o checkout</CardTitle>
                     <CardDescription>
-                      Se ja existir cadastro para este WhatsApp, o sistema vai pedir login e retornar voce para esta etapa.
+                      Se já existir cadastro para este WhatsApp, o sistema vai pedir login e retornar voce para esta etapa.
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -438,7 +438,7 @@ export default function CheckoutPage() {
                 <MessageCircleMore className="h-4 w-4" />
                 <AlertTitle>Recuperacao de venda ativa</AlertTitle>
                 <AlertDescription>
-                  Mesmo se o cliente nao concluir o envio da mensagem no WhatsApp, este pedido continua visivel no painel
+                  Mesmo se o cliente não concluir o envio da mensagem no WhatsApp, este pedido continua visível no painel
                   administrativo para acompanhamento e recuperacao comercial.
                 </AlertDescription>
               </Alert>

@@ -22,11 +22,11 @@ export const SIDEBAR_THEME = {
 } as const;
 
 export type MerchantSection =
-  | 'visao-geral'
+  | 'visão-geral'
   | 'produtos'
   | 'promocoes'
   | 'pedidos'
-  | 'orcamentos'
+  | 'orçamentos'
   | 'integracoes'
   | 'acesso';
 
@@ -45,13 +45,13 @@ export type MerchantNavItem = {
 
 export const NAV_SECTIONS: Omit<MerchantNavItem, 'badge'>[] = [
   {
-    id: 'visao-geral',
-    href: `${ADMIN_BASE_PATH}/visao-geral`,
-    label: 'Visao geral',
-    description: 'Indicadores da operacao',
+    id: 'visão-geral',
+    href: `${ADMIN_BASE_PATH}/visão-geral`,
+    label: 'Visão geral',
+    description: 'Indicadores da operação',
     icon: BarChart3,
     eyebrow: 'Resumo',
-    title: 'Visao geral',
+    title: 'Visão geral',
     intro: 'Indicadores principais do painel administrativo.',
     requiredPermission: 'dashboard:view',
   },
@@ -59,7 +59,7 @@ export const NAV_SECTIONS: Omit<MerchantNavItem, 'badge'>[] = [
     id: 'produtos',
     href: `${ADMIN_BASE_PATH}/produtos`,
     label: 'Produtos',
-    description: 'Cadastro e manutencao',
+    description: 'Cadastro e manutenção',
     icon: Boxes,
     eyebrow: 'Produtos',
     title: 'Gestao de produtos',
@@ -89,14 +89,14 @@ export const NAV_SECTIONS: Omit<MerchantNavItem, 'badge'>[] = [
     requiredPermission: 'orders:manage',
   },
   {
-    id: 'orcamentos',
-    href: `${ADMIN_BASE_PATH}/orcamentos`,
+    id: 'orçamentos',
+    href: `${ADMIN_BASE_PATH}/orçamentos`,
     label: 'Orcamentos',
     description: 'Solicitacoes e leads',
     icon: FileText,
     eyebrow: 'Orcamentos',
     title: 'Orcamentos e leads',
-    intro: 'Acompanhe orcamentos enviados e clientes capturados que ainda nao concluiram o fluxo.',
+    intro: 'Acompanhe orçamentos enviados e clientes capturados que ainda não concluíram o fluxo.',
     requiredPermission: 'quotes:manage',
   },
   {
@@ -107,18 +107,18 @@ export const NAV_SECTIONS: Omit<MerchantNavItem, 'badge'>[] = [
     icon: Plug,
     eyebrow: 'Integracoes',
     title: 'Integracoes externas',
-    intro: 'Configure a chave do OpenRouter, escolha os modelos VLM e teste a conexao usada pelo OCR de orcamentos.',
+    intro: 'Configure a chave do OpenRouter, escolha os modelos VLM e teste a conexao usada pelo OCR de orçamentos.',
     requiredPermission: 'integrations:manage',
   },
   {
     id: 'acesso',
     href: `${ADMIN_BASE_PATH}/acesso`,
     label: 'Acesso',
-    description: 'Usuarios e permissoes',
+    description: 'Usuários e permissões',
     icon: ShieldCheck,
     eyebrow: 'Acesso',
-    title: 'Usuarios e niveis de acesso',
-    intro: 'Crie usuarios internos, distribua papeis e controle quais funcoes cada colaborador pode usar.',
+    title: 'Usuários e níveis de acesso',
+    intro: 'Crie usuários internos, distribua papeis e controle quais funções cada colaborador pode usar.',
     requiredPermission: 'access:manage',
   },
 ];

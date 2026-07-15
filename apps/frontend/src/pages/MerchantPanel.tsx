@@ -74,7 +74,7 @@ const MerchantPanel = () => {
 
       if (!isMerchantUserRole(user.role)) {
         await logout();
-        throw new Error('Sua conta nao possui acesso ao painel do lojista.');
+        throw new Error('Sua conta não possui acesso ao painel do lojista.');
       }
 
       toast({
@@ -105,24 +105,24 @@ const MerchantPanel = () => {
                 <Shield className="h-4 w-4" /> Painel do Lojista
               </div>
               <h1 className="text-2xl font-bold sm:text-3xl">Acesso da equipe</h1>
-              <p className="text-muted-foreground">Entre com uma conta interna para acessar as funcoes liberadas para o seu papel.</p>
+              <p className="text-muted-foreground">Entre com uma conta interna para acessar as funções liberadas para o seu papel.</p>
             </header>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
               <FeatureCard
                 icon={<PackageSearch className="h-6 w-6 text-primary" />}
-                title="Catalogo"
-                description="Cadastro e manutencao do catalogo."
+                title="Catálogo"
+                description="Cadastro e manutenção do catálogo."
               />
               <FeatureCard
                 icon={<BarChart3 className="h-6 w-6 text-primary" />}
-                title="Operacao"
+                title="Operação"
                 description="Funcoes liberadas por role."
               />
               <FeatureCard
                 icon={<Settings className="h-6 w-6 text-primary" />}
                 title="Equipe"
-                description="Controle de usuarios e acessos."
+                description="Controle de usuários e acessos."
               />
             </div>
           </div>

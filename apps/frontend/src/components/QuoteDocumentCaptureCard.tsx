@@ -431,7 +431,7 @@ async function normalizeSelectedImage(rawFile: File) {
 }
 
 function buildNormalizedFilename(originalName: string) {
-  const baseName = stripFileExtension(originalName) || 'orcamento';
+  const baseName = stripFileExtension(originalName) || 'orçamento';
   return `${baseName}-${Date.now()}.jpg`;
 }
 
