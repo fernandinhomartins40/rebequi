@@ -191,11 +191,11 @@ export function MerchantDashboardProducts() {
         description="Cadastre, edite e remova produtos, categorias e ofertas individuais."
         actions={
           <>
-            <Button onClick={openCreateDialog} size="sm" className="gap-1.5 rounded-xl" disabled={!canCreateProduct}>
+            <Button onClick={openCreateDialog} size="sm" className="gap-1.5" disabled={!canCreateProduct}>
               <Plus className="h-3.5 w-3.5" />
               Novo produto
             </Button>
-            <Button variant="outline" size="sm" onClick={openCreateCategoryDialog} className="gap-1.5 rounded-xl">
+            <Button variant="outline" size="sm" onClick={openCreateCategoryDialog} className="gap-1.5">
               <Tags className="h-3.5 w-3.5" />
               Nova categoria
             </Button>
@@ -203,7 +203,7 @@ export function MerchantDashboardProducts() {
               variant="outline"
               size="sm"
               onClick={() => void refetch()}
-              className="gap-1.5 rounded-xl"
+              className="gap-1.5"
             >
               <RefreshCcw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
               Atualizar
@@ -247,14 +247,14 @@ export function MerchantDashboardProducts() {
         description={`${managedCategories.length} cadastradas · ${activeCategories.length} ativas · ${categoriesInUse.length} em uso`}
         accent="yellow"
         action={
-          <Button size="sm" onClick={openCreateCategoryDialog} className="gap-1.5 rounded-xl">
+          <Button size="sm" onClick={openCreateCategoryDialog} className="gap-1.5">
             <Plus className="h-3.5 w-3.5" />
             Nova
           </Button>
         }
       >
         {!canCreateProduct ? (
-          <div className="mb-4 rounded-xl border border-brand-yellow/30 bg-brand-yellow/10 px-4 py-3 text-sm text-foreground">
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             Nenhuma categoria ativa. Cadastre uma categoria para liberar o cadastro de produtos.
           </div>
         ) : null}
@@ -265,20 +265,20 @@ export function MerchantDashboardProducts() {
             Carregando categorias…
           </div>
         ) : managedCategories.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
+          <div className="rounded-lg border border-dashed border-border/70 py-10 text-center text-sm text-muted-foreground">
             Nenhuma categoria cadastrada.
           </div>
         ) : (
           <>
             {/* Desktop table */}
-            <div className="hidden overflow-hidden rounded-xl border border-border/50 md:block">
+            <div className="hidden overflow-hidden rounded-lg border border-border/60 md:block">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-muted/50 hover:bg-muted/50">
-                    <TableHead className="font-bold">Categoria</TableHead>
-                    <TableHead className="font-bold">Detalhes</TableHead>
-                    <TableHead className="w-28 text-center font-bold">Produtos</TableHead>
-                    <TableHead className="w-44 text-right font-bold">Ações</TableHead>
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableHead className="font-medium">Categoria</TableHead>
+                    <TableHead className="font-medium">Detalhes</TableHead>
+                    <TableHead className="w-28 text-center font-medium">Produtos</TableHead>
+                    <TableHead className="w-44 text-right font-medium">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -293,15 +293,15 @@ export function MerchantDashboardProducts() {
                       <TableRow key={category.id} className="hover:bg-muted/30 transition-colors">
                         <TableCell>
                           <div className="flex flex-wrap items-center gap-2">
-                            <p className="font-bold text-foreground">{category.name}</p>
+                            <p className="font-medium text-foreground">{category.name}</p>
                             <Badge
                               variant="outline"
-                              className={category.isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-600' : 'border-border/60 bg-muted text-muted-foreground'}
+                              className={category.isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-border/60 bg-muted text-muted-foreground'}
                             >
                               {category.isActive ? 'Ativa' : 'Inativa'}
                             </Badge>
                             {hasLinkedProducts ? (
-                              <Badge variant="outline" className="border-brand-yellow/30 bg-brand-yellow/10 text-foreground">Em uso</Badge>
+                              <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">Em uso</Badge>
                             ) : null}
                           </div>
                           <p className="mt-0.5 max-w-xs truncate text-xs text-muted-foreground" title={description}>
@@ -313,13 +313,13 @@ export function MerchantDashboardProducts() {
                           <p className="text-xs text-muted-foreground">Ícone: <span className="font-medium text-foreground">{icon}</span></p>
                         </TableCell>
                         <TableCell className="text-center">
-                          <span className="inline-flex min-w-[2rem] items-center justify-center rounded-full bg-muted px-2.5 py-0.5 text-sm font-bold text-foreground">
+                          <span className="inline-flex min-w-[2rem] items-center justify-center rounded-full bg-muted px-2.5 py-0.5 text-sm font-medium tabular-nums text-foreground">
                             {productsCount}
                           </span>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center justify-end gap-2">
-                            <Button size="sm" variant="outline" onClick={() => openEditCategoryDialog(category)} className="gap-1.5 rounded-lg">
+                            <Button size="sm" variant="outline" onClick={() => openEditCategoryDialog(category)} className="gap-1.5">
                               <Pencil className="h-3.5 w-3.5" />
                               Editar
                             </Button>
@@ -328,7 +328,7 @@ export function MerchantDashboardProducts() {
                               variant="outline"
                               onClick={() => void handleDeleteCategory(category)}
                               disabled={!canDelete}
-                              className="gap-1.5 rounded-lg border-brand-red/20 text-brand-red hover:bg-brand-red/5 hover:text-brand-red disabled:opacity-50"
+                              className="gap-1.5 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                               Excluir
@@ -353,29 +353,29 @@ export function MerchantDashboardProducts() {
                 return (
                   <div
                     key={category.id}
-                    className="rounded-xl border border-border/50 bg-white p-4 shadow-sm"
+                    className="rounded-lg border border-border/60 bg-card p-4"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="font-bold text-foreground">{category.name}</h3>
+                          <h3 className="font-medium text-foreground">{category.name}</h3>
                           <Badge
                             variant="outline"
-                            className={category.isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-600' : 'border-border/60 bg-muted text-muted-foreground'}
+                            className={category.isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-border/60 bg-muted text-muted-foreground'}
                           >
                             {category.isActive ? 'Ativa' : 'Inativa'}
                           </Badge>
                         </div>
                         <p className="mt-0.5 text-xs text-muted-foreground">Slug: {category.slug}</p>
                       </div>
-                      <div className="rounded-lg border border-border/40 bg-muted/50 px-3 py-2 text-center">
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Produtos</p>
-                        <p className="text-lg font-extrabold text-foreground">{productsCount}</p>
+                      <div className="rounded-lg border border-border/60 bg-muted/40 px-3 py-2 text-center">
+                        <p className="text-[10px] text-muted-foreground">Produtos</p>
+                        <p className="text-lg font-semibold tabular-nums text-foreground">{productsCount}</p>
                       </div>
                     </div>
                     <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{description}</p>
                     <div className="mt-3 flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => openEditCategoryDialog(category)} className="gap-1.5 rounded-lg">
+                      <Button size="sm" variant="outline" onClick={() => openEditCategoryDialog(category)} className="gap-1.5">
                         <Pencil className="h-3.5 w-3.5" />
                         Editar
                       </Button>
@@ -384,7 +384,7 @@ export function MerchantDashboardProducts() {
                         variant="outline"
                         onClick={() => void handleDeleteCategory(category)}
                         disabled={!canDelete}
-                        className="gap-1.5 rounded-lg border-brand-red/20 text-brand-red hover:bg-brand-red/5 hover:text-brand-red disabled:opacity-50"
+                        className="gap-1.5 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                         Excluir
@@ -408,19 +408,19 @@ export function MerchantDashboardProducts() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por nome, SKU ou descrição…"
-              className="pl-9 rounded-xl"
+              className="pl-9"
             />
           </div>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as ProductStatusFilter)}
-            className="h-10 rounded-xl border border-input bg-background px-3 py-2 text-sm sm:w-44"
+            className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm sm:w-44"
           >
             <option value="all">Todos os status</option>
             <option value="active">Somente ativos</option>
             <option value="inactive">Somente inativos</option>
           </select>
-          <Button onClick={openCreateDialog} size="sm" className="gap-1.5 rounded-xl" disabled={!canCreateProduct}>
+          <Button onClick={openCreateDialog} size="sm" className="gap-1.5" disabled={!canCreateProduct}>
             <Plus className="h-3.5 w-3.5" />
             Cadastrar
           </Button>
@@ -429,11 +429,11 @@ export function MerchantDashboardProducts() {
         {isLoading ? (
           <div className="grid gap-3 xl:grid-cols-2">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-40 animate-pulse rounded-xl bg-muted" />
+              <div key={i} className="h-40 animate-pulse rounded-lg bg-muted" />
             ))}
           </div>
         ) : products.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
+          <div className="rounded-lg border border-dashed border-border/70 py-10 text-center text-sm text-muted-foreground">
             Nenhum produto encontrado para esse filtro.
           </div>
         ) : (
@@ -447,7 +447,7 @@ export function MerchantDashboardProducts() {
               return (
                 <article
                   key={product.id}
-                  className="overflow-hidden rounded-2xl bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+                  className="overflow-hidden rounded-xl border border-border/70 bg-card transition-colors hover:border-border"
                 >
                   <div className="flex gap-0">
                     {/* Image */}
@@ -466,7 +466,7 @@ export function MerchantDashboardProducts() {
                       )}
                       <div className="absolute left-2 top-2 flex flex-col gap-1">
                         <Badge
-                          className={product.isActive ? 'bg-emerald-600 text-white rounded-lg' : 'bg-muted-foreground text-white rounded-lg'}
+                          className={product.isActive ? 'bg-emerald-600 text-white' : 'bg-muted-foreground text-white'}
                         >
                           {product.isActive ? 'Ativo' : 'Inativo'}
                         </Badge>
@@ -477,11 +477,11 @@ export function MerchantDashboardProducts() {
                     <div className="flex min-w-0 flex-1 flex-col gap-2.5 p-3.5">
                       <div>
                         <div className="flex flex-wrap items-center gap-1.5">
-                          {product.isFeatured ? <Badge variant="outline" className="border-brand-blue/20 bg-brand-blue/5 text-brand-blue text-[10px] rounded-lg">Destaque</Badge> : null}
-                          {product.isOffer ? <Badge variant="outline" className="border-brand-yellow/30 bg-brand-yellow/10 text-foreground text-[10px] rounded-lg">Oferta</Badge> : null}
-                          {product.isNew ? <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-600 text-[10px] rounded-lg">Novo</Badge> : null}
+                          {product.isFeatured ? <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700 text-[10px]">Destaque</Badge> : null}
+                          {product.isOffer ? <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700 text-[10px]">Oferta</Badge> : null}
+                          {product.isNew ? <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 text-[10px]">Novo</Badge> : null}
                         </div>
-                        <h3 className="mt-1 line-clamp-2 text-[15px] font-bold leading-tight text-foreground">
+                        <h3 className="mt-1 line-clamp-2 text-[15px] font-semibold leading-tight text-foreground">
                           {product.name}
                         </h3>
                         <p className="mt-0.5 text-xs text-muted-foreground">
@@ -491,9 +491,9 @@ export function MerchantDashboardProducts() {
                       </div>
 
                       <div className="flex items-center gap-3">
-                        <p className="text-lg font-bold text-foreground">R$ {product.price.toFixed(2)}</p>
+                        <p className="text-lg font-semibold tabular-nums text-foreground">R$ {product.price.toFixed(2)}</p>
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <span className={`font-bold ${product.stock <= 0 ? 'text-brand-red' : product.stock <= product.minStock ? 'text-brand-yellow' : 'text-foreground'}`}>
+                          <span className={`font-medium ${product.stock <= 0 ? 'text-red-600' : product.stock <= product.minStock ? 'text-amber-600' : 'text-foreground'}`}>
                             Estoque: {product.stock}
                           </span>
                           <span>·</span>
@@ -502,13 +502,13 @@ export function MerchantDashboardProducts() {
                       </div>
 
                       {/* Offer section */}
-                      <div className="rounded-xl border border-border/40 bg-muted/30 px-3 py-2">
+                      <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2">
                         <div className="flex items-center justify-between gap-2">
                           <div className="min-w-0">
-                            <p className="text-[11px] font-bold text-foreground">Oferta individual</p>
+                            <p className="text-[11px] font-medium text-foreground">Oferta individual</p>
                             {primaryOffer ? (
                               <div className="mt-0.5 flex items-center gap-1.5">
-                                <span className={`inline-flex rounded-lg border px-2 py-0.5 text-[10px] font-bold ${getPromotionStatusTone(primaryOffer.status)}`}>
+                                <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium ${getPromotionStatusTone(primaryOffer.status)}`}>
                                   {formatPromotionStatusLabel(primaryOffer.status)}
                                 </span>
                                 <PromotionCountdown expiresAt={primaryOffer.expiresAt} compact />
@@ -522,7 +522,7 @@ export function MerchantDashboardProducts() {
                             variant={primaryOffer ? 'outline' : 'default'}
                             onClick={() => openOfferDialog(product, primaryOffer)}
                             disabled={!product.isActive}
-                            className="shrink-0 gap-1.5 text-xs rounded-xl"
+                            className="shrink-0 gap-1.5 text-xs"
                           >
                             <Clock3 className="h-3 w-3" />
                             {primaryOffer ? 'Editar' : 'Criar'}
@@ -532,7 +532,7 @@ export function MerchantDashboardProducts() {
 
                       {/* Actions */}
                       <div className="flex flex-wrap gap-2">
-                        <Button size="sm" variant="outline" onClick={() => openEditDialog(product)} className="gap-1.5 rounded-lg">
+                        <Button size="sm" variant="outline" onClick={() => openEditDialog(product)} className="gap-1.5">
                           <Pencil className="h-3.5 w-3.5" />
                           Editar
                         </Button>
@@ -541,7 +541,7 @@ export function MerchantDashboardProducts() {
                           variant="outline"
                           onClick={() => void handleDelete(product)}
                           disabled={deleteMutation.isPending}
-                          className="gap-1.5 rounded-lg border-brand-red/20 text-brand-red hover:bg-brand-red/5 hover:text-brand-red"
+                          className="gap-1.5 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                           Excluir

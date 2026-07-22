@@ -216,7 +216,7 @@ function ProductImageCard({
         <Button type="button" variant="outline" className="flex-1" onClick={onMakePrimary}>
           {image.isPrimary ? 'Principal' : 'Tornar principal'}
         </Button>
-        <Button type="button" variant="outline" className="border-brand-red/20 text-brand-red" onClick={onRemove}>
+        <Button type="button" variant="outline" className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700" onClick={onRemove}>
           <Trash2 className="mr-2 h-4 w-4" />
           Remover
         </Button>

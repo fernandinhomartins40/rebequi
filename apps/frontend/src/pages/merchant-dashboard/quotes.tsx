@@ -115,20 +115,20 @@ export function MerchantDashboardQuotes() {
       </section>
 
       {/* Tab switcher */}
-      <div className="flex gap-2">
+      <div className="inline-flex rounded-lg border border-border/60 bg-muted/60 p-1">
         <button
           type="button"
           onClick={() => setActiveTab('quotes')}
-          className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-all ${
+          className={`flex items-center gap-2 rounded-md px-3.5 py-1.5 text-sm transition-colors ${
             activeTab === 'quotes'
-              ? 'border-primary/30 bg-primary/5 text-primary'
-              : 'border-border/40 bg-white text-muted-foreground hover:border-border/60 hover:text-foreground'
+              ? 'bg-card font-medium text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           <FileText className="h-4 w-4" />
           Orçamentos enviados
           {quotes.length > 0 ? (
-            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold tabular-nums text-muted-foreground">
               {quotes.length}
             </span>
           ) : null}
@@ -136,16 +136,16 @@ export function MerchantDashboardQuotes() {
         <button
           type="button"
           onClick={() => setActiveTab('leads')}
-          className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-all ${
+          className={`flex items-center gap-2 rounded-md px-3.5 py-1.5 text-sm transition-colors ${
             activeTab === 'leads'
-              ? 'border-brand-yellow/30 bg-brand-yellow/10 text-foreground'
-              : 'border-border/40 bg-white text-muted-foreground hover:border-border/60 hover:text-foreground'
+              ? 'bg-card font-medium text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           <UserRound className="h-4 w-4" />
           Leads incompletos
           {leads.length > 0 ? (
-            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-foreground">
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-amber-800">
               {leads.length}
             </span>
           ) : null}
@@ -155,17 +155,14 @@ export function MerchantDashboardQuotes() {
       {/* Master-detail layout */}
       <section className="grid gap-4 xl:grid-cols-[340px_minmax(0,1fr)]">
         {/* List pane */}
-        <div className="rounded-2xl bg-white shadow-sm">
-          <div className="flex items-center gap-3 border-b border-border/30 px-5 py-4">
-            <div className="h-6 w-1 rounded-full bg-brand-blue" />
-            <div>
-              <p className="text-sm font-bold text-foreground">
+        <div className="rounded-xl border border-border/70 bg-card">
+          <div className="border-b border-border/60 px-5 py-4">
+            <p className="text-sm font-semibold text-foreground">
               {activeTab === 'quotes' ? 'Orçamentos' : 'Clientes para retomar'}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {activeTab === 'quotes' ? quotes.length : leads.length} item(ns)
-              </p>
-            </div>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {activeTab === 'quotes' ? quotes.length : leads.length} item(ns)
+            </p>
           </div>
 
           <div className="p-3">
@@ -181,10 +178,10 @@ export function MerchantDashboardQuotes() {
                       key={quote.id}
                       type="button"
                       onClick={() => setSelectedQuoteId(quote.id)}
-                      className={`w-full rounded-lg border px-3 py-3 text-left text-sm transition-all ${
+                      className={`w-full rounded-lg border px-3 py-3 text-left text-sm transition-colors ${
                         selectedQuote?.id === quote.id
-                          ? 'border-primary/30 bg-primary/5 text-foreground'
-                          : 'border-transparent bg-transparent text-foreground hover:border-border/40 hover:bg-muted/50'
+                          ? 'border-primary/40 bg-primary/5 text-foreground'
+                          : 'border-transparent bg-transparent text-foreground hover:bg-muted/50'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -211,10 +208,10 @@ export function MerchantDashboardQuotes() {
                     key={lead.id}
                     type="button"
                     onClick={() => setSelectedLeadId(lead.id)}
-                    className={`w-full rounded-lg border px-3 py-3 text-left text-sm transition-all ${
+                    className={`w-full rounded-lg border px-3 py-3 text-left text-sm transition-colors ${
                       selectedLead?.id === lead.id
-                        ? 'border-brand-yellow/30 bg-brand-yellow/10'
-                        : 'border-transparent bg-transparent text-foreground hover:border-border/40 hover:bg-muted/50'
+                        ? 'border-amber-300 bg-amber-50'
+                        : 'border-transparent bg-transparent text-foreground hover:bg-muted/50'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -234,12 +231,12 @@ export function MerchantDashboardQuotes() {
         </div>
 
         {/* Detail pane */}
-        <div className="rounded-2xl bg-white shadow-sm">
+        <div className="rounded-xl border border-border/70 bg-card">
           {activeTab === 'quotes' ? (
             selectedQuote ? (
               <div className="p-5">
                 {/* Header */}
-                <div className="flex items-start justify-between gap-3 border-b border-border/30 px-5 pt-5 pb-4">
+                <div className="flex items-start justify-between gap-3 border-b border-border/60 pb-4">
                   <div className="min-w-0">
                     <p className="font-mono text-xs text-muted-foreground">{selectedQuote.referenceCode}</p>
                     <h3 className="mt-1 text-lg font-semibold text-foreground">{buildQuoteDisplayTitle(selectedQuote)}</h3>
@@ -249,7 +246,7 @@ export function MerchantDashboardQuotes() {
                 </div>
 
                 {/* Meta grid */}
-                <div className="mt-4 grid gap-2 px-5 sm:grid-cols-3">
+                <div className="mt-4 grid gap-2 sm:grid-cols-3">
                   <InfoTile label="Cliente" value={selectedQuote.user?.name || 'Cliente'} />
                   <InfoTile
                     label="Contato"
@@ -257,18 +254,18 @@ export function MerchantDashboardQuotes() {
                   />
                   <InfoTile label="Origem" value={buildQuoteSourceLabel(selectedQuote.source)} />
                 </div>
-                <div className="mt-2 grid gap-2 px-5 sm:grid-cols-3">
+                <div className="mt-2 grid gap-2 sm:grid-cols-3">
                   <InfoTile label="Itens" value={`${selectedQuote.itemCount}`} />
                   <InfoTile label="Enviado em" value={formatQuoteTimestamp(selectedQuote.submittedAt || selectedQuote.updatedAt)} />
                   <InfoTile label="Precisão da leitura" value={selectedQuote.ocrConfidence ? `${Math.round(selectedQuote.ocrConfidence)}%` : '—'} />
                 </div>
 
                 {/* Items */}
-                <div className="mt-4 px-5">
-                  <p className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">Itens do orçamento</p>
+                <div className="mt-4">
+                  <p className="mb-2 text-xs font-medium text-muted-foreground">Itens do orçamento</p>
                   <div className="space-y-1.5">
                     {selectedQuote.items.map((item) => (
-                      <div key={item.id} className="flex items-start justify-between gap-3 rounded-lg border border-border/40 bg-muted/30 px-3.5 py-2.5">
+                      <div key={item.id} className="flex items-start justify-between gap-3 rounded-lg border border-border/60 bg-muted/30 px-3.5 py-2.5">
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium text-foreground">{item.name}</p>
                           {item.notes ? <p className="mt-0.5 text-xs text-muted-foreground">{item.notes}</p> : null}
@@ -282,15 +279,15 @@ export function MerchantDashboardQuotes() {
                 </div>
 
                 {selectedQuote.customerNote ? (
-                  <div className="mx-5 mt-4 rounded-xl bg-muted/30 px-4 py-3">
-                    <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Observação do cliente</p>
+                  <div className="mt-4 rounded-lg border border-border/60 bg-muted/30 px-4 py-3">
+                    <p className="mb-1 text-xs font-medium text-muted-foreground">Observação do cliente</p>
                     <p className="text-sm text-foreground">{selectedQuote.customerNote}</p>
                   </div>
                 ) : null}
 
                 {selectedQuote.ocrText ? (
-                  <div className="mx-5 mt-4 rounded-xl bg-muted/30 px-4 py-3">
-                    <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Texto do documento original</p>
+                  <div className="mt-4 rounded-lg border border-border/60 bg-muted/30 px-4 py-3">
+                    <p className="mb-1 text-xs font-medium text-muted-foreground">Texto do documento original</p>
                     <p className="max-h-40 overflow-y-auto whitespace-pre-wrap text-xs text-muted-foreground">
                       {selectedQuote.ocrText}
                     </p>
@@ -348,7 +345,7 @@ export function MerchantDashboardQuotes() {
                 <InfoTile label="Rascunhos" value={`${selectedLead.quoteCount}`} />
               </div>
 
-              <div className="mx-5 mt-4 rounded-xl bg-muted/30 px-4 py-3">
+              <div className="mt-4 rounded-lg border border-border/60 bg-muted/30 px-4 py-3">
                 <p className="text-sm text-muted-foreground">
                   Este cliente iniciou o processo mas não concluiu o envio do orçamento. Entre em contato para ajudá-lo a finalizar a solicitação.
                 </p>
@@ -417,9 +414,9 @@ function ListSkeleton() {
 
 function InfoTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-muted/30 px-4 py-3">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className="mt-1 text-sm font-bold text-foreground">{value}</p>
+    <div className="rounded-lg border border-border/60 bg-muted/30 px-4 py-3">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-0.5 text-sm font-medium text-foreground">{value}</p>
     </div>
   );
 }

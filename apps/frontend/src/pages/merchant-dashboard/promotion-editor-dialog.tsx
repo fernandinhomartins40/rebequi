@@ -914,7 +914,7 @@ export function PromotionEditorDialog({
                         {draftImage ? 'Trocar imagem' : 'Adicionar imagem'}
                       </Button>
                       {draftImage?.source === 'new' ? (
-                        <Button type="button" variant="outline" onClick={handleRemoveDraftImage} className="gap-2 border-brand-red/20 text-brand-red">
+                        <Button type="button" variant="outline" onClick={handleRemoveDraftImage} className="gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700">
                           <Trash2 className="h-4 w-4" />
                           {quickModeBaseImage ? 'Voltar para imagem do produto' : 'Remover imagem'}
                         </Button>
@@ -1118,7 +1118,7 @@ export function PromotionEditorDialog({
                         {draftImage ? 'Trocar imagem' : 'Adicionar imagem'}
                       </Button>
                       {draftImage ? (
-                        <Button type="button" variant="outline" onClick={handleRemoveDraftImage} className="gap-2 border-brand-red/20 text-brand-red">
+                        <Button type="button" variant="outline" onClick={handleRemoveDraftImage} className="gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700">
                           <Trash2 className="h-4 w-4" />
                           Remover
                         </Button>
@@ -1251,7 +1251,7 @@ export function PromotionEditorDialog({
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleToggleProduct(product.id)}
-                                className="self-start border-brand-red/20 text-brand-red hover:bg-red-50 hover:text-red-700"
+                                className="self-start border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
                               >
                                 Remover
                               </Button>

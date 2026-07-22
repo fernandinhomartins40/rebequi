@@ -20,19 +20,43 @@ import {
 import { cn } from '@/lib/utils';
 import type { MerchantNavItem } from './config';
 
+// ─── Tons de estado compartilhados ───────────────────────────────────────────
+
+type StatusTone = 'blue' | 'green' | 'neutral' | 'red' | 'yellow';
+
+const statusPillClass: Record<StatusTone, string> = {
+  blue: 'border-blue-200 bg-blue-50 text-blue-700',
+  green: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  neutral: 'border-border/60 bg-muted text-muted-foreground',
+  red: 'border-red-200 bg-red-50 text-red-700',
+  yellow: 'border-amber-200 bg-amber-50 text-amber-700',
+};
+
+const statusDotClass: Record<StatusTone, string> = {
+  blue: 'bg-blue-500',
+  green: 'bg-emerald-500',
+  neutral: 'bg-muted-foreground/50',
+  red: 'bg-red-500',
+  yellow: 'bg-amber-500',
+};
+
+// ─── Sidebar ─────────────────────────────────────────────────────────────────
+
 export function MerchantSidebarHeader() {
   return (
-    <SidebarHeader className="px-4 pb-0 pt-4">
+    <SidebarHeader className="px-3 pb-2 pt-3">
       <Link
         to="/"
-        className="group block rounded-xl px-2 py-2 transition-colors hover:bg-white/8"
+        className="group flex items-center gap-2.5 rounded-md px-2 py-2 transition-colors hover:bg-sidebar-accent"
       >
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-brand-yellow text-sm font-bold text-foreground">
+          R
+        </div>
         <div className="min-w-0 group-data-[collapsible=icon]:hidden">
-          <p className="truncate text-[13px] font-bold text-sidebar-foreground">Rebequi</p>
-          <p className="truncate text-[11px] text-sidebar-foreground/50">Painel administrativo</p>
+          <p className="truncate text-sm font-semibold text-sidebar-accent-foreground">Rebequi</p>
+          <p className="truncate text-xs text-sidebar-foreground/70">Painel do lojista</p>
         </div>
       </Link>
-      <div className="mt-3 h-px bg-sidebar-border" />
     </SidebarHeader>
   );
 }
@@ -47,13 +71,13 @@ export function AdminSidebarNavigation({
   const { isMobile, setOpenMobile } = useSidebar();
 
   return (
-    <SidebarContent className="merchant-dashboard-scroll px-3 py-3">
+    <SidebarContent className="merchant-dashboard-scroll px-2 py-2">
       <SidebarGroup className="p-0">
-        <SidebarGroupLabel className="mb-1.5 px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-sidebar-foreground/35">
-          Navegação
+        <SidebarGroupLabel className="px-2 text-xs font-medium text-sidebar-foreground/60">
+          Gestão da loja
         </SidebarGroupLabel>
         <SidebarGroupContent>
-          <SidebarMenu className="gap-1">
+          <SidebarMenu className="gap-0.5">
             {items.map((item) => {
               const isActive = activePath === item.href;
 
@@ -67,31 +91,24 @@ export function AdminSidebarNavigation({
                       if (isMobile) setOpenMobile(false);
                     }}
                     className={cn(
-                      'h-auto min-h-[2.625rem] rounded-xl px-2.5 py-2 transition-all duration-200',
+                      'h-9 rounded-md px-2 text-[13px] transition-colors',
                       isActive
-                        ? 'bg-white/12 text-sidebar-foreground shadow-none'
-                        : 'text-sidebar-foreground/60 hover:bg-white/8 hover:text-sidebar-foreground'
+                        ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'
+                        : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
                     )}
                   >
                     <NavLink to={item.href}>
-                      <div
+                      <item.icon
                         className={cn(
-                          'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors duration-200',
-                          isActive
-                            ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
-                            : 'bg-white/8 text-sidebar-foreground/60'
+                          'h-4 w-4 shrink-0',
+                          isActive ? 'text-sidebar-accent-foreground' : 'text-sidebar-foreground/60'
                         )}
-                      >
-                        <item.icon className="h-3.5 w-3.5" />
-                      </div>
-                      <div className="flex min-w-0 flex-1 flex-col text-left group-data-[collapsible=icon]:hidden">
-                        <span className="text-[13px] font-semibold leading-tight">{item.label}</span>
-                        <span className="truncate text-[11px] opacity-50">{item.description}</span>
-                      </div>
+                      />
+                      <span className="truncate group-data-[collapsible=icon]:hidden">{item.label}</span>
                     </NavLink>
                   </SidebarMenuButton>
                   {item.badge ? (
-                    <SidebarMenuBadge className="rounded-full bg-sidebar-accent/20 px-2 text-[10px] font-bold text-sidebar-accent">
+                    <SidebarMenuBadge className="rounded-full bg-brand-blue/10 px-1.5 text-[10px] font-semibold text-brand-blue">
                       {item.badge}
                     </SidebarMenuBadge>
                   ) : null}
@@ -117,30 +134,30 @@ export function MerchantSidebarFooter({
   const roleLabel = isMerchantUserRole(userRole) ? getMerchantRoleLabel(userRole) : userRole;
 
   return (
-    <SidebarFooter className="px-3 pb-4 pt-2">
-      <div className="mb-2 h-px bg-sidebar-border" />
+    <SidebarFooter className="px-2 pb-3 pt-1">
+      <div className="mb-1 h-px bg-sidebar-border" />
 
       {/* User info — hidden when collapsed to icon */}
-      <div className="mb-2 flex items-center gap-2.5 rounded-xl px-2 py-2 group-data-[collapsible=icon]:hidden">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-[12px] font-bold text-sidebar-accent-foreground">
+      <div className="flex items-center gap-2.5 rounded-md px-2 py-2 group-data-[collapsible=icon]:hidden">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-sidebar-border bg-background text-xs font-semibold text-foreground">
           {userEmail.slice(0, 1).toUpperCase()}
         </div>
         <div className="min-w-0">
-          <p className="truncate text-[12px] font-semibold text-sidebar-foreground">{userEmail}</p>
-          <p className="text-[11px] text-sidebar-foreground/50">{roleLabel}</p>
+          <p className="truncate text-xs font-medium text-sidebar-accent-foreground">{userEmail}</p>
+          <p className="truncate text-[11px] text-sidebar-foreground/70">{roleLabel}</p>
         </div>
       </div>
 
       {/* Actions */}
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-0.5">
         <Button
           size="sm"
           variant="ghost"
-          className="h-9 w-full justify-start gap-2 rounded-xl text-sidebar-foreground/60 transition-colors hover:bg-white/8 hover:text-sidebar-foreground"
+          className="h-8 w-full justify-start gap-2 rounded-md px-2 text-[13px] font-normal text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
           asChild
         >
           <Link to="/">
-            <ArrowLeft className="h-3.5 w-3.5 shrink-0" />
+            <ArrowLeft className="h-4 w-4 shrink-0 text-sidebar-foreground/60" />
             <span className="group-data-[collapsible=icon]:hidden">Ver loja</span>
           </Link>
         </Button>
@@ -148,10 +165,10 @@ export function MerchantSidebarFooter({
         <Button
           size="sm"
           variant="ghost"
-          className="h-9 w-full justify-start gap-2 rounded-xl text-sidebar-foreground/60 transition-colors hover:bg-white/8 hover:text-sidebar-foreground"
+          className="h-8 w-full justify-start gap-2 rounded-md px-2 text-[13px] font-normal text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
           onClick={() => void onLogout()}
         >
-          <LogOut className="h-3.5 w-3.5 shrink-0" />
+          <LogOut className="h-4 w-4 shrink-0 text-sidebar-foreground/60" />
           <span className="group-data-[collapsible=icon]:hidden">Sair</span>
         </Button>
       </div>
@@ -171,11 +188,11 @@ export function PageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0">
-        <h2 className="text-xl font-extrabold tracking-tight text-foreground sm:text-2xl lg:text-3xl">{title}</h2>
+        <h2 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">{title}</h2>
         {description ? (
-          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">{description}</p>
         ) : null}
       </div>
       {actions ? (
@@ -201,7 +218,7 @@ export function SectionHeader({
   return (
     <div className="flex items-center justify-between gap-3">
       <div className="min-w-0">
-        <h3 className="text-base font-bold text-foreground">{title}</h3>
+        <h3 className="text-base font-semibold text-foreground">{title}</h3>
         {description ? (
           <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
         ) : null}
@@ -215,36 +232,20 @@ export function SectionHeader({
 
 type MetricTone = 'default' | 'blue' | 'green' | 'yellow' | 'red';
 
-const metricToneDot: Record<MetricTone, string> = {
-  default: 'bg-muted-foreground',
-  blue: 'bg-brand-blue',
-  green: 'bg-emerald-500',
-  yellow: 'bg-brand-yellow',
-  red: 'bg-brand-red',
-};
-
-const metricToneBg: Record<MetricTone, string> = {
-  default: 'bg-muted/40',
-  blue: 'bg-brand-blue/8',
-  green: 'bg-emerald-50',
-  yellow: 'bg-brand-yellow/10',
-  red: 'bg-brand-red/8',
-};
-
-const metricToneText: Record<MetricTone, string> = {
+const metricValueClass: Record<MetricTone, string> = {
   default: 'text-foreground',
-  blue: 'text-brand-blue',
-  green: 'text-emerald-600',
+  blue: 'text-foreground',
+  green: 'text-foreground',
   yellow: 'text-foreground',
-  red: 'text-brand-red',
+  red: 'text-red-600',
 };
 
-const metricToneIcon: Record<MetricTone, string> = {
-  default: 'text-muted-foreground',
-  blue: 'text-brand-blue',
-  green: 'text-emerald-600',
-  yellow: 'text-foreground',
-  red: 'text-brand-red',
+const metricDotClass: Record<MetricTone, string> = {
+  default: '',
+  blue: 'bg-blue-500',
+  green: 'bg-emerald-500',
+  yellow: 'bg-amber-500',
+  red: 'bg-red-500',
 };
 
 export function StatCard({
@@ -261,24 +262,21 @@ export function StatCard({
   tone?: MetricTone;
 }) {
   return (
-    <div className="group relative overflow-hidden rounded-2xl bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-      {/* Subtle top accent line */}
-      <div className={cn('absolute left-0 top-0 h-1 w-full rounded-t-2xl opacity-60', metricToneBg[tone].replace('/8', '').replace('/10', '').replace('/40', ''))} />
-      
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className={cn('h-2 w-2 rounded-full', metricToneDot[tone])} />
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
+    <div className="rounded-xl border border-border/70 bg-card p-5">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          {tone !== 'default' ? (
+            <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', metricDotClass[tone])} />
+          ) : null}
+          <span className="truncate text-[13px] font-medium text-muted-foreground">{label}</span>
         </div>
-        <div className={cn('flex h-8 w-8 items-center justify-center rounded-lg transition-colors', metricToneBg[tone])}>
-          <span className={metricToneIcon[tone]}>{icon}</span>
-        </div>
+        <span className="shrink-0 text-muted-foreground/60">{icon}</span>
       </div>
-      
-      <div className="mt-3">
-        <p className={cn('text-3xl font-black tracking-tight', metricToneText[tone])}>{value}</p>
-        {delta ? <p className="mt-1 text-xs text-muted-foreground">{delta}</p> : null}
-      </div>
+
+      <p className={cn('mt-3 text-2xl font-semibold tabular-nums tracking-tight', metricValueClass[tone])}>
+        {value}
+      </p>
+      {delta ? <p className="mt-1 text-xs text-muted-foreground">{delta}</p> : null}
     </div>
   );
 }
@@ -291,7 +289,8 @@ export function DashboardPanel({
   description,
   title,
   action,
-  accent = 'blue',
+  badge,
+  accent: _accent = 'blue',
   children,
 }: {
   className?: string;
@@ -299,30 +298,25 @@ export function DashboardPanel({
   description?: string;
   title: string;
   action?: ReactNode;
+  badge?: ReactNode;
   accent?: 'blue' | 'red' | 'yellow';
   children: ReactNode;
 }) {
-  const accentBar = {
-    blue: 'bg-brand-blue',
-    red: 'bg-brand-red',
-    yellow: 'bg-brand-yellow',
-  }[accent];
-
   return (
-    <div className={cn('rounded-2xl bg-white shadow-sm transition-all duration-200', className)}>
-      <div className="flex items-start justify-between gap-3 px-5 py-4">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className={cn('h-8 w-1 rounded-full', accentBar)} />
-          <div>
-            <h3 className="text-[15px] font-extrabold text-foreground">{title}</h3>
-            {description ? (
-              <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
-            ) : null}
-          </div>
+    <div className={cn('rounded-xl border border-border/70 bg-card', className)}>
+      <div className="flex items-start justify-between gap-3 border-b border-border/60 px-5 py-4">
+        <div className="min-w-0">
+          {badge ? (
+            <p className="mb-1 text-xs font-medium text-muted-foreground">{badge}</p>
+          ) : null}
+          <h3 className="text-[15px] font-semibold text-foreground">{title}</h3>
+          {description ? (
+            <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
+          ) : null}
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
-      <div className={cn('px-5 pb-5', contentClassName)}>{children}</div>
+      <div className={cn('px-5 py-4', contentClassName)}>{children}</div>
     </div>
   );
 }
@@ -350,12 +344,9 @@ export function SectionLeadCard({
 
 export function SummaryTile({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
-    <div className="rounded-2xl bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
-      <div className="flex items-center gap-2">
-        <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
-      </div>
-      <p className="mt-3 text-3xl font-black tracking-tight text-foreground">{value}</p>
+    <div className="rounded-xl border border-border/70 bg-card p-5">
+      <p className="text-[13px] font-medium text-muted-foreground">{label}</p>
+      <p className="mt-3 text-2xl font-semibold tabular-nums tracking-tight text-foreground">{value}</p>
       <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
     </div>
   );
@@ -363,28 +354,17 @@ export function SummaryTile({ label, value, detail }: { label: string; value: st
 
 export function MetricChip({
   label,
-  tone = 'neutral',
+  tone: _tone = 'neutral',
   value,
 }: {
   label: string;
-  tone?: 'blue' | 'green' | 'neutral' | 'red' | 'yellow';
+  tone?: StatusTone;
   value: string;
 }) {
-  const toneClass =
-    tone === 'blue'
-      ? 'bg-brand-blue/5 text-brand-blue'
-      : tone === 'green'
-        ? 'bg-emerald-50 text-emerald-600'
-        : tone === 'red'
-          ? 'bg-brand-red/5 text-brand-red'
-          : tone === 'yellow'
-            ? 'bg-brand-yellow/8 text-foreground'
-            : 'bg-muted text-foreground';
-
   return (
-    <div className={cn('rounded-xl px-4 py-3', toneClass)}>
-      <p className="text-[10px] font-bold uppercase tracking-wider opacity-60">{label}</p>
-      <p className="mt-1 text-base font-bold">{value}</p>
+    <div className="rounded-lg border border-border/60 bg-muted/40 px-4 py-2.5">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-0.5 text-sm font-semibold text-foreground">{value}</p>
     </div>
   );
 }
@@ -399,40 +379,16 @@ export function SignalRow({
 }: {
   description: string;
   status: string;
-  tone?: 'blue' | 'green' | 'neutral' | 'red' | 'yellow';
+  tone?: StatusTone;
   title: string;
 }) {
-  const accentColor =
-    tone === 'green'
-      ? 'bg-emerald-500'
-      : tone === 'red'
-        ? 'bg-brand-red'
-        : tone === 'yellow'
-          ? 'bg-brand-yellow'
-          : tone === 'blue'
-            ? 'bg-brand-blue'
-            : 'bg-muted-foreground';
-
-  const statusBg =
-    tone === 'green'
-      ? 'bg-emerald-50 text-emerald-600'
-      : tone === 'red'
-        ? 'bg-brand-red/8 text-brand-red'
-        : tone === 'yellow'
-          ? 'bg-brand-yellow/10 text-foreground'
-          : tone === 'blue'
-            ? 'bg-brand-blue/8 text-brand-blue'
-            : 'bg-muted text-muted-foreground';
-
   return (
-    <div className="group flex items-start gap-4 rounded-xl px-4 py-3.5 transition-all duration-200 hover:bg-muted/30">
-      <div className={cn('mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl', accentColor.replace('bg-', 'bg-opacity-10 bg-').replace('bg-brand-red', 'bg-brand-red/10').replace('bg-brand-blue', 'bg-brand-blue/10').replace('bg-brand-yellow', 'bg-brand-yellow/15').replace('bg-emerald-500', 'bg-emerald-50').replace('bg-muted-foreground', 'bg-muted'))}>
-        <span className={cn('h-2.5 w-2.5 rounded-full', accentColor)} />
-      </div>
+    <div className="flex items-start gap-3 rounded-lg border border-border/60 px-4 py-3">
+      <span className={cn('mt-1.5 h-2 w-2 shrink-0 rounded-full', statusDotClass[tone])} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-bold text-foreground">{title}</p>
-          <span className={cn('shrink-0 rounded-lg px-2.5 py-0.5 text-[11px] font-bold', statusBg)}>
+          <p className="text-sm font-medium text-foreground">{title}</p>
+          <span className={cn('shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-medium', statusPillClass[tone])}>
             {status}
           </span>
         </div>
@@ -444,12 +400,12 @@ export function SignalRow({
 
 export function PulseLine({ title, value, toneClass }: { title: string; value: string; toneClass: string }) {
   return (
-    <div className="rounded-xl bg-muted/30 px-4 py-3.5">
+    <div className="rounded-lg border border-border/60 bg-muted/30 px-4 py-3">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-bold text-foreground">{title}</p>
-        <div className={cn('rounded-lg px-2.5 py-0.5 text-[11px] font-bold', toneClass)}>ativo</div>
+        <p className="text-sm font-medium text-foreground">{title}</p>
+        <div className={cn('rounded-full px-2.5 py-0.5 text-[11px] font-medium', toneClass)}>ativo</div>
       </div>
-      <p className="mt-1.5 text-xs text-muted-foreground">{value}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{value}</p>
     </div>
   );
 }
@@ -464,9 +420,9 @@ export function SummarySurface({
   description: string;
 }) {
   return (
-    <div className="rounded-xl bg-muted/30 p-5">
-      <p className="text-3xl font-black tracking-tight text-foreground">{value}</p>
-      <p className="mt-1 font-bold text-foreground">{label}</p>
+    <div className="rounded-lg border border-border/60 bg-muted/30 p-5">
+      <p className="text-2xl font-semibold tabular-nums tracking-tight text-foreground">{value}</p>
+      <p className="mt-1 text-sm font-medium text-foreground">{label}</p>
       <p className="mt-1 text-xs text-muted-foreground">{description}</p>
     </div>
   );
@@ -474,9 +430,9 @@ export function SummarySurface({
 
 export function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-muted/30 px-4 py-3">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className="mt-1 break-all text-sm font-bold text-foreground">{value}</p>
+    <div className="rounded-lg border border-border/60 bg-muted/30 px-4 py-3">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-0.5 break-all text-sm font-medium text-foreground">{value}</p>
     </div>
   );
 }
@@ -491,8 +447,8 @@ export function GuaranteeCard({
   badgeClass: string;
 }) {
   return (
-    <div className="rounded-xl bg-muted/30 p-5">
-      <div className={cn('inline-flex rounded-lg px-3 py-1 text-[11px] font-bold', badgeClass)}>{title}</div>
+    <div className="rounded-lg border border-border/60 bg-muted/30 p-5">
+      <div className={cn('inline-flex rounded-full px-3 py-1 text-[11px] font-medium', badgeClass)}>{title}</div>
       <p className="mt-3 text-sm text-muted-foreground">{description}</p>
     </div>
   );
@@ -516,7 +472,7 @@ export function StateCard({
   return (
     <Card className={className}>
       <CardHeader className="space-y-3">
-        <div className={cn('inline-flex w-fit rounded-full px-2.5 py-0.5 text-xs font-bold', badgeClassName)}>
+        <div className={cn('inline-flex w-fit rounded-full px-2.5 py-0.5 text-xs font-medium', badgeClassName)}>
           Estado atual
         </div>
         <div>
@@ -527,7 +483,7 @@ export function StateCard({
       <CardContent className="pt-0">
         <ul className="space-y-2">
           {items.map((item) => (
-            <li key={item} className={cn('rounded-xl border px-4 py-3 text-sm', itemClassName)}>
+            <li key={item} className={cn('rounded-lg border px-4 py-3 text-sm', itemClassName)}>
               {item}
             </li>
           ))}

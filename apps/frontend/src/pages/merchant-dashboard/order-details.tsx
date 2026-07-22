@@ -157,11 +157,11 @@ export function MerchantDashboardOrderDetails() {
             </div>
 
             {order.customerNote ? (
-              <div className="rounded-2xl border border-border/40 bg-muted/50 px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Observacao do cliente
+              <div className="rounded-lg border border-border/60 bg-muted/30 px-4 py-3">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Observação do cliente
                 </p>
-                <p className="mt-2 text-sm leading-6 text-foreground">{order.customerNote}</p>
+                <p className="mt-1.5 text-sm leading-6 text-foreground">{order.customerNote}</p>
               </div>
             ) : null}
 
@@ -191,15 +191,15 @@ export function MerchantDashboardOrderDetails() {
           >
             <div className="space-y-3">
               {order.items.map((item) => (
-                <div key={item.id} className="flex flex-col items-start gap-3 rounded-2xl border border-border/40 bg-muted/50 px-4 py-4 sm:flex-row sm:items-center">
+                <div key={item.id} className="flex flex-col items-start gap-3 rounded-lg border border-border/60 bg-muted/30 px-4 py-3 sm:flex-row sm:items-center">
                   {item.productImageUrlSnapshot ? (
                     <img
                       src={item.productImageUrlSnapshot}
                       alt={item.productNameSnapshot}
-                      className="h-14 w-14 rounded-xl object-cover"
+                      className="h-14 w-14 rounded-lg object-cover"
                     />
                   ) : (
-                    <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white text-xs text-muted-foreground">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-lg border border-border/60 bg-background text-xs text-muted-foreground">
                       Sem foto
                     </div>
                   )}
@@ -231,7 +231,7 @@ export function MerchantDashboardOrderDetails() {
           >
             <div className="space-y-4">
               <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Status do pedido</p>
+                <p className="text-xs font-medium text-muted-foreground">Status do pedido</p>
                 <Select value={selectedStatus} onValueChange={(value) => setSelectedStatus(value as OrderStatus)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o status" />
@@ -247,7 +247,7 @@ export function MerchantDashboardOrderDetails() {
               </div>
 
               <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Observacoes internas</p>
+                <p className="text-xs font-medium text-muted-foreground">Observações internas</p>
                 <Textarea
                   placeholder="Ex.: cliente pediu retorno hoje a tarde, aguardando confirmacao do estoque."
                   value={internalNotes}

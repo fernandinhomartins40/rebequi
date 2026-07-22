@@ -176,7 +176,7 @@ export function MerchantDashboardAccess() {
                   <p className="text-sm font-semibold text-foreground">{getMerchantRoleLabel(role)}</p>
                   <p className="text-xs text-muted-foreground">{getMerchantRoleDescription(role)}</p>
                 </div>
-                <span className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-foreground ring-1 ring-slate-200">
+                <span className="rounded-full bg-card px-3 py-1 text-sm font-medium tabular-nums text-foreground ring-1 ring-border/60">
                   {total}
                 </span>
               </div>
@@ -195,14 +195,14 @@ export function MerchantDashboardAccess() {
           {INTERNAL_USER_ROLES.map((role) => (
             <article
               key={role}
-              className="rounded-xl border border-border/50 bg-muted/30 p-5"
+              className="rounded-lg border border-border/60 bg-muted/30 p-5"
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h3 className="text-sm font-semibold text-foreground">{getMerchantRoleLabel(role)}</h3>
                   <p className="mt-1 text-sm leading-5 text-muted-foreground">{getMerchantRoleDescription(role)}</p>
                 </div>
-                <span className="shrink-0 rounded-full border border-brand-blue/20 bg-brand-blue/5 px-2.5 py-0.5 text-xs font-semibold text-brand-blue">
+                <span className="shrink-0 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
                   {roleTotals.find((item) => item.role === role)?.total ?? 0} usuário(s)
                 </span>
               </div>
@@ -210,7 +210,7 @@ export function MerchantDashboardAccess() {
                 {MERCHANT_ROLE_PROFILES[role].permissions.map((permission) => (
                   <span
                     key={permission}
-                    className="inline-flex rounded-full border border-border/40 bg-white px-2.5 py-0.5 text-xs font-medium text-foreground"
+                    className="inline-flex rounded-full border border-border/60 bg-card px-2.5 py-0.5 text-xs font-medium text-foreground"
                   >
                     {getMerchantPermissionLabel(permission)}
                   </span>
@@ -241,7 +241,7 @@ export function MerchantDashboardAccess() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por nome, e-mail ou WhatsApp…"
-              className="pl-9 rounded-xl"
+              className="pl-9"
             />
           </div>
           <select
@@ -277,16 +277,16 @@ export function MerchantDashboardAccess() {
         ) : (
           <>
             {/* Desktop table */}
-            <div className="hidden overflow-hidden rounded-lg border border-border/50 xl:block">
+            <div className="hidden overflow-hidden rounded-lg border border-border/60 xl:block">
               <div className="max-h-[34rem] overflow-auto">
                 <Table>
-                  <TableHeader className="sticky top-0 z-10 bg-muted/50/95 backdrop-blur">
+                  <TableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur">
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="w-[30%] font-semibold">Colaborador</TableHead>
-                      <TableHead className="font-semibold">Perfil</TableHead>
-                      <TableHead className="font-semibold">Acessos liberados</TableHead>
-                      <TableHead className="w-44 text-center font-semibold">Situação</TableHead>
-                      <TableHead className="w-36 text-right font-semibold">Ações</TableHead>
+                      <TableHead className="w-[30%] font-medium">Colaborador</TableHead>
+                      <TableHead className="font-medium">Perfil</TableHead>
+                      <TableHead className="font-medium">Acessos liberados</TableHead>
+                      <TableHead className="w-44 text-center font-medium">Situação</TableHead>
+                      <TableHead className="w-36 text-right font-medium">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -297,9 +297,9 @@ export function MerchantDashboardAccess() {
                           <TableCell>
                             <div className="space-y-0.5">
                               <div className="flex flex-wrap items-center gap-2">
-                                <p className="font-semibold text-foreground">{u.name}</p>
+                                <p className="font-medium text-foreground">{u.name}</p>
                                 {isCurrentUser ? (
-                                  <span className="rounded-full border border-brand-blue/20 bg-brand-blue/5 px-2.5 py-0.5 text-[11px] font-semibold text-brand-blue">
+                                  <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[11px] font-medium text-blue-700">
                                     Você
                                   </span>
                                 ) : null}
@@ -328,10 +328,10 @@ export function MerchantDashboardAccess() {
                           </TableCell>
                           <TableCell className="text-center">
                             <div className="flex flex-col items-center gap-1.5">
-                              <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${u.isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-600' : 'border-border/40 bg-muted text-muted-foreground'}`}>
+                              <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${u.isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-border/60 bg-muted text-muted-foreground'}`}>
                                 {u.isActive ? 'Ativo' : 'Inativo'}
                               </span>
-                              <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${u.mustChangePassword ? 'border-brand-yellow/30 bg-brand-yellow/10 text-foreground' : 'border-brand-blue/20 bg-brand-blue/5 text-brand-blue'}`}>
+                              <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${u.mustChangePassword ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-blue-200 bg-blue-50 text-blue-700'}`}>
                                 {u.mustChangePassword ? 'Troca pendente' : 'Senha regular'}
                               </span>
                             </div>
@@ -357,16 +357,16 @@ export function MerchantDashboardAccess() {
               {users.map((u) => {
                 const isCurrentUser = user?.id === u.id;
                 return (
-                  <article key={u.id} className="rounded-xl border border-border/50 bg-white p-4">
+                  <article key={u.id} className="rounded-lg border border-border/60 bg-card p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-1.5">
                           <h3 className="text-sm font-semibold text-foreground">{u.name}</h3>
-                          <span className={`inline-flex rounded-full border px-2 py-px text-[10px] font-semibold ${u.isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-600' : 'border-border/40 bg-muted text-muted-foreground'}`}>
+                          <span className={`inline-flex rounded-full border px-2 py-px text-[10px] font-medium ${u.isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-border/60 bg-muted text-muted-foreground'}`}>
                             {u.isActive ? 'Ativo' : 'Inativo'}
                           </span>
                           {isCurrentUser ? (
-                            <span className="rounded-full border border-brand-blue/20 bg-brand-blue/5 px-2 py-px text-[10px] font-semibold text-brand-blue">
+                            <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-px text-[10px] font-medium text-blue-700">
                               Você
                             </span>
                           ) : null}
@@ -381,7 +381,7 @@ export function MerchantDashboardAccess() {
                       <p className="mt-0.5 text-xs text-muted-foreground">{getMerchantRoleDescription(u.role)}</p>
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {MERCHANT_ROLE_PROFILES[u.role as ManagedUserRole].permissions.map((perm) => (
-                          <span key={`${u.id}-${perm}`} className="inline-flex rounded-full border border-border/40 bg-white px-2.5 py-0.5 text-xs font-medium text-foreground">
+                          <span key={`${u.id}-${perm}`} className="inline-flex rounded-full border border-border/60 bg-card px-2.5 py-0.5 text-xs font-medium text-foreground">
                             {getMerchantPermissionLabel(perm)}
                           </span>
                         ))}
@@ -389,7 +389,7 @@ export function MerchantDashboardAccess() {
                     </div>
 
                     <div className="mt-3 flex items-center justify-between gap-2">
-                      <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${u.mustChangePassword ? 'border-brand-yellow/30 bg-brand-yellow/10 text-foreground' : 'border-brand-blue/20 bg-brand-blue/5 text-brand-blue'}`}>
+                      <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${u.mustChangePassword ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-blue-200 bg-blue-50 text-blue-700'}`}>
                         {u.mustChangePassword ? 'Troca de senha pendente' : 'Senha em dia'}
                       </span>
                       <Button size="sm" variant="outline" onClick={() => openEditDialog(u)} className="gap-1.5">

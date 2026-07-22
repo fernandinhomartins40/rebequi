@@ -29,37 +29,31 @@ export function MerchantDashboardLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[hsl(220,20%,97%)] via-[hsl(220,20%,98%)] to-[hsl(220,25%,96%)]">
+    <div className="min-h-screen bg-[hsl(45,25%,96%)]">
       <SidebarProvider defaultOpen style={SIDEBAR_THEME as CSSProperties}>
-        <Sidebar
-          variant="inset"
-          collapsible="icon"
-          className="border-r-0 bg-[hsl(222,47%,11%)]"
-        >
+        <Sidebar variant="inset" collapsible="icon" className="border-r-0">
           <MerchantSidebarHeader />
           <AdminSidebarNavigation activePath={activeItem.href} items={dashboardData.navItems} />
           <MerchantSidebarFooter userEmail={dashboardData.userEmail} userRole={dashboardData.userRole} onLogout={handleLogout} />
           <SidebarRail />
         </Sidebar>
 
-        <SidebarInset className="min-w-0 overflow-hidden bg-gradient-to-br from-[hsl(220,20%,97%)] via-[hsl(220,20%,98%)] to-[hsl(220,25%,96%)]">
+        <SidebarInset className="min-w-0 overflow-hidden border border-border/60 bg-background md:peer-data-[variant=inset]:shadow-sm">
           {/* Top bar */}
-          <header className="sticky top-0 z-20 border-b border-border/40 bg-white/90 backdrop-blur-md">
-            <div className="flex h-14 items-center gap-3 px-4 md:px-5">
-              <SidebarTrigger className="h-8 w-8 rounded-lg border border-border/60 bg-white shadow-sm transition-colors hover:bg-muted" />
-              <div className="h-5 w-px bg-border/60" />
-              <div className="min-w-0">
-                <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                  {activeItem.eyebrow}
-                </span>
-                <h1 className="text-[15px] font-bold text-foreground leading-tight">{activeItem.title}</h1>
+          <header className="sticky top-0 z-20 border-b border-border/60 bg-background/95 backdrop-blur-sm">
+            <div className="flex h-14 items-center gap-3 px-4 md:px-6">
+              <SidebarTrigger className="h-8 w-8 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground" />
+              <div className="h-4 w-px bg-border" />
+              <div className="flex min-w-0 items-baseline gap-2">
+                <h1 className="truncate text-sm font-semibold text-foreground">{activeItem.title}</h1>
+                <span className="hidden truncate text-xs text-muted-foreground sm:inline">{activeItem.eyebrow}</span>
               </div>
             </div>
           </header>
 
           {/* Page content */}
           <div className="merchant-dashboard-scroll flex-1 overflow-y-auto">
-            <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-5 md:py-8">
+            <div className="mx-auto w-full max-w-6xl px-4 py-6 md:px-6 md:py-8">
               <Outlet context={dashboardData} />
             </div>
           </div>

@@ -198,24 +198,24 @@ export function MerchantDashboardPromotions() {
       {/* Status overview strip */}
       {allPromotions.length > 0 ? (
         <div className="grid gap-3 sm:grid-cols-3">
-          <div className="rounded-xl border border-border/50 bg-white px-4 py-3.5 shadow-sm">
-            <p className="text-xs font-semibold text-muted-foreground">Em execução</p>
+          <div className="rounded-xl border border-border/70 bg-card px-4 py-3.5">
+            <p className="text-xs font-medium text-muted-foreground">Em execução</p>
             <p className="mt-1 text-sm text-foreground">
               {activePromotions.length > 0
                 ? `${activePromotions.length} campanha(s) com ${activePromotions.reduce((t, p) => t + p.productCount, 0)} produtos expostos.`
                 : 'Nenhuma campanha ativa no momento.'}
             </p>
           </div>
-          <div className="rounded-xl border border-border/50 bg-white px-4 py-3.5 shadow-sm">
-            <p className="text-xs font-semibold text-muted-foreground">Aguardando publicação</p>
+          <div className="rounded-xl border border-border/70 bg-card px-4 py-3.5">
+            <p className="text-xs font-medium text-muted-foreground">Aguardando publicação</p>
             <p className="mt-1 text-sm text-foreground">
               {scheduledPromotions.length > 0
                 ? `${scheduledPromotions.length} campanha(s) aguardam a data configurada.`
                 : 'Sem campanhas agendadas.'}
             </p>
           </div>
-          <div className="rounded-xl border border-border/50 bg-white px-4 py-3.5 shadow-sm">
-            <p className="text-xs font-semibold text-muted-foreground">Para revisar</p>
+          <div className="rounded-xl border border-border/70 bg-card px-4 py-3.5">
+            <p className="text-xs font-medium text-muted-foreground">Para revisar</p>
             <p className="mt-1 text-sm text-foreground">
               {inactivePromotions.length + expiredPromotions.length > 0
                 ? `${inactivePromotions.length} inativas · ${expiredPromotions.length} encerradas aguardando revisão.`
@@ -228,7 +228,7 @@ export function MerchantDashboardPromotions() {
       {/* Promotions list */}
       <DashboardPanel title="Promoções cadastradas" description="Filtre, acompanhe o status e mantenha os cards atualizados." accent="yellow">
         {!canCreatePromotion ? (
-          <div className="mb-4 rounded-lg border border-brand-yellow/30 bg-brand-yellow/10 px-4 py-3 text-sm text-foreground">
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             Ative pelo menos dois produtos para criar uma nova campanha.
           </div>
         ) : null}
@@ -241,7 +241,7 @@ export function MerchantDashboardPromotions() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por nome, título ou descrição…"
-              className="pl-9 rounded-xl"
+              className="pl-9"
             />
           </div>
           <select
@@ -274,20 +274,20 @@ export function MerchantDashboardPromotions() {
         ) : (
           <>
             {/* Desktop table */}
-            <div className="hidden overflow-hidden rounded-lg border border-border/50 xl:block">
+            <div className="hidden overflow-hidden rounded-lg border border-border/60 xl:block">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-muted/50 hover:bg-muted/50">
-                    <TableHead className="font-semibold">Promoção</TableHead>
-                    <TableHead className="font-semibold">Validade</TableHead>
-                    <TableHead className="w-32 text-center font-semibold">Produtos</TableHead>
-                    <TableHead className="w-32 text-center font-semibold">Status</TableHead>
-                    <TableHead className="w-36 text-right font-semibold">Ações</TableHead>
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableHead className="font-medium">Promoção</TableHead>
+                    <TableHead className="font-medium">Validade</TableHead>
+                    <TableHead className="w-32 text-center font-medium">Produtos</TableHead>
+                    <TableHead className="w-32 text-center font-medium">Status</TableHead>
+                    <TableHead className="w-36 text-right font-medium">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {promotions.map((promotion) => (
-                    <TableRow key={promotion.id} className="hover:bg-muted/50/60">
+                    <TableRow key={promotion.id} className="hover:bg-muted/30">
                       <TableCell>
                         <div className="flex gap-3">
                           <div className="h-16 w-24 shrink-0 overflow-hidden rounded-lg border border-border/40 bg-muted/50">
@@ -353,7 +353,7 @@ export function MerchantDashboardPromotions() {
                             variant="outline"
                             onClick={() => void handleDelete(promotion)}
                             disabled={deleteMutation.isPending}
-                            className="gap-1.5 border-brand-red/20 text-brand-red hover:bg-brand-red/5 hover:text-brand-red"
+                            className="gap-1.5 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
@@ -368,7 +368,7 @@ export function MerchantDashboardPromotions() {
             {/* Mobile cards */}
             <div className="space-y-3 xl:hidden">
               {promotions.map((promotion) => (
-                <article key={promotion.id} className="overflow-hidden rounded-xl border border-border/50 bg-white shadow-sm">
+                <article key={promotion.id} className="overflow-hidden rounded-xl border border-border/70 bg-card">
                   <div className="flex gap-3 p-4">
                     <div className="h-20 w-24 shrink-0 overflow-hidden rounded-lg border border-border/40 bg-muted/50">
                       {promotion.image?.url ? (
@@ -414,7 +414,7 @@ export function MerchantDashboardPromotions() {
                       variant="outline"
                       onClick={() => void handleDelete(promotion)}
                       disabled={deleteMutation.isPending}
-                      className="gap-1.5 border-brand-red/20 text-brand-red hover:bg-brand-red/5 hover:text-brand-red"
+                      className="gap-1.5 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                       Excluir

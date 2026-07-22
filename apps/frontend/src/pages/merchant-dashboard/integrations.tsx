@@ -205,9 +205,9 @@ export function MerchantDashboardIntegrations() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <DashboardPanel title="Conexão" description="Credenciais e identificação enviadas ao OpenRouter." accent="blue">
-          <div className="space-y-5 px-5 pb-5">
+          <div className="space-y-5">
             {/* Toggle enabled */}
-            <div className="flex items-start justify-between gap-4 rounded-lg border border-slate-200/70 bg-slate-50 p-4">
+            <div className="flex items-start justify-between gap-4 rounded-lg border border-border/60 bg-muted/30 p-4">
               <div className="min-w-0">
                 <Label className="text-sm font-semibold">Usar OpenRouter no OCR</Label>
                 <p className="mt-0.5 text-xs text-muted-foreground">
@@ -236,7 +236,7 @@ export function MerchantDashboardIntegrations() {
                 <button
                   type="button"
                   onClick={() => setShowKey((value) => !value)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:bg-slate-100"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:bg-muted"
                   aria-label={showKey ? 'Ocultar chave' : 'Mostrar chave'}
                 >
                   {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -293,7 +293,7 @@ export function MerchantDashboardIntegrations() {
           description="O modelo principal é tentado primeiro; se falhar ou esgotar quota, cai no fallback. Se ambos falharem, usa o PaddleOCR local."
           accent="yellow"
         >
-          <div className="space-y-5 px-5 pb-5">
+          <div className="space-y-5">
             <ModelField
               id="primary-model"
               label="Modelo principal"
@@ -327,7 +327,7 @@ export function MerchantDashboardIntegrations() {
           </div>
         </DashboardPanel>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/70 bg-card p-4">
           <Button
             type="button"
             variant="outline"
@@ -348,7 +348,7 @@ export function MerchantDashboardIntegrations() {
       {testResult ? (
         <div
           className={cn(
-            'rounded-2xl border p-4 text-sm shadow-sm',
+            'rounded-xl border p-4 text-sm',
             testResult.ok
               ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
               : 'border-red-200 bg-red-50 text-red-700'
@@ -381,9 +381,9 @@ export function MerchantDashboardIntegrations() {
         description="Fluxo de OCR de orçamentos com a configuração ativa."
         accent="blue"
       >
-        <ol className="space-y-2 px-5 pb-5 text-sm text-muted-foreground">
+        <ol className="space-y-2 text-sm text-muted-foreground">
           <li className="flex gap-2">
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-blue/10 text-xs font-bold text-brand-blue">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-foreground">
               1
             </span>
             <span>
@@ -391,7 +391,7 @@ export function MerchantDashboardIntegrations() {
             </span>
           </li>
           <li className="flex gap-2">
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-blue/10 text-xs font-bold text-brand-blue">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-foreground">
               2
             </span>
             <span>
@@ -399,7 +399,7 @@ export function MerchantDashboardIntegrations() {
             </span>
           </li>
           <li className="flex gap-2">
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-blue/10 text-xs font-bold text-brand-blue">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-foreground">
               3
             </span>
             <span>
@@ -407,7 +407,7 @@ export function MerchantDashboardIntegrations() {
             </span>
           </li>
           <li className="flex gap-2">
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-blue/10 text-xs font-bold text-brand-blue">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-foreground">
               4
             </span>
             <span>
@@ -434,11 +434,11 @@ function StatusCard({
   const tones = {
     green: 'border-emerald-200 bg-emerald-50 text-emerald-800',
     yellow: 'border-amber-200 bg-amber-50 text-amber-800',
-    slate: 'border-slate-200 bg-white text-foreground',
+    slate: 'border-border/70 bg-card text-foreground',
   } as const;
   return (
-    <div className={cn('rounded-xl border p-4 shadow-sm', tones[tone])}>
-      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider">
+    <div className={cn('rounded-xl border p-4', tones[tone])}>
+      <div className="flex items-center gap-2 text-xs font-medium">
         {icon}
         {label}
       </div>
@@ -482,7 +482,7 @@ function ModelField({
               'rounded-full border px-2 py-0.5 text-[10px] font-medium transition',
               value === model
                 ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
-                : 'border-slate-200 bg-white text-muted-foreground hover:bg-slate-50'
+                : 'border-border/60 bg-card text-muted-foreground hover:bg-muted/50'
             )}
           >
             <Plug className="mr-1 inline h-2.5 w-2.5" />
