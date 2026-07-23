@@ -7,5 +7,10 @@ export {
   MerchantDashboardProducts,
   MerchantDashboardPromotions,
   MerchantDashboardQuotes,
+  MerchantCategoryEditorPage,
+  MerchantProductEditorPage,
+  MerchantProductOfferPage,
+  MerchantPromotionEditorPage,
+  MerchantUserEditorPage,
   default,
 } from './merchant-dashboard';

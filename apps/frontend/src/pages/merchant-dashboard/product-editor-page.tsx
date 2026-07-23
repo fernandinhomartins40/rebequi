@@ -1,17 +1,20 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useForm } from 'react-hook-form';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ImagePlus, Loader2, Save, Trash2 } from 'lucide-react';
-import type { Product, ProductImage } from '@rebequi/shared/types';
+import { useNavigate, useParams } from 'react-router-dom';
+import type { ProductImage } from '@rebequi/shared/types';
 import { Button } from '@/components/ui/button';
-import { Dialog } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ModalBody, ModalContent, ModalDescription, ModalFooter, ModalHeader, ModalPanel, ModalTitle } from '@/components/ui/modal';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
+import { fetchCategories } from '@/services/api/categories';
 import { createProduct, updateProduct, uploadProductImage } from '@/services/api/products';
+import { ADMIN_BASE_PATH } from './config';
+import { DashboardPanel, EditorBackLink, EditorError, EditorFooter, EditorLoading, PageHeader } from './components';
 import { ProductImageCropDialog } from './image-crop-dialog';
+import { fetchAllAdminProductsSnapshot } from './promotion-admin';
 import {
   createObjectPreviewUrl,
   PRODUCT_IMAGE_HEIGHT,
@@ -19,11 +22,6 @@ import {
   readFileAsDataUrl,
   revokeObjectPreviewUrl,
 } from './image-tools';
-
-type CategoryOption = {
-  id: string;
-  name: string;
-};
 
 type ProductDraftImage = ProductImage & {
   localId: string;
@@ -208,8 +206,8 @@ function ProductImageCard({
   onRemove: () => void;
 }) {
   return (
-    <div className="rounded-3xl border border-black/5 bg-muted/50 p-3">
-      <div className="overflow-hidden rounded-2xl border border-black/5 bg-white">
+    <div className="rounded-xl border border-border/60 bg-muted/30 p-3">
+      <div className="overflow-hidden rounded-lg border border-border/60 bg-background">
         <img src={image.previewUrl || image.url} alt={image.alt || 'Imagem do produto'} className="aspect-square w-full object-cover" />
       </div>
       <div className="mt-3 flex gap-2">
@@ -225,41 +223,43 @@ function ProductImageCard({
   );
 }
 
-export function ProductEditorDialog({
-  categories,
-  onOpenChange,
-  onSaved,
-  open,
-  product,
-}: {
-  categories: CategoryOption[];
-  onOpenChange: (open: boolean) => void;
-  onSaved: () => void;
-  open: boolean;
-  product?: Product | null;
-}) {
+const BACK_HREF = `${ADMIN_BASE_PATH}/produtos`;
+
+export function MerchantProductEditorPage() {
+  const { productId } = useParams();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [images, setImages] = useState<ProductDraftImage[]>([]);
   const [cropSourceUrl, setCropSourceUrl] = useState<string>();
   const [cropOriginalFileName, setCropOriginalFileName] = useState('');
-  const isEditing = Boolean(product);
+  const isEditing = Boolean(productId);
+
+  const categoriesQuery = useQuery({
+    queryKey: ['merchant-dashboard', 'categories', 'all'],
+    queryFn: () => fetchCategories({ includeInactive: true }),
+  });
+
+  const productsQuery = useQuery({
+    queryKey: ['merchant-dashboard', 'products-snapshot-all'],
+    queryFn: fetchAllAdminProductsSnapshot,
+    enabled: isEditing,
+  });
+
+  const product = isEditing ? productsQuery.data?.find((item) => item.id === productId) ?? null : null;
+
+  const managedCategories = categoriesQuery.data?.categories ?? [];
+  const categories = managedCategories
+    .filter((item) => item.isActive || item.id === product?.categoryId)
+    .map((item) => ({ id: item.id, name: item.isActive ? item.name : `${item.name} (inativa)` }));
 
   const { register, handleSubmit, reset, watch, formState } = useForm<ProductFormFields>({
     defaultValues: createEmptyFormValues(),
   });
 
   useEffect(() => {
-    if (!open) {
-      return;
-    }
-
     if (!product) {
-      reset(createEmptyFormValues());
-      setImages((current) => {
-        cleanupDraftImages(current);
-        return [];
-      });
       return;
     }
 
@@ -286,9 +286,7 @@ export function ProductEditorDialog({
       cleanupDraftImages(current);
       return normalizeDraftImages((product.images || []).map(createDraftImageFromProductImage));
     });
-  }, [open, product, reset]);
-
-  useEffect(() => () => cleanupDraftImages(images), [images]);
+  }, [product, reset]);
 
   const saveMutation = useMutation({
     mutationFn: async (fields: ProductFormFields) => {
@@ -308,7 +306,7 @@ export function ProductEditorDialog({
 
       return isEditing && product ? updateProduct(product.id, payload) : createProduct(payload);
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: isEditing ? 'Produto atualizado' : 'Produto criado',
         description: 'Os dados e as imagens foram persistidos com sucesso.',
@@ -317,8 +315,13 @@ export function ProductEditorDialog({
         cleanupDraftImages(current);
         return [];
       });
-      onSaved();
-      onOpenChange(false);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['merchant-dashboard'] }),
+        queryClient.invalidateQueries({ queryKey: ['products'] }),
+        queryClient.invalidateQueries({ queryKey: ['categories'] }),
+        queryClient.invalidateQueries({ queryKey: ['promotions'] }),
+      ]);
+      navigate(BACK_HREF);
     },
     onError: (error) => {
       toast({
@@ -383,187 +386,179 @@ export function ProductEditorDialog({
     setImages((current) => normalizeDraftImages(current.filter((item) => item.localId !== image.localId)));
   };
 
+  if (isEditing && (productsQuery.isLoading || categoriesQuery.isLoading)) {
+    return <EditorLoading />;
+  }
+
+  if (isEditing && (productsQuery.isError || !product)) {
+    return <EditorError message="Produto não encontrado." backTo={BACK_HREF} />;
+  }
+
   return (
-    <>
-      <Dialog
-        open={open}
-        onOpenChange={(nextOpen) => {
-          if (!nextOpen) {
-            setCropSourceUrl(undefined);
-            setCropOriginalFileName('');
-            setImages((current) => {
-              cleanupDraftImages(current);
-              return [];
-            });
-          }
-          onOpenChange(nextOpen);
-        }}
+    <div className="space-y-6">
+      <EditorBackLink to={BACK_HREF} label="Voltar para produtos" />
+
+      <PageHeader
+        title={isEditing ? 'Editar produto' : 'Novo produto'}
+        description="Preencha os dados do produto e salve as imagens."
+      />
+
+      <form
+        className="space-y-6"
+        onSubmit={handleSubmit((fields) => {
+          void saveMutation.mutateAsync(fields);
+        })}
       >
-        <ModalContent size="2xl">
-          <ModalHeader>
-            <ModalTitle>{isEditing ? 'Editar produto' : 'Novo produto'}</ModalTitle>
-            <ModalDescription>Preencha os dados do produto e salve as imagens.</ModalDescription>
-          </ModalHeader>
+        <DashboardPanel title="Dados do produto">
+          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="space-y-2 xl:col-span-2">
+              <Label htmlFor="product-name">Nome</Label>
+              <Input id="product-name" placeholder="Ex.: Furadeira de Impacto 650W" {...register('name', { required: true })} />
+            </div>
 
-          <form
-            className="flex min-h-0 flex-1 flex-col"
-            onSubmit={handleSubmit((fields) => {
-              void saveMutation.mutateAsync(fields);
-            })}
-          >
-            <ModalBody className="space-y-6">
-              <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <div className="space-y-2 xl:col-span-2">
-                  <Label htmlFor="product-name">Nome</Label>
-                  <Input id="product-name" placeholder="Ex.: Furadeira de Impacto 650W" {...register('name', { required: true })} />
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="product-category">Categoria</Label>
+              <select
+                id="product-category"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                {...register('categoryId', { required: true })}
+              >
+                <option value="">Selecione</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="product-category">Categoria</Label>
-                  <select
-                    id="product-category"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    {...register('categoryId', { required: true })}
-                  >
-                    <option value="">Selecione</option>
-                    {categories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="product-price">Preço</Label>
+              <Input id="product-price" inputMode="decimal" placeholder="299.90" {...register('price')} />
+            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="product-price">Preco</Label>
-                  <Input id="product-price" inputMode="decimal" placeholder="299.90" {...register('price')} />
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="product-original-price">Preço original</Label>
+              <Input id="product-original-price" inputMode="decimal" placeholder="349.90" {...register('originalPrice')} />
+            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="product-original-price">Preço original</Label>
-                  <Input id="product-original-price" inputMode="decimal" placeholder="349.90" {...register('originalPrice')} />
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="product-discount">Desconto (%)</Label>
+              <Input id="product-discount" inputMode="numeric" placeholder="15" {...register('discount')} />
+            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="product-discount">Desconto (%)</Label>
-                  <Input id="product-discount" inputMode="numeric" placeholder="15" {...register('discount')} />
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="product-stock">Estoque</Label>
+              <Input id="product-stock" inputMode="numeric" placeholder="12" {...register('stock')} />
+            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="product-stock">Estoque</Label>
-                  <Input id="product-stock" inputMode="numeric" placeholder="12" {...register('stock')} />
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="product-min-stock">Estoque mínimo</Label>
+              <Input id="product-min-stock" inputMode="numeric" placeholder="3" {...register('minStock')} />
+            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="product-min-stock">Estoque mínimo</Label>
-                  <Input id="product-min-stock" inputMode="numeric" placeholder="3" {...register('minStock')} />
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="product-sku">SKU</Label>
+              <Input id="product-sku" placeholder="FER-FUR-001" {...register('sku')} />
+            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="product-sku">SKU</Label>
-                  <Input id="product-sku" placeholder="FER-FUR-001" {...register('sku')} />
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="product-weight">Peso (kg)</Label>
+              <Input id="product-weight" inputMode="decimal" placeholder="2.4" {...register('weight')} />
+            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="product-weight">Peso (kg)</Label>
-                  <Input id="product-weight" inputMode="decimal" placeholder="2.4" {...register('weight')} />
-                </div>
+            <div className="space-y-2 xl:col-span-2">
+              <Label htmlFor="product-dimensions">Dimensões</Label>
+              <Input id="product-dimensions" placeholder="30x25x10 cm" {...register('dimensions')} />
+            </div>
 
-                <div className="space-y-2 xl:col-span-2">
-                  <Label htmlFor="product-dimensions">Dimensoes</Label>
-                  <Input id="product-dimensions" placeholder="30x25x10 cm" {...register('dimensions')} />
-                </div>
+            <div className="space-y-2 xl:col-span-3">
+              <Label htmlFor="product-short-desc">Descrição curta</Label>
+              <Textarea id="product-short-desc" rows={3} placeholder="Resumo para cards e seções públicas." {...register('shortDesc')} />
+            </div>
 
-                <div className="space-y-2 xl:col-span-3">
-                  <Label htmlFor="product-short-desc">Descrição curta</Label>
-                  <Textarea id="product-short-desc" rows={3} placeholder="Resumo para cards e seções públicas." {...register('shortDesc')} />
-                </div>
+            <div className="space-y-2 xl:col-span-3">
+              <Label htmlFor="product-description">Descrição completa</Label>
+              <Textarea id="product-description" rows={5} placeholder="Descrição detalhada do produto." {...register('description')} />
+            </div>
+          </section>
+        </DashboardPanel>
 
-                <div className="space-y-2 xl:col-span-3">
-                  <Label htmlFor="product-description">Descrição completa</Label>
-                  <Textarea id="product-description" rows={5} placeholder="Descrição detalhada do produto." {...register('description')} />
-                </div>
-              </section>
+        <DashboardPanel
+          title="Imagens"
+          description="As imagens são recortadas em 1:1 e comprimidas antes do upload."
+          action={
+            <Button type="button" onClick={() => fileInputRef.current?.click()} size="sm" className="gap-2">
+              <ImagePlus className="h-4 w-4" />
+              Adicionar imagem
+            </Button>
+          }
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="hidden"
+            onChange={(event) => void handleFileChange(event)}
+          />
 
-              <ModalPanel className="space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h3 className="text-lg font-semibold text-foreground">Imagens</h3>
-                    <p className="text-sm text-muted-foreground">As imagens sao recortadas em 1:1 e comprimidas antes do upload.</p>
-                  </div>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {images.map((image) => (
+              <ProductImageCard
+                key={image.localId}
+                image={image}
+                onMakePrimary={() =>
+                  setImages((current) =>
+                    normalizeDraftImages(
+                      current.map((item) => ({
+                        ...item,
+                        isPrimary: item.localId === image.localId,
+                      }))
+                    )
+                  )
+                }
+                onRemove={() => handleRemoveImage(image)}
+              />
+            ))}
+            {images.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border/70 bg-muted/30 px-5 py-10 text-center text-sm text-muted-foreground md:col-span-2 xl:col-span-3">
+                Nenhuma imagem selecionada.
+              </div>
+            ) : null}
+          </div>
+        </DashboardPanel>
 
-                  <Button type="button" onClick={() => fileInputRef.current?.click()} className="gap-2">
-                    <ImagePlus className="h-4 w-4" />
-                    Adicionar imagem
-                  </Button>
-                </div>
+        <DashboardPanel title="Publicação" description="Controle onde e como o produto aparece na vitrine.">
+          <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <label className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/30 px-4 py-3 text-sm">
+              <input type="checkbox" {...register('isOffer')} />
+              Produto em oferta
+            </label>
+            <label className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/30 px-4 py-3 text-sm">
+              <input type="checkbox" {...register('isNew')} />
+              Sinalizar como novidade
+            </label>
+            <label className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/30 px-4 py-3 text-sm">
+              <input type="checkbox" {...register('isFeatured')} />
+              Exibir em destaque
+            </label>
+            <label className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/30 px-4 py-3 text-sm">
+              <input type="checkbox" {...register('isActive')} />
+              Produto ativo
+            </label>
+          </section>
+        </DashboardPanel>
 
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  className="hidden"
-                  onChange={(event) => void handleFileChange(event)}
-                />
-
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {images.map((image) => (
-                    <ProductImageCard
-                      key={image.localId}
-                      image={image}
-                      onMakePrimary={() =>
-                        setImages((current) =>
-                          normalizeDraftImages(
-                            current.map((item) => ({
-                              ...item,
-                              isPrimary: item.localId === image.localId,
-                            }))
-                          )
-                        )
-                      }
-                      onRemove={() => handleRemoveImage(image)}
-                    />
-                  ))}
-                  {images.length === 0 ? (
-                    <div className="rounded-3xl border border-dashed border-black/10 bg-muted/50 px-5 py-10 text-center text-sm text-muted-foreground md:col-span-2 xl:col-span-3">
-                      Nenhuma imagem selecionada.
-                    </div>
-                  ) : null}
-                </div>
-              </ModalPanel>
-
-              <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-muted/50 px-4 py-3 text-sm">
-                  <input type="checkbox" {...register('isOffer')} />
-                  Produto em oferta
-                </label>
-                <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-muted/50 px-4 py-3 text-sm">
-                  <input type="checkbox" {...register('isNew')} />
-                  Sinalizar como novidade
-                </label>
-                <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-muted/50 px-4 py-3 text-sm">
-                  <input type="checkbox" {...register('isFeatured')} />
-                  Exibir em destaque
-                </label>
-                <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-muted/50 px-4 py-3 text-sm">
-                  <input type="checkbox" {...register('isActive')} />
-                  Produto ativo
-                </label>
-              </section>
-            </ModalBody>
-
-            <ModalFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={saveMutation.isPending || formState.isSubmitting || !categoryId}>
-                {saveMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                {isEditing ? 'Salvar alteracoes' : 'Cadastrar produto'}
-              </Button>
-            </ModalFooter>
-          </form>
-        </ModalContent>
-      </Dialog>
+        <EditorFooter>
+          <Button type="button" variant="outline" onClick={() => navigate(BACK_HREF)}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={saveMutation.isPending || formState.isSubmitting || !categoryId}>
+            {saveMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            {isEditing ? 'Salvar alterações' : 'Cadastrar produto'}
+          </Button>
+        </EditorFooter>
+      </form>
 
       <ProductImageCropDialog
         open={Boolean(cropSourceUrl)}
@@ -581,6 +576,6 @@ export function ProductEditorDialog({
           setCropOriginalFileName('');
         }}
       />
-    </>
+    </div>
   );
 }

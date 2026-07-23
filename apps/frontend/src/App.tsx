@@ -11,6 +11,7 @@ import { GuestRoute, MerchantPermissionRoute, ProtectedRoute, RoleHomeRedirect }
 import Index from "./pages/Index";
 import MerchantPanel from "./pages/MerchantPanel";
 import MerchantDashboard, {
+  MerchantCategoryEditorPage,
   MerchantDashboardAccess,
   MerchantDashboardIntegrations,
   MerchantDashboardLayout,
@@ -19,6 +20,10 @@ import MerchantDashboard, {
   MerchantDashboardProducts,
   MerchantDashboardPromotions,
   MerchantDashboardQuotes,
+  MerchantProductEditorPage,
+  MerchantProductOfferPage,
+  MerchantPromotionEditorPage,
+  MerchantUserEditorPage,
 } from "./pages/MerchantDashboard";
 import CustomerDashboard from "./pages/CustomerDashboard";
 import NotFound from "./pages/NotFound";
@@ -78,10 +83,17 @@ const App = () => (
                   </Route>
                   <Route element={<MerchantPermissionRoute permission="catalog:manage" />}>
                     <Route path="produtos" element={<MerchantDashboardProducts />} />
+                    <Route path="produtos/novo" element={<MerchantProductEditorPage />} />
+                    <Route path="produtos/categorias/nova" element={<MerchantCategoryEditorPage />} />
+                    <Route path="produtos/categorias/:categoryId/editar" element={<MerchantCategoryEditorPage />} />
+                    <Route path="produtos/:productId/editar" element={<MerchantProductEditorPage />} />
+                    <Route path="produtos/:productId/oferta" element={<MerchantProductOfferPage />} />
                     <Route path="ofertas" element={<Navigate to="/painel-lojista/painel/produtos" replace />} />
                   </Route>
                   <Route element={<MerchantPermissionRoute permission="promotions:manage" />}>
                     <Route path="promoções" element={<MerchantDashboardPromotions />} />
+                    <Route path="promoções/nova" element={<MerchantPromotionEditorPage />} />
+                    <Route path="promoções/:promotionId/editar" element={<MerchantPromotionEditorPage />} />
                   </Route>
                   <Route element={<MerchantPermissionRoute permission="orders:manage" />}>
                     <Route path="pedidos" element={<MerchantDashboardOrders />} />
@@ -95,6 +107,8 @@ const App = () => (
                   </Route>
                   <Route element={<MerchantPermissionRoute permission="access:manage" />}>
                     <Route path="acesso" element={<MerchantDashboardAccess />} />
+                    <Route path="acesso/novo" element={<MerchantUserEditorPage />} />
+                    <Route path="acesso/:userId/editar" element={<MerchantUserEditorPage />} />
                   </Route>
                   <Route path="*" element={<RoleHomeRedirect />} />
                 </Route>

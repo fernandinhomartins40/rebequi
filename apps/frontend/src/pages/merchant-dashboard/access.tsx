@@ -1,5 +1,5 @@
 import { useDeferredValue, useMemo, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import {
   INTERNAL_USER_ROLES,
   MERCHANT_ROLE_PROFILES,
@@ -9,13 +9,13 @@ import {
 } from '@rebequi/shared/constants';
 import type { ManagedUserRole, User } from '@rebequi/shared/types';
 import { KeyRound, RefreshCcw, Search, ShieldCheck, UserCog, Users } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ADMIN_BASE_PATH } from './config';
 import { DashboardPanel, MetricChip, PageHeader, StatCard } from './components';
-import { UserEditorDialog } from './user-editor-dialog';
 import { fetchManagedUsers } from '@/services/api/users';
 
 type RoleFilter = ManagedUserRole | 'all';
@@ -36,13 +36,11 @@ function formatDateTime(value?: string | Date | null) {
 }
 
 export function MerchantDashboardAccess() {
-  const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
   const [includeInactive, setIncludeInactive] = useState(true);
-  const [editorOpen, setEditorOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const deferredSearch = useDeferredValue(search);
 
   const snapshotQuery = useQuery({
@@ -79,16 +77,8 @@ export function MerchantDashboardAccess() {
     [snapshotUsers],
   );
 
-  const handleSaved = () => {
-    void Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['managed-users'] }),
-      queryClient.invalidateQueries({ queryKey: ['merchant-dashboard'] }),
-      queryClient.invalidateQueries({ queryKey: ['auth'] }),
-    ]);
-  };
-
-  const openCreateDialog = () => { setSelectedUser(null); setEditorOpen(true); };
-  const openEditDialog = (u: User) => { setSelectedUser(u); setEditorOpen(true); };
+  const openCreateDialog = () => navigate(`${ADMIN_BASE_PATH}/acesso/novo`);
+  const openEditDialog = (u: User) => navigate(`${ADMIN_BASE_PATH}/acesso/${u.id}/editar`);
 
   const isLoading = usersQuery.isLoading || snapshotQuery.isLoading;
   const hasUsers = users.length > 0;
@@ -405,15 +395,6 @@ export function MerchantDashboardAccess() {
         )}
       </DashboardPanel>
 
-      <UserEditorDialog
-        open={editorOpen}
-        user={selectedUser}
-        onOpenChange={(nextOpen) => {
-          setEditorOpen(nextOpen);
-          if (!nextOpen) setSelectedUser(null);
-        }}
-        onSaved={handleSaved}
-      />
     </div>
   );
 }

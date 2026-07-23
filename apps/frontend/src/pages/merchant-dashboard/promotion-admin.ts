@@ -1,4 +1,5 @@
-import type { Promotion, PromotionKind, PromotionResponse, PromotionStatus } from '@rebequi/shared/types';
+import type { Product, Promotion, PromotionKind, PromotionResponse, PromotionStatus } from '@rebequi/shared/types';
+import { fetchAdminProducts } from '@/services/api/products';
 import { fetchAdminPromotions } from '@/services/api/promotions';
 
 const SNAPSHOT_PAGE_SIZE = 100;
@@ -41,6 +42,23 @@ export async function fetchAllAdminPromotionsSnapshot(kind: PromotionKind): Prom
     ...firstPage,
     promotions: [firstPage.promotions, ...remainingPages.map((page) => page.promotions)].flat(),
   };
+}
+
+export async function fetchAllAdminProductsSnapshot(): Promise<Product[]> {
+  const firstPage = await fetchAdminProducts({ page: 1, limit: SNAPSHOT_PAGE_SIZE });
+  const totalPages = firstPage.totalPages ?? Math.max(1, Math.ceil(firstPage.total / SNAPSHOT_PAGE_SIZE));
+
+  if (totalPages <= 1) {
+    return firstPage.products;
+  }
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: totalPages - 1 }, (_, index) =>
+      fetchAdminProducts({ page: index + 2, limit: SNAPSHOT_PAGE_SIZE }),
+    ),
+  );
+
+  return [firstPage.products, ...remainingPages.map((page) => page.products)].flat();
 }
 
 export function pickPrimaryPromotion(promotions: Promotion[]) {

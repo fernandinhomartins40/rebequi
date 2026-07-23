@@ -6,4 +6,8 @@ export { MerchantDashboardProducts } from './products';
 export { MerchantDashboardPromotions } from './promotions';
 export { MerchantDashboardQuotes } from './quotes';
 export { MerchantDashboardIntegrations } from './integrations';
+export { MerchantCategoryEditorPage } from './category-editor-page';
+export { MerchantProductEditorPage } from './product-editor-page';
+export { MerchantPromotionEditorPage, MerchantProductOfferPage } from './promotion-editor-page';
+export { MerchantUserEditorPage } from './user-editor-page';
 export { default } from './overview';

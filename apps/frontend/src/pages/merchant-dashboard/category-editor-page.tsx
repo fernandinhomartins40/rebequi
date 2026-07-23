@@ -1,16 +1,16 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Save } from 'lucide-react';
-import type { Category } from '@rebequi/shared/types';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Dialog } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ModalBody, ModalContent, ModalDescription, ModalFooter, ModalHeader, ModalTitle } from '@/components/ui/modal';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
-import { createCategory, updateCategory } from '@/services/api/categories';
+import { createCategory, fetchCategories, updateCategory } from '@/services/api/categories';
+import { ADMIN_BASE_PATH } from './config';
+import { DashboardPanel, EditorBackLink, EditorError, EditorFooter, EditorLoading, PageHeader } from './components';
 
 type CategoryFormFields = {
   name: string;
@@ -43,31 +43,31 @@ function buildPayload(fields: CategoryFormFields) {
   };
 }
 
-export function CategoryEditorDialog({
-  category,
-  open,
-  onOpenChange,
-  onSaved,
-}: {
-  category?: Category | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSaved: () => void;
-}) {
+const BACK_HREF = `${ADMIN_BASE_PATH}/produtos`;
+
+export function MerchantCategoryEditorPage() {
+  const { categoryId } = useParams();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
-  const isEditing = Boolean(category);
+  const isEditing = Boolean(categoryId);
+
+  const categoriesQuery = useQuery({
+    queryKey: ['merchant-dashboard', 'categories', 'all'],
+    queryFn: () => fetchCategories({ includeInactive: true }),
+    enabled: isEditing,
+  });
+
+  const category = isEditing
+    ? categoriesQuery.data?.categories.find((item) => item.id === categoryId) ?? null
+    : null;
 
   const { register, handleSubmit, reset, formState } = useForm<CategoryFormFields>({
     defaultValues: createEmptyValues(),
   });
 
   useEffect(() => {
-    if (!open) {
-      return;
-    }
-
     if (!category) {
-      reset(createEmptyValues());
       return;
     }
 
@@ -79,7 +79,7 @@ export function CategoryEditorDialog({
       description: category.description || '',
       isActive: category.isActive,
     });
-  }, [category, open, reset]);
+  }, [category, reset]);
 
   const saveMutation = useMutation({
     mutationFn: async (fields: CategoryFormFields) => {
@@ -89,17 +89,19 @@ export function CategoryEditorDialog({
         throw new Error('Informe o nome da categoria.');
       }
 
-      return isEditing && category
-        ? updateCategory(category.id, payload)
-        : createCategory(payload);
+      return isEditing && category ? updateCategory(category.id, payload) : createCategory(payload);
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: isEditing ? 'Categoria atualizada' : 'Categoria criada',
         description: 'A categoria foi salva com sucesso.',
       });
-      onSaved();
-      onOpenChange(false);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['merchant-dashboard'] }),
+        queryClient.invalidateQueries({ queryKey: ['categories'] }),
+        queryClient.invalidateQueries({ queryKey: ['products'] }),
+      ]);
+      navigate(BACK_HREF);
     },
     onError: (error) => {
       toast({
@@ -110,21 +112,31 @@ export function CategoryEditorDialog({
     },
   });
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <ModalContent size="md">
-        <ModalHeader>
-          <ModalTitle>{isEditing ? 'Editar categoria' : 'Nova categoria'}</ModalTitle>
-          <ModalDescription>Cadastre e mantenha as categorias usadas no formulario de produtos.</ModalDescription>
-        </ModalHeader>
+  if (isEditing && categoriesQuery.isLoading) {
+    return <EditorLoading />;
+  }
 
-        <form
-          className="flex min-h-0 flex-1 flex-col"
-          onSubmit={handleSubmit((fields) => {
-            void saveMutation.mutateAsync(fields);
-          })}
-        >
-          <ModalBody className="space-y-5">
+  if (isEditing && (categoriesQuery.isError || !category)) {
+    return <EditorError message="Categoria não encontrada." backTo={BACK_HREF} />;
+  }
+
+  return (
+    <div className="space-y-6">
+      <EditorBackLink to={BACK_HREF} label="Voltar para produtos" />
+
+      <PageHeader
+        title={isEditing ? 'Editar categoria' : 'Nova categoria'}
+        description="Cadastre e mantenha as categorias usadas no formulário de produtos."
+      />
+
+      <form
+        className="space-y-6"
+        onSubmit={handleSubmit((fields) => {
+          void saveMutation.mutateAsync(fields);
+        })}
+      >
+        <DashboardPanel title="Dados da categoria">
+          <div className="space-y-5">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="category-name">Nome</Label>
@@ -137,7 +149,7 @@ export function CategoryEditorDialog({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="category-icon">Icone</Label>
+                <Label htmlFor="category-icon">Ícone</Label>
                 <Input id="category-icon" placeholder="Hammer" {...register('icon')} />
               </div>
 
@@ -157,23 +169,23 @@ export function CategoryEditorDialog({
               />
             </div>
 
-            <label className="flex items-center gap-3 rounded-2xl border border-black/5 bg-muted/50 px-4 py-3 text-sm">
+            <label className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/30 px-4 py-3 text-sm">
               <input type="checkbox" {...register('isActive')} />
               Categoria ativa
             </label>
-          </ModalBody>
+          </div>
+        </DashboardPanel>
 
-          <ModalFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={saveMutation.isPending || formState.isSubmitting}>
-              {saveMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-              {isEditing ? 'Salvar categoria' : 'Cadastrar categoria'}
-            </Button>
-          </ModalFooter>
-        </form>
-      </ModalContent>
-    </Dialog>
+        <EditorFooter>
+          <Button type="button" variant="outline" onClick={() => navigate(BACK_HREF)}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={saveMutation.isPending || formState.isSubmitting}>
+            {saveMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            {isEditing ? 'Salvar categoria' : 'Cadastrar categoria'}
+          </Button>
+        </EditorFooter>
+      </form>
+    </div>
   );
 }

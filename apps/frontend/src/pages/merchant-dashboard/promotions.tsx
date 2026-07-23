@@ -2,7 +2,7 @@ import { useDeferredValue, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Boxes, LayoutTemplate, Megaphone, Pencil, RefreshCcw, Search, Trash2 } from 'lucide-react';
 import type { Product, Promotion, PromotionResponse } from '@rebequi/shared/types';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PromotionCountdown } from '@/components/PromotionCountdown';
@@ -14,7 +14,6 @@ import { deletePromotion, fetchAdminPromotions } from '@/services/api/promotions
 import { formatPromotionStatusLabel, formatPromotionWindow, getPromotionStatusTone } from '@/lib/promotion-ui';
 import { ADMIN_BASE_PATH } from './config';
 import { DashboardPanel, PageHeader, StatCard } from './components';
-import { PromotionEditorDialog } from './promotion-editor-dialog';
 
 type PromotionStatusFilter = 'all' | 'active' | 'scheduled' | 'expired' | 'inactive';
 
@@ -55,11 +54,10 @@ async function fetchAllAdminProductsSnapshot(): Promise<Product[]> {
 
 export function MerchantDashboardPromotions() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<PromotionStatusFilter>('all');
-  const [editorOpen, setEditorOpen] = useState(false);
-  const [selectedPromotion, setSelectedPromotion] = useState<Promotion | null>(null);
   const deferredSearch = useDeferredValue(search);
 
   const { data: promotionsSnapshot } = useQuery({
@@ -130,13 +128,11 @@ export function MerchantDashboardPromotions() {
       });
       return;
     }
-    setSelectedPromotion(null);
-    setEditorOpen(true);
+    navigate(`${ADMIN_BASE_PATH}/promoções/nova`);
   };
 
   const openEditDialog = (promotion: Promotion) => {
-    setSelectedPromotion(promotion);
-    setEditorOpen(true);
+    navigate(`${ADMIN_BASE_PATH}/promoções/${promotion.id}/editar`);
   };
 
   const handleDelete = async (promotion: Promotion) => {
@@ -427,17 +423,6 @@ export function MerchantDashboardPromotions() {
         )}
       </DashboardPanel>
 
-      <PromotionEditorDialog
-        kind="collection"
-        open={editorOpen}
-        promotion={selectedPromotion}
-        products={products}
-        onOpenChange={(nextOpen) => {
-          setEditorOpen(nextOpen);
-          if (!nextOpen) setSelectedPromotion(null);
-        }}
-        onSaved={() => { void refreshQueries(); }}
-      />
     </div>
   );
 }

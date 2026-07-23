@@ -2,7 +2,7 @@ import { useDeferredValue, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Boxes, Clock3, Loader2, Pencil, Plus, RefreshCcw, Search, Tags, Trash2 } from 'lucide-react';
 import type { Category, Product, Promotion } from '@rebequi/shared/types';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { PromotionCountdown } from '@/components/PromotionCountdown';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,12 +12,9 @@ import { useToast } from '@/components/ui/use-toast';
 import { formatPromotionStatusLabel, getPromotionStatusTone } from '@/lib/promotion-ui';
 import { deleteCategory, fetchCategories } from '@/services/api/categories';
 import { deleteProduct, fetchAdminProducts } from '@/services/api/products';
-import { CategoryEditorDialog } from './category-editor-dialog';
 import { ADMIN_BASE_PATH } from './config';
-import { DashboardPanel, PageHeader, SectionHeader, StatCard } from './components';
-import { ProductEditorDialog } from './product-editor-dialog';
+import { DashboardPanel, PageHeader, StatCard } from './components';
 import { fetchAllAdminPromotionsSnapshot, buildSingleProductOfferMap, pickPrimaryPromotion } from './promotion-admin';
-import { PromotionEditorDialog } from './promotion-editor-dialog';
 
 type ProductStatusFilter = 'all' | 'active' | 'inactive';
 
@@ -31,16 +28,10 @@ function trimText(value?: string | null) {
 
 export function MerchantDashboardProducts() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<ProductStatusFilter>('all');
-  const [editorOpen, setEditorOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [categoryEditorOpen, setCategoryEditorOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
-  const [offerEditorOpen, setOfferEditorOpen] = useState(false);
-  const [selectedOfferProduct, setSelectedOfferProduct] = useState<Product | null>(null);
-  const [selectedOffer, setSelectedOffer] = useState<Promotion | null>(null);
   const deferredSearch = useDeferredValue(search);
 
   const { data: categoriesData, isLoading: isLoadingCategories } = useQuery({
@@ -117,10 +108,6 @@ export function MerchantDashboardProducts() {
   const activeSingleProductOffers = singleProductOffers.filter((o) => o.status === 'active');
   const productsWithSingleProductOffer = Array.from(singleProductOffersByProduct.keys()).length;
 
-  const categories = managedCategories
-    .filter((c) => c.isActive || c.id === selectedProduct?.categoryId)
-    .map((c) => ({ id: c.id, name: c.isActive ? c.name : `${c.name} (inativa)` }));
-
   const canCreateProduct = activeCategories.length > 0;
 
   const openCreateDialog = () => {
@@ -132,16 +119,14 @@ export function MerchantDashboardProducts() {
       });
       return;
     }
-    setSelectedProduct(null);
-    setEditorOpen(true);
+    navigate(`${ADMIN_BASE_PATH}/produtos/novo`);
   };
 
   const openEditDialog = (product: Product) => {
-    setSelectedProduct(product);
-    setEditorOpen(true);
+    navigate(`${ADMIN_BASE_PATH}/produtos/${product.id}/editar`);
   };
 
-  const openOfferDialog = (product: Product, offer?: Promotion | null) => {
+  const openOfferDialog = (product: Product, _offer?: Promotion | null) => {
     if (!product.isActive) {
       toast({
         variant: 'destructive',
@@ -150,19 +135,15 @@ export function MerchantDashboardProducts() {
       });
       return;
     }
-    setSelectedOfferProduct(product);
-    setSelectedOffer(offer ?? null);
-    setOfferEditorOpen(true);
+    navigate(`${ADMIN_BASE_PATH}/produtos/${product.id}/oferta`);
   };
 
   const openCreateCategoryDialog = () => {
-    setSelectedCategory(null);
-    setCategoryEditorOpen(true);
+    navigate(`${ADMIN_BASE_PATH}/produtos/categorias/nova`);
   };
 
   const openEditCategoryDialog = (category: Category) => {
-    setSelectedCategory(category);
-    setCategoryEditorOpen(true);
+    navigate(`${ADMIN_BASE_PATH}/produtos/categorias/${category.id}/editar`);
   };
 
   const handleDelete = async (product: Product) => {
@@ -556,43 +537,6 @@ export function MerchantDashboardProducts() {
         )}
       </DashboardPanel>
 
-      <ProductEditorDialog
-        open={editorOpen}
-        product={selectedProduct}
-        categories={categories}
-        onOpenChange={(nextOpen) => {
-          setEditorOpen(nextOpen);
-          if (!nextOpen) setSelectedProduct(null);
-        }}
-        onSaved={() => { void refreshQueries(); }}
-      />
-
-      <PromotionEditorDialog
-        kind="single_product"
-        mode="quick-single-product"
-        open={offerEditorOpen}
-        promotion={selectedOffer}
-        products={products}
-        initialProductId={selectedOfferProduct?.id}
-        onOpenChange={(nextOpen) => {
-          setOfferEditorOpen(nextOpen);
-          if (!nextOpen) {
-            setSelectedOfferProduct(null);
-            setSelectedOffer(null);
-          }
-        }}
-        onSaved={() => { void refreshQueries(); }}
-      />
-
-      <CategoryEditorDialog
-        open={categoryEditorOpen}
-        category={selectedCategory}
-        onOpenChange={(nextOpen) => {
-          setCategoryEditorOpen(nextOpen);
-          if (!nextOpen) setSelectedCategory(null);
-        }}
-        onSaved={() => { void refreshQueries(); }}
-      />
     </div>
   );
 }

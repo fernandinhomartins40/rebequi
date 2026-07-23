@@ -176,6 +176,49 @@ export function MerchantSidebarFooter({
   );
 }
 
+// ─── Editor page helpers ─────────────────────────────────────────────────────
+
+export function EditorBackLink({ to, label = 'Voltar' }: { to: string; label?: string }) {
+  return (
+    <Button
+      asChild
+      variant="ghost"
+      size="sm"
+      className="-ml-2 w-fit gap-1.5 text-muted-foreground hover:text-foreground"
+    >
+      <Link to={to}>
+        <ArrowLeft className="h-4 w-4" />
+        {label}
+      </Link>
+    </Button>
+  );
+}
+
+export function EditorFooter({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-center justify-end gap-2 rounded-xl border border-border/70 bg-card p-4">
+      {children}
+    </div>
+  );
+}
+
+export function EditorLoading() {
+  return (
+    <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
+      Carregando…
+    </div>
+  );
+}
+
+export function EditorError({ message, backTo }: { message: string; backTo: string }) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{message}</div>
+      <EditorBackLink to={backTo} />
+    </div>
+  );
+}
+
 // ─── Page-level header strip ─────────────────────────────────────────────────
 
 export function PageHeader({
