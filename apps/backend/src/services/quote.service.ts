@@ -9,6 +9,7 @@ import type {
 } from '@rebequi/shared/schemas';
 import { normalizeWhatsapp } from '@rebequi/shared/utils';
 import { AuthService } from './auth.service.js';
+import { CustomerService } from './customer.service.js';
 import { QuoteOcrService, type RecognizedQuoteLine } from './quote-ocr.service.js';
 import {
   applyOcrCorrections,
@@ -174,12 +175,14 @@ export class QuoteService {
   private productRepository: ProductRepository;
   private authService: AuthService;
   private ocrService: QuoteOcrService;
+  private customerService: CustomerService;
 
   constructor() {
     this.quoteRepository = new QuoteRepository();
     this.productRepository = new ProductRepository();
     this.authService = new AuthService();
     this.ocrService = new QuoteOcrService();
+    this.customerService = new CustomerService();
   }
 
   async startPublicLead(data: StartLeadInput) {
@@ -363,6 +366,9 @@ export class QuoteService {
         completedAt: new Date(),
       });
     }
+
+    // CRM: envio de orçamento move o cliente adiante no funil (se não travado).
+    await this.customerService.maybeAdvanceStage(userId);
 
     return this.formatQuote(updatedQuote);
   }

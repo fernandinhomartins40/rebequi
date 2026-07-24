@@ -5,6 +5,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { fetchCategories } from '@/services/api/categories';
 import { fetchAdminOrders } from '@/services/api/orders';
 import { fetchProducts } from '@/services/api/products';
+import { fetchSales } from '@/services/api/sales';
+import { fetchCustomers } from '@/services/api/customers';
+import { fetchChannels } from '@/services/api/channels';
 import { fetchAdminPromotions } from '@/services/api/promotions';
 import { fetchAdminQuotes, fetchCapturedLeads } from '@/services/api/quotes';
 import { getMerchantNavItemsForRole, type MerchantNavItem } from './config';
@@ -13,6 +16,7 @@ export type ProductSummary = Awaited<ReturnType<typeof fetchProducts>>;
 export type CategorySummary = Awaited<ReturnType<typeof fetchCategories>>;
 export type PromotionSummary = Awaited<ReturnType<typeof fetchAdminPromotions>>;
 export type OrderSummary = Awaited<ReturnType<typeof fetchAdminOrders>>;
+export type SaleSummary = Awaited<ReturnType<typeof fetchSales>>;
 export type QuoteSummary = Awaited<ReturnType<typeof fetchAdminQuotes>>;
 export type LeadSummary = Awaited<ReturnType<typeof fetchCapturedLeads>>;
 export type ProductItem = ProductSummary['products'][number];
@@ -29,6 +33,7 @@ export type MerchantDashboardOutletContext = {
   categorySummary?: CategorySummary;
   promotionSummary?: PromotionSummary;
   orderSummary?: OrderSummary;
+  saleSummary?: SaleSummary;
   quoteSummary?: QuoteSummary;
   leadSummary?: LeadSummary;
   products: ProductItem[];
@@ -45,6 +50,9 @@ export function useMerchantDashboardData(): MerchantDashboardOutletContext {
   const canManageCatalog = hasMerchantPermission(user?.role, 'catalog:manage');
   const canManagePromotions = hasMerchantPermission(user?.role, 'promotions:manage');
   const canManageOrders = hasMerchantPermission(user?.role, 'orders:manage');
+  const canManageSales = hasMerchantPermission(user?.role, 'sales:manage');
+  const canManageCustomers = hasMerchantPermission(user?.role, 'customers:manage');
+  const canManageChannels = hasMerchantPermission(user?.role, 'channels:manage');
   const canManageQuotes = hasMerchantPermission(user?.role, 'quotes:manage');
 
   const { data: productSummary } = useQuery({
@@ -83,6 +91,30 @@ export function useMerchantDashboardData(): MerchantDashboardOutletContext {
     enabled: canManageQuotes,
   });
 
+  const { data: saleSummary } = useQuery({
+    queryKey: ['merchant-dashboard', 'sales-badge'],
+    queryFn: () => fetchSales({ page: 1, limit: 1 }),
+    enabled: canManageSales,
+  });
+
+  const { data: customerSummary } = useQuery({
+    queryKey: ['merchant-dashboard', 'customers-badge'],
+    queryFn: () => fetchCustomers({ page: 1, limit: 1 }),
+    enabled: canManageCustomers,
+  });
+
+  const { data: followUpSummary } = useQuery({
+    queryKey: ['merchant-dashboard', 'customers-followup-badge'],
+    queryFn: () => fetchCustomers({ page: 1, limit: 1, followUpDue: true }),
+    enabled: canManageCustomers,
+  });
+
+  const { data: channelSummary } = useQuery({
+    queryKey: ['merchant-dashboard', 'channels-badge'],
+    queryFn: () => fetchChannels({ page: 1, limit: 100 }),
+    enabled: canManageChannels,
+  });
+
   const navItems = getMerchantNavItemsForRole(user?.role).map((item) => {
     if (item.id === 'visão-geral') {
       return { ...item, badge: 'Agora' };
@@ -101,6 +133,21 @@ export function useMerchantDashboardData(): MerchantDashboardOutletContext {
       return { ...item, badge: recoveryTotal > 0 ? `${recoveryTotal}` : 'Fila limpa' };
     }
 
+    if (item.id === 'vendas') {
+      return { ...item, badge: `${saleSummary?.total ?? 0}` };
+    }
+
+    if (item.id === 'clientes') {
+      const dueTotal = followUpSummary?.total ?? 0;
+      return { ...item, badge: dueTotal > 0 ? `${dueTotal} p/ retorno` : `${customerSummary?.total ?? 0}` };
+    }
+
+    if (item.id === 'canais') {
+      const channels = channelSummary?.channels ?? [];
+      const outOfSync = channels.reduce((sum, c) => sum + c.listingCounts.outOfSync, 0);
+      return { ...item, badge: outOfSync > 0 ? `${outOfSync} defasado(s)` : `${channels.length}` };
+    }
+
     if (item.id === 'orçamentos') {
       const quotesTotal = quoteSummary?.total ?? 0;
       const leadsTotal = leadSummary?.total ?? 0;
@@ -117,6 +164,7 @@ export function useMerchantDashboardData(): MerchantDashboardOutletContext {
     categorySummary,
     promotionSummary,
     orderSummary,
+    saleSummary,
     quoteSummary,
     leadSummary,
     products: productSummary?.products ?? [],

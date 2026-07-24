@@ -355,6 +355,16 @@ function OrderRowActions({
               </a>
             </DropdownMenuItem>
           ) : null}
+          {order.status !== 'COMPLETED' && order.status !== 'CANCELED' ? (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link to={`${ADMIN_BASE_PATH}/vendas/nova?orderId=${order.id}`} className="font-medium text-emerald-700 focus:text-emerald-700">
+                  Registrar venda deste pedido
+                </Link>
+              </DropdownMenuItem>
+            </>
+          ) : null}
           <DropdownMenuSeparator />
           <DropdownMenuItem disabled={isMutating} onClick={onRecovery}>
             Colocar em recuperação

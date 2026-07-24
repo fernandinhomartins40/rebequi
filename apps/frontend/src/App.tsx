@@ -17,6 +17,12 @@ import MerchantDashboard, {
   MerchantDashboardLayout,
   MerchantDashboardOrderDetails,
   MerchantDashboardOrders,
+  MerchantDashboardSales,
+  MerchantSaleEditorPage,
+  MerchantDashboardCustomers,
+  MerchantCustomerDetailPage,
+  MerchantDashboardChannels,
+  MerchantChannelDetailPage,
   MerchantDashboardProducts,
   MerchantDashboardPromotions,
   MerchantDashboardQuotes,
@@ -99,8 +105,20 @@ const App = () => (
                     <Route path="pedidos" element={<MerchantDashboardOrders />} />
                     <Route path="pedidos/:orderId" element={<MerchantDashboardOrderDetails />} />
                   </Route>
+                  <Route element={<MerchantPermissionRoute permission="sales:manage" />}>
+                    <Route path="vendas" element={<MerchantDashboardSales />} />
+                    <Route path="vendas/nova" element={<MerchantSaleEditorPage />} />
+                  </Route>
+                  <Route element={<MerchantPermissionRoute permission="customers:manage" />}>
+                    <Route path="clientes" element={<MerchantDashboardCustomers />} />
+                    <Route path="clientes/:customerId" element={<MerchantCustomerDetailPage />} />
+                  </Route>
                   <Route element={<MerchantPermissionRoute permission="quotes:manage" />}>
                     <Route path="orçamentos" element={<MerchantDashboardQuotes />} />
+                  </Route>
+                  <Route element={<MerchantPermissionRoute permission="channels:manage" />}>
+                    <Route path="canais" element={<MerchantDashboardChannels />} />
+                    <Route path="canais/:channelId" element={<MerchantChannelDetailPage />} />
                   </Route>
                   <Route element={<MerchantPermissionRoute permission="integrations:manage" />}>
                     <Route path="integrações" element={<MerchantDashboardIntegrations />} />
