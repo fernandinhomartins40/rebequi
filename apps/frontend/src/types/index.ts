@@ -33,6 +33,35 @@ export type {
   UpdateOrderStatusDTO,
   OrderFilters,
   OrderStatus,
+  Sale,
+  SaleItem,
+  SaleResponse,
+  CreateSaleDTO,
+  CreateSaleItemDTO,
+  UpdateSaleStatusDTO,
+  SaleFilters,
+  RevenueSummary,
+  RevenuePaymentBreakdown,
+  CustomerNote,
+  CustomerMetrics,
+  CustomerListItem,
+  CustomerListResponse,
+  CustomerTimelineEntry,
+  CustomerDetail,
+  CustomerStageDistribution,
+  CustomerFilters,
+  UpdateCustomerCrmDTO,
+  CreateCustomerNoteDTO,
+  Channel,
+  ChannelListing,
+  ChannelResponse,
+  ChannelListingResponse,
+  CreateChannelDTO,
+  UpdateChannelDTO,
+  ChannelFilters,
+  PublishListingDTO,
+  ListingFilters,
+  ChannelSyncResult,
   QuoteItem,
   QuoteRequest,
   QuoteResponse,
@@ -55,6 +84,10 @@ export type {
   AuthResponse,
   ChangePasswordDTO,
 } from '@rebequi/shared/types';
+
+// Enums re-exported as values (used directly in components)
+export { PaymentMethod, SaleStatus, StockMovementType, CustomerStage } from '@rebequi/shared/types';
+export { ChannelType, ChannelStatus, ListingSyncStatus } from '@rebequi/shared/types';
 
 // Local component types
 export interface SlideData {

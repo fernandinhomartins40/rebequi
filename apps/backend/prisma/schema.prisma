@@ -23,9 +23,19 @@ model User {
   isActive           Boolean        @default(true)
   isProvisional      Boolean        @default(false)
   mustChangePassword Boolean        @default(false)
+  // CRM — relacionamento com o cliente (aplica-se a usuários CUSTOMER)
+  customerStage      CustomerStage  @default(NEW)
+  customerStageManual Boolean       @default(false) // true = estágio travado pelo lojista (não deriva automático)
+  customerTags       String[]       @default([])
+  followUpAt         DateTime?      // Lembrete de retorno
+  lastContactedAt    DateTime?      // Último contato registrado
   leads              LeadCapture[]
   customerOrders     CustomerOrder[]
   quoteRequests      QuoteRequest[]
+  sales              Sale[]         @relation("SaleCustomer")
+  salesRegistered    Sale[]         @relation("SaleRegisteredBy")
+  customerNotes      CustomerNote[] @relation("CustomerNoteCustomer")
+  authoredNotes      CustomerNote[] @relation("CustomerNoteAuthor")
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
 
@@ -34,6 +44,8 @@ model User {
   @@index([role])
   @@index([isActive])
   @@index([isProvisional])
+  @@index([customerStage])
+  @@index([followUpAt])
   @@map("users")
 }
 
@@ -44,6 +56,33 @@ enum UserRole {
   MARKETING
   SALES
   CUSTOMER
+}
+
+enum CustomerStage {
+  NEW         // Cadastrado, sem interação comercial
+  QUOTING     // Enviou/está com orçamento em aberto
+  NEGOTIATING // Em negociação ativa
+  CUSTOMER    // Já fechou ao menos uma venda
+  RECURRING   // Comprou mais de uma vez
+  INACTIVE    // Sem interação há muito tempo / arquivado
+}
+
+// ============================================================================
+// CUSTOMER NOTE - Anotações e follow-up do CRM
+// ============================================================================
+model CustomerNote {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   User     @relation("CustomerNoteCustomer", fields: [customerId], references: [id], onDelete: Cascade)
+  authorId   String?
+  author     User?    @relation("CustomerNoteAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  body       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([customerId, createdAt])
+  @@index([authorId])
+  @@map("customer_notes")
 }
 
 // ============================================================================
@@ -94,6 +133,9 @@ model Product {
   images        ProductImage[]
   promotions    PromotionProduct[]
   quoteItems    QuoteItem[]
+  saleItems     SaleItem[]
+  stockMovements StockMovement[]
+  channelListings ChannelListing[]
   isActive      Boolean        @default(true)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
@@ -349,6 +391,7 @@ model CustomerOrder {
   completedAt          DateTime?
   canceledAt           DateTime?
   items                CustomerOrderItem[]
+  sale                 Sale?
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
 
@@ -358,6 +401,172 @@ model CustomerOrder {
   @@index([customerWhatsapp])
   @@index([whatsappRedirectedAt])
   @@map("customer_orders")
+}
+
+// ============================================================================
+// SALE MODELS - Registered sales (fecha o ciclo de venda / faturamento)
+// ============================================================================
+enum PaymentMethod {
+  PIX
+  CASH
+  CARD
+  INSTALLMENT
+}
+
+enum SaleStatus {
+  PAID
+  PENDING_PAYMENT
+  CANCELED
+}
+
+model Sale {
+  id                   String        @id @default(cuid())
+  referenceCode        String        @unique
+  status               SaleStatus    @default(PAID)
+  paymentMethod        PaymentMethod
+  // Vínculos opcionais: cliente cadastrado e pedido de origem (checkout WhatsApp)
+  customerId           String?
+  customer             User?         @relation("SaleCustomer", fields: [customerId], references: [id], onDelete: SetNull)
+  orderId              String?       @unique
+  order                CustomerOrder? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  // Quem registrou a venda no painel (colaborador interno)
+  registeredById       String?
+  registeredBy         User?         @relation("SaleRegisteredBy", fields: [registeredById], references: [id], onDelete: SetNull)
+  // Snapshot do cliente para venda de balcão sem cadastro
+  customerNameSnapshot String?
+  customerWhatsapp     String?
+  // Valores monetários
+  subtotal             Float         @default(0) // Soma dos itens (bruto)
+  discount             Float         @default(0) // Desconto aplicado no total
+  total                Float         @default(0) // subtotal - discount (líquido)
+  notes                String?
+  paidAt               DateTime?
+  canceledAt           DateTime?
+  items                SaleItem[]
+  stockMovements       StockMovement[]
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  @@index([referenceCode])
+  @@index([status])
+  @@index([paymentMethod])
+  @@index([customerId])
+  @@index([registeredById])
+  @@index([createdAt])
+  @@map("sales")
+}
+
+model SaleItem {
+  id                  String   @id @default(cuid())
+  saleId              String
+  sale                Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId           String?
+  product             Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productNameSnapshot String
+  productSkuSnapshot  String?
+  quantity            Int
+  unitPrice           Float
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([saleId])
+  @@index([productId])
+  @@map("sale_items")
+}
+
+enum StockMovementType {
+  SALE
+  RESTOCK
+  ADJUSTMENT
+  RETURN
+}
+
+model StockMovement {
+  id           String            @id @default(cuid())
+  productId    String
+  product      Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  type         StockMovementType
+  quantity     Int               // Positivo = entrada, negativo = saída
+  stockBefore  Int
+  stockAfter   Int
+  reason       String?
+  saleId       String?
+  sale         Sale?             @relation(fields: [saleId], references: [id], onDelete: SetNull)
+  createdById  String?
+  createdAt    DateTime          @default(now())
+
+  @@index([productId])
+  @@index([type])
+  @@index([saleId])
+  @@index([createdAt])
+  @@map("stock_movements")
+}
+
+// ============================================================================
+// SALES CHANNEL MODELS - Marketplaces e outros canais externos (Fase 3)
+// ============================================================================
+enum ChannelType {
+  MERCADO_LIVRE
+  SHOPEE
+  AMAZON
+  MANUAL // Canal genérico controlado à mão (ponto de partida sem integração)
+}
+
+enum ChannelStatus {
+  DISCONNECTED // Cadastrado, sem credenciais válidas
+  CONNECTED    // Pronto para publicar/sincronizar
+  ERROR        // Última operação falhou
+}
+
+enum ListingSyncStatus {
+  DRAFT        // Ainda não publicado no canal
+  SYNCED       // Publicado e em dia com a loja
+  OUT_OF_SYNC  // Loja mudou (preço/estoque) e o canal está defasado
+  ERROR        // Falha na última sincronização
+}
+
+model Channel {
+  id            String        @id @default(cuid())
+  type          ChannelType
+  name          String        // Rótulo dado pelo lojista (ex.: "Mercado Livre - Loja Rebequi")
+  status        ChannelStatus @default(DISCONNECTED)
+  // Credenciais/config criptografadas em JSON string (mesmo padrão do Setting/crypto.util).
+  credentials   String?
+  externalId    String?       // Id da conta/loja no marketplace
+  isActive      Boolean       @default(true)
+  lastSyncedAt  DateTime?
+  lastError     String?
+  listings      ChannelListing[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([type])
+  @@index([status])
+  @@index([isActive])
+  @@map("channels")
+}
+
+model ChannelListing {
+  id               String            @id @default(cuid())
+  channelId        String
+  channel          Channel           @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  productId        String
+  product          Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  externalListingId String?          // Id do anúncio no marketplace
+  externalUrl      String?
+  syncStatus       ListingSyncStatus @default(DRAFT)
+  // Snapshot do que foi publicado — para detectar defasagem contra a loja (fonte única).
+  publishedPrice   Float?
+  publishedStock   Int?
+  lastSyncedAt     DateTime?
+  lastError        String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@unique([channelId, productId])
+  @@index([channelId, syncStatus])
+  @@index([productId])
+  @@map("channel_listings")
 }
 
 model CustomerOrderItem {

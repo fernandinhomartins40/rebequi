@@ -10,5 +10,8 @@ export * from './promotions';
 export * from './auth';
 export * from './quotes';
 export * from './orders';
+export * from './sales';
+export * from './customers';
+export * from './channels';
 export * from './users';
 export * from './integrations';

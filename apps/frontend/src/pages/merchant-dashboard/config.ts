@@ -1,4 +1,4 @@
-import { BadgePercent, BarChart3, Boxes, FileText, Plug, ReceiptText, ShieldCheck, type LucideIcon } from 'lucide-react';
+import { BadgePercent, BarChart3, Boxes, FileText, Plug, ReceiptText, ShieldCheck, Store, Users, Wallet, type LucideIcon } from 'lucide-react';
 import { hasMerchantPermission, isMerchantUserRole, type MerchantPermission } from '@rebequi/shared/constants';
 import type { UserRole } from '@rebequi/shared/types';
 
@@ -24,7 +24,10 @@ export type MerchantSection =
   | 'produtos'
   | 'promoções'
   | 'pedidos'
+  | 'vendas'
+  | 'clientes'
   | 'orçamentos'
+  | 'canais'
   | 'integrações'
   | 'acesso';
 
@@ -87,6 +90,28 @@ export const NAV_SECTIONS: Omit<MerchantNavItem, 'badge'>[] = [
     requiredPermission: 'orders:manage',
   },
   {
+    id: 'vendas',
+    href: `${ADMIN_BASE_PATH}/vendas`,
+    label: 'Vendas',
+    description: 'Faturamento e registro',
+    icon: Wallet,
+    eyebrow: 'Vendas',
+    title: 'Vendas e faturamento',
+    intro: 'Registre vendas fechadas, controle o pagamento, dê baixa no estoque e acompanhe o faturamento da loja.',
+    requiredPermission: 'sales:manage',
+  },
+  {
+    id: 'clientes',
+    href: `${ADMIN_BASE_PATH}/clientes`,
+    label: 'Clientes',
+    description: 'Base e relacionamento',
+    icon: Users,
+    eyebrow: 'Clientes',
+    title: 'Clientes e relacionamento',
+    intro: 'Veja o histórico de cada cliente, acompanhe o funil de relacionamento, registre notas e agende follow-ups.',
+    requiredPermission: 'customers:manage',
+  },
+  {
     id: 'orçamentos',
     href: `${ADMIN_BASE_PATH}/orçamentos`,
     label: 'Orçamentos',
@@ -96,6 +121,17 @@ export const NAV_SECTIONS: Omit<MerchantNavItem, 'badge'>[] = [
     title: 'Orçamentos e leads',
     intro: 'Acompanhe orçamentos enviados e clientes capturados que ainda não concluíram o fluxo.',
     requiredPermission: 'quotes:manage',
+  },
+  {
+    id: 'canais',
+    href: `${ADMIN_BASE_PATH}/canais`,
+    label: 'Canais',
+    description: 'Marketplaces e anúncios',
+    icon: Store,
+    eyebrow: 'Canais',
+    title: 'Canais de venda',
+    intro: 'Conecte marketplaces, publique produtos como anúncios e mantenha preço e estoque sincronizados a partir da loja.',
+    requiredPermission: 'channels:manage',
   },
   {
     id: 'integrações',

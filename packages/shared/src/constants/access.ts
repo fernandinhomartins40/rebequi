@@ -5,7 +5,10 @@ export type MerchantPermission =
   | 'catalog:manage'
   | 'promotions:manage'
   | 'orders:manage'
+  | 'sales:manage'
+  | 'customers:manage'
   | 'quotes:manage'
+  | 'channels:manage'
   | 'access:manage'
   | 'integrations:manage';
 
@@ -47,9 +50,21 @@ export const MERCHANT_PERMISSION_PROFILES: Record<MerchantPermission, Permission
     label: 'Pedidos',
     description: 'Acompanha pedidos do carrinho, checkout por WhatsApp e recuperacao de vendas.',
   },
+  'sales:manage': {
+    label: 'Vendas',
+    description: 'Registra vendas, controla pagamentos, estoque e acompanha o faturamento.',
+  },
+  'customers:manage': {
+    label: 'Clientes',
+    description: 'Gerencia a base de clientes, historico, funil de relacionamento, notas e follow-up.',
+  },
   'quotes:manage': {
     label: 'Orcamentos',
     description: 'Atende leads, acompanha solicitacoes e atualiza status comerciais.',
+  },
+  'channels:manage': {
+    label: 'Canais',
+    description: 'Conecta marketplaces, publica anuncios e sincroniza preco e estoque com canais externos.',
   },
   'access:manage': {
     label: 'Acesso',
@@ -70,7 +85,10 @@ export const MERCHANT_ROLE_PROFILES: Record<InternalUserRole, RoleProfile> = {
       'catalog:manage',
       'promotions:manage',
       'orders:manage',
+      'sales:manage',
+      'customers:manage',
       'quotes:manage',
+      'channels:manage',
       'access:manage',
       'integrations:manage',
     ],
@@ -83,7 +101,10 @@ export const MERCHANT_ROLE_PROFILES: Record<InternalUserRole, RoleProfile> = {
       'catalog:manage',
       'promotions:manage',
       'orders:manage',
+      'sales:manage',
+      'customers:manage',
       'quotes:manage',
+      'channels:manage',
       'integrations:manage',
     ],
   },
@@ -100,7 +121,7 @@ export const MERCHANT_ROLE_PROFILES: Record<InternalUserRole, RoleProfile> = {
   [UserRole.SALES]: {
     label: 'Operador comercial',
     description: 'Atende solicitacoes, pedidos, recuperacao de vendas e acompanha o fluxo comercial.',
-    permissions: ['orders:manage', 'quotes:manage'],
+    permissions: ['orders:manage', 'sales:manage', 'customers:manage', 'quotes:manage'],
   },
 };
 
