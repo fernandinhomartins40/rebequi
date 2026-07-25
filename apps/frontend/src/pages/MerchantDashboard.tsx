@@ -14,6 +14,7 @@ export {
   MerchantDashboardPromotions,
   MerchantDashboardQuotes,
   MerchantCategoryEditorPage,
+  MerchantCategoryListPage,
   MerchantProductEditorPage,
   MerchantProductOfferPage,
   MerchantPromotionEditorPage,

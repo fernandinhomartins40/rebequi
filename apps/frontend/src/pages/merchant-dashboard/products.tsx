@@ -1,16 +1,15 @@
 import { useDeferredValue, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Boxes, Clock3, Loader2, Pencil, Plus, RefreshCcw, Search, Tags, Trash2 } from 'lucide-react';
-import type { Category, Product, Promotion } from '@rebequi/shared/types';
+import { Boxes, Clock3, Pencil, Plus, RefreshCcw, Search, Tags, Trash2 } from 'lucide-react';
+import type { Product, Promotion } from '@rebequi/shared/types';
 import { useNavigate } from 'react-router-dom';
 import { PromotionCountdown } from '@/components/PromotionCountdown';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/components/ui/use-toast';
 import { formatPromotionStatusLabel, getPromotionStatusTone } from '@/lib/promotion-ui';
-import { deleteCategory, fetchCategories } from '@/services/api/categories';
+import { fetchCategories } from '@/services/api/categories';
 import { deleteProduct, fetchAdminProducts } from '@/services/api/products';
 import { ADMIN_BASE_PATH } from './config';
 import { DashboardPanel, PageHeader, StatCard } from './components';
@@ -83,21 +82,6 @@ export function MerchantDashboardProducts() {
     },
   });
 
-  const deleteCategoryMutation = useMutation({
-    mutationFn: deleteCategory,
-    onSuccess: async () => {
-      toast({ title: 'Categoria excluída', description: 'Categoria removida com sucesso.' });
-      await refreshQueries();
-    },
-    onError: (error) => {
-      toast({
-        variant: 'destructive',
-        title: 'Falha ao excluir categoria',
-        description: error instanceof Error ? error.message : 'Erro inesperado.',
-      });
-    },
-  });
-
   const products = adminProducts?.products ?? [];
   const singleProductOffers = offersSnapshot?.promotions ?? [];
   const singleProductOffersByProduct = buildSingleProductOfferMap(singleProductOffers);
@@ -142,26 +126,13 @@ export function MerchantDashboardProducts() {
     navigate(`${ADMIN_BASE_PATH}/produtos/categorias/nova`);
   };
 
-  const openEditCategoryDialog = (category: Category) => {
-    navigate(`${ADMIN_BASE_PATH}/produtos/categorias/${category.id}/editar`);
+  const openManageCategories = () => {
+    navigate(`${ADMIN_BASE_PATH}/produtos/categorias`);
   };
 
   const handleDelete = async (product: Product) => {
     if (!window.confirm(`Excluir o produto "${product.name}"?`)) return;
     await deleteMutation.mutateAsync(product.id);
-  };
-
-  const handleDeleteCategory = async (category: Category) => {
-    if ((category.productsCount ?? 0) > 0) {
-      toast({
-        variant: 'destructive',
-        title: 'Categoria em uso',
-        description: 'Remova ou recategorize os produtos vinculados antes de excluir a categoria.',
-      });
-      return;
-    }
-    if (!window.confirm(`Excluir a categoria "${category.name}"?`)) return;
-    await deleteCategoryMutation.mutateAsync(category.id);
   };
 
   return (
@@ -176,9 +147,9 @@ export function MerchantDashboardProducts() {
               <Plus className="h-3.5 w-3.5" />
               Novo produto
             </Button>
-            <Button variant="outline" size="sm" onClick={openCreateCategoryDialog} className="gap-1.5">
+            <Button variant="outline" size="sm" onClick={openManageCategories} className="gap-1.5">
               <Tags className="h-3.5 w-3.5" />
-              Nova categoria
+              Categorias
             </Button>
             <Button
               variant="outline"
@@ -222,162 +193,40 @@ export function MerchantDashboardProducts() {
         />
       </section>
 
-      {/* Categories */}
-      <DashboardPanel
-        title="Categorias"
-        description={`${managedCategories.length} cadastradas · ${activeCategories.length} ativas · ${categoriesInUse.length} em uso`}
-        accent="yellow"
-        action={
-          <Button size="sm" onClick={openCreateCategoryDialog} className="gap-1.5">
-            <Plus className="h-3.5 w-3.5" />
-            Nova
-          </Button>
-        }
-      >
-        {!canCreateProduct ? (
-          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+      {/* Categories — resumo compacto com acesso à página dedicada */}
+      <div className="rounded-xl border border-border/70 bg-card p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-700">
+              <Tags className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground">Categorias</p>
+              <p className="text-xs text-muted-foreground">
+                {isLoadingCategories
+                  ? 'Carregando…'
+                  : `${managedCategories.length} cadastradas · ${activeCategories.length} ativas · ${categoriesInUse.length} em uso`}
+              </p>
+            </div>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <Button size="sm" variant="outline" onClick={openManageCategories} className="gap-1.5">
+              <Tags className="h-3.5 w-3.5" />
+              Gerenciar
+            </Button>
+            <Button size="sm" onClick={openCreateCategoryDialog} className="gap-1.5">
+              <Plus className="h-3.5 w-3.5" />
+              Nova
+            </Button>
+          </div>
+        </div>
+
+        {!canCreateProduct && !isLoadingCategories ? (
+          <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             Nenhuma categoria ativa. Cadastre uma categoria para liberar o cadastro de produtos.
           </div>
         ) : null}
-
-        {isLoadingCategories ? (
-          <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Carregando categorias…
-          </div>
-        ) : managedCategories.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border/70 py-10 text-center text-sm text-muted-foreground">
-            Nenhuma categoria cadastrada.
-          </div>
-        ) : (
-          <>
-            {/* Desktop table */}
-            <div className="hidden overflow-hidden rounded-lg border border-border/60 md:block">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/40 hover:bg-muted/40">
-                    <TableHead className="font-medium">Categoria</TableHead>
-                    <TableHead className="font-medium">Detalhes</TableHead>
-                    <TableHead className="w-28 text-center font-medium">Produtos</TableHead>
-                    <TableHead className="w-44 text-right font-medium">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {managedCategories.map((category) => {
-                    const productsCount = category.productsCount ?? 0;
-                    const hasLinkedProducts = productsCount > 0;
-                    const canDelete = !hasLinkedProducts && !deleteCategoryMutation.isPending;
-                    const description = trimText(category.description) || 'Sem descrição.';
-                    const icon = trimText(category.icon) || '—';
-
-                    return (
-                      <TableRow key={category.id} className="hover:bg-muted/30 transition-colors">
-                        <TableCell>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="font-medium text-foreground">{category.name}</p>
-                            <Badge
-                              variant="outline"
-                              className={category.isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-border/60 bg-muted text-muted-foreground'}
-                            >
-                              {category.isActive ? 'Ativa' : 'Inativa'}
-                            </Badge>
-                            {hasLinkedProducts ? (
-                              <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">Em uso</Badge>
-                            ) : null}
-                          </div>
-                          <p className="mt-0.5 max-w-xs truncate text-xs text-muted-foreground" title={description}>
-                            {description}
-                          </p>
-                        </TableCell>
-                        <TableCell>
-                          <p className="text-xs text-muted-foreground">Slug: <span className="font-mono font-medium text-foreground">{category.slug}</span></p>
-                          <p className="text-xs text-muted-foreground">Ícone: <span className="font-medium text-foreground">{icon}</span></p>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <span className="inline-flex min-w-[2rem] items-center justify-center rounded-full bg-muted px-2.5 py-0.5 text-sm font-medium tabular-nums text-foreground">
-                            {productsCount}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center justify-end gap-2">
-                            <Button size="sm" variant="outline" onClick={() => openEditCategoryDialog(category)} className="gap-1.5">
-                              <Pencil className="h-3.5 w-3.5" />
-                              Editar
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => void handleDeleteCategory(category)}
-                              disabled={!canDelete}
-                              className="gap-1.5 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                              Excluir
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-
-            {/* Mobile cards */}
-            <div className="space-y-2 md:hidden">
-              {managedCategories.map((category) => {
-                const productsCount = category.productsCount ?? 0;
-                const hasLinkedProducts = productsCount > 0;
-                const canDelete = !hasLinkedProducts && !deleteCategoryMutation.isPending;
-                const description = trimText(category.description) || 'Sem descrição.';
-
-                return (
-                  <div
-                    key={category.id}
-                    className="rounded-lg border border-border/60 bg-card p-4"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="font-medium text-foreground">{category.name}</h3>
-                          <Badge
-                            variant="outline"
-                            className={category.isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-border/60 bg-muted text-muted-foreground'}
-                          >
-                            {category.isActive ? 'Ativa' : 'Inativa'}
-                          </Badge>
-                        </div>
-                        <p className="mt-0.5 text-xs text-muted-foreground">Slug: {category.slug}</p>
-                      </div>
-                      <div className="rounded-lg border border-border/60 bg-muted/40 px-3 py-2 text-center">
-                        <p className="text-[10px] text-muted-foreground">Produtos</p>
-                        <p className="text-lg font-semibold tabular-nums text-foreground">{productsCount}</p>
-                      </div>
-                    </div>
-                    <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{description}</p>
-                    <div className="mt-3 flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => openEditCategoryDialog(category)} className="gap-1.5">
-                        <Pencil className="h-3.5 w-3.5" />
-                        Editar
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => void handleDeleteCategory(category)}
-                        disabled={!canDelete}
-                        className="gap-1.5 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        Excluir
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )}
-      </DashboardPanel>
+      </div>
 
       {/* Products */}
       <DashboardPanel title="Produtos cadastrados" description="Gerencie seus produtos, preços e ofertas." accent="blue">
