@@ -12,6 +12,7 @@ import Index from "./pages/Index";
 import MerchantPanel from "./pages/MerchantPanel";
 import MerchantDashboard, {
   MerchantCategoryEditorPage,
+  MerchantCategoryListPage,
   MerchantDashboardAccess,
   MerchantDashboardIntegrations,
   MerchantDashboardLayout,
@@ -90,6 +91,7 @@ const App = () => (
                   <Route element={<MerchantPermissionRoute permission="catalog:manage" />}>
                     <Route path="produtos" element={<MerchantDashboardProducts />} />
                     <Route path="produtos/novo" element={<MerchantProductEditorPage />} />
+                    <Route path="produtos/categorias" element={<MerchantCategoryListPage />} />
                     <Route path="produtos/categorias/nova" element={<MerchantCategoryEditorPage />} />
                     <Route path="produtos/categorias/:categoryId/editar" element={<MerchantCategoryEditorPage />} />
                     <Route path="produtos/:productId/editar" element={<MerchantProductEditorPage />} />
