@@ -324,7 +324,7 @@ export class OrderService {
         const promotionIncludesProduct = promotion.products.some((promotionProduct) => promotionProduct.productId === product.id);
 
         if (!promotionIncludesProduct) {
-          throw new ValidationError(`A promocao selecionada para ${product.name} nao corresponde mais a este item.`);
+          throw new ValidationError(`A promoção selecionada para ${product.name} não corresponde mais a este item.`);
         }
 
         const promotionalUnitPrice = this.resolvePromotionUnitPrice(promotion, product.price);

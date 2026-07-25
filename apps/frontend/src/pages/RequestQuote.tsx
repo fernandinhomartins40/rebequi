@@ -1,32 +1,42 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  AlertTriangle,
   ArrowLeft,
   ArrowRight,
   Camera,
   CheckCircle2,
+  ImageIcon,
+  Keyboard,
   Loader2,
   Minus,
   Pencil,
   Plus,
+  RefreshCcw,
+  Send,
   Sparkles,
   X,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { formatWhatsapp, normalizeWhatsapp } from '@rebequi/shared/utils';
 import { LiveDocumentScanner, type ScannedDocument } from '@/components/LiveDocumentScanner';
+import { ProductAutocomplete } from '@/components/ProductAutocomplete';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { saveProvisionalCredentials } from '@/lib/provisional-credentials';
 import {
-  fetchMyQuotes,
-  processPublicQuoteDocument,
-  startPublicLead,
-  submitMyQuote,
-  updateMyQuoteDraft,
+  clearDraftBackup,
+  loadDraftBackup,
+  saveDraftBackup,
+} from '@/lib/quote-draft-storage';
+import {
+  createAnonymousQuoteDraft,
+  fetchAnonymousQuoteDraft,
+  submitAnonymousQuote,
 } from '@/services/api/quotes';
 import type { QuoteItem, QuoteRequest } from '@/types';
 
@@ -37,9 +47,22 @@ type EditableItem = {
   quantity: number;
   unit?: string | null;
   notes?: string | null;
+  /** 0..1. Drives the "please confirm" highlighting. */
+  confidence?: number | null;
+  /** What was actually written on the paper. */
+  sourceLine?: string | null;
 };
 
-type Step = 'contact' | 'scan' | 'processing' | 'review' | 'done';
+/**
+ * `scan` and `review` are the only screens the customer must pass through.
+ * Identification happens inside `review`, after the value is visible.
+ */
+type Step = 'scan' | 'processing' | 'review' | 'failed' | 'manual' | 'done';
+
+/** Below this the item is flagged for the customer to confirm. */
+const REVIEW_THRESHOLD = 0.75;
+/** Stop polling after this long and offer a way out instead of spinning forever. */
+const MAX_POLL_MS = 90_000;
 
 function makeKey(prefix: string) {
   return `${prefix}-${Math.random().toString(36).slice(2, 8)}`;
@@ -51,134 +74,169 @@ export default function RequestQuotePage() {
   const { toast } = useToast();
   const { refreshSession } = useAuth();
 
-  const [step, setStep] = useState<Step>('contact');
-  const [whatsappInput, setWhatsappInput] = useState('');
-  const [nameInput, setNameInput] = useState('');
-  const [leadId, setLeadId] = useState<string | null>(null);
+  const [step, setStep] = useState<Step>('scan');
+  const [draftToken, setDraftToken] = useState<string | null>(null);
   const [quoteId, setQuoteId] = useState<string | null>(null);
   const [items, setItems] = useState<EditableItem[]>([]);
-  const [reviewStartedAt, setReviewStartedAt] = useState<Date | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [whatsappInput, setWhatsappInput] = useState('');
+  const [nameInput, setNameInput] = useState('');
+  const [failureReason, setFailureReason] = useState<string | null>(null);
+  const pollStartedAt = useRef<number | null>(null);
 
-  const leadMutation = useMutation({ mutationFn: startPublicLead });
-  const documentMutation = useMutation({ mutationFn: processPublicQuoteDocument });
-  const updateDraftMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: { items: EditableItem[] } }) =>
-      updateMyQuoteDraft(id, {
-        items: payload.items.map((item) => ({
-          productId: item.productId ?? null,
-          name: item.name,
-          quantity: item.quantity,
-          unit: item.unit ?? null,
-          notes: item.notes ?? null,
-        })),
-      }),
-  });
-  const submitMutation = useMutation({ mutationFn: submitMyQuote });
+  const documentMutation = useMutation({ mutationFn: createAnonymousQuoteDraft });
+  const submitMutation = useMutation({ mutationFn: submitAnonymousQuote });
 
-  // Polling: enquanto o OCR está em andamento, busca a quota atualizada
-  const quoteQuery = useQuery({
-    queryKey: ['customer', 'quotes', 'wizard', quoteId],
-    queryFn: fetchMyQuotes,
-    enabled: Boolean(quoteId) && (step === 'processing' || step === 'review'),
+  // Restore an unsent list (refresh, incoming call, tab discarded).
+  useEffect(() => {
+    const backup = loadDraftBackup();
+    if (!backup) return;
+
+    setDraftToken(backup.token);
+    setItems(backup.items);
+    setPhotoUrl(backup.photoUrl ?? null);
+    setStep('review');
+  }, []);
+
+  useEffect(() => {
+    if (!draftToken || step !== 'review') return;
+    saveDraftBackup({ token: draftToken, items, photoUrl });
+  }, [draftToken, items, photoUrl, step]);
+
+  const draftQuery = useQuery({
+    queryKey: ['quote', 'anonymous', draftToken],
+    queryFn: () => fetchAnonymousQuoteDraft(draftToken as string),
+    enabled: Boolean(draftToken) && step === 'processing',
     refetchInterval: (query) => {
       if (step !== 'processing') return false;
-      const data = query.state.data as QuoteRequest[] | undefined;
-      const current = data?.find((q) => q.id === quoteId);
-      const finished = current && current.ocrStatus !== 'PROCESSING' && current.ocrStatus !== 'PENDING';
+      const current = query.state.data as QuoteRequest | undefined;
+      const finished =
+        current && current.ocrStatus !== 'PROCESSING' && current.ocrStatus !== 'PENDING';
       return finished ? false : 1500;
     },
   });
 
-  // Quando o polling sinaliza que o OCR terminou, popula itens e troca de tela
+  // OCR finished (or gave up) — move on.
   useEffect(() => {
-    if (step !== 'processing' || !quoteId || !quoteQuery.data) return;
-    const current = quoteQuery.data.find((q) => q.id === quoteId);
+    if (step !== 'processing') return;
+
+    // Never leave the customer watching a spinner forever.
+    if (pollStartedAt.current && Date.now() - pollStartedAt.current > MAX_POLL_MS) {
+      setFailureReason('A leitura está demorando mais que o normal.');
+      setStep('failed');
+      return;
+    }
+
+    const current = draftQuery.data;
     if (!current) return;
 
     const finished = current.ocrStatus !== 'PROCESSING' && current.ocrStatus !== 'PENDING';
     if (!finished) return;
 
-    setItems(
-      current.items.length > 0
-        ? current.items.map((item) => editableFromQuote(item))
-        : [{ key: makeKey('item'), name: '', quantity: 1, unit: null }]
-    );
-    setStep('review');
-    setReviewStartedAt(new Date());
-  }, [step, quoteId, quoteQuery.data]);
+    setQuoteId(current.id);
 
-  const handleSubmitContact = async (event: React.FormEvent) => {
-    event.preventDefault();
-    const digits = whatsappInput.replace(/\D/g, '');
-    if (digits.length < 10) {
-      toast({ variant: 'destructive', title: 'WhatsApp inválido', description: 'Informe o número com DDD.' });
+    if (current.items.length > 0) {
+      setItems(current.items.map(editableFromQuote));
+      setStep('review');
       return;
     }
-    try {
-      const result = await leadMutation.mutateAsync({
-        name: nameInput.trim() || undefined,
-        whatsapp: normalizeWhatsapp(whatsappInput),
-      });
-      saveProvisionalCredentials(result.provisionalCredentials);
-      setLeadId(result.lead.id);
-      setStep('scan');
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Não foi possível continuar',
-        description: error instanceof Error ? error.message : 'Tente novamente.',
-      });
-    }
-  };
 
-  const handleScanCapture = async (doc: ScannedDocument) => {
-    if (!leadId) return;
-    setStep('processing');
-    try {
-      const result = await documentMutation.mutateAsync({
-        leadId,
-        file: doc.file,
-        width: doc.width,
-        height: doc.height,
-      });
-      setQuoteId(result.quote.id);
-      queryClient.setQueryData<QuoteRequest[]>(['customer', 'quotes'], (current) => {
-        const next = current ?? [];
-        return [result.quote, ...next.filter((q) => q.id !== result.quote.id)];
-      });
-      await refreshSession();
-      // Se o OCR já completou no upload (raro mas possível), pula direto para review
-      if (result.quote.ocrStatus !== 'PROCESSING' && result.quote.ocrStatus !== 'PENDING') {
-        setItems(
-          result.quote.items.length > 0
-            ? result.quote.items.map((item) => editableFromQuote(item))
-            : [{ key: makeKey('item'), name: '', quantity: 1, unit: null }]
-        );
-        setStep('review');
-        setReviewStartedAt(new Date());
+    // Nothing structured came back. If the engine at least produced raw text,
+    // hand those lines over as editable items instead of an empty list.
+    const rawLines = (current.ocrText ?? '')
+      .split(/\n+/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 2);
+
+    if (rawLines.length > 0) {
+      setItems(
+        rawLines.map((line) => ({
+          key: makeKey('item'),
+          name: line,
+          quantity: 1,
+          unit: null,
+          confidence: 0.3,
+          sourceLine: line,
+        }))
+      );
+      setStep('review');
+      return;
+    }
+
+    setFailureReason(current.ocrError ?? 'Não conseguimos ler os itens dessa foto.');
+    setStep('failed');
+  }, [step, draftQuery.data]);
+
+  const handleScanCapture = useCallback(
+    async (doc: ScannedDocument) => {
+      setStep('processing');
+      pollStartedAt.current = Date.now();
+      setPhotoUrl(URL.createObjectURL(doc.file));
+
+      try {
+        const result = await documentMutation.mutateAsync({
+          file: doc.file,
+          width: doc.width,
+          height: doc.height,
+        });
+        setDraftToken(result.token);
+        setQuoteId(result.quote.id);
+      } catch (error) {
+        setStep('scan');
+        toast({
+          variant: 'destructive',
+          title: 'Não foi possível enviar a foto',
+          description: error instanceof Error ? error.message : 'Tente novamente.',
+        });
       }
-    } catch (error) {
-      setStep('scan');
-      toast({
-        variant: 'destructive',
-        title: 'Não foi possível enviar a foto',
-        description: error instanceof Error ? error.message : 'Tente novamente.',
-      });
-    }
-  };
+    },
+    [documentMutation, toast]
+  );
 
-  const handleSendQuote = async () => {
-    if (!quoteId) return;
+  const handleSend = async () => {
     const cleaned = items.filter((item) => item.name.trim().length > 0);
     if (cleaned.length === 0) {
       toast({ variant: 'destructive', title: 'Lista vazia', description: 'Adicione pelo menos um item.' });
       return;
     }
+
+    const digits = whatsappInput.replace(/\D/g, '');
+    if (digits.length < 10) {
+      toast({
+        variant: 'destructive',
+        title: 'WhatsApp inválido',
+        description: 'Informe o número com DDD para a loja te responder.',
+      });
+      return;
+    }
+
+    if (!draftToken) {
+      toast({ variant: 'destructive', title: 'Rascunho expirado', description: 'Tire a foto novamente.' });
+      setStep('scan');
+      return;
+    }
+
     try {
-      await updateDraftMutation.mutateAsync({ id: quoteId, payload: { items: cleaned } });
-      await submitMutation.mutateAsync(quoteId);
-      setStep('done');
+      const result = await submitMutation.mutateAsync({
+        token: draftToken,
+        name: nameInput.trim() || undefined,
+        whatsapp: normalizeWhatsapp(whatsappInput),
+        items: cleaned.map((item) => ({
+          productId: item.productId ?? null,
+          name: item.name,
+          quantity: item.quantity,
+          unit: item.unit ?? null,
+          notes: item.notes ?? null,
+          recognitionSourceLine: item.sourceLine ?? null,
+        })),
+      });
+
+      saveProvisionalCredentials(result.provisionalCredentials);
+      clearDraftBackup();
+      await refreshSession();
       queryClient.invalidateQueries({ queryKey: ['customer', 'quotes'] });
+      setQuoteId(result.quote.id);
+      setStep('done');
     } catch (error) {
       toast({
         variant: 'destructive',
@@ -188,140 +246,93 @@ export default function RequestQuotePage() {
     }
   };
 
+  const restartScan = () => {
+    clearDraftBackup();
+    setItems([]);
+    setDraftToken(null);
+    setPhotoUrl(null);
+    setFailureReason(null);
+    setStep('scan');
+  };
+
   switch (step) {
-    case 'contact':
-      return (
-        <ContactScreen
-          whatsappInput={whatsappInput}
-          nameInput={nameInput}
-          onWhatsappChange={setWhatsappInput}
-          onNameChange={setNameInput}
-          onSubmit={handleSubmitContact}
-          loading={leadMutation.isPending}
-        />
-      );
     case 'scan':
-      return (
-        <LiveDocumentScanner
-          onCapture={(doc) => void handleScanCapture(doc)}
-          onCancel={() => setStep('contact')}
-        />
-      );
+      return <LiveDocumentScanner onCapture={(doc) => void handleScanCapture(doc)} onCancel={() => navigate('/')} />;
+
     case 'processing':
       return <ProcessingScreen />;
+
+    case 'failed':
+      return (
+        <FailedScreen
+          reason={failureReason}
+          onRetry={restartScan}
+          onTypeManually={() => {
+            setItems([{ key: makeKey('item'), name: '', quantity: 1, unit: null }]);
+            setStep('manual');
+          }}
+          onSendPhotoAnyway={() => {
+            setItems([
+              {
+                key: makeKey('item'),
+                name: 'Lista na foto (a loja vai conferir)',
+                quantity: 1,
+                unit: null,
+              },
+            ]);
+            setStep('review');
+          }}
+        />
+      );
+
+    case 'manual':
+      return (
+        <ManualEntryScreen
+          onBack={() => setStep('failed')}
+          onConfirm={(lines) => {
+            setItems(
+              lines.map((line) => ({
+                key: makeKey('item'),
+                name: line,
+                quantity: 1,
+                unit: null,
+              }))
+            );
+            setStep('review');
+          }}
+        />
+      );
+
     case 'review':
       return (
         <ReviewScreen
           items={items}
+          photoUrl={photoUrl}
           onItemsChange={setItems}
-          onBack={() => setStep('scan')}
-          onSend={handleSendQuote}
-          sending={updateDraftMutation.isPending || submitMutation.isPending}
-          startedAt={reviewStartedAt}
+          onRetake={restartScan}
+          onSend={handleSend}
+          sending={submitMutation.isPending}
+          whatsappInput={whatsappInput}
+          nameInput={nameInput}
+          onWhatsappChange={setWhatsappInput}
+          onNameChange={setNameInput}
         />
       );
+
     case 'done':
       return <DoneScreen onSeeQuotes={() => navigate(`/painel-cliente?tab=quotes&quoteId=${quoteId}`)} />;
   }
 }
 
-// ─── Screen: contact ─────────────────────────────────────────────────────────
-
-function ContactScreen({
-  whatsappInput,
-  nameInput,
-  onWhatsappChange,
-  onNameChange,
-  onSubmit,
-  loading,
-}: {
-  whatsappInput: string;
-  nameInput: string;
-  onWhatsappChange: (value: string) => void;
-  onNameChange: (value: string) => void;
-  onSubmit: (event: React.FormEvent) => void;
-  loading: boolean;
-}) {
-  return (
-    <main className="flex min-h-screen flex-col bg-gradient-to-br from-slate-50 to-white">
-      <div className="px-4 pt-4">
-        <Button asChild variant="ghost" size="sm" className="gap-1.5 px-0 text-muted-foreground hover:bg-transparent">
-          <Link to="/">
-            <ArrowLeft className="h-4 w-4" />
-            Voltar
-          </Link>
-        </Button>
-      </div>
-
-      <div className="flex flex-1 items-center justify-center px-5 py-8">
-        <div className="w-full max-w-md">
-          <div className="mb-8 text-center">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
-              <Sparkles className="h-7 w-7 text-primary" />
-            </div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
-              Vamos fazer seu orçamento
-            </h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Em 3 passos rápidos: você se identifica, tira foto da sua lista e confere os itens.
-            </p>
-          </div>
-
-          <form onSubmit={onSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="whatsapp">Seu WhatsApp</Label>
-              <Input
-                id="whatsapp"
-                inputMode="tel"
-                placeholder="(11) 99999-0000"
-                value={whatsappInput}
-                onChange={(event) => {
-                  const digits = event.target.value.replace(/\D/g, '').slice(0, 11);
-                  onWhatsappChange(formatWhatsapp(digits));
-                }}
-                autoFocus
-                className="h-12 text-base"
-              />
-              <p className="text-xs text-muted-foreground">É por aqui que a loja vai responder.</p>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="name" className="flex items-center gap-2">
-                Nome <span className="text-xs font-normal text-muted-foreground">(opcional)</span>
-              </Label>
-              <Input
-                id="name"
-                placeholder="Como podemos te chamar?"
-                value={nameInput}
-                onChange={(event) => onNameChange(event.target.value)}
-                className="h-12 text-base"
-              />
-            </div>
-
-            <Button type="submit" size="lg" disabled={loading} className="h-12 w-full gap-2 text-base">
-              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowRight className="h-5 w-5" />}
-              {loading ? 'Aguarde…' : 'Continuar para a câmera'}
-            </Button>
-          </form>
-
-          <p className="mt-6 text-center text-xs text-muted-foreground">
-            Seus dados são usados só para a loja te responder. Nada é compartilhado.
-          </p>
-        </div>
-      </div>
-    </main>
-  );
-}
-
 // ─── Screen: processing ──────────────────────────────────────────────────────
 
 function ProcessingScreen() {
-  const messages = [
-    'Lendo sua lista…',
-    'Identificando produtos…',
-    'Conferindo com o catálogo da loja…',
-  ];
+  const messages = useMemo(
+    () => ['Lendo sua lista…', 'Identificando produtos…', 'Conferindo com o catálogo da loja…'],
+    []
+  );
   const [index, setIndex] = useState(0);
+
   useEffect(() => {
     const id = window.setInterval(() => setIndex((value) => (value + 1) % messages.length), 1800);
     return () => window.clearInterval(id);
@@ -361,67 +372,221 @@ function SkeletonRow() {
   );
 }
 
-// ─── Screen: review ──────────────────────────────────────────────────────────
+// ─── Screen: failed ──────────────────────────────────────────────────────────
 
-function ReviewScreen({
-  items,
-  onItemsChange,
-  onBack,
-  onSend,
-  sending,
-  startedAt,
+/**
+ * Reading can fail; the order must not. Three ways out, none of which is
+ * "type fifteen items into separate fields on a phone".
+ */
+function FailedScreen({
+  reason,
+  onRetry,
+  onTypeManually,
+  onSendPhotoAnyway,
 }: {
-  items: EditableItem[];
-  onItemsChange: (items: EditableItem[]) => void;
-  onBack: () => void;
-  onSend: () => void;
-  sending: boolean;
-  startedAt: Date | null;
+  reason: string | null;
+  onRetry: () => void;
+  onTypeManually: () => void;
+  onSendPhotoAnyway: () => void;
 }) {
-  const updateItem = (key: string, patch: Partial<EditableItem>) => {
-    onItemsChange(items.map((item) => (item.key === key ? { ...item, ...patch } : item)));
-  };
-  const removeItem = (key: string) => {
-    onItemsChange(items.filter((item) => item.key !== key));
-  };
-  const addItem = () => {
-    onItemsChange([...items, { key: makeKey('item'), name: '', quantity: 1, unit: null }]);
-  };
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-amber-50 to-white px-5 py-8">
+      <div className="w-full max-w-sm">
+        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
+          <AlertTriangle className="h-8 w-8 text-amber-600" />
+        </div>
+        <h1 className="text-center text-2xl font-extrabold tracking-tight text-foreground">
+          Não conseguimos ler dessa vez
+        </h1>
+        <p className="mt-3 text-center text-sm text-muted-foreground">
+          {reason ?? 'A foto pode estar escura ou tremida.'} Escolha como prefere continuar:
+        </p>
 
-  const validItems = items.filter((item) => item.name.trim().length > 0).length;
-  const showEmptyHint = items.length === 0 || (items.length === 1 && !items[0].name.trim());
+        <div className="mt-8 space-y-2.5">
+          <Button onClick={onRetry} size="lg" className="h-14 w-full justify-start gap-3 text-base">
+            <Camera className="h-5 w-5" />
+            <span className="text-left">
+              Tirar outra foto
+              <span className="block text-xs font-normal opacity-80">Mais luz, mais perto, papel plano</span>
+            </span>
+          </Button>
+
+          <Button
+            onClick={onTypeManually}
+            variant="outline"
+            size="lg"
+            className="h-14 w-full justify-start gap-3 text-base"
+          >
+            <Keyboard className="h-5 w-5" />
+            <span className="text-left">
+              Digitar minha lista
+              <span className="block text-xs font-normal text-muted-foreground">Um item por linha</span>
+            </span>
+          </Button>
+
+          <Button
+            onClick={onSendPhotoAnyway}
+            variant="outline"
+            size="lg"
+            className="h-14 w-full justify-start gap-3 text-base"
+          >
+            <Send className="h-5 w-5" />
+            <span className="text-left">
+              Mandar a foto direto pra loja
+              <span className="block text-xs font-normal text-muted-foreground">A loja lê e te responde</span>
+            </span>
+          </Button>
+        </div>
+
+        <div className="mt-6 text-center">
+          <Button asChild variant="ghost" size="sm" className="text-muted-foreground">
+            <Link to="/">Voltar para a loja</Link>
+          </Button>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+// ─── Screen: manual entry ────────────────────────────────────────────────────
+
+/** One textarea beats fifteen inputs when typing on a phone. */
+function ManualEntryScreen({
+  onBack,
+  onConfirm,
+}: {
+  onBack: () => void;
+  onConfirm: (lines: string[]) => void;
+}) {
+  const [text, setText] = useState('');
+  const lines = text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
 
   return (
     <main className="flex min-h-screen flex-col bg-gradient-to-br from-slate-50 to-white pb-32">
       <header className="sticky top-0 z-10 border-b border-slate-200/70 bg-white/90 px-4 py-3 backdrop-blur">
-        <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
-          <Button variant="ghost" size="sm" onClick={onBack} className="gap-1.5 px-0">
-            <ArrowLeft className="h-4 w-4" />
-            Refazer foto
+        <Button variant="ghost" size="sm" onClick={onBack} className="gap-1.5 px-0">
+          <ArrowLeft className="h-4 w-4" />
+          Voltar
+        </Button>
+      </header>
+
+      <div className="mx-auto w-full max-w-2xl px-4 py-6">
+        <h1 className="text-2xl font-extrabold tracking-tight text-foreground">Digite sua lista</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Escreva um item por linha, do jeito que você falaria. Ex: <em>5 sacos de cimento</em>.
+        </p>
+
+        <Textarea
+          autoFocus
+          value={text}
+          onChange={(event) => setText(event.target.value)}
+          rows={12}
+          placeholder={'5 sacos de cimento\n2 caixas de porcelanato 60x60\n1 tinta acrílica 18L'}
+          className="mt-5 text-base leading-relaxed"
+        />
+        <p className="mt-2 text-xs text-muted-foreground">
+          {lines.length} {lines.length === 1 ? 'item' : 'itens'}
+        </p>
+      </div>
+
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200/70 bg-white/95 px-4 py-4 backdrop-blur">
+        <div className="mx-auto max-w-2xl">
+          <Button
+            onClick={() => onConfirm(lines)}
+            disabled={lines.length === 0}
+            size="lg"
+            className="h-14 w-full gap-2 text-base font-bold"
+          >
+            <ArrowRight className="h-5 w-5" />
+            Continuar com {lines.length} {lines.length === 1 ? 'item' : 'itens'}
           </Button>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+// ─── Screen: review ──────────────────────────────────────────────────────────
+
+function ReviewScreen({
+  items,
+  photoUrl,
+  onItemsChange,
+  onRetake,
+  onSend,
+  sending,
+  whatsappInput,
+  nameInput,
+  onWhatsappChange,
+  onNameChange,
+}: {
+  items: EditableItem[];
+  photoUrl: string | null;
+  onItemsChange: (items: EditableItem[]) => void;
+  onRetake: () => void;
+  onSend: () => void;
+  sending: boolean;
+  whatsappInput: string;
+  nameInput: string;
+  onWhatsappChange: (value: string) => void;
+  onNameChange: (value: string) => void;
+}) {
+  const [photoOpen, setPhotoOpen] = useState(false);
+
+  const updateItem = (key: string, patch: Partial<EditableItem>) => {
+    onItemsChange(items.map((item) => (item.key === key ? { ...item, ...patch } : item)));
+  };
+  const removeItem = (key: string) => onItemsChange(items.filter((item) => item.key !== key));
+  const addItem = () =>
+    onItemsChange([...items, { key: makeKey('item'), name: '', quantity: 1, unit: null }]);
+
+  const validItems = items.filter((item) => item.name.trim().length > 0);
+  const needsAttention = validItems.filter(
+    (item) => (item.confidence ?? 1) < REVIEW_THRESHOLD
+  ).length;
+
+  return (
+    <main className="flex min-h-screen flex-col bg-gradient-to-br from-slate-50 to-white pb-40">
+      <header className="sticky top-0 z-10 border-b border-slate-200/70 bg-white/90 px-4 py-3 backdrop-blur">
+        <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
+          {photoUrl ? (
+            <button
+              type="button"
+              onClick={() => setPhotoOpen(true)}
+              className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-medium text-muted-foreground transition hover:border-primary hover:text-primary"
+            >
+              <img src={photoUrl} alt="Sua foto" className="h-8 w-8 rounded object-cover" />
+              Ver foto
+            </button>
+          ) : (
+            <span />
+          )}
           <p className="text-xs font-medium text-muted-foreground">
-            {validItems} {validItems === 1 ? 'item' : 'itens'}
+            {validItems.length} {validItems.length === 1 ? 'item' : 'itens'}
           </p>
         </div>
       </header>
 
       <div className="mx-auto w-full max-w-2xl px-4 py-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-extrabold tracking-tight text-foreground">Confira sua lista</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {startedAt
-              ? 'Lemos os itens que estavam na foto. Ajuste o que precisar antes de enviar.'
-              : 'Adicione os itens da sua lista.'}
-          </p>
-        </div>
+        <h1 className="text-2xl font-extrabold tracking-tight text-foreground">Confira sua lista</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {needsAttention > 0 ? (
+            <>
+              Lemos {validItems.length} {validItems.length === 1 ? 'item' : 'itens'}.{' '}
+              <strong className="text-amber-700">
+                {needsAttention} {needsAttention === 1 ? 'precisa' : 'precisam'} da sua conferência
+              </strong>{' '}
+              — estão marcados abaixo.
+            </>
+          ) : (
+            'Tudo certo com a leitura. Ajuste o que quiser antes de enviar.'
+          )}
+        </p>
 
-        {showEmptyHint ? (
-          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-            Não conseguimos identificar os itens automaticamente. Adicione manualmente abaixo — é rapidinho.
-          </div>
-        ) : null}
-
-        <div className="space-y-2.5">
+        <div className="mt-5 space-y-2.5">
           {items.map((item) => (
             <ItemRow key={item.key} item={item} onUpdate={updateItem} onRemove={removeItem} />
           ))}
@@ -435,25 +600,139 @@ function ReviewScreen({
           <Plus className="h-4 w-4" />
           Adicionar outro item
         </button>
+
+        {/* Identificação: só agora, com o valor já na tela. */}
+        <section className="mt-8 rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <h2 className="text-base font-semibold text-foreground">Para onde mandamos o orçamento?</h2>
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="whatsapp">Seu WhatsApp</Label>
+              <Input
+                id="whatsapp"
+                inputMode="tel"
+                placeholder="(11) 99999-0000"
+                value={whatsappInput}
+                onChange={(event) => {
+                  const digits = event.target.value.replace(/\D/g, '').slice(0, 11);
+                  onWhatsappChange(formatWhatsapp(digits));
+                }}
+                className="h-12 text-base"
+              />
+              <p className="text-xs text-muted-foreground">É por aqui que a loja vai te responder.</p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="name" className="flex items-center gap-2">
+                Nome <span className="text-xs font-normal text-muted-foreground">(opcional)</span>
+              </Label>
+              <Input
+                id="name"
+                placeholder="Como podemos te chamar?"
+                value={nameInput}
+                onChange={(event) => onNameChange(event.target.value)}
+                className="h-12 text-base"
+              />
+            </div>
+          </div>
+        </section>
       </div>
 
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200/70 bg-white/95 px-4 py-4 backdrop-blur">
         <div className="mx-auto max-w-2xl">
           <Button
             onClick={onSend}
-            disabled={sending || validItems === 0}
+            disabled={sending || validItems.length === 0}
             size="lg"
             className="h-14 w-full gap-2 text-base font-bold"
           >
             {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle2 className="h-5 w-5" />}
-            {sending ? 'Enviando…' : `Enviar ${validItems} ${validItems === 1 ? 'item' : 'itens'} para a loja`}
+            {sending
+              ? 'Enviando…'
+              : `Enviar ${validItems.length} ${validItems.length === 1 ? 'item' : 'itens'} para a loja`}
           </Button>
           <p className="mt-2 text-center text-xs text-muted-foreground">
             A loja vai responder no seu WhatsApp em breve.
           </p>
         </div>
       </div>
+
+      {photoOpen && photoUrl ? (
+        <PhotoViewer url={photoUrl} onClose={() => setPhotoOpen(false)} onRetake={onRetake} />
+      ) : null}
     </main>
+  );
+}
+
+/** Full-screen photo, with "retake" tucked safely inside it. */
+function PhotoViewer({
+  url,
+  onClose,
+  onRetake,
+}: {
+  url: string;
+  onClose: () => void;
+  onRetake: () => void;
+}) {
+  const [confirmingRetake, setConfirmingRetake] = useState(false);
+
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => event.key === 'Escape' && onClose();
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-black/95">
+      <div className="flex items-center justify-between px-4 py-4">
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur"
+          aria-label="Fechar"
+        >
+          <X className="h-5 w-5" />
+        </button>
+        <p className="text-sm font-medium text-white">Sua foto</p>
+        <div className="w-10" />
+      </div>
+
+      <div className="flex flex-1 items-center justify-center overflow-auto p-4">
+        <img src={url} alt="Lista fotografada" className="max-h-full max-w-full rounded-lg object-contain" />
+      </div>
+
+      <div className="px-4 pb-8 pt-4">
+        {confirmingRetake ? (
+          <div className="mx-auto max-w-sm rounded-xl bg-white/10 p-4 text-center backdrop-blur">
+            <p className="text-sm text-white">
+              Tirar outra foto apaga os itens que você já ajustou. Continuar?
+            </p>
+            <div className="mt-3 flex gap-2">
+              <Button variant="secondary" className="flex-1" onClick={() => setConfirmingRetake(false)}>
+                Cancelar
+              </Button>
+              <Button variant="destructive" className="flex-1" onClick={onRetake}>
+                Sim, refazer
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="mx-auto max-w-sm">
+            <Button
+              variant="secondary"
+              className="h-12 w-full gap-2"
+              onClick={() => setConfirmingRetake(true)}
+            >
+              <RefreshCcw className="h-4 w-4" />
+              Tirar outra foto
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -467,69 +746,87 @@ function ItemRow({
   onRemove: (key: string) => void;
 }) {
   const [editingName, setEditingName] = useState(item.name === '');
+  const confidence = item.confidence ?? 1;
+  const needsAttention = confidence < REVIEW_THRESHOLD;
+  const showSourceLine =
+    needsAttention && item.sourceLine && item.sourceLine.toLowerCase() !== item.name.toLowerCase();
 
   return (
-    <div className="flex items-center gap-2 rounded-xl border border-slate-200/70 bg-white p-3 shadow-sm">
-      {/* Quantidade */}
-      <div className="flex items-center gap-1 rounded-lg bg-slate-100 p-1">
+    <div
+      className={`rounded-xl border bg-white p-3 shadow-sm transition ${
+        needsAttention ? 'border-amber-300 bg-amber-50/40' : 'border-slate-200/70'
+      }`}
+    >
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 rounded-lg bg-slate-100 p-1">
+          <button
+            type="button"
+            onClick={() => onUpdate(item.key, { quantity: Math.max(1, item.quantity - 1) })}
+            className="flex h-7 w-7 items-center justify-center rounded text-slate-600 transition hover:bg-white"
+            aria-label="Diminuir"
+          >
+            <Minus className="h-3.5 w-3.5" />
+          </button>
+          <span className="w-8 text-center text-sm font-bold tabular-nums">{item.quantity}</span>
+          <button
+            type="button"
+            onClick={() => onUpdate(item.key, { quantity: item.quantity + 1 })}
+            className="flex h-7 w-7 items-center justify-center rounded text-slate-600 transition hover:bg-white"
+            aria-label="Aumentar"
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        {item.unit ? (
+          <span className="rounded bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-slate-500">
+            {item.unit}
+          </span>
+        ) : null}
+
+        {editingName ? (
+          <ProductAutocomplete
+            value={item.name}
+            onChange={(name) => onUpdate(item.key, { name })}
+            onSelectProduct={(product) => {
+              onUpdate(item.key, {
+                name: product.name,
+                productId: product.id,
+                // Picking from the catalogue resolves any doubt.
+                confidence: 1,
+              });
+              setEditingName(false);
+            }}
+            onBlur={() => item.name.trim() && setEditingName(false)}
+            placeholder="Ex: cimento, areia, tijolo…"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setEditingName(true)}
+            className="group flex min-w-0 flex-1 items-center gap-1 truncate text-left text-sm font-medium text-foreground"
+          >
+            <span className="truncate">{item.name}</span>
+            <Pencil className="h-3 w-3 shrink-0 opacity-0 transition group-hover:opacity-50" />
+          </button>
+        )}
+
         <button
           type="button"
-          onClick={() => onUpdate(item.key, { quantity: Math.max(1, item.quantity - 1) })}
-          className="flex h-7 w-7 items-center justify-center rounded text-slate-600 transition hover:bg-white"
-          aria-label="Diminuir"
+          onClick={() => onRemove(item.key)}
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-slate-400 transition hover:bg-red-50 hover:text-red-500"
+          aria-label="Remover item"
         >
-          <Minus className="h-3.5 w-3.5" />
-        </button>
-        <span className="w-8 text-center text-sm font-bold tabular-nums">{item.quantity}</span>
-        <button
-          type="button"
-          onClick={() => onUpdate(item.key, { quantity: item.quantity + 1 })}
-          className="flex h-7 w-7 items-center justify-center rounded text-slate-600 transition hover:bg-white"
-          aria-label="Aumentar"
-        >
-          <Plus className="h-3.5 w-3.5" />
+          <X className="h-4 w-4" />
         </button>
       </div>
 
-      {/* Unidade pequena */}
-      {item.unit ? (
-        <span className="rounded bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-slate-500">
-          {item.unit}
-        </span>
+      {showSourceLine ? (
+        <p className="mt-2 pl-1 text-xs text-amber-700">
+          <ImageIcon className="mr-1 inline h-3 w-3" />
+          No papel estava: “{item.sourceLine}”
+        </p>
       ) : null}
-
-      {/* Nome */}
-      {editingName ? (
-        <input
-          autoFocus
-          type="text"
-          value={item.name}
-          onChange={(event) => onUpdate(item.key, { name: event.target.value })}
-          onBlur={() => item.name.trim() && setEditingName(false)}
-          onKeyDown={(event) => event.key === 'Enter' && item.name.trim() && setEditingName(false)}
-          placeholder="Ex: cimento, areia, tijolo…"
-          className="min-w-0 flex-1 rounded border border-primary/30 bg-white px-2 py-1 text-sm outline-none focus:border-primary"
-        />
-      ) : (
-        <button
-          type="button"
-          onClick={() => setEditingName(true)}
-          className="group flex min-w-0 flex-1 items-center gap-1 truncate text-left text-sm font-medium text-foreground"
-        >
-          <span className="truncate">{item.name}</span>
-          <Pencil className="h-3 w-3 shrink-0 opacity-0 transition group-hover:opacity-50" />
-        </button>
-      )}
-
-      {/* Remover */}
-      <button
-        type="button"
-        onClick={() => onRemove(item.key)}
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-slate-400 transition hover:bg-red-50 hover:text-red-500"
-        aria-label="Remover item"
-      >
-        <X className="h-4 w-4" />
-      </button>
     </div>
   );
 }
@@ -574,5 +871,7 @@ function editableFromQuote(item: QuoteItem): EditableItem {
     quantity: Number(item.quantity) || 1,
     unit: item.unit,
     notes: item.notes,
+    confidence: item.confidence ?? null,
+    sourceLine: item.recognitionSourceLine ?? null,
   };
 }

@@ -11,8 +11,8 @@ export const createSaleItemSchema = z.object({
   quantity: z.coerce.number().int().positive('Quantidade deve ser positiva').max(9999, 'Quantidade muito alta'),
   unitPrice: z.coerce
     .number()
-    .nonnegative('Preco nao pode ser negativo')
-    .max(9_999_999, 'Preco invalido')
+    .nonnegative('Preço não pode ser negativo')
+    .max(9_999_999, 'Preço inválido')
     .optional(),
 });
 

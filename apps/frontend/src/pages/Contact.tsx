@@ -40,7 +40,7 @@ const CONTACT_CHANNELS: Array<{
     description: "Envie a lista da obra e receba retorno do time com mais contexto do pedido.",
     detail: "Fluxo publico com envio de itens e acompanhamento da solicitacao.",
     cta: "Abrir solicitacao",
-    href: "/solicitar-orçamento",
+    href: "/pedido",
     icon: FileScan,
     kind: "internal",
   },
@@ -257,7 +257,7 @@ export default function ContactPage() {
 
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Button asChild className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 sm:w-auto">
-                  <Link to="/solicitar-orçamento">Solicitar orçamento</Link>
+                  <Link to="/pedido">Solicitar orçamento</Link>
                 </Button>
                 <Button asChild variant="outline" className="w-full border-black/10 bg-white hover:bg-white sm:w-auto">
                   <Link to="/categorias">Ver catálogo</Link>

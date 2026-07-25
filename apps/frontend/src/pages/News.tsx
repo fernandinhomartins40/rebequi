@@ -243,7 +243,7 @@ export default function NewsPage() {
                       <Link to="/promoções">Comparar com promoções</Link>
                     </Button>
                     <Button asChild className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
-                      <Link to="/solicitar-orçamento">Solicitar orçamento</Link>
+                      <Link to="/pedido">Solicitar orçamento</Link>
                     </Button>
                   </div>
                 </div>

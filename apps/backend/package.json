@@ -17,7 +17,7 @@
     "prisma:seed": "node ../../node_modules/tsx/dist/cli.mjs prisma/seed.ts",
     "prisma:reset": "node ../../node_modules/prisma/build/index.js migrate reset --force",
     "lint": "npm run prisma:generate && node ../../node_modules/typescript/bin/tsc --noEmit",
-    "test": "echo 'Tests not configured yet'"
+    "test": "node --import ../../node_modules/tsx/dist/loader.mjs --test src/**/*.test.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.1.0",

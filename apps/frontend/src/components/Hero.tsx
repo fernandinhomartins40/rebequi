@@ -31,7 +31,7 @@ const Hero = () => {
       title: "Entrega Rápida",
       subtitle: "Receba seus materiais no local da obra com total agilidade",
       cta: "Fazer Pedido",
-      ctaHref: "/solicitar-orçamento",
+      ctaHref: "/pedido",
     },
   ];
 
@@ -146,7 +146,7 @@ const Hero = () => {
                     variant="outline"
                     className="h-12 rounded-xl border-2 border-white/30 bg-white/10 px-8 text-sm font-semibold text-white backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/20 hover:border-white/50 sm:h-14 sm:px-10 sm:text-base"
                   >
-                    <Link to="/solicitar-orçamento">Solicitar orçamento</Link>
+                    <Link to="/pedido">Solicitar orçamento</Link>
                   </Button>
                 </div>
               </div>

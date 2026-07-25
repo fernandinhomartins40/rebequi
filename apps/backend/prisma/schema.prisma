@@ -133,6 +133,7 @@ model Product {
   images        ProductImage[]
   promotions    PromotionProduct[]
   quoteItems    QuoteItem[]
+  aliases       ProductAlias[]
   saleItems     SaleItem[]
   stockMovements StockMovement[]
   channelListings ChannelListing[]
@@ -318,8 +319,10 @@ model LeadCapture {
 model QuoteRequest {
   id                 String       @id @default(cuid())
   referenceCode      String       @unique
-  userId             String
-  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Null while the quote is an anonymous draft: the customer photographs the
+  // list first and only identifies themselves when submitting.
+  userId             String?
+  user               User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
   leadId             String?
   lead               LeadCapture? @relation(fields: [leadId], references: [id], onDelete: SetNull)
   status             QuoteStatus  @default(DRAFT)
@@ -330,6 +333,14 @@ model QuoteRequest {
   ocrText            String?
   ocrConfidence      Float?
   ocrError           String?
+  ocrAttempts        Int          @default(0)
+  ocrEngine          String?
+  ocrModelId         String?
+  // Opaque secret handed to the browser so an anonymous draft can be edited
+  // and submitted before any account exists.
+  anonymousToken     String?      @unique
+  anonymousExpiresAt DateTime?
+  ocrRuns            OcrRun[]
   documentUrl        String
   documentStorageKey String?
   documentFilename   String?
@@ -349,7 +360,55 @@ model QuoteRequest {
   @@index([status])
   @@index([ocrStatus])
   @@index([submittedAt])
+  @@index([anonymousExpiresAt])
   @@map("quote_requests")
+}
+
+/// One recognition attempt. Answers "is the AI worth it?" and "which model
+/// actually performs?" — impossible to tell before this existed.
+model OcrRun {
+  id                    String       @id @default(cuid())
+  quoteRequestId        String
+  quoteRequest          QuoteRequest @relation(fields: [quoteRequestId], references: [id], onDelete: Cascade)
+  engine                String
+  modelId               String?
+  success               Boolean      @default(false)
+  durationMs            Int          @default(0)
+  promptTokens          Int?
+  completionTokens      Int?
+  costUsd               Float?
+  itemsDetected         Int          @default(0)
+  itemsMatched          Int          @default(0)
+  /// Filled in at submit time: the real quality signal, since it measures what
+  /// the customer had to fix rather than what the model claimed.
+  itemsEditedByCustomer Int?
+  errorMessage          String?
+  createdAt             DateTime     @default(now())
+
+  @@index([quoteRequestId])
+  @@index([createdAt])
+  @@index([engine, success])
+  @@map("ocr_runs")
+}
+
+/// Vocabulary learned from customer corrections: when someone fixes a badly
+/// recognised line into a real product, that pairing is remembered so the next
+/// customer writing the same thing gets matched automatically.
+model ProductAlias {
+  id           String   @id @default(cuid())
+  /// Normalised source text (output of normalizeDomainText).
+  normalizedText String
+  productId    String
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  occurrences  Int      @default(1)
+  /// Only aliases confirmed enough times are trusted for matching.
+  isApproved   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([normalizedText, productId])
+  @@index([normalizedText, isApproved])
+  @@map("product_aliases")
 }
 
 model QuoteItem {

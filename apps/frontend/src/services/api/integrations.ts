@@ -59,6 +59,64 @@ export async function updateOpenRouterConfig(payload: OpenRouterUpdateBody): Pro
   return unwrap<OpenRouterConfig>(response);
 }
 
+export type VisionModel = {
+  id: string;
+  name: string;
+  isFree: boolean;
+  promptPricePerMillion: number | null;
+  completionPricePerMillion: number | null;
+  contextLength: number | null;
+};
+
+/** Modelos com visão listados pela própria API do OpenRouter. */
+export async function fetchVisionModels(): Promise<VisionModel[]> {
+  const response = await apiFetch<ApiResponse<VisionModel[]> | VisionModel[]>(
+    '/integrations/openrouter/models'
+  );
+  return unwrap<VisionModel[]>(response);
+}
+
+export type RecognitionTestResult = {
+  ok: boolean;
+  message: string;
+  engine?: string;
+  modelId?: string;
+  durationMs?: number;
+  costUsd?: number | null;
+  items?: Array<{ text: string; quantity: number | null; unit: string | null }>;
+};
+
+/** Roda a cadeia real sobre uma foto — a única prova de que a leitura funciona. */
+export async function testOpenRouterRecognition(file: File): Promise<RecognitionTestResult> {
+  const body = new FormData();
+  body.append('document', file);
+
+  const response = await apiFetch<ApiResponse<RecognitionTestResult> | RecognitionTestResult>(
+    '/integrations/openrouter/test-recognition',
+    { method: 'POST', body }
+  );
+  return unwrap<RecognitionTestResult>(response);
+}
+
+export type OcrHealth = {
+  openrouter: {
+    enabled: boolean;
+    hasApiKey: boolean;
+    primaryModel: string;
+    fallbackModel: string;
+    usable: boolean;
+  };
+  local: { engine: string; available: boolean; error: string | null };
+  degraded: boolean;
+  unavailable: boolean;
+};
+
+/** Estado real da cadeia de OCR — para o lojista saber antes dos clientes. */
+export async function fetchOcrHealth(): Promise<OcrHealth> {
+  const response = await apiFetch<ApiResponse<OcrHealth> | OcrHealth>('/quotes/admin/ocr-health');
+  return unwrap<OcrHealth>(response);
+}
+
 export async function testOpenRouterConnection(apiKey?: string): Promise<OpenRouterTestResult> {
   const response = await apiFetch<ApiResponse<OpenRouterTestResult> | OpenRouterTestResult>(
     '/integrations/openrouter/test',

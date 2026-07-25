@@ -18,7 +18,7 @@ export const orderStatusSchema = z.enum([
 export const checkoutOrderItemSchema = z.object({
   productId: z.string().min(1, 'Produto e obrigatorio'),
   quantity: z.coerce.number().int().positive('Quantidade deve ser positiva').max(99, 'Quantidade maxima de 99'),
-  promotionId: z.string().min(1, 'Promocao invalida').optional(),
+  promotionId: z.string().min(1, 'Promoção inválida').optional(),
 });
 
 export const publicCheckoutOrderSchema = z.object({

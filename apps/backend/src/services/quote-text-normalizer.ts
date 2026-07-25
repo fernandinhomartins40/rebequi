@@ -25,22 +25,55 @@ const OCR_CORRECTIONS: Array<[RegExp, string]> = [
   [/\|/g, 'l'],                          // pipe char → l
   [/¡/g, 'i'],
   [/¿/g, '?'],
-  // Common suffix OCR errors
-  [/cao\b/gi, 'ção'],
-  [/coes\b/gi, 'ções'],
-  [/ao\b(?=\s|$)/gi, 'ão'],
-  // Extra spaces around slashes / hyphens
+  // Extra spaces around slashes
   [/\s*\/\s*/g, '/'],
-  [/\s*-\s*/g, '-'],
   // Multiple spaces
   [/\s{2,}/g, ' '],
 ];
 
-export function applyOcrCorrections(raw: string): string {
+/**
+ * Accent restoration limited to an allowlist of construction terms.
+ *
+ * A blanket /cao\b/ → "ção" rule also mangles legitimate words and product
+ * codes, so only words we actually expect in this domain are rewritten.
+ */
+const ACCENT_FIXES: Array<[RegExp, string]> = [
+  [/(?<![a-z0-9])conexao(?![a-z0-9])/gi, 'conexão'],
+  [/(?<![a-z0-9])vedacao(?![a-z0-9])/gi, 'vedação'],
+  [/(?<![a-z0-9])fixacao(?![a-z0-9])/gi, 'fixação'],
+  [/(?<![a-z0-9])isolacao(?![a-z0-9])/gi, 'isolação'],
+  [/(?<![a-z0-9])construcao(?![a-z0-9])/gi, 'construção'],
+  [/(?<![a-z0-9])galao(?![a-z0-9])/gi, 'galão'],
+  [/(?<![a-z0-9])vergalhao(?![a-z0-9])/gi, 'vergalhão'],
+  [/(?<![a-z0-9])sifao(?![a-z0-9])/gi, 'sifão'],
+  [/(?<![a-z0-9])pressao(?![a-z0-9])/gi, 'pressão'],
+  [/(?<![a-z0-9])conexoes(?![a-z0-9])/gi, 'conexões'],
+];
+
+export type RecognitionEngine = 'paddleocr' | 'tesseract' | 'openrouter';
+
+/**
+ * Fixes character-level OCR artefacts.
+ *
+ * These rules exist to repair classic raster-OCR confusions (0/o, 1/l, rn/m).
+ * A VLM already returns clean, accented text, so applying them to OpenRouter
+ * output only introduces damage — pass the engine to skip them.
+ */
+export function applyOcrCorrections(raw: string, engine: RecognitionEngine = 'paddleocr'): string {
   let result = raw;
-  for (const [pattern, replacement] of OCR_CORRECTIONS) {
-    result = result.replace(pattern, replacement);
+
+  if (engine !== 'openrouter') {
+    for (const [pattern, replacement] of OCR_CORRECTIONS) {
+      result = result.replace(pattern, replacement);
+    }
+    for (const [pattern, replacement] of ACCENT_FIXES) {
+      result = result.replace(pattern, replacement);
+    }
+  } else {
+    // Whitespace tidy-up is safe for every engine.
+    result = result.replace(/\s{2,}/g, ' ');
   }
+
   return result.trim();
 }
 
@@ -255,12 +288,114 @@ const CONSTRUCTION_SYNONYMS: Record<string, string> = {
   'saco de ráfia': 'saco de ráfia',
 };
 
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /**
- * Returns the canonical domain term for a normalised OCR string, or the
- * original if no synonym entry is found.
+ * Synonym entries pre-compiled once, ordered by token count descending so that
+ * longer expressions win over their own prefixes ("argamassa colante" must be
+ * replaced before "argamassa" gets a chance).
+ */
+const SYNONYM_MATCHERS: Array<{
+  pattern: RegExp;
+  canonical: string;
+  /** True when the replacement still contains its own trigger word. */
+  expandsToItself: boolean;
+}> = Object.entries(CONSTRUCTION_SYNONYMS)
+  .sort((a, b) => b[0].split(' ').length - a[0].split(' ').length || b[0].length - a[0].length)
+  .map(([variant, canonical]) => ({
+    // Alphanumeric boundaries instead of \b so that entries ending in a digit
+    // ("tinta 18l") don't match inside a longer token.
+    pattern: new RegExp(`(?<![a-z0-9])${escapeRegex(variant)}(?![a-z0-9])`, 'g'),
+    canonical,
+    expandsToItself: canonical !== variant && canonical.includes(variant),
+  }));
+
+/**
+ * Replaces every known domain variant found *inside* the string with its
+ * canonical catalogue term.
+ *
+ * A whole-string lookup is useless here: OCR yields "5 sc cimento", never
+ * "cimento" on its own, so the dictionary would never fire.
+ *
+ * Already-canonical text is left untouched — replacements whose canonical form
+ * contains the variant (e.g. "cimento" → "cimento portland cp ii") are skipped
+ * when the canonical form is already present, otherwise repeated passes would
+ * keep growing the string.
+ */
+export function resolveSynonyms(normalized: string): string {
+  if (!normalized) return normalized;
+
+  // Regions already rewritten are frozen, so a canonical form inserted by one
+  // rule can't be matched again by a shorter rule. Without this, "argamassa
+  // colante" expanded to "argamassa ac i colante ac i": the longer rule fired
+  // first, then plain "argamassa" matched inside its own replacement.
+  type Segment = { text: string; frozen: boolean };
+  let segments: Segment[] = [{ text: normalized, frozen: false }];
+
+  for (const { pattern, canonical, expandsToItself } of SYNONYM_MATCHERS) {
+    const next: Segment[] = [];
+    let changed = false;
+
+    for (const segment of segments) {
+      if (segment.frozen) {
+        next.push(segment);
+        continue;
+      }
+
+      pattern.lastIndex = 0;
+      if (!pattern.test(segment.text)) {
+        next.push(segment);
+        continue;
+      }
+
+      // "cimento" → "cimento portland cp ii" contains its own trigger, so an
+      // already-expanded input would grow on every pass. Skip when the
+      // canonical form is present: normalizeDomainText runs repeatedly over
+      // the same strings and must be idempotent.
+      if (expandsToItself && segment.text.includes(canonical)) {
+        next.push(segment);
+        continue;
+      }
+
+      changed = true;
+      pattern.lastIndex = 0;
+
+      let lastIndex = 0;
+      let match: RegExpExecArray | null;
+      while ((match = pattern.exec(segment.text)) !== null) {
+        if (match.index > lastIndex) {
+          next.push({ text: segment.text.slice(lastIndex, match.index), frozen: false });
+        }
+        next.push({ text: canonical, frozen: true });
+        lastIndex = match.index + match[0].length;
+
+        // Guard against zero-length matches looping forever.
+        if (match[0].length === 0) pattern.lastIndex++;
+      }
+
+      if (lastIndex < segment.text.length) {
+        next.push({ text: segment.text.slice(lastIndex), frozen: false });
+      }
+    }
+
+    if (changed) segments = next;
+  }
+
+  return segments
+    .map((segment) => segment.text)
+    .join('')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+/**
+ * @deprecated Use {@link resolveSynonyms}. Kept as a thin alias so existing
+ * callers keep working.
  */
 export function resolveSynonym(normalized: string): string {
-  return CONSTRUCTION_SYNONYMS[normalized] ?? normalized;
+  return resolveSynonyms(normalized);
 }
 
 // ─── Domain token boost list ─────────────────────────────────────────────────
@@ -303,8 +438,8 @@ export const CONSTRUCTION_DOMAIN_TOKENS = new Set([
  *  4. Collapse whitespace
  *  5. Synonym resolution
  */
-export function normalizeDomainText(raw: string): string {
-  const corrected = applyOcrCorrections(raw);
+export function normalizeDomainText(raw: string, engine: RecognitionEngine = 'paddleocr'): string {
+  const corrected = applyOcrCorrections(raw, engine);
 
   const stripped = corrected
     .normalize('NFD')
@@ -314,17 +449,23 @@ export function normalizeDomainText(raw: string): string {
     .replace(/\s+/g, ' ')
     .trim();
 
-  return resolveSynonym(stripped);
+  return resolveSynonyms(stripped);
 }
 
 /**
  * Tokenise a string using the same rules as normalisation, filtering out
  * tokens shorter than 2 characters.
  */
-export function domainTokenize(value: string): string[] {
-  return normalizeDomainText(value)
-    .split(' ')
-    .filter((t) => t.length >= 2);
+export function domainTokenize(value: string, engine: RecognitionEngine = 'paddleocr'): string[] {
+  return tokenizeNormalized(normalizeDomainText(value, engine));
+}
+
+/**
+ * Splits an already-normalised string into tokens. Use this when the caller
+ * has cached the normalised form, to avoid normalising the same text twice.
+ */
+export function tokenizeNormalized(normalized: string): string[] {
+  return normalized.split(' ').filter((t) => t.length >= 2);
 }
 
 // ─── Trigram similarity ───────────────────────────────────────────────────────
@@ -393,20 +534,68 @@ export function lcsLength(a: string, b: string): number {
  * @returns score in [0, 1]
  */
 export function blendedSimilarity(ocrLine: string, productName: string): number {
-  const tg   = trigramSimilarity(ocrLine, productName);
-  const lineTokens    = domainTokenize(ocrLine);
-  const productTokens = domainTokenize(productName);
-  const jaccard = tokenJaccard(lineTokens, productTokens);
+  return blendedSimilarityPrepared(
+    { normalized: ocrLine, tokens: domainTokenize(ocrLine) },
+    { normalized: productName, tokens: domainTokenize(productName) }
+  );
+}
+
+/** A string that has already been normalised and tokenised. */
+export type PreparedText = {
+  normalized: string;
+  tokens: string[];
+  tokenSet?: Set<string>;
+  trigrams?: Set<string>;
+};
+
+/**
+ * Same score as {@link blendedSimilarity} but consuming pre-normalised input.
+ *
+ * The catalogue side is fixed while a quote is processed, so normalising it
+ * once and reusing it here avoids repeating the whole pipeline for every
+ * (line × product) pair.
+ */
+export function blendedSimilarityPrepared(line: PreparedText, product: PreparedText): number {
+  const tg = trigramSimilarityPrepared(
+    line.trigrams ?? trigrams(line.normalized),
+    product.trigrams ?? trigrams(product.normalized)
+  );
+
+  const jaccard = tokenJaccard(line.tokens, product.tokens);
+
+  const lineTokenSet = line.tokenSet ?? new Set(line.tokens);
 
   // Bonus: how many of the product tokens appear in the OCR line?
   const coverageRatio =
-    productTokens.length > 0
-      ? productTokens.filter((t) => lineTokens.includes(t)).length / productTokens.length
+    product.tokens.length > 0
+      ? product.tokens.filter((t) => lineTokenSet.has(t)).length / product.tokens.length
       : 0;
 
   // Domain token bonus: presence of construction-specific words
-  const domainBonus = lineTokens.some((t) => CONSTRUCTION_DOMAIN_TOKENS.has(t)) ? 0.06 : 0;
+  let domainBonus = 0;
+  for (const token of lineTokenSet) {
+    if (CONSTRUCTION_DOMAIN_TOKENS.has(token)) {
+      domainBonus = 0.06;
+      break;
+    }
+  }
 
   // Weighted blend: coverage is most important, then trigrams, then Jaccard
-  return Math.min(1, coverageRatio * 0.55 + tg * 0.30 + jaccard * 0.15 + domainBonus);
+  return Math.min(1, coverageRatio * 0.55 + tg * 0.3 + jaccard * 0.15 + domainBonus);
+}
+
+/** Trigram set builder exposed so callers can cache it alongside the text. */
+export function buildTrigrams(value: string): Set<string> {
+  return trigrams(value);
+}
+
+function trigramSimilarityPrepared(ta: Set<string>, tb: Set<string>): number {
+  if (ta.size === 0 || tb.size === 0) return 0;
+  let intersection = 0;
+  // Iterate the smaller set for fewer lookups.
+  const [small, large] = ta.size <= tb.size ? [ta, tb] : [tb, ta];
+  for (const t of small) {
+    if (large.has(t)) intersection++;
+  }
+  return (2 * intersection) / (ta.size + tb.size);
 }

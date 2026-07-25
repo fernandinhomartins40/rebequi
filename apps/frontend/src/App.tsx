@@ -60,7 +60,10 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
-              <Route path="/solicitar-orçamento" element={<RequestQuotePage />} />
+              <Route path="/pedido" element={<RequestQuotePage />} />
+              {/* URL antiga: tinha "ç", que vira %C3%A7 ao compartilhar no WhatsApp. */}
+              <Route path="/solicitar-orçamento" element={<Navigate to="/pedido" replace />} />
+              <Route path="/solicitar-orcamento" element={<Navigate to="/pedido" replace />} />
               <Route path="/categorias" element={<CategoriesPage />} />
               <Route path="/categorias/:slug" element={<CategoryDetailsPage />} />
               <Route path="/ofertas/:slug" element={<PromotionDetailsPage />} />

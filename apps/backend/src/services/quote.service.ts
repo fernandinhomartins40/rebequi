@@ -1,8 +1,11 @@
+import { randomBytes } from 'node:crypto';
 import type { LeadStatus, QuoteStatus } from '@prisma/client';
 import type {
   LeadFiltersInput,
   QuoteFiltersInput,
   StartLeadInput,
+  SubmitAnonymousQuoteInput,
+  UpdateAnonymousQuoteDraftInput,
   UpdateLeadStatusInput,
   UpdateQuoteDraftInput,
   UpdateQuoteStatusInput,
@@ -10,13 +13,16 @@ import type {
 import { normalizeWhatsapp } from '@rebequi/shared/utils';
 import { AuthService } from './auth.service.js';
 import { CustomerService } from './customer.service.js';
-import { QuoteOcrService, type RecognizedQuoteLine } from './quote-ocr.service.js';
+import { QuoteOcrService, type CatalogHint, type RecognizedQuoteLine } from './quote-ocr.service.js';
 import {
   applyOcrCorrections,
+  buildTrigrams,
   canonicalUnit,
   normalizeDomainText,
   domainTokenize,
-  blendedSimilarity,
+  blendedSimilarityPrepared,
+  tokenizeNormalized,
+  type RecognitionEngine,
   UNIT_ALIASES,
 } from './quote-text-normalizer.js';
 import { QuoteRepository } from '../repositories/quote.repository.js';
@@ -39,6 +45,54 @@ type PreparedQuoteItem = {
   recognitionSourceLine?: string | null;
   position: number;
 };
+
+/**
+ * A catalogue product with every derived form precomputed.
+ *
+ * Matching used to renormalise each product name inside the per-line loop, so
+ * a 20-line quote against 2000 products ran the full Unicode + regex pipeline
+ * 40k times. The catalogue is immutable while a quote is processed, so this is
+ * built once and reused.
+ */
+type IndexedProduct = {
+  product: CatalogProduct;
+  normalizedName: string;
+  domainName: string;
+  tokens: string[];
+  tokenSet: Set<string>;
+  trigrams: Set<string>;
+  normalizedSku: string;
+  categoryTokens: string[];
+};
+
+type CatalogIndex = {
+  products: IndexedProduct[];
+  /** token → products containing it, to avoid scanning the whole catalogue. */
+  byToken: Map<string, IndexedProduct[]>;
+  byId: Map<string, IndexedProduct>;
+  /** Customer-taught vocabulary: normalised text → productId. */
+  aliases: Map<string, string>;
+};
+
+/** Confidence assigned per match origin, on a single 0..1 scale. */
+const CONFIDENCE = {
+  exactSku: 1.0,
+  modelResolved: 0.95,
+  nameContained: 0.9,
+  learnedAlias: 0.88,
+  linePrefix: 0.85,
+  unmatched: 0.3,
+} as const;
+
+/** Below this the item is shown to the customer as "please confirm". */
+export const REVIEW_THRESHOLD = 0.75;
+const MATCH_THRESHOLD = 0.42;
+/** How many times a customer correction must repeat before it is trusted. */
+const ALIAS_APPROVAL_OCCURRENCES = 3;
+/** Anonymous drafts are disposable: unclaimed ones are cleaned up. */
+const ANONYMOUS_DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
+/** A job untouched for this long lost its process and will never finish. */
+const STALE_OCR_JOB_MS = 10 * 60 * 1000;
 
 // All unit aliases for regex pattern
 const ALL_UNIT_PATTERN = Object.keys(UNIT_ALIASES).map((u) => u.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
@@ -164,10 +218,10 @@ function buildDraftTitle(items: PreparedQuoteItem[], customerNote?: string | nul
   }
 
   if (customerNote?.trim()) {
-    return 'Solicitacao de orcamento';
+    return 'Solicitação de orçamento';
   }
 
-  return 'Novo orcamento';
+  return 'Novo orçamento';
 }
 
 export class QuoteService {
@@ -221,7 +275,7 @@ export class QuoteService {
 
     const storedDocument = await this.persistDocument({
       file: params.file,
-      alt: `Documento do orcamento - ${lead.nameSnapshot}`,
+      alt: `Documento do orçamento - ${lead.nameSnapshot}`,
       width: params.width,
       height: params.height,
     });
@@ -265,6 +319,168 @@ export class QuoteService {
     };
   }
 
+  /**
+   * Photo-first entry point: accepts the list image with no account and no
+   * phone number, returning a short-lived token that identifies the draft.
+   *
+   * Asking for a WhatsApp number before showing any value was the single
+   * biggest drop-off in the funnel — the customer now sees their list read
+   * back to them first, and identifies themselves only to send it.
+   */
+  async createAnonymousDraft(params: {
+    file?: Express.Multer.File;
+    width?: number;
+    height?: number;
+  }) {
+    const storedDocument = await this.persistDocument({
+      file: params.file,
+      alt: 'Documento do orçamento',
+      width: params.width,
+      height: params.height,
+    });
+
+    const token = randomBytes(24).toString('hex');
+    const expiresAt = new Date(Date.now() + ANONYMOUS_DRAFT_TTL_MS);
+
+    const quote = await this.quoteRepository.createQuote({
+      referenceCode: this.generateReferenceCode(),
+      source: 'public_camera',
+      status: 'DRAFT',
+      title: 'Rascunho em processamento',
+      ocrStatus: 'PENDING',
+      anonymousToken: token,
+      anonymousExpiresAt: expiresAt,
+      documentUrl: storedDocument.url,
+      documentStorageKey: storedDocument.storageKey,
+      documentFilename: storedDocument.filename,
+      documentMimeType: storedDocument.mimeType,
+      documentSize: storedDocument.size,
+      documentWidth: storedDocument.width,
+      documentHeight: storedDocument.height,
+    });
+
+    this.scheduleOcrJob({
+      quoteId: quote.id,
+      imageBuffer: Buffer.from(params.file!.buffer),
+    });
+
+    return {
+      quote: this.formatQuote(quote),
+      token,
+      expiresAt,
+    };
+  }
+
+  /** Polling target for an anonymous draft while the OCR job runs. */
+  async getAnonymousDraft(token: string) {
+    const quote = await this.requireAnonymousDraft(token);
+    return this.formatQuote(quote);
+  }
+
+  async updateAnonymousDraft(data: UpdateAnonymousQuoteDraftInput) {
+    const quote = await this.requireAnonymousDraft(data.token);
+    const normalizedItems = await this.normalizeManualItems(data.items);
+
+    const updatedQuote = await this.quoteRepository.replaceQuoteItems(
+      quote.id,
+      normalizedItems.map((item) => ({
+        quoteRequestId: quote.id,
+        productId: item.productId ?? null,
+        name: item.name,
+        quantity: item.quantity,
+        unit: item.unit ?? null,
+        notes: item.notes ?? null,
+        confidence: item.confidence ?? null,
+        recognitionSourceLine: item.recognitionSourceLine ?? null,
+        position: item.position,
+      }))
+    );
+
+    if (!updatedQuote) {
+      throw new NotFoundError('Orçamento não encontrado');
+    }
+
+    return this.formatQuote(updatedQuote);
+  }
+
+  /**
+   * Final step of the photo-first flow: the customer identifies themselves and
+   * the anonymous draft is attached to a real (possibly provisional) account.
+   */
+  async submitAnonymousDraft(data: SubmitAnonymousQuoteInput) {
+    const quote = await this.requireAnonymousDraft(data.token);
+
+    const ensured = await this.authService.ensureCustomerForLead({
+      name: data.name,
+      whatsapp: data.whatsapp,
+    });
+
+    const lead = await this.quoteRepository.createLead({
+      nameSnapshot: data.name,
+      whatsapp: normalizeWhatsapp(data.whatsapp),
+      source: 'public_quote',
+      status: 'QUOTE_SUBMITTED',
+      completedAt: new Date(),
+      user: { connect: { id: ensured.user.id } },
+    });
+
+    const normalizedItems = await this.normalizeManualItems(data.items);
+    await this.quoteRepository.replaceQuoteItems(
+      quote.id,
+      normalizedItems.map((item) => ({
+        quoteRequestId: quote.id,
+        productId: item.productId ?? null,
+        name: item.name,
+        quantity: item.quantity,
+        unit: item.unit ?? null,
+        notes: item.notes ?? null,
+        confidence: item.confidence ?? null,
+        recognitionSourceLine: item.recognitionSourceLine ?? null,
+        position: item.position,
+      }))
+    );
+
+    const updatedQuote = await this.quoteRepository.updateQuote(quote.id, {
+      status: 'SUBMITTED',
+      submittedAt: new Date(),
+      title: buildDraftTitle(normalizedItems, quote.customerNote),
+      // Claim the draft: it now belongs to an account and is no longer anonymous.
+      anonymousToken: null,
+      anonymousExpiresAt: null,
+      user: { connect: { id: ensured.user.id } },
+      lead: { connect: { id: lead.id } },
+    });
+
+    await this.afterQuoteSubmitted(updatedQuote, ensured.user.id);
+
+    const session = await this.authService.createSessionForUser(ensured.user.id);
+
+    return {
+      quote: this.formatQuote(updatedQuote),
+      user: session.user,
+      token: session.token,
+      provisionalCredentials: ensured.provisionalCredentials,
+    };
+  }
+
+  private async requireAnonymousDraft(token: string) {
+    const quote = await this.quoteRepository.findQuoteByAnonymousToken(token);
+
+    if (!quote) {
+      throw new NotFoundError('Orçamento não encontrado');
+    }
+
+    if (quote.anonymousExpiresAt && quote.anonymousExpiresAt.getTime() < Date.now()) {
+      throw new ForbiddenError('Este rascunho expirou. Tire uma nova foto da sua lista.');
+    }
+
+    if (quote.status !== 'DRAFT') {
+      throw new ValidationError('Este orçamento já foi enviado');
+    }
+
+    return quote;
+  }
+
   async createDraftFromAuthenticatedUser(params: {
     userId: string;
     file?: Express.Multer.File;
@@ -273,7 +489,7 @@ export class QuoteService {
   }) {
     const storedDocument = await this.persistDocument({
       file: params.file,
-      alt: 'Documento do orcamento',
+      alt: 'Documento do orçamento',
       width: params.width,
       height: params.height,
     });
@@ -317,7 +533,7 @@ export class QuoteService {
     const quote = await this.ensureCustomerQuoteAccess(userId, quoteId);
 
     if (quote.status !== 'DRAFT') {
-      throw new ValidationError('Somente orcamentos em rascunho podem ser editados');
+      throw new ValidationError('Somente orçamentos em rascunho podem ser editados');
     }
 
     const normalizedItems = await this.normalizeManualItems(data.items);
@@ -342,7 +558,7 @@ export class QuoteService {
     );
 
     if (!updatedQuote) {
-      throw new NotFoundError('Orcamento nao encontrado');
+      throw new NotFoundError('Orçamento não encontrado');
     }
 
     return this.formatQuote(updatedQuote);
@@ -352,7 +568,7 @@ export class QuoteService {
     const quote = await this.ensureCustomerQuoteAccess(userId, quoteId);
 
     if (quote.items.length === 0) {
-      throw new ValidationError('Adicione pelo menos um item antes de enviar o orcamento');
+      throw new ValidationError('Adicione pelo menos um item antes de enviar o orçamento');
     }
 
     const updatedQuote = await this.quoteRepository.updateQuote(quote.id, {
@@ -367,10 +583,62 @@ export class QuoteService {
       });
     }
 
+    await this.afterQuoteSubmitted(updatedQuote, userId);
+
+    return this.formatQuote(updatedQuote);
+  }
+
+  /** Post-submit side effects shared by the authenticated and anonymous flows. */
+  private async afterQuoteSubmitted(quote: PersistedQuote, userId: string) {
     // CRM: envio de orçamento move o cliente adiante no funil (se não travado).
     await this.customerService.maybeAdvanceStage(userId);
 
-    return this.formatQuote(updatedQuote);
+    // Close the telemetry loop: how much did the customer have to fix?
+    const editedCount = quote.items.filter(
+      (item) =>
+        item.recognitionSourceLine &&
+        normalizeText(item.name) !== normalizeText(item.recognitionSourceLine)
+    ).length;
+
+    try {
+      await this.quoteRepository.updateLatestOcrRun(quote.id, {
+        itemsEditedByCustomer: editedCount,
+      });
+    } catch (error) {
+      logger.warn('Failed to record customer edit telemetry.', { quoteId: quote.id, error });
+    }
+
+    await this.learnFromCustomerCorrections(quote);
+  }
+
+  /**
+   * Startup housekeeping: fail jobs orphaned by a restart and drop anonymous
+   * drafts nobody came back for.
+   */
+  async runMaintenance() {
+    const [stale, expired] = await Promise.all([
+      this.quoteRepository.failStaleOcrJobs(new Date(Date.now() - STALE_OCR_JOB_MS)),
+      this.quoteRepository.deleteExpiredAnonymousDrafts(new Date()),
+    ]);
+
+    if (stale.count > 0 || expired.count > 0) {
+      logger.info('Quote maintenance completed.', {
+        staleOcrJobsFailed: stale.count,
+        expiredAnonymousDraftsDeleted: expired.count,
+      });
+    }
+
+    return { staleOcrJobsFailed: stale.count, expiredAnonymousDraftsDeleted: expired.count };
+  }
+
+  /** OCR chain health, surfaced to the merchant before customers complain. */
+  async getOcrHealth() {
+    return this.ocrService.getEngineHealth();
+  }
+
+  async getOcrStats(sinceDays = 30) {
+    const since = new Date(Date.now() - sinceDays * 24 * 60 * 60 * 1000);
+    return this.quoteRepository.getOcrStats(since);
   }
 
   async getAdminQuotes(filters: QuoteFiltersInput) {
@@ -437,7 +705,7 @@ export class QuoteService {
   async updateQuoteStatus(quoteId: string, data: UpdateQuoteStatusInput) {
     const quote = await this.quoteRepository.findQuoteById(quoteId);
     if (!quote) {
-      throw new NotFoundError('Orcamento nao encontrado');
+      throw new NotFoundError('Orçamento não encontrado');
     }
 
     const updatedQuote = await this.quoteRepository.updateQuote(quoteId, {
@@ -465,11 +733,11 @@ export class QuoteService {
   private async ensureCustomerQuoteAccess(userId: string, quoteId: string) {
     const quote = await this.quoteRepository.findQuoteById(quoteId);
     if (!quote) {
-      throw new NotFoundError('Orcamento nao encontrado');
+      throw new NotFoundError('Orçamento não encontrado');
     }
 
     if (quote.userId !== userId) {
-      throw new ForbiddenError('Voce nao tem acesso a este orcamento');
+      throw new ForbiddenError('Você não tem acesso a este orçamento');
     }
 
     return quote;
@@ -500,25 +768,60 @@ export class QuoteService {
   }
 
   private async runOcrJob(params: OcrJobParams) {
+    const startedAt = Date.now();
+
     try {
       await this.quoteRepository.updateQuote(params.quoteId, {
         ocrStatus: 'PROCESSING',
         ocrError: null,
+        ocrAttempts: { increment: 1 },
       });
 
-      const recognized = await this.ocrService.recognizeDocument(params.imageBuffer);
-      const parsedRecognition = await this.parseItemsFromRecognition(recognized.lines);
+      // Build the index first: it feeds the model as context AND is reused for
+      // matching afterwards, so it is only computed once per quote.
+      const index = await this.buildCatalogIndex();
+      const catalogHints: CatalogHint[] = index.products.map((entry) => ({
+        id: entry.product.id,
+        name: entry.product.name,
+      }));
+
+      const recognized = await this.ocrService.recognizeDocument(params.imageBuffer, catalogHints);
+      const engine: RecognitionEngine = recognized.engine === 'openrouter' ? 'openrouter' : 'paddleocr';
+
+      // The index was normalised for the default engine; a VLM result needs
+      // the engine-specific normalisation, so rebuild only in that case.
+      const matchingIndex = engine === 'openrouter' ? await this.buildCatalogIndex(engine) : index;
+
+      const parsedRecognition = await this.parseItemsFromRecognition(
+        recognized.lines,
+        engine,
+        matchingIndex
+      );
       const currentQuote = await this.quoteRepository.findQuoteById(params.quoteId);
 
       if (!currentQuote) {
         return;
       }
 
+      await this.recordOcrRun(params.quoteId, {
+        engine: recognized.engine ?? engine,
+        modelId: recognized.modelId ?? null,
+        success: true,
+        durationMs: recognized.usage?.durationMs ?? Date.now() - startedAt,
+        promptTokens: recognized.usage?.promptTokens ?? null,
+        completionTokens: recognized.usage?.completionTokens ?? null,
+        costUsd: recognized.usage?.costUsd ?? null,
+        itemsDetected: parsedRecognition.items.length,
+        itemsMatched: parsedRecognition.items.filter((item) => item.productId).length,
+      });
+
       const baseUpdate = {
         ocrStatus: 'COMPLETED' as const,
         ocrText: recognized.text || null,
         ocrConfidence: recognized.confidence || null,
         ocrError: null,
+        ocrEngine: recognized.engine ?? engine,
+        ocrModelId: recognized.modelId ?? null,
       };
 
       if (currentQuote.items.length > 0) {
@@ -552,6 +855,19 @@ export class QuoteService {
         error,
       });
 
+      await this.recordOcrRun(params.quoteId, {
+        engine: 'unknown',
+        modelId: null,
+        success: false,
+        durationMs: Date.now() - startedAt,
+        promptTokens: null,
+        completionTokens: null,
+        costUsd: null,
+        itemsDetected: 0,
+        itemsMatched: 0,
+        errorMessage: error instanceof Error ? error.message : 'Falha ao processar OCR',
+      });
+
       await this.quoteRepository.updateQuote(params.quoteId, {
         ocrStatus: 'FAILED',
         ocrError: error instanceof Error ? error.message : 'Falha ao processar OCR',
@@ -559,14 +875,40 @@ export class QuoteService {
     }
   }
 
-  private async parseItemsFromRecognition(lines: RecognizedQuoteLine[]): Promise<ParsedRecognitionResult> {
-    const catalog = await this.productRepository.findCatalogForMatching();
+  /** Telemetry must never break the pipeline it observes. */
+  private async recordOcrRun(
+    quoteRequestId: string,
+    data: {
+      engine: string;
+      modelId: string | null;
+      success: boolean;
+      durationMs: number;
+      promptTokens: number | null;
+      completionTokens: number | null;
+      costUsd: number | null;
+      itemsDetected: number;
+      itemsMatched: number;
+      errorMessage?: string;
+    }
+  ) {
+    try {
+      await this.quoteRepository.createOcrRun({ quoteRequestId, ...data });
+    } catch (error) {
+      logger.warn('Failed to persist OCR telemetry.', { quoteRequestId, error });
+    }
+  }
+
+  private async parseItemsFromRecognition(
+    lines: RecognizedQuoteLine[],
+    engine: RecognitionEngine = 'paddleocr',
+    prebuiltIndex?: CatalogIndex
+  ): Promise<ParsedRecognitionResult> {
+    const index = prebuiltIndex ?? (await this.buildCatalogIndex(engine));
     const parsedItems: PreparedQuoteItem[] = [];
     const customerNoteParts: string[] = [];
 
     lines.forEach((line) => {
-      // Apply OCR corrections as the very first step
-      const text = applyOcrCorrections(line.text.trim());
+      const text = applyOcrCorrections(line.text.trim(), engine);
 
       if (!isRelevantFreeformLine(text)) {
         return;
@@ -577,9 +919,35 @@ export class QuoteService {
         return;
       }
 
-      const match = this.findBestProductMatch(text, catalog);
-      const quantityData = extractQuantity(text);
-      const itemName = cleanLineForItem(text);
+      const sourceLine = line.recognitionSourceLine?.trim() || text;
+
+      // The model already separated quantity from the product name; regex
+      // reparsing is only needed for engines that return a raw line.
+      const hasStructuredQuantity = typeof line.quantity === 'number' && line.quantity > 0;
+      const quantityData = hasStructuredQuantity
+        ? { quantity: line.quantity as number, unit: canonicalUnit(line.unit ?? null) }
+        : extractQuantity(text);
+
+      // A product id resolved by the model was already validated against the
+      // catalogue in the OCR service, so it outranks fuzzy matching.
+      const modelResolved = line.productId ? index.byId.get(line.productId) : undefined;
+
+      if (modelResolved) {
+        parsedItems.push({
+          productId: modelResolved.product.id,
+          name: modelResolved.product.name,
+          quantity: quantityData.quantity,
+          unit: quantityData.unit,
+          confidence: CONFIDENCE.modelResolved,
+          recognitionSourceLine: sourceLine,
+          position: parsedItems.length,
+        });
+        return;
+      }
+
+      const nameForMatching = hasStructuredQuantity ? text : cleanLineForItem(text);
+      const match = this.findBestProductMatch(nameForMatching || text, index, engine);
+      const itemName = hasStructuredQuantity ? text : cleanLineForItem(text);
 
       if (match) {
         parsedItems.push({
@@ -587,15 +955,16 @@ export class QuoteService {
           name: match.product.name,
           quantity: quantityData.quantity,
           unit: quantityData.unit,
-          confidence: Number(((match.score + line.confidence / 100) / 2).toFixed(2)),
-          recognitionSourceLine: text,
+          // The match score is the meaningful signal. Averaging it with the
+          // engine's self-reported confidence mixed two incomparable scales.
+          confidence: Number(match.score.toFixed(2)),
+          recognitionSourceLine: sourceLine,
           position: parsedItems.length,
         });
         return;
       }
 
       // No product match — store the cleaned line as a generic item
-      // Capitalise first letter for presentation
       const displayName = itemName
         ? itemName.charAt(0).toUpperCase() + itemName.slice(1)
         : line.text.trim();
@@ -604,8 +973,8 @@ export class QuoteService {
         name: displayName,
         quantity: quantityData.quantity,
         unit: quantityData.unit,
-        confidence: Number((line.confidence / 100).toFixed(2)),
-        recognitionSourceLine: text,
+        confidence: CONFIDENCE.unmatched,
+        recognitionSourceLine: sourceLine,
         position: parsedItems.length,
       });
     });
@@ -635,90 +1004,224 @@ export class QuoteService {
     };
   }
 
-  private findBestProductMatch(line: string, catalog: CatalogProduct[]) {
-    // Apply OCR corrections then full domain normalisation
-    const domainLine   = normalizeDomainText(line);
-    const plainLine    = normalizeText(line);
-    const lineTokens   = domainTokenize(line);
+  /**
+   * Builds the reusable catalogue index, including aliases learned from past
+   * customer corrections.
+   */
+  private async buildCatalogIndex(engine: RecognitionEngine = 'paddleocr'): Promise<CatalogIndex> {
+    const [catalog, aliasRows] = await Promise.all([
+      this.productRepository.findCatalogForMatching(),
+      this.quoteRepository
+        .findApprovedAliases()
+        .catch(() => [] as Array<{ normalizedText: string; productId: string }>),
+    ]);
+
+    const products: IndexedProduct[] = catalog.map((product) => {
+      const domainName = normalizeDomainText(product.name, engine);
+      const tokens = tokenizeNormalized(domainName);
+
+      return {
+        product,
+        normalizedName: normalizeText(product.name),
+        domainName,
+        tokens,
+        tokenSet: new Set(tokens),
+        trigrams: buildTrigrams(domainName),
+        normalizedSku: normalizeText(product.sku || ''),
+        categoryTokens: domainTokenize(product.category?.name || '', engine),
+      };
+    });
+
+    const byToken = new Map<string, IndexedProduct[]>();
+    const byId = new Map<string, IndexedProduct>();
+
+    for (const indexed of products) {
+      byId.set(indexed.product.id, indexed);
+      for (const token of indexed.tokenSet) {
+        const bucket = byToken.get(token);
+        if (bucket) bucket.push(indexed);
+        else byToken.set(token, [indexed]);
+      }
+    }
+
+    return {
+      products,
+      byToken,
+      byId,
+      aliases: new Map<string, string>(
+        aliasRows.map((row) => [row.normalizedText, row.productId] as const)
+      ),
+    };
+  }
+
+  private findBestProductMatch(
+    line: string,
+    index: CatalogIndex,
+    engine: RecognitionEngine = 'paddleocr'
+  ) {
+    const domainLine = normalizeDomainText(line, engine);
+    const plainLine = normalizeText(line);
+    const lineTokens = tokenizeNormalized(domainLine);
 
     if (domainLine.length < 3) return null;
 
+    // Vocabulary learned from previous customers beats any fuzzy guess.
+    const aliasProductId = index.aliases.get(domainLine);
+    if (aliasProductId) {
+      const aliased = index.byId.get(aliasProductId);
+      if (aliased) {
+        return { product: aliased.product, score: CONFIDENCE.learnedAlias };
+      }
+    }
+
+    const lineTokenSet = new Set(lineTokens);
+    const lineTrigrams = buildTrigrams(domainLine);
+    const preparedLine = {
+      normalized: domainLine,
+      tokens: lineTokens,
+      tokenSet: lineTokenSet,
+      trigrams: lineTrigrams,
+    };
+
+    // Only consider products sharing at least one token with the line. Falls
+    // back to a full scan for short/token-less lines so nothing is missed.
+    const candidates = this.collectCandidates(index, lineTokenSet);
+
     let bestMatch: { product: CatalogProduct; score: number } | null = null;
 
-    for (const product of catalog) {
-      const normalizedSku     = normalizeText(product.sku || '');
-      const normalizedName    = normalizeText(product.name);
-      const domainProductName = normalizeDomainText(product.name);
-      const productTokens     = domainTokenize(product.name);
-      const categoryTokens    = domainTokenize(product.category?.name || '');
-
+    for (const indexed of candidates) {
       let score = 0;
 
       // 1. Exact SKU match — highest confidence
-      if (normalizedSku && (plainLine.includes(normalizedSku) || domainLine.includes(normalizedSku))) {
-        score = 1.0;
+      if (
+        indexed.normalizedSku &&
+        (plainLine.includes(indexed.normalizedSku) || domainLine.includes(indexed.normalizedSku))
+      ) {
+        score = CONFIDENCE.exactSku;
       }
       // 2. Full product name is contained in the line
-      else if (domainLine.includes(domainProductName) || plainLine.includes(normalizedName)) {
+      else if (
+        domainLine.includes(indexed.domainName) ||
+        plainLine.includes(indexed.normalizedName)
+      ) {
         score = 0.97;
       }
       // 3. Line fully contained in product name (user wrote a prefix)
-      else if (domainProductName.includes(domainLine) && domainLine.length >= 5) {
-        score = 0.88;
+      else if (indexed.domainName.includes(domainLine) && domainLine.length >= 5) {
+        score = CONFIDENCE.linePrefix;
       }
       // 4. Blended fuzzy similarity
       else {
-        const fuzzy = blendedSimilarity(domainLine, domainProductName);
+        const fuzzy = blendedSimilarityPrepared(preparedLine, {
+          normalized: indexed.domainName,
+          tokens: indexed.tokens,
+          tokenSet: indexed.tokenSet,
+          trigrams: indexed.trigrams,
+        });
 
-        // Category affinity bonus
-        const categoryBonus = categoryTokens.some((t) => lineTokens.includes(t)) ? 0.07 : 0;
+        const categoryBonus = indexed.categoryTokens.some((t) => lineTokenSet.has(t)) ? 0.07 : 0;
 
-        // Token overlap ratio (of product tokens present in line)
         const tokenCoverage =
-          productTokens.length > 0
-            ? productTokens.filter((t) => lineTokens.includes(t)).length / productTokens.length
+          indexed.tokens.length > 0
+            ? indexed.tokens.filter((t) => lineTokenSet.has(t)).length / indexed.tokens.length
             : 0;
 
         score = fuzzy + categoryBonus;
 
         // Require at least half the product tokens to be present for short product names
-        if (productTokens.length <= 2 && tokenCoverage < 0.5) {
+        if (indexed.tokens.length <= 2 && tokenCoverage < 0.5) {
           score *= 0.6;
         }
       }
 
-      // Minimum threshold — lower than before because the blended score is more precise
-      if (score < 0.42) continue;
+      if (score < MATCH_THRESHOLD) continue;
 
       if (!bestMatch || score > bestMatch.score) {
-        bestMatch = { product, score };
+        bestMatch = { product: indexed.product, score: Math.min(1, score) };
       }
     }
 
     return bestMatch;
   }
 
+  private collectCandidates(index: CatalogIndex, lineTokenSet: Set<string>): IndexedProduct[] {
+    if (lineTokenSet.size === 0) return index.products;
+
+    const seen = new Set<string>();
+    const candidates: IndexedProduct[] = [];
+
+    for (const token of lineTokenSet) {
+      const bucket = index.byToken.get(token);
+      if (!bucket) continue;
+      for (const indexed of bucket) {
+        if (seen.has(indexed.product.id)) continue;
+        seen.add(indexed.product.id);
+        candidates.push(indexed);
+      }
+    }
+
+    // No token overlap at all — the line may still match by SKU or substring,
+    // so fall back to the full catalogue rather than returning nothing.
+    return candidates.length > 0 ? candidates : index.products;
+  }
+
   private async normalizeManualItems(items: UpdateQuoteDraftInput['items']) {
-    const catalog = await this.productRepository.findCatalogForMatching();
+    const catalogIndex = await this.buildCatalogIndex();
 
     return items
       .map((item, index) => {
-        const explicitProduct = item.productId ? catalog.find((product) => product.id === item.productId) : null;
-        const bestMatch = explicitProduct ? null : this.findBestProductMatch(item.name, catalog);
+        const explicitProduct = item.productId ? catalogIndex.byId.get(item.productId) : undefined;
+        const bestMatch = explicitProduct ? null : this.findBestProductMatch(item.name, catalogIndex);
 
         return {
-          productId: explicitProduct?.id ?? bestMatch?.product.id ?? null,
+          productId: explicitProduct?.product.id ?? bestMatch?.product.id ?? null,
           name: item.name.trim(),
           quantity:
             typeof item.quantity === 'number' && Number.isFinite(item.quantity) && item.quantity > 0 ? item.quantity : 1,
           unit: item.unit?.trim() || null,
           notes: item.notes?.trim() || null,
-          confidence: bestMatch ? Number(bestMatch.score.toFixed(2)) : null,
-          recognitionSourceLine: item.name.trim(),
+          confidence: explicitProduct
+            ? CONFIDENCE.exactSku
+            : bestMatch
+              ? Number(bestMatch.score.toFixed(2))
+              : null,
+          recognitionSourceLine: item.recognitionSourceLine?.trim() || item.name.trim(),
           position: index,
         };
       })
       .filter((item) => item.name.length > 0);
+  }
+
+  /**
+   * Turns customer corrections into permanent vocabulary.
+   *
+   * When someone resolves a line the system read poorly into a real product,
+   * that pairing is the most reliable training signal available — it came from
+   * the person who wrote the list.
+   */
+  private async learnFromCustomerCorrections(quote: PersistedQuote) {
+    const corrections = quote.items.filter(
+      (item) =>
+        item.productId &&
+        item.recognitionSourceLine &&
+        // Only learn where the system was unsure; confident matches teach nothing.
+        (item.confidence === null || item.confidence < REVIEW_THRESHOLD)
+    );
+
+    for (const item of corrections) {
+      const normalized = normalizeDomainText(item.recognitionSourceLine as string);
+      if (normalized.length < 3) continue;
+
+      try {
+        await this.quoteRepository.recordProductAlias(
+          normalized,
+          item.productId as string,
+          ALIAS_APPROVAL_OCCURRENCES
+        );
+      } catch (error) {
+        logger.warn('Failed to record product alias.', { quoteId: quote.id, error });
+      }
+    }
   }
 
   private generateReferenceCode() {

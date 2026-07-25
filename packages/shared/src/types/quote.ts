@@ -58,8 +58,9 @@ export interface LeadCapture {
 export interface QuoteRequest {
   id: string;
   referenceCode: string;
-  userId: string;
-  user?: User;
+  /** Nulo enquanto o rascunho é anônimo (foto antes do cadastro). */
+  userId: string | null;
+  user?: User | null;
   leadId?: string | null;
   lead?: LeadCapture | null;
   status: QuoteStatus;
@@ -70,6 +71,8 @@ export interface QuoteRequest {
   ocrText?: string | null;
   ocrConfidence?: number | null;
   ocrError?: string | null;
+  ocrEngine?: string | null;
+  ocrModelId?: string | null;
   documentUrl: string;
   documentFilename?: string | null;
   documentMimeType?: string | null;
@@ -120,6 +123,8 @@ export interface QuoteItemInputDTO {
   quantity?: number;
   unit?: string | null;
   notes?: string | null;
+  /** Texto lido no papel, preservado para aprender com as correções. */
+  recognitionSourceLine?: string | null;
 }
 
 export interface UpdateQuoteDraftDTO {

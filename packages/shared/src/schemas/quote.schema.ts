@@ -25,11 +25,35 @@ export const quoteItemInputSchema = z.object({
   quantity: z.number().positive('Quantidade deve ser positiva').default(1),
   unit: z.string().max(30, 'Unidade muito longa').nullable().optional(),
   notes: z.string().max(500, 'Observação muito longa').nullable().optional(),
+  // Preserved through edits so a customer correction can be learned as an
+  // alias for the text that was actually written on the paper.
+  recognitionSourceLine: z.string().max(500).nullable().optional(),
 });
 
 export const updateQuoteDraftSchema = z.object({
   title: z.string().max(255, 'Título muito longo').nullable().optional(),
   customerNote: z.string().max(1500, 'Observação muito longa').nullable().optional(),
+  items: z.array(quoteItemInputSchema).min(1, 'Adicione pelo menos um item ao orçamento'),
+});
+
+/**
+ * Editing an anonymous draft: the customer photographed a list before
+ * identifying themselves, so the draft token stands in for a session.
+ */
+export const updateAnonymousQuoteDraftSchema = z.object({
+  token: z.string().min(16, 'Token inválido'),
+  items: z.array(quoteItemInputSchema).min(1, 'Adicione pelo menos um item ao orçamento'),
+});
+
+/** Submitting an anonymous draft — where the WhatsApp is finally collected. */
+export const submitAnonymousQuoteSchema = z.object({
+  token: z.string().min(16, 'Token inválido'),
+  name: z
+    .string()
+    .max(255, 'Nome muito longo')
+    .optional()
+    .transform((value) => value?.trim() || 'Cliente'),
+  whatsapp: normalizedWhatsappSchema,
   items: z.array(quoteItemInputSchema).min(1, 'Adicione pelo menos um item ao orçamento'),
 });
 
@@ -56,6 +80,8 @@ export const leadFiltersSchema = z.object({
 export type StartLeadInput = z.infer<typeof startLeadSchema>;
 export type QuoteItemInput = z.infer<typeof quoteItemInputSchema>;
 export type UpdateQuoteDraftInput = z.infer<typeof updateQuoteDraftSchema>;
+export type UpdateAnonymousQuoteDraftInput = z.infer<typeof updateAnonymousQuoteDraftSchema>;
+export type SubmitAnonymousQuoteInput = z.infer<typeof submitAnonymousQuoteSchema>;
 export type UpdateQuoteStatusInput = z.infer<typeof updateQuoteStatusSchema>;
 export type UpdateLeadStatusInput = z.infer<typeof updateLeadStatusSchema>;
 export type QuoteFiltersInput = z.infer<typeof quoteFiltersSchema>;

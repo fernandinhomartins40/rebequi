@@ -7,9 +7,21 @@ import app from './app.js';
 import { env } from './config/env.js';
 import { logger } from './utils/logger.util.js';
 import { prisma } from './lib/prisma.js';
+import { QuoteService } from './services/quote.service.js';
 
 const PORT = env.PORT;
 const HOST = env.HOST;
+
+/** Housekeeping cadence for orphaned OCR jobs and expired anonymous drafts. */
+const QUOTE_MAINTENANCE_INTERVAL_MS = 15 * 60 * 1000;
+
+async function runQuoteMaintenance() {
+  try {
+    await new QuoteService().runMaintenance();
+  } catch (error) {
+    logger.warn('Quote maintenance run failed.', { error });
+  }
+}
 
 /**
  * Start server
@@ -19,6 +31,11 @@ async function startServer() {
     // Test database connection
     await prisma.$connect();
     logger.info('✅ Database connected successfully');
+
+    // O job de OCR vive em memória: um restart no meio do processamento deixa
+    // orçamentos presos em PROCESSING para sempre. Limpa na subida.
+    void runQuoteMaintenance();
+    setInterval(() => void runQuoteMaintenance(), QUOTE_MAINTENANCE_INTERVAL_MS).unref();
 
     // Start listening
     app.listen(PORT, HOST, () => {

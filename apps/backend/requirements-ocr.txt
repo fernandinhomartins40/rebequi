@@ -1,0 +1,14 @@
+# Dependências Python do motor de OCR local (rede de segurança do reconhecimento).
+#
+# Usado pelo bridge scripts/paddleocr_bridge.py. Exige imagem base Debian
+# (node:20-slim) — PaddlePaddle não publica wheels para musl/Alpine.
+#
+# Versões fixadas: PaddleOCR muda a API entre minor releases e o bridge
+# suporta 2.x e 3.x, mas atualizações não testadas quebram o parsing.
+
+paddlepaddle==2.6.2
+paddleocr==2.9.1
+
+# Dependências transitivas que o paddleocr não fixa e que já quebraram build:
+numpy<2.0
+opencv-python-headless==4.10.0.84

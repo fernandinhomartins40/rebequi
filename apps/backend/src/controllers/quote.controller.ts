@@ -3,6 +3,8 @@ import type {
   LeadFiltersInput,
   QuoteFiltersInput,
   StartLeadInput,
+  SubmitAnonymousQuoteInput,
+  UpdateAnonymousQuoteDraftInput,
   UpdateLeadStatusInput,
   UpdateQuoteDraftInput,
   UpdateQuoteStatusInput,
@@ -67,6 +69,80 @@ export class QuoteController {
         201,
         'Quote draft created successfully'
       );
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  createAnonymousDraft = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const result = await this.quoteService.createAnonymousDraft({
+        file: req.file,
+        width: parseNumber(req.body.width),
+        height: parseNumber(req.body.height),
+      });
+
+      successResponse(res, result, 201, 'Anonymous quote draft created successfully');
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getAnonymousDraft = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const token = getRouteParam(req.params.token);
+      const result = await this.quoteService.getAnonymousDraft(token);
+      successResponse(res, result, 200);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updateAnonymousDraft = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const data: UpdateAnonymousQuoteDraftInput = req.body;
+      const result = await this.quoteService.updateAnonymousDraft(data);
+      successResponse(res, result, 200, 'Quote draft updated successfully');
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  submitAnonymousDraft = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const data: SubmitAnonymousQuoteInput = req.body;
+      const result = await this.quoteService.submitAnonymousDraft(data);
+
+      setAuthCookie(res, result.token);
+      successResponse(
+        res,
+        {
+          quote: result.quote,
+          user: result.user,
+          provisionalCredentials: result.provisionalCredentials,
+        },
+        200,
+        'Quote submitted successfully'
+      );
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getOcrHealth = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const result = await this.quoteService.getOcrHealth();
+      successResponse(res, result, 200);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getOcrStats = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const days = parseNumber(req.query.days) ?? 30;
+      const result = await this.quoteService.getOcrStats(days);
+      successResponse(res, result, 200);
     } catch (error) {
       next(error);
     }

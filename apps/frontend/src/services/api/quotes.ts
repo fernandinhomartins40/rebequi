@@ -99,6 +99,71 @@ export async function processPublicQuoteDocument(params: {
   return unwrapData<ProcessedPublicQuoteResponse>(response);
 }
 
+// ─── Fluxo foto-primeiro ─────────────────────────────────────────────────────
+// A lista é fotografada antes de qualquer cadastro; o token do rascunho faz as
+// vezes de sessão até o cliente informar o WhatsApp no envio.
+
+export type AnonymousDraftResponse = {
+  quote: QuoteRequest;
+  token: string;
+  expiresAt: string;
+};
+
+export type SubmitAnonymousResponse = {
+  quote: QuoteRequest;
+  user: StartLeadResponse['user'];
+  provisionalCredentials?: StartLeadResponse['provisionalCredentials'];
+};
+
+export async function createAnonymousQuoteDraft(params: {
+  file: File;
+  width?: number;
+  height?: number;
+}): Promise<AnonymousDraftResponse> {
+  const body = new FormData();
+  body.append('document', params.file);
+  if (params.width) body.append('width', String(params.width));
+  if (params.height) body.append('height', String(params.height));
+
+  const response = await apiFetch<ApiResponse<AnonymousDraftResponse> | AnonymousDraftResponse>(
+    '/quotes/public/anonymous-document',
+    { method: 'POST', body }
+  );
+
+  return unwrapData<AnonymousDraftResponse>(response);
+}
+
+export async function fetchAnonymousQuoteDraft(token: string): Promise<QuoteRequest> {
+  const response = await apiFetch<ApiResponse<QuoteRequest> | QuoteRequest>(
+    `/quotes/public/anonymous/${encodeURIComponent(token)}`
+  );
+  return unwrapData<QuoteRequest>(response);
+}
+
+export async function updateAnonymousQuoteDraft(
+  token: string,
+  items: UpdateQuoteDraftDTO['items']
+): Promise<QuoteRequest> {
+  const response = await apiFetch<ApiResponse<QuoteRequest> | QuoteRequest>('/quotes/public/anonymous', {
+    method: 'PUT',
+    body: JSON.stringify({ token, items }),
+  });
+  return unwrapData<QuoteRequest>(response);
+}
+
+export async function submitAnonymousQuote(payload: {
+  token: string;
+  name?: string;
+  whatsapp: string;
+  items: UpdateQuoteDraftDTO['items'];
+}): Promise<SubmitAnonymousResponse> {
+  const response = await apiFetch<ApiResponse<SubmitAnonymousResponse> | SubmitAnonymousResponse>(
+    '/quotes/public/anonymous/submit',
+    { method: 'POST', body: JSON.stringify(payload) }
+  );
+  return unwrapData<SubmitAnonymousResponse>(response);
+}
+
 export async function createAuthenticatedQuoteDraft(params: {
   file: File;
   width?: number;

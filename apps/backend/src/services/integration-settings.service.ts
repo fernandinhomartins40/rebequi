@@ -25,10 +25,15 @@ const SETTING_KEYS = {
 const DEFAULTS = {
   primaryModel: 'qwen/qwen2.5-vl-72b-instruct:free',
   fallbackModel: 'google/gemini-2.0-flash-exp:free',
-  timeoutMs: 12_000,
+  // Vision models on the free tier routinely queue. 12s aborted calls that
+  // would have succeeded, and the chain paid that cost twice before failing.
+  timeoutMs: 45_000,
   referer: 'https://rebequi.com.br',
   title: 'Rebequi OCR',
 } as const;
+
+const TIMEOUT_MIN_MS = 10_000;
+const TIMEOUT_MAX_MS = 120_000;
 
 export type OpenRouterPublicConfig = {
   enabled: boolean;
@@ -45,6 +50,26 @@ export type OpenRouterPublicConfig = {
 export type OpenRouterRuntimeConfig = OpenRouterPublicConfig & {
   apiKey: string | null;
 };
+
+export type VisionModel = {
+  id: string;
+  name: string;
+  isFree: boolean;
+  promptPricePerMillion: number | null;
+  completionPricePerMillion: number | null;
+  contextLength: number | null;
+};
+
+type RawOpenRouterModel = {
+  id: string;
+  name?: string;
+  context_length?: number;
+  architecture?: { input_modalities?: string[]; modality?: string };
+  pricing?: { prompt?: string; completion?: string };
+};
+
+const VISION_MODELS_TTL_MS = 60 * 60 * 1000;
+let visionModelsCache: { models: VisionModel[]; fetchedAt: number } | null = null;
 
 export type OpenRouterUpdateInput = {
   enabled?: boolean;
@@ -235,6 +260,131 @@ export class IntegrationSettingsService {
     }
   }
 
+  /**
+   * Lists the OpenRouter models that actually accept images.
+   *
+   * The hardcoded frontend list went stale on its own — `:free` vision models
+   * come and go constantly. Cached for an hour since it changes slowly and the
+   * merchant may reopen the settings page repeatedly.
+   */
+  async listVisionModels(): Promise<VisionModel[]> {
+    const now = Date.now();
+    if (visionModelsCache && now - visionModelsCache.fetchedAt < VISION_MODELS_TTL_MS) {
+      return visionModelsCache.models;
+    }
+
+    const runtime = await this.getOpenRouterRuntime();
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15_000);
+
+    try {
+      const response = await fetch('https://openrouter.ai/api/v1/models', {
+        method: 'GET',
+        headers: {
+          ...(runtime.apiKey ? { Authorization: `Bearer ${runtime.apiKey}` } : {}),
+          'HTTP-Referer': runtime.referer,
+          'X-Title': runtime.title,
+        },
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenRouter HTTP ${response.status}`);
+      }
+
+      const data = (await response.json()) as { data?: RawOpenRouterModel[] };
+
+      const models = (data.data ?? [])
+        .filter((model) => {
+          const modalities =
+            model.architecture?.input_modalities ?? model.architecture?.modality?.split('+') ?? [];
+          return modalities.some((mode) => mode.toLowerCase().includes('image'));
+        })
+        .map((model) => {
+          const promptPrice = Number(model.pricing?.prompt ?? '0');
+          const completionPrice = Number(model.pricing?.completion ?? '0');
+          return {
+            id: model.id,
+            name: model.name || model.id,
+            isFree: promptPrice === 0 && completionPrice === 0,
+            // OpenRouter prices per token; per-million is what humans read.
+            promptPricePerMillion: Number.isFinite(promptPrice) ? promptPrice * 1_000_000 : null,
+            completionPricePerMillion: Number.isFinite(completionPrice)
+              ? completionPrice * 1_000_000
+              : null,
+            contextLength: model.context_length ?? null,
+          };
+        })
+        .sort((a, b) => {
+          if (a.isFree !== b.isFree) return a.isFree ? -1 : 1;
+          return a.name.localeCompare(b.name);
+        });
+
+      visionModelsCache = { models, fetchedAt: now };
+      return models;
+    } catch (error) {
+      logger.warn('Failed to list OpenRouter vision models.', { error });
+      // Serve a stale cache rather than nothing.
+      if (visionModelsCache) return visionModelsCache.models;
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  /**
+   * Runs the full recognition chain against a real image.
+   *
+   * Listing models only proves the key is valid — it says nothing about
+   * whether the chosen model can actually read a shopping list. This is the
+   * only check that answers that.
+   */
+  async testRecognition(
+    imageBuffer: Buffer,
+    catalog: Array<{ id: string; name: string }> = []
+  ): Promise<{
+    ok: boolean;
+    message: string;
+    engine?: string;
+    modelId?: string;
+    durationMs?: number;
+    costUsd?: number | null;
+    items?: Array<{ text: string; quantity: number | null; unit: string | null }>;
+  }> {
+    // Imported lazily to avoid a circular import at module load time.
+    const { QuoteOcrService } = await import('./quote-ocr.service.js');
+    const ocrService = new QuoteOcrService();
+
+    const startedAt = Date.now();
+    try {
+      const result = await ocrService.recognizeDocument(imageBuffer, catalog);
+
+      return {
+        ok: result.lines.length > 0,
+        message:
+          result.lines.length > 0
+            ? `Leitura concluída: ${result.lines.length} itens reconhecidos.`
+            : 'A leitura rodou mas nenhum item foi reconhecido na imagem.',
+        engine: result.engine,
+        modelId: result.modelId,
+        durationMs: result.usage?.durationMs ?? Date.now() - startedAt,
+        costUsd: result.usage?.costUsd ?? null,
+        items: result.lines.slice(0, 20).map((line) => ({
+          text: line.text,
+          quantity: line.quantity ?? null,
+          unit: line.unit ?? null,
+        })),
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        message: error instanceof Error ? error.message : 'Falha ao executar a leitura de teste.',
+        durationMs: Date.now() - startedAt,
+      };
+    }
+  }
+
   private parseTimeout(raw: string | undefined): number {
     if (!raw) return DEFAULTS.timeoutMs;
     const parsed = Number(raw);
@@ -243,8 +393,8 @@ export class IntegrationSettingsService {
   }
 
   private clampTimeout(value: number): number {
-    if (value < 2000) return 2000;
-    if (value > 60_000) return 60_000;
+    if (value < TIMEOUT_MIN_MS) return TIMEOUT_MIN_MS;
+    if (value > TIMEOUT_MAX_MS) return TIMEOUT_MAX_MS;
     return Math.round(value);
   }
 

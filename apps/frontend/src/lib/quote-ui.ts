@@ -46,7 +46,7 @@ export function getQuoteStatusDescription(status: QuoteStatus) {
     case 'RESPONDED':
       return 'Loja ja devolveu o retorno comercial ao cliente.';
     case 'ARCHIVED':
-      return 'Fluxo encerrado e mantido apenas para historico.';
+      return 'Fluxo encerrado e mantido apenas para histórico.';
     default:
       return 'Status do orçamento.';
   }

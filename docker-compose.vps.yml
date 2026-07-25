@@ -57,11 +57,14 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    # Mesmo script do compose de produção: baseline de banco legado + migrate
+    # deploy. Sem fallback para `db push --accept-data-loss`, que mascarava
+    # falha de migration e podia destruir dados em silêncio.
     command:
       [
         "sh",
         "-lc",
-        "cd /app/apps/backend && if npx prisma migrate deploy; then echo 'Prisma migrate deploy concluido.'; else echo 'Fallback para prisma db push --accept-data-loss em banco legado.'; npx prisma db push --accept-data-loss; fi && npm run prisma:bootstrap",
+        "cd /app/apps/backend && sh scripts/migrate-deploy.sh && npm run prisma:bootstrap",
       ]
     networks:
       - rebequi-network

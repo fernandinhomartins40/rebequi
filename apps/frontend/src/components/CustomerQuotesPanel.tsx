@@ -1,6 +1,6 @@
-import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
+import { useState, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
 import { ArrowRight, Camera, FileText, Plus, Trash2 } from 'lucide-react';
-import { QuoteDocumentCaptureCard, type QuoteDocumentSelection } from '@/components/QuoteDocumentCaptureCard';
+import { LiveDocumentScanner, type ScannedDocument } from '@/components/LiveDocumentScanner';
 import { QuoteStatusBadge } from '@/components/QuoteStatusBadge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,7 +46,7 @@ export function CustomerQuotesPanel({
   createDraftPending: boolean;
   saveDraftPending: boolean;
   submitPending: boolean;
-  onCaptureDocument: (selection: QuoteDocumentSelection) => Promise<void>;
+  onCaptureDocument: (selection: ScannedDocument) => Promise<void>;
   onSelectQuote: (id: string) => void;
   onSaveDraft: () => Promise<unknown>;
   onSaveAndSend: () => Promise<unknown>;
@@ -56,6 +56,19 @@ export function CustomerQuotesPanel({
   const inReviewQuotes = quotes.filter((q) => q.status === 'IN_REVIEW');
   const ocrPendingQuotes = quotes.filter((q) => q.status === 'DRAFT' && (q.ocrStatus === 'PENDING' || q.ocrStatus === 'PROCESSING'));
   const editableItemCount = editorState.items.filter((item) => item.name.trim()).length;
+  const [scannerOpen, setScannerOpen] = useState(false);
+
+  if (scannerOpen) {
+    return (
+      <LiveDocumentScanner
+        onCapture={(doc) => {
+          setScannerOpen(false);
+          void onCaptureDocument(doc);
+        }}
+        onCancel={() => setScannerOpen(false)}
+      />
+    );
+  }
 
   return (
     <div className="animate-fade-in-up space-y-5">
@@ -74,12 +87,6 @@ export function CustomerQuotesPanel({
           </div>
         </div>
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <SummarySurface value={`${quotes.length}`} label="Total" description="Histórico completo." />
-          <SummarySurface value={`${draftQuotes.length}`} label="Rascunhos" description="Para revisar ou completar." />
-          <SummarySurface value={`${ocrPendingQuotes.length}`} label="Em leitura" description="OCR rodando em segundo plano." />
-          <SummarySurface value={`${submittedQuotes.length + inReviewQuotes.length}`} label="Em análise" description="Enviados, aguardando retorno." />
-        </div>
       </section>
 
       <div className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
@@ -95,12 +102,19 @@ export function CustomerQuotesPanel({
               </p>
             </div>
 
-            <QuoteDocumentCaptureCard
-              helper="Use boa luz e mantenha a lista legível."
-              processing={createDraftPending}
-              buttonLabel="criar rascunho"
-              onSelectFile={onCaptureDocument}
-            />
+            <Button
+              type="button"
+              size="lg"
+              className="h-14 w-full gap-2 text-base font-semibold"
+              onClick={() => setScannerOpen(true)}
+              disabled={createDraftPending}
+            >
+              <Camera className="h-5 w-5" />
+              {createDraftPending ? 'Enviando…' : 'Fotografar minha lista'}
+            </Button>
+            <p className="mt-2 text-center text-xs text-muted-foreground">
+              A câmera captura sozinha quando a lista estiver enquadrada.
+            </p>
           </section>
 
           {/* Lista de orçamentos */}
@@ -414,16 +428,6 @@ export function CustomerQuotesPanel({
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-function SummarySurface({ label, value, description }: { label: string; value: string; description: string }) {
-  return (
-    <div className="rounded-xl border border-slate-200/70 bg-slate-50/80 p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className="mt-2 text-2xl font-bold tracking-tight text-foreground">{value}</p>
-      <p className="mt-1 text-xs text-muted-foreground">{description}</p>
     </div>
   );
 }

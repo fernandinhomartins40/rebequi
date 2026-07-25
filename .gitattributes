@@ -1,0 +1,32 @@
+# Normaliza finais de linha no repositório.
+#
+# O ambiente de desenvolvimento é Windows (core.autocrlf=true), mas os
+# containers de deploy são Linux. Sem estas regras, um checkout no Windows
+# converte scripts .sh para CRLF e o container quebra com
+# "bad interpreter: No such file or directory" — falha que só aparece em
+# produção, no meio do deploy.
+
+* text=auto
+
+# Scripts e arquivos executados dentro de containers Linux: sempre LF.
+*.sh            text eol=lf
+Dockerfile      text eol=lf
+Dockerfile.*    text eol=lf
+*.yml           text eol=lf
+*.yaml          text eol=lf
+Makefile        text eol=lf
+*.py            text eol=lf
+*.sql           text eol=lf
+
+# Binários: nunca converter.
+*.png           binary
+*.jpg           binary
+*.jpeg          binary
+*.gif           binary
+*.ico           binary
+*.woff          binary
+*.woff2         binary
+*.ttf           binary
+*.eot           binary
+*.pdf           binary
+*.lockb         binary

@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { getRolesForMerchantPermission } from '@rebequi/shared/constants';
 import {
   startLeadSchema,
+  submitAnonymousQuoteSchema,
+  updateAnonymousQuoteDraftSchema,
   updateLeadStatusSchema,
   updateQuoteDraftSchema,
   updateQuoteStatusSchema,
@@ -19,6 +21,26 @@ const quoteRoles = getRolesForMerchantPermission('quotes:manage');
 router.post('/public/start', validateBody(startLeadSchema), quoteController.startPublicLead);
 router.post('/public/document', uploadLimiter, upload.single('document'), quoteController.processPublicDocument);
 
+// Fluxo foto-primeiro: a lista é fotografada antes de qualquer cadastro e o
+// WhatsApp só é pedido no envio. O token do rascunho faz as vezes de sessão.
+router.post(
+  '/public/anonymous-document',
+  uploadLimiter,
+  upload.single('document'),
+  quoteController.createAnonymousDraft
+);
+router.get('/public/anonymous/:token', quoteController.getAnonymousDraft);
+router.put(
+  '/public/anonymous',
+  validateBody(updateAnonymousQuoteDraftSchema),
+  quoteController.updateAnonymousDraft
+);
+router.post(
+  '/public/anonymous/submit',
+  validateBody(submitAnonymousQuoteSchema),
+  quoteController.submitAnonymousDraft
+);
+
 router.get('/me', authenticate, authorize('CUSTOMER'), quoteController.getCustomerQuotes);
 router.post(
   '/me/document',
@@ -31,6 +53,8 @@ router.post(
 router.put('/:id', authenticate, authorize('CUSTOMER'), validateBody(updateQuoteDraftSchema), quoteController.updateCustomerDraft);
 router.post('/:id/submit', authenticate, authorize('CUSTOMER'), quoteController.submitCustomerQuote);
 
+router.get('/admin/ocr-health', authenticate, authorize(...quoteRoles), quoteController.getOcrHealth);
+router.get('/admin/ocr-stats', authenticate, authorize(...quoteRoles), quoteController.getOcrStats);
 router.get('/admin/list', authenticate, authorize(...quoteRoles), quoteController.getAdminQuotes);
 router.get('/admin/leads', authenticate, authorize(...quoteRoles), quoteController.getCapturedLeads);
 router.post(

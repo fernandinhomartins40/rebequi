@@ -404,7 +404,29 @@ jobs:
           wait_for_container_health "rebequi-postgres" 120
 
           docker rm -f rebequi-migrator >/dev/null 2>&1 || true
-          compose -f docker-compose.production.yml run --rm migrator
+
+          # O migrator roda scripts/migrate-deploy.sh: faz baseline de banco
+          # legado (schema sem historico) e aplica as migrations pendentes.
+          # Ele nao usa `db push --accept-data-loss`, entao uma migration que
+          # falha derruba o deploy aqui em vez de corromper o banco em silencio.
+          echo "=== Aplicando migrations do banco ==="
+          if ! compose -f docker-compose.production.yml run --rm migrator; then
+            echo "ERRO: a migracao do banco falhou. A release NAO foi publicada." >&2
+            echo "O banco permanece no estado anterior e os containers atuais seguem no ar." >&2
+            echo "--- logs do postgres ---" >&2
+            docker logs rebequi-postgres --tail 50 >&2 || true
+            exit 1
+          fi
+
+          # Confirma que nao sobrou migration pendente antes de subir a release.
+          # `migrate status` sai com codigo 1 quando ha pendencia.
+          echo "=== Conferindo estado final das migrations ==="
+          if ! compose -f docker-compose.production.yml run --rm migrator \
+              sh -lc "cd /app/apps/backend && npx prisma migrate status"; then
+            echo "ERRO: ainda existem migrations pendentes apos o deploy das migrations." >&2
+            exit 1
+          fi
+
           echo "Migracao concluida. Substituindo os containers da aplicacao pela release ${RELEASE_VERSION_VALUE}."
           docker rm -f rebequi-api rebequi-web >/dev/null 2>&1 || true
           compose -f docker-compose.production.yml up -d --force-recreate --renew-anon-volumes --remove-orphans api web

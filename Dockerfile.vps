@@ -1,3 +1,17 @@
+# =============================================================================
+# ARQUIVO OBSOLETO — NAO E USADO POR NENHUM DEPLOY.
+#
+# O deploy de producao (.github/workflows/deploy-production.yml) usa
+# docker-compose.production.yml, que constroi a partir de:
+#   - apps/backend/Dockerfile   (API + migrator, com PaddleOCR instalado)
+#   - apps/frontend/Dockerfile  (web)
+#
+# Nenhum compose ou script referencia este arquivo. Ele descreve uma imagem
+# monolitica em Alpine que, entre outras coisas, NAO instala o PaddleOCR —
+# seguir este arquivo como referencia leva a conclusoes erradas sobre o
+# ambiente real. Mantido apenas por historico; alterar apps/backend/Dockerfile.
+# =============================================================================
+
 # ============================================
 # Stage 1: Build Backend and Frontend
 # ============================================

@@ -163,6 +163,7 @@ def build_ocr(lang):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
+    parser.add_argument("--warmup", action="store_true")
     parser.add_argument("--image")
     parser.add_argument("--lang", default="la")
     args = parser.parse_args()
@@ -171,6 +172,14 @@ def main():
         if importlib.util.find_spec("paddleocr") is None:
             raise ImportError("paddleocr module not found")
         print(json.dumps({"ok": True}))
+        return 0
+
+    # Instancia o PaddleOCR só para forçar o download dos modelos. Usado no
+    # build da imagem: sem isso o primeiro pedido de cada container gastaria
+    # ~30s baixando pesos e provavelmente estouraria o timeout do job de OCR.
+    if args.warmup:
+        build_ocr(args.lang)
+        print(json.dumps({"ok": True, "warmed": True}))
         return 0
 
     if not args.image:

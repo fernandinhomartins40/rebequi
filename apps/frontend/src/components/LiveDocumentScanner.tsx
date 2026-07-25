@@ -26,6 +26,60 @@ type Props = {
 const STABLE_FRAMES_REQUIRED = 18;   // ~600ms a 30fps
 const COUNTDOWN_SECONDS = 3;
 const CORNER_TOLERANCE_PX = 18;
+// Variância do Laplaciano: abaixo disso a foto sai tremida/desfocada e o OCR
+// devolve lixo — melhor bloquear a captura do que gastar uma chamada de IA.
+const MIN_SHARPNESS = 45;
+// Média de luminância (0-255). Abaixo disso nem o VLM consegue ler.
+const MIN_BRIGHTNESS = 55;
+// Avaliar qualidade a cada N frames: é caro e não precisa rodar a 30fps.
+const QUALITY_CHECK_EVERY = 6;
+
+type QualityIssue = 'blurry' | 'dark' | null;
+
+/**
+ * Mede nitidez e luminância do frame usando o OpenCV que já está carregado.
+ * Retorna null quando a medição falha, para nunca bloquear a captura por erro
+ * da própria checagem.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function measureFrameQuality(cv: any, src: any): { sharpness: number; brightness: number } | null {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let gray: any = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let laplacian: any = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let mean: any = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let stddev: any = null;
+
+  try {
+    gray = new cv.Mat();
+    cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+
+    const brightnessMean = new cv.Mat();
+    const brightnessStd = new cv.Mat();
+    cv.meanStdDev(gray, brightnessMean, brightnessStd);
+    const brightness = brightnessMean.doubleAt(0, 0);
+    brightnessMean.delete();
+    brightnessStd.delete();
+
+    laplacian = new cv.Mat();
+    cv.Laplacian(gray, laplacian, cv.CV_64F);
+    mean = new cv.Mat();
+    stddev = new cv.Mat();
+    cv.meanStdDev(laplacian, mean, stddev);
+    const sd = stddev.doubleAt(0, 0);
+
+    return { sharpness: sd * sd, brightness };
+  } catch {
+    return null;
+  } finally {
+    gray?.delete?.();
+    laplacian?.delete?.();
+    mean?.delete?.();
+    stddev?.delete?.();
+  }
+}
 
 export function LiveDocumentScanner({ onCapture, onCancel }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -44,7 +98,10 @@ export function LiveDocumentScanner({ onCapture, onCancel }: Props) {
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [qualityIssue, setQualityIssue] = useState<QualityIssue>(null);
   const fallbackInputRef = useRef<HTMLInputElement | null>(null);
+  const frameCounterRef = useRef(0);
+  const qualityIssueRef = useRef<QualityIssue>(null);
 
   const clearCountdown = useCallback(() => {
     if (countdownTimerRef.current) {
@@ -233,6 +290,26 @@ export function LiveDocumentScanner({ onCapture, onCancel }: Props) {
       let contour: any = null;
       try {
         img = cv.imread(sample);
+
+        // Amostragem periódica: medir a cada frame derrubaria o FPS.
+        frameCounterRef.current += 1;
+        if (frameCounterRef.current % QUALITY_CHECK_EVERY === 0) {
+          const quality = measureFrameQuality(cv, img);
+          if (quality) {
+            const issue: QualityIssue =
+              quality.brightness < MIN_BRIGHTNESS
+                ? 'dark'
+                : quality.sharpness < MIN_SHARPNESS
+                  ? 'blurry'
+                  : null;
+
+            if (issue !== qualityIssueRef.current) {
+              qualityIssueRef.current = issue;
+              setQualityIssue(issue);
+            }
+          }
+        }
+
         contour = scanner.findPaperContour(img);
 
         if (contour) {
@@ -243,9 +320,10 @@ export function LiveDocumentScanner({ onCapture, onCancel }: Props) {
             corners.bottomLeftCorner &&
             corners.bottomRightCorner
           ) {
-            // Desenha quadrilátero
-            const isStable = cornersAreStable(corners);
-            overlayCtx.strokeStyle = isStable ? '#22c55e' : '#fbbf24';
+            // Foto ruim não vira pedido: segura a captura até melhorar.
+            const hasQualityIssue = qualityIssueRef.current !== null;
+            const isStable = cornersAreStable(corners) && !hasQualityIssue;
+            overlayCtx.strokeStyle = hasQualityIssue ? '#ef4444' : isStable ? '#22c55e' : '#fbbf24';
             overlayCtx.lineWidth = 8;
             overlayCtx.beginPath();
             overlayCtx.moveTo(corners.topLeftCorner.x, corners.topLeftCorner.y);
@@ -310,6 +388,13 @@ export function LiveDocumentScanner({ onCapture, onCancel }: Props) {
   };
 
   const helperText = (() => {
+    // Orientação de qualidade tem prioridade: é acionável agora.
+    if (qualityIssue && (status === 'detecting' || status === 'aligning')) {
+      return qualityIssue === 'dark'
+        ? 'Está escuro — procure mais luz'
+        : 'Segure firme, está tremido';
+    }
+
     switch (status) {
       case 'loading':
         return 'Preparando câmera…';
@@ -361,7 +446,13 @@ export function LiveDocumentScanner({ onCapture, onCancel }: Props) {
         >
           <X className="h-5 w-5" />
         </button>
-        <p className="rounded-full bg-black/50 px-4 py-1.5 text-sm font-medium text-white backdrop-blur">
+        <p
+          className={`rounded-full px-4 py-1.5 text-sm font-medium text-white backdrop-blur ${
+            qualityIssue && (status === 'detecting' || status === 'aligning')
+              ? 'bg-red-500/80'
+              : 'bg-black/50'
+          }`}
+        >
           {helperText}
         </p>
         <div className="w-10" />

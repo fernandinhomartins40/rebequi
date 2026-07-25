@@ -35,7 +35,7 @@ export const INTERNAL_USER_ROLES: InternalUserRole[] = [
 
 export const MERCHANT_PERMISSION_PROFILES: Record<MerchantPermission, PermissionProfile> = {
   'dashboard:view': {
-    label: 'Visao geral',
+    label: 'Visão geral',
     description: 'Acompanha o resumo operacional do painel do lojista.',
   },
   'catalog:manage': {
@@ -56,7 +56,7 @@ export const MERCHANT_PERMISSION_PROFILES: Record<MerchantPermission, Permission
   },
   'customers:manage': {
     label: 'Clientes',
-    description: 'Gerencia a base de clientes, historico, funil de relacionamento, notas e follow-up.',
+    description: 'Gerencia a base de clientes, histórico, funil de relacionamento, notas e follow-up.',
   },
   'quotes:manage': {
     label: 'Orcamentos',
@@ -64,7 +64,7 @@ export const MERCHANT_PERMISSION_PROFILES: Record<MerchantPermission, Permission
   },
   'channels:manage': {
     label: 'Canais',
-    description: 'Conecta marketplaces, publica anuncios e sincroniza preco e estoque com canais externos.',
+    description: 'Conecta marketplaces, publica anúncios e sincroniza preço e estoque com canais externos.',
   },
   'access:manage': {
     label: 'Acesso',
@@ -114,7 +114,7 @@ export const MERCHANT_ROLE_PROFILES: Record<InternalUserRole, RoleProfile> = {
     permissions: ['dashboard:view', 'catalog:manage'],
   },
   [UserRole.MARKETING]: {
-    label: 'Gestor de promocoes',
+    label: 'Gestor de promoções',
     description: 'Cuida das campanhas, vitrines e destaques promocionais.',
     permissions: ['promotions:manage'],
   },

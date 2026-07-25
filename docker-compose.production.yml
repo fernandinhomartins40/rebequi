@@ -29,11 +29,14 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    # Migrations + bootstrap. O script faz baseline de banco legado e aplica as
+    # pendentes; nunca usa `db push --accept-data-loss`. Se falhar, o container
+    # sai com erro e o deploy para (o workflow roda com `set -e`).
     command:
       [
         "sh",
         "-lc",
-        "cd /app/apps/backend && if npx prisma migrate deploy; then echo 'Prisma migrate deploy concluido.'; else echo 'Fallback para prisma db push --accept-data-loss em banco legado.'; npx prisma db push --accept-data-loss; fi && npm run prisma:bootstrap",
+        "cd /app/apps/backend && sh scripts/migrate-deploy.sh && npm run prisma:bootstrap",
       ]
     networks:
       - rebequi-network

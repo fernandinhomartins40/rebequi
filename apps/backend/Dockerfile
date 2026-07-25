@@ -94,6 +94,15 @@ RUN mkdir -p /app/uploads /app/logs \
   && printf '%s\n' "$RELEASE_VERSION" > /app/.release-version \
   && chown -R node:node /app
 
+# Pré-carrega os modelos do PaddleOCR ainda no build, como usuário node (é o
+# HOME dele que o PaddleOCR usa como cache). Sem isso, o primeiro orçamento de
+# cada container gastaria ~30s baixando pesos e provavelmente estouraria o
+# timeout do job de OCR — justamente quando o cliente está esperando.
+USER node
+RUN python3 /app/apps/backend/scripts/paddleocr_bridge.py --warmup --lang la \
+  || echo "AVISO: pre-carregamento dos modelos de OCR falhou; sera feito no primeiro uso"
+USER root
+
 # Switch to non-root user
 USER node
 

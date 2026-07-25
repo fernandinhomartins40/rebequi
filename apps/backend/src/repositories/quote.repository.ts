@@ -131,4 +131,107 @@ export class QuoteRepository {
   async countQuotes(where?: Prisma.QuoteRequestWhereInput) {
     return prisma.quoteRequest.count({ where });
   }
+
+  async findQuoteByAnonymousToken(token: string) {
+    return prisma.quoteRequest.findUnique({
+      where: { anonymousToken: token },
+      include: quoteInclude,
+    });
+  }
+
+  /**
+   * Marks quotes whose background OCR job died with the process.
+   *
+   * The job lives in memory (setTimeout), so a restart mid-processing left
+   * them stuck in PROCESSING forever, with the frontend polling indefinitely.
+   */
+  async failStaleOcrJobs(olderThan: Date) {
+    return prisma.quoteRequest.updateMany({
+      where: {
+        ocrStatus: { in: ['PENDING', 'PROCESSING'] },
+        updatedAt: { lt: olderThan },
+      },
+      data: {
+        ocrStatus: 'FAILED',
+        ocrError: 'O processamento foi interrompido. Tente enviar a foto novamente.',
+      },
+    });
+  }
+
+  /** Deletes abandoned anonymous drafts that were never submitted. */
+  async deleteExpiredAnonymousDrafts(now: Date) {
+    return prisma.quoteRequest.deleteMany({
+      where: {
+        userId: null,
+        status: 'DRAFT',
+        anonymousExpiresAt: { lt: now },
+      },
+    });
+  }
+
+  async createOcrRun(data: Prisma.OcrRunUncheckedCreateInput) {
+    return prisma.ocrRun.create({ data });
+  }
+
+  async updateLatestOcrRun(quoteRequestId: string, data: Prisma.OcrRunUncheckedUpdateInput) {
+    const latest = await prisma.ocrRun.findFirst({
+      where: { quoteRequestId },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+    });
+
+    if (!latest) return null;
+
+    return prisma.ocrRun.update({ where: { id: latest.id }, data });
+  }
+
+  /** Aggregated OCR telemetry for the merchant dashboard. */
+  async getOcrStats(since: Date) {
+    const [byEngine, totals] = await Promise.all([
+      prisma.ocrRun.groupBy({
+        by: ['engine', 'modelId', 'success'],
+        where: { createdAt: { gte: since } },
+        _count: { _all: true },
+        _avg: { durationMs: true },
+        _sum: { costUsd: true, itemsDetected: true, itemsMatched: true, itemsEditedByCustomer: true },
+      }),
+      prisma.ocrRun.aggregate({
+        where: { createdAt: { gte: since } },
+        _count: { _all: true },
+        _sum: { costUsd: true, itemsDetected: true, itemsEditedByCustomer: true },
+        _avg: { durationMs: true },
+      }),
+    ]);
+
+    return { byEngine, totals };
+  }
+
+  /**
+   * Records that a customer resolved a recognised line into a specific product.
+   * Promotes the pairing to an approved alias once it repeats enough times to
+   * not be a one-off mistake.
+   */
+  async recordProductAlias(normalizedText: string, productId: string, approveAtOccurrences: number) {
+    const alias = await prisma.productAlias.upsert({
+      where: { normalizedText_productId: { normalizedText, productId } },
+      create: { normalizedText, productId },
+      update: { occurrences: { increment: 1 } },
+    });
+
+    if (!alias.isApproved && alias.occurrences >= approveAtOccurrences) {
+      return prisma.productAlias.update({
+        where: { id: alias.id },
+        data: { isApproved: true },
+      });
+    }
+
+    return alias;
+  }
+
+  async findApprovedAliases() {
+    return prisma.productAlias.findMany({
+      where: { isApproved: true },
+      select: { normalizedText: true, productId: true },
+    });
+  }
 }
