@@ -1,14 +1,22 @@
 # Dependências Python do motor de OCR local (rede de segurança do reconhecimento).
 #
 # Usado pelo bridge scripts/paddleocr_bridge.py. Exige imagem base Debian
-# (node:20-slim) — PaddlePaddle não publica wheels para musl/Alpine.
+# (node:20-bookworm-slim) — PaddlePaddle não publica wheels para musl/Alpine.
 #
-# Versões fixadas: PaddleOCR muda a API entre minor releases e o bridge
-# suporta 2.x e 3.x, mas atualizações não testadas quebram o parsing.
+# MANTER EM SINCRONIA com apps/backend/Dockerfile, que instala estas mesmas
+# versões (é ele que roda no deploy de produção).
+#
+# Versões fixadas de propósito:
+#   - paddleocr 3.x arrasta o paddlex inteiro (pandas, huggingface-hub,
+#     modelscope, opencv-contrib), dezenas de MB que este projeto não usa.
+#     A linha 2.x é bem mais enxuta e o bridge suporta a API dela.
+#   - Instalar do PyPI oficial. NÃO usar `-i https://www.paddlepaddle.org.cn/...`:
+#     `-i` substitui o índice padrão, então todas as dependências transitivas
+#     passam a vir de um servidor na China (~10 KB/s contra ~76 KB/s do PyPI),
+#     o que já deixou o build pendurado por mais de 18 minutos.
+#
+# Combinação validada em container: instala em ~3,5min e `import paddle,
+# paddleocr` funciona.
 
-paddlepaddle==2.6.2
+paddlepaddle==3.0.0
 paddleocr==2.9.1
-
-# Dependências transitivas que o paddleocr não fixa e que já quebraram build:
-numpy<2.0
-opencv-python-headless==4.10.0.84

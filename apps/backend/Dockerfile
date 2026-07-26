@@ -53,12 +53,31 @@ ARG RELEASE_VERSION=dev
 LABEL org.opencontainers.image.revision=$RELEASE_VERSION
 ENV RELEASE_VERSION=$RELEASE_VERSION
 
-# Install dumb-init for proper signal handling
+# Dependências de sistema
 RUN apt-get update \
   && apt-get install -y --no-install-recommends dumb-init wget ca-certificates libgomp1 libgl1 libglib2.0-0 libsm6 libxext6 libxrender1 python3 python3-pip \
-  && python3 -m pip install --default-timeout=1000 --no-cache-dir --break-system-packages paddlepaddle==3.0.0 -i https://www.paddlepaddle.org.cn/packages/stable/cpu/ \
-  && python3 -m pip install --default-timeout=1000 --no-cache-dir --break-system-packages paddleocr \
   && rm -rf /var/lib/apt/lists/*
+
+# ── Motor de OCR local (PaddleOCR) ───────────────────────────────────────────
+# Duas armadilhas que já travaram o build por ~20min:
+#
+# 1. O mirror `paddlepaddle.org.cn` era desnecessário: paddlepaddle==3.0.0 está
+#    no PyPI oficial. Pior, `-i <mirror>` SUBSTITUI o índice padrão em vez de
+#    adicionar, então TODAS as dependências transitivas do paddleocr também
+#    vinham do servidor na China — medido em ~10 KB/s contra ~76 KB/s do PyPI.
+#    Era isso que deixava o build pendurado por dezenas de minutos.
+#
+# 2. `paddleocr` sem versão resolve para 3.x, que arrasta o paddlex inteiro
+#    (pandas, huggingface-hub, modelscope, opencv-contrib…) — dezenas de MB que
+#    este projeto não usa. O bridge (scripts/paddleocr_bridge.py) suporta a API
+#    2.x, então fixamos a linha 2.x, muito mais enxuta.
+#
+# Versões devem ficar em sincronia com apps/backend/requirements-ocr.txt.
+RUN python3 -m pip install --no-cache-dir --break-system-packages \
+      --default-timeout=120 --retries=5 \
+      "paddlepaddle==3.0.0" \
+      "paddleocr==2.9.1" \
+  && python3 -c "import paddle, paddleocr; print('paddleocr OK')"
 
 WORKDIR /app
 
