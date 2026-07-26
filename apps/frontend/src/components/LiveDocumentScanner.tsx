@@ -31,8 +31,9 @@ const CORNER_TOLERANCE_PX = 18;
 const MIN_SHARPNESS = 45;
 // Média de luminância (0-255). Abaixo disso nem o VLM consegue ler.
 const MIN_BRIGHTNESS = 55;
-// Avaliar qualidade a cada N frames: é caro e não precisa rodar a 30fps.
-const QUALITY_CHECK_EVERY = 6;
+// A cada N frames. O Laplaciano em full HD é caro; a 30fps isso é ~1x/segundo,
+// suficiente para avisar o usuário sem competir com a detecção de borda.
+const QUALITY_CHECK_EVERY = 30;
 
 // Se o usuário ignora o diálogo de permissão, getUserMedia nunca resolve.
 const CAMERA_TIMEOUT_MS = 20_000;
@@ -412,7 +413,9 @@ export function LiveDocumentScanner({ onCapture, onCancel }: Props) {
       try {
         img = cv.imread(sample);
 
-        // Amostragem periódica: medir a cada frame derrubaria o FPS.
+        // Aviso de qualidade é secundário: roda raramente porque o Laplaciano
+        // em full HD aloca várias Mat e pesa no celular. A detecção de borda
+        // tem prioridade sobre ele.
         frameCounterRef.current += 1;
         if (frameCounterRef.current % QUALITY_CHECK_EVERY === 0) {
           const quality = measureFrameQuality(cv, img);
@@ -441,10 +444,17 @@ export function LiveDocumentScanner({ onCapture, onCancel }: Props) {
             corners.bottomLeftCorner &&
             corners.bottomRightCorner
           ) {
-            // Foto ruim não vira pedido: segura a captura até melhorar.
-            const hasQualityIssue = qualityIssueRef.current !== null;
-            const isStable = cornersAreStable(corners) && !hasQualityIssue;
-            overlayCtx.strokeStyle = hasQualityIssue ? '#ef4444' : isStable ? '#22c55e' : '#fbbf24';
+            // A qualidade é apenas informativa: orienta o usuário ("está
+            // tremido", "está escuro") mas NUNCA impede a captura.
+            //
+            // Antes ela entrava em `isStable` e bloqueava o disparo automático.
+            // Como os limiares são medidos no frame inteiro — que inclui mesa,
+            // mão e fundo, quase sempre menos nítidos que o papel — a captura
+            // simplesmente parava de acontecer. Travar o fluxo principal com
+            // uma heurística não calibrada custa mais do que a foto ruim que
+            // ela evitaria; quem decide é o usuário, que vê o aviso.
+            const isStable = cornersAreStable(corners);
+            overlayCtx.strokeStyle = isStable ? '#22c55e' : '#fbbf24';
             overlayCtx.lineWidth = 8;
             overlayCtx.beginPath();
             overlayCtx.moveTo(corners.topLeftCorner.x, corners.topLeftCorner.y);
