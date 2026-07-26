@@ -34,7 +34,55 @@ const MIN_BRIGHTNESS = 55;
 // Avaliar qualidade a cada N frames: é caro e não precisa rodar a 30fps.
 const QUALITY_CHECK_EVERY = 6;
 
+// Se o usuário ignora o diálogo de permissão, getUserMedia nunca resolve.
+const CAMERA_TIMEOUT_MS = 20_000;
+// Tempo para o vídeo reportar dimensão real depois de receber o stream.
+const VIDEO_READY_TIMEOUT_MS = 10_000;
+
 type QualityIssue = 'blurry' | 'dark' | null;
+
+/** Rejeita com `code` se a promise não resolver dentro do prazo. */
+function withTimeout<T>(promise: Promise<T>, ms: number, code: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error(code)), ms);
+    promise.then(
+      (value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        window.clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
+}
+
+/**
+ * Espera o vídeo ter dimensão real.
+ *
+ * `play()` no iOS pode nunca resolver, então usar seu retorno como sinal de
+ * pronto trava a tela. `videoWidth > 0` é o sinal confiável de que há imagem.
+ */
+function waitForVideoReady(video: HTMLVideoElement, timeoutMs: number): Promise<void> {
+  if (video.videoWidth > 0) return Promise.resolve();
+
+  return new Promise<void>((resolve, reject) => {
+    const start = Date.now();
+    const check = () => {
+      if (video.videoWidth > 0) {
+        resolve();
+        return;
+      }
+      if (Date.now() - start > timeoutMs) {
+        reject(new Error('VIDEO_TIMEOUT'));
+        return;
+      }
+      window.setTimeout(check, 100);
+    };
+    check();
+  });
+}
 
 /**
  * Mede nitidez e luminância do frame usando o OpenCV que já está carregado.
@@ -99,6 +147,10 @@ export function LiveDocumentScanner({ onCapture, onCancel }: Props) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [qualityIssue, setQualityIssue] = useState<QualityIssue>(null);
+  // Detecção de borda + captura automática dependem do OpenCV, que carrega
+  // depois da câmera. Enquanto isso o scanner opera em modo manual.
+  const [detectionReady, setDetectionReady] = useState(false);
+  const [detectionFailed, setDetectionFailed] = useState(false);
   const fallbackInputRef = useRef<HTMLInputElement | null>(null);
   const frameCounterRef = useRef(0);
   const qualityIssueRef = useRef<QualityIssue>(null);
@@ -114,10 +166,12 @@ export function LiveDocumentScanner({ onCapture, onCancel }: Props) {
   const captureCurrentFrame = useCallback(async () => {
     if (capturedRef.current) return;
     const video = videoRef.current;
+    // O scanner é opcional: sem ele a foto sai sem correção de perspectiva,
+    // mas sai. Exigi-lo aqui impedia a captura manual quando o OpenCV falhava.
     const scanner = scannerRef.current as {
       extractPaper: (img: HTMLCanvasElement, w: number, h: number) => HTMLCanvasElement | null;
     } | null;
-    if (!video || !scanner) return;
+    if (!video || video.videoWidth === 0) return;
     capturedRef.current = true;
     setStatus('capturing');
 
@@ -130,9 +184,16 @@ export function LiveDocumentScanner({ onCapture, onCancel }: Props) {
       ctx.drawImage(video, 0, 0);
 
       // Tenta extração com correção de perspectiva. Se falhar, usa frame inteiro.
-      const targetW = Math.min(1600, video.videoWidth);
-      const targetH = Math.round((targetW * 297) / 210); // A4 ratio
-      const warped = scanner.extractPaper(sourceCanvas, targetW, targetH);
+      let warped: HTMLCanvasElement | null = null;
+      if (scanner) {
+        try {
+          const targetW = Math.min(1600, video.videoWidth);
+          const targetH = Math.round((targetW * 297) / 210); // A4 ratio
+          warped = scanner.extractPaper(sourceCanvas, targetW, targetH);
+        } catch {
+          warped = null;
+        }
+      }
       const finalCanvas = warped ?? sourceCanvas;
 
       finalCanvas.toBlob(
@@ -190,29 +251,33 @@ export function LiveDocumentScanner({ onCapture, onCancel }: Props) {
     });
   }, []);
 
-  // Setup loop: load opencv + jscanify + camera, then start RAF
+  // Abre a câmera. O OpenCV NÃO entra neste caminho: ele pesa ~9MB e, quando
+  // era aguardado antes do getUserMedia, o celular ficava preso em "Preparando
+  // câmera…" por dezenas de segundos em 4G. Ele só serve para desenhar a borda
+  // e fazer a captura automática, então carrega em paralelo (efeito abaixo) e
+  // o scanner funciona em modo manual enquanto isso.
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
       try {
-        await loadOpenCv();
-        const jscanifyModule = await import('jscanify/client');
-        const Scanner = (jscanifyModule as { default: new () => unknown }).default;
-        scannerRef.current = new Scanner();
-
         if (!navigator.mediaDevices?.getUserMedia) {
           throw new Error('NO_GETUSERMEDIA');
         }
 
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: 'environment',
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-          },
-          audio: false,
-        });
+        // Sem timeout, ignorar o diálogo de permissão pendura para sempre.
+        const stream = await withTimeout(
+          navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: { ideal: 'environment' },
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+            },
+            audio: false,
+          }),
+          CAMERA_TIMEOUT_MS,
+          'CAMERA_TIMEOUT'
+        );
 
         if (cancelled) {
           stream.getTracks().forEach((track) => track.stop());
@@ -221,19 +286,47 @@ export function LiveDocumentScanner({ onCapture, onCancel }: Props) {
 
         streamRef.current = stream;
         const video = videoRef.current;
+
         if (video) {
           video.srcObject = stream;
-          await video.play();
+          // No iOS, play() pode nunca resolver nem rejeitar. Como o autoplay
+          // já está declarado no elemento, tratamos a promise como best-effort
+          // e seguimos assim que o vídeo tiver dimensão real.
+          void video.play().catch(() => undefined);
+          await waitForVideoReady(video, VIDEO_READY_TIMEOUT_MS);
         }
+
+        if (cancelled) return;
         setStatus('detecting');
       } catch (error) {
         if (cancelled) return;
+
+        const name = (error as { name?: string })?.name ?? '';
         const code = error instanceof Error ? error.message : '';
-        if (code === 'NO_GETUSERMEDIA' || (error as { name?: string })?.name === 'NotAllowedError') {
-          setErrorMessage('Não conseguimos abrir a câmera. Use o botão para escolher uma foto.');
+
+        if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+          setErrorMessage(
+            'Você precisa permitir o acesso à câmera. Libere nas configurações do navegador ou escolha uma foto da galeria.'
+          );
+        } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+          setErrorMessage('Nenhuma câmera encontrada neste aparelho. Escolha uma foto da galeria.');
+        } else if (name === 'NotReadableError' || name === 'TrackStartError') {
+          setErrorMessage(
+            'A câmera está sendo usada por outro aplicativo. Feche-o e tente de novo, ou escolha uma foto.'
+          );
+        } else if (code === 'NO_GETUSERMEDIA') {
+          // Navegador antigo ou página servida em HTTP: getUserMedia exige HTTPS.
+          setErrorMessage(
+            window.isSecureContext === false
+              ? 'A câmera só funciona em conexão segura (https). Escolha uma foto da galeria.'
+              : 'Este navegador não permite abrir a câmera. Escolha uma foto da galeria.'
+          );
+        } else if (code === 'CAMERA_TIMEOUT' || code === 'VIDEO_TIMEOUT') {
+          setErrorMessage('A câmera demorou demais para responder. Tente de novo ou escolha uma foto.');
         } else {
-          setErrorMessage('Falha ao iniciar o scanner. Use o botão para escolher uma foto.');
+          setErrorMessage('Falha ao iniciar a câmera. Escolha uma foto da galeria.');
         }
+
         setStatus('error');
       }
     })();
@@ -246,8 +339,36 @@ export function LiveDocumentScanner({ onCapture, onCancel }: Props) {
     };
   }, []);
 
-  // Frame loop
+  // Carrega OpenCV + jscanify em paralelo. Se falhar ou demorar, a câmera
+  // continua utilizável: perde-se a detecção de borda e a captura automática,
+  // e o botão manual assume.
   useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        await loadOpenCv();
+        const jscanifyModule = await import('jscanify/client');
+        if (cancelled) return;
+        const Scanner = (jscanifyModule as { default: new () => unknown }).default;
+        scannerRef.current = new Scanner();
+        setDetectionReady(true);
+      } catch {
+        if (cancelled) return;
+        // Modo manual: sem overlay, mas o usuário ainda tira a foto.
+        setDetectionReady(false);
+        setDetectionFailed(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Frame loop — só faz sentido depois que o OpenCV terminou de carregar.
+  useEffect(() => {
+    if (!detectionReady) return;
     if (status !== 'detecting' && status !== 'aligning' && status !== 'countdown') return;
 
     const tick = () => {
@@ -368,7 +489,7 @@ export function LiveDocumentScanner({ onCapture, onCancel }: Props) {
     return () => {
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
-  }, [status, cornersAreStable, startCountdown, clearCountdown]);
+  }, [status, detectionReady, cornersAreStable, startCountdown, clearCountdown]);
 
   const handleFallbackFile = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -397,8 +518,11 @@ export function LiveDocumentScanner({ onCapture, onCancel }: Props) {
 
     switch (status) {
       case 'loading':
-        return 'Preparando câmera…';
+        return 'Abrindo a câmera…';
       case 'detecting':
+        // Sem OpenCV não há detecção de borda; o usuário aperta o botão.
+        if (detectionFailed) return 'Enquadre a lista e toque no botão';
+        if (!detectionReady) return 'Enquadre sua lista — preparando captura automática';
         return 'Enquadre sua lista dentro do quadro';
       case 'aligning':
         return 'Segure firme…';
@@ -469,13 +593,29 @@ export function LiveDocumentScanner({ onCapture, onCancel }: Props) {
 
       {/* Loading inicial / capturing */}
       {status === 'loading' || status === 'capturing' ? (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black/60 text-white">
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black/60 px-8 text-white">
           <Loader2 className="h-10 w-10 animate-spin" />
-          <p className="text-base font-medium">{status === 'loading' ? 'Preparando câmera…' : 'Lendo sua lista…'}</p>
+          <p className="text-base font-medium">
+            {status === 'loading' ? 'Abrindo a câmera…' : 'Lendo sua lista…'}
+          </p>
+          {status === 'loading' ? (
+            <p className="text-center text-sm text-white/70">
+              Se aparecer um aviso pedindo permissão, toque em “Permitir”.
+            </p>
+          ) : null}
+          {status === 'loading' ? (
+            <button
+              type="button"
+              onClick={() => fallbackInputRef.current?.click()}
+              className="mt-4 rounded-full bg-white/15 px-5 py-2.5 text-sm font-medium text-white backdrop-blur transition hover:bg-white/25"
+            >
+              Escolher foto da galeria
+            </button>
+          ) : null}
         </div>
       ) : null}
 
-      {/* Footer com bot[ão de galeria sempre disponível */}
+      {/* Footer: galeria sempre disponível + disparo manual */}
       <div className="absolute inset-x-0 bottom-0 z-10 flex items-center justify-center gap-3 px-4 pb-8 pt-6">
         {status === 'error' ? (
           <Button
@@ -487,21 +627,38 @@ export function LiveDocumentScanner({ onCapture, onCancel }: Props) {
             Escolher foto da galeria
           </Button>
         ) : (
-          <button
-            type="button"
-            onClick={() => fallbackInputRef.current?.click()}
-            className="flex h-12 items-center gap-2 rounded-full bg-white/15 px-5 text-sm font-medium text-white backdrop-blur transition hover:bg-white/25"
-          >
-            <ImagePlus className="h-4 w-4" />
-            Já tenho a foto
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => fallbackInputRef.current?.click()}
+              className="flex h-12 shrink-0 items-center gap-2 rounded-full bg-white/15 px-5 text-sm font-medium text-white backdrop-blur transition hover:bg-white/25"
+            >
+              <ImagePlus className="h-4 w-4" />
+              Galeria
+            </button>
+
+            {/* Disparo manual sempre presente: a captura automática depende do
+                OpenCV, que pode demorar ou falhar. Sem este botão o usuário
+                ficava sem nenhuma forma de tirar a foto. */}
+            {status === 'detecting' || status === 'aligning' || status === 'countdown' ? (
+              <button
+                type="button"
+                onClick={() => void captureCurrentFrame()}
+                aria-label="Tirar foto"
+                className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-4 border-white bg-white/90 transition active:scale-95"
+              >
+                <span className="h-11 w-11 rounded-full bg-white ring-2 ring-black/20" />
+              </button>
+            ) : null}
+
+            {(status === 'detecting' || status === 'aligning') && detectionReady ? (
+              <div className="flex h-12 shrink-0 items-center gap-2 rounded-full bg-white/15 px-4 text-xs text-white backdrop-blur">
+                <Camera className="h-4 w-4" />
+                Automática
+              </div>
+            ) : null}
+          </>
         )}
-        {status === 'detecting' || status === 'aligning' ? (
-          <div className="flex h-12 items-center gap-2 rounded-full bg-white/15 px-4 text-sm text-white backdrop-blur">
-            <Camera className="h-4 w-4" />
-            Captura automática
-          </div>
-        ) : null}
       </div>
 
       {/* Input fallback */}

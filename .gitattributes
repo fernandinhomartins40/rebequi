@@ -18,6 +18,10 @@ Makefile        text eol=lf
 *.py            text eol=lf
 *.sql           text eol=lf
 
+# Assets de terceiros servidos como estão: nenhuma conversão de fim de linha,
+# para que o arquivo entregue seja byte a byte igual ao original.
+apps/frontend/public/vendor/**  -text
+
 # Binários: nunca converter.
 *.png           binary
 *.jpg           binary
