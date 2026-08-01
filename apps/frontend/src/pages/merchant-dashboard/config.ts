@@ -31,8 +31,26 @@ export type MerchantSection =
   | 'integrações'
   | 'acesso';
 
+/*
+ * Grupos da sidebar — separam o menu por intenção de uso, em vez de
+ * empilhar todas as seções numa lista plana:
+ *   resumo   → entrada do painel, sem rótulo
+ *   vender   → funil comercial, na ordem lead → pedido → venda → relacionamento
+ *   catálogo → o que a loja oferece e onde oferece
+ *   ajustes  → configuração pontual, ancorada no fim do menu
+ */
+export type MerchantNavGroup = 'resumo' | 'vender' | 'catálogo' | 'ajustes';
+
+export const NAV_GROUPS: { id: MerchantNavGroup; label: string | null }[] = [
+  { id: 'resumo', label: null },
+  { id: 'vender', label: 'Vender' },
+  { id: 'catálogo', label: 'Catálogo' },
+  { id: 'ajustes', label: 'Configurações' },
+];
+
 export type MerchantNavItem = {
   id: MerchantSection;
+  group: MerchantNavGroup;
   href: string;
   label: string;
   description: string;
@@ -47,6 +65,7 @@ export type MerchantNavItem = {
 export const NAV_SECTIONS: Omit<MerchantNavItem, 'badge'>[] = [
   {
     id: 'visão-geral',
+    group: 'resumo',
     href: `${ADMIN_BASE_PATH}/visão-geral`,
     label: 'Visão geral',
     description: 'Indicadores da operação',
@@ -58,6 +77,7 @@ export const NAV_SECTIONS: Omit<MerchantNavItem, 'badge'>[] = [
   },
   {
     id: 'produtos',
+    group: 'catálogo',
     href: `${ADMIN_BASE_PATH}/produtos`,
     label: 'Produtos',
     description: 'Cadastro e manutenção',
@@ -69,6 +89,7 @@ export const NAV_SECTIONS: Omit<MerchantNavItem, 'badge'>[] = [
   },
   {
     id: 'promoções',
+    group: 'catálogo',
     href: `${ADMIN_BASE_PATH}/promoções`,
     label: 'Promoções',
     description: 'Cards e campanhas',
@@ -79,7 +100,20 @@ export const NAV_SECTIONS: Omit<MerchantNavItem, 'badge'>[] = [
     requiredPermission: 'promotions:manage',
   },
   {
+    id: 'orçamentos',
+    group: 'vender',
+    href: `${ADMIN_BASE_PATH}/orçamentos`,
+    label: 'Orçamentos',
+    description: 'Solicitações e leads',
+    icon: FileText,
+    eyebrow: 'Orçamentos',
+    title: 'Orçamentos e leads',
+    intro: 'Acompanhe orçamentos enviados e clientes capturados que ainda não concluíram o fluxo.',
+    requiredPermission: 'quotes:manage',
+  },
+  {
     id: 'pedidos',
+    group: 'vender',
     href: `${ADMIN_BASE_PATH}/pedidos`,
     label: 'Pedidos',
     description: 'Checkout e recuperação',
@@ -91,6 +125,7 @@ export const NAV_SECTIONS: Omit<MerchantNavItem, 'badge'>[] = [
   },
   {
     id: 'vendas',
+    group: 'vender',
     href: `${ADMIN_BASE_PATH}/vendas`,
     label: 'Vendas',
     description: 'Faturamento e registro',
@@ -102,6 +137,7 @@ export const NAV_SECTIONS: Omit<MerchantNavItem, 'badge'>[] = [
   },
   {
     id: 'clientes',
+    group: 'vender',
     href: `${ADMIN_BASE_PATH}/clientes`,
     label: 'Clientes',
     description: 'Base e relacionamento',
@@ -112,18 +148,8 @@ export const NAV_SECTIONS: Omit<MerchantNavItem, 'badge'>[] = [
     requiredPermission: 'customers:manage',
   },
   {
-    id: 'orçamentos',
-    href: `${ADMIN_BASE_PATH}/orçamentos`,
-    label: 'Orçamentos',
-    description: 'Solicitações e leads',
-    icon: FileText,
-    eyebrow: 'Orçamentos',
-    title: 'Orçamentos e leads',
-    intro: 'Acompanhe orçamentos enviados e clientes capturados que ainda não concluíram o fluxo.',
-    requiredPermission: 'quotes:manage',
-  },
-  {
     id: 'canais',
+    group: 'catálogo',
     href: `${ADMIN_BASE_PATH}/canais`,
     label: 'Canais',
     description: 'Marketplaces e anúncios',
@@ -135,6 +161,7 @@ export const NAV_SECTIONS: Omit<MerchantNavItem, 'badge'>[] = [
   },
   {
     id: 'integrações',
+    group: 'ajustes',
     href: `${ADMIN_BASE_PATH}/integrações`,
     label: 'Integrações',
     description: 'OCR via OpenRouter',
@@ -146,6 +173,7 @@ export const NAV_SECTIONS: Omit<MerchantNavItem, 'badge'>[] = [
   },
   {
     id: 'acesso',
+    group: 'ajustes',
     href: `${ADMIN_BASE_PATH}/acesso`,
     label: 'Acesso',
     description: 'Usuários e permissões',
@@ -163,6 +191,17 @@ export function getMerchantNavItemsForRole(role?: UserRole | string | null) {
   }
 
   return NAV_SECTIONS.filter((item) => hasMerchantPermission(role, item.requiredPermission));
+}
+
+/*
+ * Agrupa os itens permitidos preservando a ordem de NAV_GROUPS e descartando
+ * grupos que ficaram vazios para o papel do usuário.
+ */
+export function groupMerchantNavItems(items: MerchantNavItem[]) {
+  return NAV_GROUPS.map((group) => ({
+    ...group,
+    items: items.filter((item) => item.group === group.id),
+  })).filter((group) => group.items.length > 0);
 }
 
 export function getDefaultMerchantDashboardHref(role?: UserRole | string | null) {

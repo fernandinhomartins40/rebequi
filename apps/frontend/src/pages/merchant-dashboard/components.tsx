@@ -18,7 +18,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
-import type { MerchantNavItem } from './config';
+import { groupMerchantNavItems, type MerchantNavItem } from './config';
 
 // ─── Tons de estado compartilhados ───────────────────────────────────────────
 
@@ -69,55 +69,64 @@ export function AdminSidebarNavigation({
   items: MerchantNavItem[];
 }) {
   const { isMobile, setOpenMobile } = useSidebar();
+  const groups = groupMerchantNavItems(items);
 
   return (
-    <SidebarContent className="merchant-dashboard-scroll px-2 py-2">
-      <SidebarGroup className="p-0">
-        <SidebarGroupLabel className="px-2 text-xs font-medium text-sidebar-foreground/60">
-          Gestão da loja
-        </SidebarGroupLabel>
-        <SidebarGroupContent>
-          <SidebarMenu className="gap-0.5">
-            {items.map((item) => {
-              const isActive = activePath === item.href;
+    <SidebarContent className="merchant-dashboard-scroll gap-4 px-2 py-2">
+      {groups.map((group) => (
+        <SidebarGroup key={group.id} className="p-0">
+          {/*
+            Grupos sem rótulo (o resumo, no topo) não renderizam o label. No modo
+            recolhido os rótulos somem e restam os separadores entre os ícones.
+          */}
+          {group.label ? (
+            <SidebarGroupLabel className="h-6 px-2 text-[11px] font-semibold uppercase tracking-wide text-sidebar-foreground/50">
+              {group.label}
+            </SidebarGroupLabel>
+          ) : null}
+          <SidebarGroupContent>
+            <SidebarMenu className="gap-0.5">
+              {group.items.map((item) => {
+                const isActive = activePath === item.href;
 
-              return (
-                <SidebarMenuItem key={item.id}>
-                  <SidebarMenuButton
-                    asChild
-                    tooltip={item.label}
-                    isActive={isActive}
-                    onClick={() => {
-                      if (isMobile) setOpenMobile(false);
-                    }}
-                    className={cn(
-                      'h-9 rounded-md px-2 text-[13px] transition-colors',
-                      isActive
-                        ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'
-                        : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
-                    )}
-                  >
-                    <NavLink to={item.href}>
-                      <item.icon
-                        className={cn(
-                          'h-4 w-4 shrink-0',
-                          isActive ? 'text-sidebar-accent-foreground' : 'text-sidebar-foreground/60'
-                        )}
-                      />
-                      <span className="truncate group-data-[collapsible=icon]:hidden">{item.label}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                  {item.badge ? (
-                    <SidebarMenuBadge className="rounded-full bg-brand-blue/10 px-1.5 text-[10px] font-semibold text-brand-blue">
-                      {item.badge}
-                    </SidebarMenuBadge>
-                  ) : null}
-                </SidebarMenuItem>
-              );
-            })}
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
+                return (
+                  <SidebarMenuItem key={item.id}>
+                    <SidebarMenuButton
+                      asChild
+                      tooltip={item.label}
+                      isActive={isActive}
+                      onClick={() => {
+                        if (isMobile) setOpenMobile(false);
+                      }}
+                      className={cn(
+                        'h-9 rounded-md px-2 text-[13px] transition-colors',
+                        isActive
+                          ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'
+                          : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
+                      )}
+                    >
+                      <NavLink to={item.href}>
+                        <item.icon
+                          className={cn(
+                            'h-4 w-4 shrink-0',
+                            isActive ? 'text-sidebar-accent-foreground' : 'text-sidebar-foreground/60'
+                          )}
+                        />
+                        <span className="truncate group-data-[collapsible=icon]:hidden">{item.label}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                    {item.badge ? (
+                      <SidebarMenuBadge className="rounded-full bg-brand-blue/10 px-1.5 text-[10px] font-semibold text-brand-blue">
+                        {item.badge}
+                      </SidebarMenuBadge>
+                    ) : null}
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      ))}
     </SidebarContent>
   );
 }
