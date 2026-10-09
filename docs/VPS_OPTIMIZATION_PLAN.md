@@ -1,10 +1,10 @@
 # Plano de Otimização da VPS
 
-## Estado atual
+## Estado inicial auditado
 
 Monorepo npm: React/Vite estático em Nginx, API Express/Node 20, Prisma 6 e PostgreSQL 16. OCR local PaddleOCR/Python e reconhecimento externo OpenRouter são funcionalidades reais. Não há Redis, broker nem worker separado na stack de produção. O OCR local já possui fila por instância; manutenção de orçamentos roda a cada 15 minutos. Uploads, banco e logs têm volumes nomeados. O único workflow ativo compila três imagens sem cache na VPS, executa migrations/bootstrap e recria API/web.
 
-Branch `main`, commit inicial `6d187c5`. Preservar os protocolos e AGENTS.md não rastreados existentes. Deploy somente por GitHub Actions; não alterar aplicações vizinhas nem apagar dados, imagens ou backups.
+Branch `main`, commit inicial `6d187c5`. Trabalhar exclusivamente na `main`, com commit e push diretos, conforme instrução do usuário. Preservar os protocolos locais existentes. Deploy somente por GitHub Actions; não alterar aplicações vizinhas nem apagar dados, imagens ou backups.
 
 ## Baseline
 
@@ -21,18 +21,21 @@ Nenhum contêiner, imagem, volume `rebequi-*` ou `/opt/rebequi` encontrado. O us
 - Logs Winston em arquivo e logs Docker sem limites; console duplicado no desenvolvimento.
 - Deploy remove a release anterior e força remoção/recriação de contêineres antes da validação, sem rollback de aplicação.
 - Alias Compose alternativo diverge da produção e contém valores padrão inseguros.
+- Três cópias redundantes de buffers de upload e consulta de matching carregando imagens, descrições, preços e estoque não usados pelos consumidores.
+- Testes reais revelaram logs PaddleOCR contaminando JSON e resposta de rascunho anônimo acessando usuário nulo; corrigir antes da instalação.
 
 ## Plano
 
 | ID | PRIORIDADE | ÁREA | PROBLEMA | EVIDÊNCIA | SOLUÇÃO | GANHO ESPERADO | RISCO | TESTE | ROLLBACK | STATUS |
 |---|---|---|---|---|---|---|---|---|---|---|
-| OPT-01 | P1 | Build/deploy | Compilação na VPS | Workflow `build --no-cache` | Um workflow, jobs backend/frontend paralelos, GHCR, pull por digest, deploy sem build | Eliminar compilação e cache de build de novas releases na VPS | Médio | Builds, CI, sintaxe, smoke/rollback | Release anterior preservada | DOING |
+| OPT-01 | P1 | Build/deploy | Compilação na VPS | Workflow `build --no-cache` | Um workflow, jobs backend/frontend paralelos, GHCR, pull por digest, deploy sem build | Eliminar compilação e cache de build de novas releases na VPS | Médio | Builds, CI, sintaxe, smoke/rollback | Release anterior preservada | DONE |
 | OPT-02 | P0 | Docker | Contexto permite dados/secrets | `.dockerignore` incompleto | Excluir persistência, credenciais e artefatos locais | Menos transferência/disco; proteger secrets | Baixo | Contexto e builds | Reverter arquivo | DONE |
-| OPT-03 | P2 | Imagens | CLI e builder no runtime | Dockerfile backend | Migrator dedicado sem compiladores; API só client gerado; cache OCR por requisitos | Menor imagem/runtime; menos build repetido | Médio | Imports, build e migrations em banco isolado | Imagens anteriores | DOING |
+| OPT-03 | P2 | Imagens | CLI e builder no runtime | Dockerfile backend | Migrator dedicado sem compiladores; API só client gerado; cache OCR por requisitos | Menor imagem/runtime; menos build repetido | Médio | Imports, build e migrations em banco isolado | Imagens anteriores | DONE |
 | OPT-04 | P2 | Logs | Crescimento sem limite | Winston File e Compose | Rotação limitada mantendo console, erros e volumes | Limitar crescimento futuro | Baixo | Testes/build e configuração | Config anterior | DONE |
 | OPT-05 | P2 | Jobs | Manutenção pode sobrepor | `setInterval` sem guarda | Impedir manutenção simultânea no mesmo processo | Evitar queries duplicadas em execução longa | Baixo | Typecheck/build e revisão da guarda/finally | Reverter guarda | DONE |
-| OPT-06 | P0 | Persistência/deploy | Bootstrap/remoção agressivos | Workflow e Compose | Bootstrap inicial; preservar env, volumes e release anterior; backup antes de migrations | Menos I/O de bootstrap; rollback recuperável | Médio | Banco isolado e falhas de deploy | Código anterior; restaurar backup apenas manualmente | DOING |
-| OPT-07 | P2 | Validação | VPS reinstalada sem aplicação | Confirmação do usuário | Medir instalação final; sem comparação artificial com host agregado | Baseline para futuras otimizações | Baixo | SSH somente leitura após instalar | Não aplicável | DOING |
+| OPT-06 | P0 | Persistência/deploy | Bootstrap/remoção agressivos | Workflow e Compose | Bootstrap inicial; preservar env, volumes e release anterior; backup antes de migrations | Menos I/O de bootstrap; rollback recuperável | Médio | Banco isolado e falhas de deploy | Código anterior; restaurar backup apenas manualmente | DONE |
+| OPT-07 | P2 | Validação | VPS reinstalada sem aplicação | Confirmação do usuário | Medir instalação final; sem comparação artificial com host agregado | Baseline para futuras otimizações | Baixo | SSH somente leitura após instalar | Não aplicável | DONE |
+| OPT-08 | P2 | RAM/I/O/banco | Cópias de upload e catálogo amplo | Consumidores não alteram buffers; matching usa id/nome/SKU/categoria | Reutilizar buffer original e selecionar somente campos utilizados | Menos alocações e transferência do banco | Baixo | Tipos, reconhecimento e matching reais no CI | Reverter seleção e cópias | DONE |
 
 ## Ordem de execução
 
@@ -44,8 +47,8 @@ Não executar prune nem remover imagens, volumes, backups ou releases. Build cac
 
 ## Métricas para comparação
 
-Builds na VPS antes: 3; depois planejado: 0. Bootstrap automático antes: todo deploy; depois: opt-in. RAM/CPU/picos/latência/imagens reais: medir apenas com ambiente e carga equivalentes. Limites de logs são configuração, não ganho já medido. Não diminuir limites de RAM, threads OCR ou pool do banco com base em repouso ou sem carga representativa.
+Builds na VPS antes: 3; depois: 0. Bootstrap automático antes: todo deploy; depois: apenas banco novo, com marcador para retry seguro. RAM/CPU/picos/latência/imagens reais: medir apenas com ambiente e carga equivalentes. Limites de logs são configuração, não ganho já medido. Não diminuir limites de RAM, threads OCR ou pool do banco com base em repouso ou sem carga representativa.
 
 ## Bloqueios reais
 
-Ausência da aplicação esclarecida: VPS reinstalada, instalação nova. GitHub acessível; validação, migrator e frontend já executados em runner. Build API/integração em andamento. Secret `VPS_PASSWORD` existente; validade após reinstalação será confirmada no deploy, sem ler seu valor. Docker/WSL locais indisponíveis; testes Linux transferidos ao CI. Nenhuma alteração em aplicações vizinhas autorizada.
+Nenhum bloqueio aberto. Instalação concluída pelo workflow na main, execução 37981142728, código 44199d4. Builds simultâneos, testes reais e deploy passaram; HTTPS dos dois domínios validado. Secret existente funcionou sem ler seu valor. Docker/WSL locais indisponíveis foram contornados usando o runner GitHub. Consumo final em repouso: 87,4–90,5 MiB somando API/frontend/PostgreSQL; detalhes e limites da comparação no relatório. Não houve alterações nas aplicações vizinhas. Picos, carga representativa e integrações externas de produção continuam NOT_MEASURED, sem reduzir limites por suposição.
