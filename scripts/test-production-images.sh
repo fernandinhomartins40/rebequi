@@ -122,15 +122,9 @@ original_count=$(docker exec rebequi-postgres psql -U rebequi -d rebequi -Atc 'S
 restored_count=$(docker exec rebequi-postgres psql -U rebequi -d rebequi_restore_test -Atc 'SELECT count(*) FROM users')
 [[ "$original_count" == "$restored_count" && "$original_count" -gt 0 ]]
 
-# Run the real deploy script and force its first HTTP probe to fail. Existing
-# containers, credentials and upload volumes must survive the rollback path.
-mock_bin="$TEST_DIR/mock-bin"
-mkdir -p "$mock_bin"
-for command in nginx certbot; do
-  printf '#!/bin/sh\nexit 0\n' >"$mock_bin/$command"
-done
-printf '#!/bin/sh\nexit 22\n' >"$mock_bin/curl"
-chmod +x "$mock_bin"/*
+# Run the real deploy script with an incompatible release manifest. Its actual
+# image-version check must reject the release and restore existing containers,
+# credentials and upload volumes before any host proxy changes.
 sudo mkdir -p /opt/rebequi/releases/test-before /opt/rebequi/releases/test-failing
 sudo chown -R "$(id -un):$(id -gn)" /opt/rebequi
 cp "$TEST_DIR/.env.production" /opt/rebequi/.env.production
@@ -147,7 +141,7 @@ cp scripts/deploy-production.sh /opt/rebequi/releases/test-failing/scripts/
 sed -i 's/^RELEASE_VERSION=.*/RELEASE_VERSION=0000000000000000000000000000000000000000/' \
   /opt/rebequi/releases/test-failing/.images.env
 set +e
-printf '%s\n' "$GHCR_TOKEN" | sudo env "PATH=$mock_bin:$PATH" \
+printf '%s\n' "$GHCR_TOKEN" | sudo \
   bash /opt/rebequi/releases/test-failing/scripts/deploy-production.sh "$GHCR_USER"
 rollback_status=$?
 set -e
