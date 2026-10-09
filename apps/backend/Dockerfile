@@ -3,12 +3,12 @@
 # =============================================================================
 # Build Stage
 # =============================================================================
-FROM node:20-bookworm-slim AS builder
+FROM node:22-bookworm-slim AS builder
 
 WORKDIR /app
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends python3 make g++ \
+  && apt-get install -y --no-install-recommends python3 make g++ ca-certificates openssl \
   && rm -rf /var/lib/apt/lists/*
 
 # Copy workspace files
@@ -38,20 +38,34 @@ COPY tsconfig.json ./
 WORKDIR /app
 RUN npm run build --workspace=packages/shared
 
-# Generate Prisma Client
+# Backend build already generates Prisma Client.
 WORKDIR /app/apps/backend
-RUN npx prisma generate
 
 # Build TypeScript
 RUN npm run build
 
+# Migration tooling is short-lived, without compiler OS packages or OCR.
+FROM node:22-bookworm-slim AS migrator
+ARG RELEASE_VERSION=dev
+LABEL org.opencontainers.image.revision=$RELEASE_VERSION
+WORKDIR /app
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates openssl \
+  && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/backend/package.json ./apps/backend/package.json
+COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
+COPY --from=builder /app/apps/backend/scripts/migrate-deploy.sh ./apps/backend/scripts/migrate-deploy.sh
+COPY --from=builder /app/packages/shared/package.json ./packages/shared/package.json
+COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
+WORKDIR /app/apps/backend
+CMD ["sh", "scripts/migrate-deploy.sh"]
+
 # =============================================================================
 # Production Stage
 # =============================================================================
-FROM node:20-bookworm-slim AS production
-ARG RELEASE_VERSION=dev
-LABEL org.opencontainers.image.revision=$RELEASE_VERSION
-ENV RELEASE_VERSION=$RELEASE_VERSION
+FROM node:22-bookworm-slim AS ocr-runtime
 
 # Dependências de sistema
 RUN apt-get update \
@@ -73,11 +87,19 @@ RUN apt-get update \
 #    2.x, então fixamos a linha 2.x, muito mais enxuta.
 #
 # Versões devem ficar em sincronia com apps/backend/requirements-ocr.txt.
+COPY apps/backend/requirements-ocr.txt /tmp/requirements-ocr.txt
 RUN python3 -m pip install --no-cache-dir --break-system-packages \
       --default-timeout=120 --retries=5 \
-      "paddlepaddle==3.0.0" \
-      "paddleocr==2.9.1" \
+      -r /tmp/requirements-ocr.txt \
   && python3 -c "import paddle, paddleocr; print('paddleocr OK')"
+
+# Model downloads are cached independently of application source and release SHA.
+COPY apps/backend/scripts/paddleocr_bridge.py /opt/paddleocr_bridge.py
+USER node
+RUN python3 /opt/paddleocr_bridge.py --warmup --lang la
+USER root
+
+FROM ocr-runtime AS production
 
 WORKDIR /app
 
@@ -104,23 +126,16 @@ RUN --mount=type=cache,target=/root/.npm \
 COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
 COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
 COPY --from=builder /app/apps/backend/scripts ./apps/backend/scripts
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 
 # Create directories
+ARG RELEASE_VERSION=dev
+LABEL org.opencontainers.image.revision=$RELEASE_VERSION
+ENV RELEASE_VERSION=$RELEASE_VERSION
 RUN mkdir -p /app/uploads /app/logs \
   && printf '%s\n' "$RELEASE_VERSION" > /app/.release-version \
   && chown -R node:node /app
-
-# Pré-carrega os modelos do PaddleOCR ainda no build, como usuário node (é o
-# HOME dele que o PaddleOCR usa como cache). Sem isso, o primeiro orçamento de
-# cada container gastaria ~30s baixando pesos e provavelmente estouraria o
-# timeout do job de OCR — justamente quando o cliente está esperando.
-USER node
-RUN python3 /app/apps/backend/scripts/paddleocr_bridge.py --warmup --lang la \
-  || echo "AVISO: pre-carregamento dos modelos de OCR falhou; sera feito no primeiro uso"
-USER root
 
 # Switch to non-root user
 USER node

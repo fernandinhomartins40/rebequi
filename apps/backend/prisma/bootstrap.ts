@@ -530,15 +530,8 @@ async function ensureManagedUser(params: {
 
   const user = await prisma.user.upsert({
     where: { email },
-    update: {
-      name,
-      password: passwordHash,
-      whatsapp,
-      role,
-      isActive: true,
-      isProvisional,
-      mustChangePassword,
-    },
+    // A retry must preserve user-edited credentials, roles and account state.
+    update: {},
     create: {
       email,
       name,
@@ -605,13 +598,7 @@ async function ensureSampleCatalog() {
   for (const category of allCategories) {
     const savedCategory = await prisma.category.upsert({
       where: { slug: category.slug },
-      update: {
-        name: category.name,
-        icon: category.icon,
-        description: category.description,
-        isActive: true,
-        deletedAt: null,
-      },
+      update: {},
       create: {
         ...category,
         isActive: true,
@@ -622,7 +609,7 @@ async function ensureSampleCatalog() {
   }
 
   let createdProducts = 0;
-  let updatedProducts = 0;
+  let preservedProducts = 0;
 
   for (const product of allProducts) {
     const categoryId = categoryMap.get(product.categorySlug);
@@ -660,10 +647,7 @@ async function ensureSampleCatalog() {
     });
 
     const savedProduct = existingProduct
-      ? await prisma.product.update({
-          where: { id: existingProduct.id },
-          data: productData,
-        })
+      ? existingProduct
       : await prisma.product.create({
           data: {
             ...productData,
@@ -681,7 +665,7 @@ async function ensureSampleCatalog() {
         });
 
     if (existingProduct) {
-      updatedProducts += 1;
+      preservedProducts += 1;
     } else {
       createdProducts += 1;
     }
@@ -703,7 +687,7 @@ async function ensureSampleCatalog() {
     }
   }
 
-  console.log(`Sample catalog ready. Created ${createdProducts}, updated ${updatedProducts}, target ${allProducts.length} products.`);
+  console.log(`Sample catalog ready. Created ${createdProducts}, preserved ${preservedProducts}, target ${allProducts.length} products.`);
 }
 
 function createOffsetDate(days?: number) {
