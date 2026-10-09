@@ -10,7 +10,7 @@ import { useScrollReveal } from "@/hooks/useScrollReveal";
 const Categories = () => {
   const { data, isLoading, error } = useQuery({
     queryKey: ["categories", "home"],
-    queryFn: fetchCategories,
+    queryFn: () => fetchCategories(),
   });
 
   const { ref, isVisible } = useScrollReveal<HTMLElement>();

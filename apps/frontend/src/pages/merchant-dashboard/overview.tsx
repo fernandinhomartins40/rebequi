@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle, Boxes, CheckCircle2, Store, Tags, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { ProductResponse } from '@rebequi/shared/types';
+import { hasMerchantPermission } from '@rebequi/shared/constants';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { fetchCategories } from '@/services/api/categories';
@@ -47,16 +48,19 @@ async function fetchAllAdminProductsSnapshot(): Promise<ProductResponse> {
 }
 
 export default function MerchantDashboardOverview() {
-  const { userEmail } = useMerchantDashboardOutlet();
+  const { userEmail, userRole } = useMerchantDashboardOutlet();
+  const canManageCatalog = hasMerchantPermission(userRole, 'catalog:manage');
 
   const catalogQuery = useQuery({
     queryKey: ['merchant-dashboard', 'overview', 'catalog-snapshot'],
     queryFn: fetchAllAdminProductsSnapshot,
+    enabled: canManageCatalog,
   });
 
   const categoriesQuery = useQuery({
     queryKey: ['merchant-dashboard', 'overview', 'categories-all'],
     queryFn: () => fetchCategories({ includeInactive: true }),
+    enabled: canManageCatalog,
   });
 
   const products = catalogQuery.data?.products ?? [];
@@ -115,6 +119,7 @@ export default function MerchantDashboardOverview() {
       if (issues.length === 0) return null;
 
       return {
+        id: product.id,
         categoryName: product.category?.name ?? 'Sem categoria',
         issues,
         name: product.name,
@@ -335,7 +340,7 @@ export default function MerchantDashboardOverview() {
               {attentionItems.map((item) => (
                 <li
                   key={`${item.name}-${item.updatedAt}`}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-border/60 px-4 py-3"
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border/60 px-4 py-3"
                 >
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-foreground">{item.name}</p>
@@ -358,6 +363,11 @@ export default function MerchantDashboardOverview() {
                       </Badge>
                     ))}
                   </div>
+                  {canManageCatalog ? <Button asChild variant="outline" size="sm">
+                    <Link to={`${ADMIN_BASE_PATH}/produtos/${item.id}/editar`} aria-label={`Corrigir ${item.name}`}>
+                      Corrigir
+                    </Link>
+                  </Button> : null}
                 </li>
               ))}
             </ul>

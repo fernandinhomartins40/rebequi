@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,10 +35,16 @@ export function useCustomerDashboard() {
   const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState<ActiveTab>(
-    () => (searchParams.get('tab') as ActiveTab) || 'overview'
+    () => getActiveTab(searchParams.get('tab'))
   );
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '' });
-  const [editorState, setEditorState] = useState<DraftEditorState>(buildEditorState());
+  const [editorState, setEditorStateInternal] = useState<DraftEditorState>(buildEditorState());
+  const editorDirty = useRef(false);
+  const editorQuoteId = useRef<string | null>(null);
+  const setEditorState: Dispatch<SetStateAction<DraftEditorState>> = useCallback((next) => {
+    editorDirty.current = true;
+    setEditorStateInternal(next);
+  }, []);
   const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(searchParams.get('quoteId'));
   const [provisionalCredentials, setProvisionalCredentials] = useState(() => readProvisionalCredentials());
   const editorCardRef = useRef<HTMLDivElement | null>(null);
@@ -47,7 +53,8 @@ export function useCustomerDashboard() {
   const quotesQuery = useQuery({
     queryKey: ['customer', 'quotes'],
     queryFn: fetchMyQuotes,
-    refetchInterval: 5000,
+    refetchInterval: (query) => activeTab !== 'quotes' ? false :
+      (query.state.data?.some((quote) => ['PENDING', 'PROCESSING'].includes(quote.ocrStatus)) ? 3000 : 30000),
   });
 
   // ── Mutations ─────────────────────────────────────────────────────────────
@@ -60,7 +67,8 @@ export function useCustomerDashboard() {
       });
       await queryClient.invalidateQueries({ queryKey: ['customer', 'quotes'] });
       setSelectedQuoteId(quote.id);
-      setEditorState(buildEditorState(quote));
+      editorDirty.current = false;
+      setEditorStateInternal(buildEditorState(quote));
       setSearchParams({ quoteId: quote.id, tab: 'quotes' });
       setActiveTab('quotes');
       toast({
@@ -93,6 +101,8 @@ export function useCustomerDashboard() {
           })),
       }),
     onSuccess: async (quote) => {
+      editorDirty.current = false;
+      setEditorStateInternal(buildEditorState(quote));
       await queryClient.invalidateQueries({ queryKey: ['customer', 'quotes'] });
       setSelectedQuoteId(quote.id);
       toast({ title: 'Rascunho salvo' });
@@ -160,9 +170,17 @@ export function useCustomerDashboard() {
   const editableItemCount = editorState.items.filter((item) => item.name.trim()).length;
 
   // ── Effects ───────────────────────────────────────────────────────────────
-  useEffect(() => { setEditorState(buildEditorState(selectedQuote)); }, [selectedQuote]);
+  useEffect(() => {
+    const id = selectedQuote?.id ?? null;
+    if (editorQuoteId.current !== id || !editorDirty.current) {
+      editorQuoteId.current = id;
+      editorDirty.current = false;
+      setEditorStateInternal(buildEditorState(selectedQuote));
+    }
+  }, [selectedQuote]);
 
   useEffect(() => {
+    setActiveTab(getActiveTab(searchParams.get('tab')));
     const id = searchParams.get('quoteId');
     if (id) setSelectedQuoteId(id);
   }, [searchParams]);
@@ -235,4 +253,8 @@ export function useCustomerDashboard() {
     setPasswordForm,
     changePasswordMutation,
   };
+}
+
+function getActiveTab(value: string | null): ActiveTab {
+  return ['overview', 'quotes', 'orders', 'profile', 'security'].includes(value ?? '') ? value as ActiveTab : 'overview';
 }

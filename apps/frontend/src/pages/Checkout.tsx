@@ -238,6 +238,9 @@ export default function CheckoutPage() {
                     </a>
                   </Button>
                   <Button asChild variant="outline">
+                    <Link to={`/painel-cliente?tab=orders&orderId=${completedOrder.order.id}`}>Acompanhar pedido</Link>
+                  </Button>
+                  <Button asChild variant="ghost">
                     <Link to="/">Voltar para a vitrine</Link>
                   </Button>
                 </div>

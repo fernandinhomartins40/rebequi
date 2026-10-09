@@ -24,7 +24,7 @@ export type BoundingBox = {
 export type RecognizedQuoteLine = {
   text: string;
   confidence: number;
-  source?: 'paddleocr' | 'openrouter';
+  source?: 'paddleocr' | 'openrouter' | 'manual';
   bbox?: BoundingBox;
   /** Quantity resolved by the model, when it returned a structured item. */
   quantity?: number | null;

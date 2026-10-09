@@ -36,6 +36,11 @@ export const updateQuoteDraftSchema = z.object({
   items: z.array(quoteItemInputSchema).min(1, 'Adicione pelo menos um item ao orçamento'),
 });
 
+export const createManualQuoteDraftSchema = z.object({
+  text: z.string().trim().min(1, 'Digite sua lista').max(10000, 'Lista muito longa'),
+  token: z.string().min(16, 'Token inválido').optional(),
+});
+
 /**
  * Editing an anonymous draft: the customer photographed a list before
  * identifying themselves, so the draft token stands in for a session.
@@ -78,6 +83,7 @@ export const leadFiltersSchema = z.object({
 });
 
 export type StartLeadInput = z.infer<typeof startLeadSchema>;
+export type CreateManualQuoteDraftInput = z.infer<typeof createManualQuoteDraftSchema>;
 export type QuoteItemInput = z.infer<typeof quoteItemInputSchema>;
 export type UpdateQuoteDraftInput = z.infer<typeof updateQuoteDraftSchema>;
 export type UpdateAnonymousQuoteDraftInput = z.infer<typeof updateAnonymousQuoteDraftSchema>;

@@ -1,3 +1,4 @@
+import { OrderStatus as OrderStatusValue } from '@rebequi/shared/types';
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -47,11 +48,11 @@ function formatPrice(value: number) {
 
 const ORDER_STATUS_OPTIONS: Array<{ label: string; value: StatusFilterValue }> = [
   { label: 'Todos os status', value: 'all' },
-  { label: 'Aguardando WhatsApp', value: 'PENDING_WHATSAPP' },
-  { label: 'Enviado ao WhatsApp', value: 'WHATSAPP_REDIRECTED' },
-  { label: 'Em recuperação', value: 'IN_RECOVERY' },
-  { label: 'Concluído', value: 'COMPLETED' },
-  { label: 'Cancelado', value: 'CANCELED' },
+  { label: 'Aguardando WhatsApp', value: OrderStatusValue.PENDING_WHATSAPP },
+  { label: 'Enviado ao WhatsApp', value: OrderStatusValue.WHATSAPP_REDIRECTED },
+  { label: 'Em recuperação', value: OrderStatusValue.IN_RECOVERY },
+  { label: 'Concluído', value: OrderStatusValue.COMPLETED },
+  { label: 'Cancelado', value: OrderStatusValue.CANCELED },
 ];
 
 export function MerchantDashboardOrders() {
@@ -99,10 +100,10 @@ export function MerchantDashboardOrders() {
   const orders = ordersQuery.data?.orders ?? [];
 
   const metrics = useMemo(() => {
-    const pendingWhatsapp = orders.filter((o) => o.status === 'PENDING_WHATSAPP').length;
-    const redirected = orders.filter((o) => o.status === 'WHATSAPP_REDIRECTED').length;
-    const recovery = orders.filter((o) => o.status === 'IN_RECOVERY').length;
-    const completed = orders.filter((o) => o.status === 'COMPLETED').length;
+    const pendingWhatsapp = orders.filter((o) => o.status === OrderStatusValue.PENDING_WHATSAPP).length;
+    const redirected = orders.filter((o) => o.status === OrderStatusValue.WHATSAPP_REDIRECTED).length;
+    const recovery = orders.filter((o) => o.status === OrderStatusValue.IN_RECOVERY).length;
+    const completed = orders.filter((o) => o.status === OrderStatusValue.COMPLETED).length;
     return { completed, pendingWhatsapp, recovery, redirected };
   }, [orders]);
 
@@ -241,10 +242,10 @@ export function MerchantDashboardOrders() {
                           compact
                           order={order}
                           isMutating={statusMutation.isPending}
-                          onApprove={() => void handleStatusChange(order, 'COMPLETED')}
-                          onRecovery={() => void handleStatusChange(order, 'IN_RECOVERY')}
-                          onRedirected={() => void handleStatusChange(order, 'WHATSAPP_REDIRECTED')}
-                          onCancel={() => void handleStatusChange(order, 'CANCELED')}
+                          onApprove={() => void handleStatusChange(order, OrderStatusValue.COMPLETED)}
+                          onRecovery={() => void handleStatusChange(order, OrderStatusValue.IN_RECOVERY)}
+                          onRedirected={() => void handleStatusChange(order, OrderStatusValue.WHATSAPP_REDIRECTED)}
+                          onCancel={() => void handleStatusChange(order, OrderStatusValue.CANCELED)}
                         />
                       </TableCell>
                     </TableRow>
@@ -277,10 +278,10 @@ export function MerchantDashboardOrders() {
                     <OrderRowActions
                       order={order}
                       isMutating={statusMutation.isPending}
-                      onApprove={() => void handleStatusChange(order, 'COMPLETED')}
-                      onRecovery={() => void handleStatusChange(order, 'IN_RECOVERY')}
-                      onRedirected={() => void handleStatusChange(order, 'WHATSAPP_REDIRECTED')}
-                      onCancel={() => void handleStatusChange(order, 'CANCELED')}
+                      onApprove={() => void handleStatusChange(order, OrderStatusValue.COMPLETED)}
+                      onRecovery={() => void handleStatusChange(order, OrderStatusValue.IN_RECOVERY)}
+                      onRedirected={() => void handleStatusChange(order, OrderStatusValue.WHATSAPP_REDIRECTED)}
+                      onCancel={() => void handleStatusChange(order, OrderStatusValue.CANCELED)}
                     />
                   </div>
                 </div>
@@ -330,7 +331,7 @@ function OrderRowActions({
         variant="ghost"
         size="icon"
         className="h-8 w-8 text-emerald-600 hover:text-emerald-700"
-        disabled={isMutating || order.status === 'COMPLETED'}
+        disabled={isMutating || order.status === OrderStatusValue.COMPLETED}
         onClick={onApprove}
         aria-label="Aprovar pedido"
       >
@@ -355,7 +356,7 @@ function OrderRowActions({
               </a>
             </DropdownMenuItem>
           ) : null}
-          {order.status !== 'COMPLETED' && order.status !== 'CANCELED' ? (
+          {order.status !== OrderStatusValue.COMPLETED && order.status !== OrderStatusValue.CANCELED ? (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>

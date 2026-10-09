@@ -63,7 +63,7 @@ export function useMerchantDashboardData(): MerchantDashboardOutletContext {
 
   const { data: categorySummary } = useQuery({
     queryKey: ['merchant-dashboard', 'categories'],
-    queryFn: fetchCategories,
+    queryFn: () => fetchCategories(),
     enabled: canManageCatalog,
   });
 

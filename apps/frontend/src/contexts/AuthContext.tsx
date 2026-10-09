@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -17,6 +18,8 @@ import {
   register as registerRequest,
 } from '@/services/api/auth';
 import { ApiError } from '@/services/api/client';
+import { useQueryClient } from '@tanstack/react-query';
+import { clearProvisionalCredentials } from '@/lib/provisional-credentials';
 
 type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
 
@@ -35,27 +38,34 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
+  const sessionUserId = useRef<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [status, setStatus] = useState<AuthStatus>('loading');
+  const setSessionUser = useCallback((nextUser: User | null) => {
+    if (sessionUserId.current !== (nextUser?.id ?? null)) queryClient.clear();
+    sessionUserId.current = nextUser?.id ?? null;
+    setUser(nextUser);
+  }, [queryClient]);
 
   const refreshSession = useCallback(async (): Promise<User | null> => {
     try {
       const currentUser = await getCurrentUser();
-      setUser(currentUser);
+      setSessionUser(currentUser);
       setStatus('authenticated');
       return currentUser;
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
-        setUser(null);
+        setSessionUser(null);
         setStatus('unauthenticated');
         return null;
       }
 
-      setUser(null);
+      setSessionUser(null);
       setStatus('unauthenticated');
       throw error;
     }
-  }, []);
+  }, [setSessionUser]);
 
   useEffect(() => {
     void refreshSession().catch(() => {
@@ -66,26 +76,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (payload: LoginInput) => {
     const response = await loginRequest(payload);
-    setUser(response.user);
+    clearProvisionalCredentials();
+    setSessionUser(response.user);
     setStatus('authenticated');
     return response.user;
-  }, []);
+  }, [setSessionUser]);
 
   const register = useCallback(async (payload: RegisterInput) => {
     const response = await registerRequest(payload);
-    setUser(response.user);
+    setSessionUser(response.user);
     setStatus('authenticated');
     return response.user;
-  }, []);
+  }, [setSessionUser]);
 
   const logout = useCallback(async () => {
     try {
       await logoutRequest();
     } finally {
-      setUser(null);
+      queryClient.clear();
+      clearProvisionalCredentials();
+      setSessionUser(null);
       setStatus('unauthenticated');
     }
-  }, []);
+  }, [queryClient, setSessionUser]);
 
   const changePassword = useCallback(async (payload: { currentPassword: string; newPassword: string }) => {
     const response = await changePasswordRequest(payload);

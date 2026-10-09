@@ -4,13 +4,14 @@
  */
 
 import { UserRole } from '@prisma/client';
+import { randomBytes } from 'node:crypto';
 import type {
   ChangePasswordInput,
   LoginInput,
   RegisterInput,
   UpdateAdminCredentialsInput,
 } from '@rebequi/shared/schemas';
-import { buildProvisionalPassword, isValidWhatsapp, normalizeWhatsapp } from '@rebequi/shared/utils';
+import { isValidWhatsapp, normalizeWhatsapp } from '@rebequi/shared/utils';
 import { UserRepository } from '../repositories/user.repository.js';
 import { UnauthorizedError, ConflictError } from '../utils/errors.util.js';
 import { comparePassword, hashPassword } from '../utils/hash.util.js';
@@ -34,7 +35,7 @@ export class AuthService {
       throw new ConflictError('Já existe um acesso vinculado a este WhatsApp');
     }
 
-    const provisionalPassword = buildProvisionalPassword(data.name);
+    const provisionalPassword = randomBytes(12).toString('base64url');
     const hashedPassword = await hashPassword(provisionalPassword);
 
     const user = await this.userRepository.create({
@@ -60,7 +61,7 @@ export class AuthService {
     };
   }
 
-  async ensureCustomerForLead(params: { name: string; whatsapp: string }) {
+  async ensureCustomerForLead(params: { name: string; whatsapp: string; authenticatedUserId?: string }) {
     const normalizedWhatsapp = normalizeWhatsapp(params.whatsapp);
 
     if (!isValidWhatsapp(normalizedWhatsapp)) {
@@ -73,23 +74,21 @@ export class AuthService {
         throw new ConflictError('Já existe um usuário administrativo vinculado a este identificador');
       }
 
-      const activeUser = existingUser.isActive
-        ? existingUser
-        : await this.userRepository.update(existingUser.id, { isActive: true });
+      if (!existingUser.isActive) {
+        throw new UnauthorizedError('Esta conta está desativada. Entre em contato com a loja.');
+      }
+      if (existingUser.id !== params.authenticatedUserId) {
+        throw new ConflictError('Entre na sua conta para enviar a lista. Seu rascunho será preservado.', 'LOGIN_REQUIRED');
+      }
 
       return {
-        user: activeUser,
+        user: existingUser,
         created: false,
-        provisionalCredentials: activeUser.isProvisional
-          ? {
-              identifier: normalizedWhatsapp,
-              password: buildProvisionalPassword(activeUser.name),
-            }
-          : undefined,
+        provisionalCredentials: undefined,
       };
     }
 
-    const provisionalPassword = buildProvisionalPassword(params.name);
+    const provisionalPassword = randomBytes(12).toString('base64url');
     const hashedPassword = await hashPassword(provisionalPassword);
     const user = await this.userRepository.create({
       email: normalizedWhatsapp,

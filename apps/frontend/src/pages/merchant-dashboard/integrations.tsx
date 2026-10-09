@@ -367,7 +367,7 @@ export function MerchantDashboardIntegrations() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => testMutation.mutate()}
+            onClick={() => testMutation.mutate(undefined)}
             disabled={testMutation.isPending || !config?.hasApiKey}
             className="gap-1.5"
           >
@@ -415,7 +415,7 @@ export function MerchantDashboardIntegrations() {
       <DashboardPanel
         title="Testar leitura de verdade"
         description="Envie a foto de uma lista real. Roda a cadeia completa e mostra o que foi reconhecido — é o único teste que prova que o OCR está funcionando."
-        accent="green"
+        accent="blue"
       >
         <div className="space-y-4">
           <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border/70 px-4 py-6 text-sm font-medium text-muted-foreground transition hover:border-primary hover:text-primary">

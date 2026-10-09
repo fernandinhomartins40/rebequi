@@ -113,14 +113,16 @@ export class OrderService {
     };
   }
 
-  async markOrderWhatsappRedirected(orderId: string) {
+  async markOrderWhatsappRedirected(orderId: string, userId: string) {
     const order = await this.orderRepository.findOrderById(orderId);
     if (!order) {
       throw new NotFoundError('Pedido nao encontrado');
     }
 
+    if (order.userId !== userId) throw new NotFoundError('Pedido nao encontrado');
+
     if (order.status === 'COMPLETED' || order.status === 'CANCELED') {
-      return this.formatOrder(order);
+      return this.formatCustomerOrder(order);
     }
 
     const updatedOrder = await this.orderRepository.updateOrder(orderId, {
@@ -128,7 +130,7 @@ export class OrderService {
       whatsappRedirectedAt: order.whatsappRedirectedAt ?? new Date(),
     });
 
-    return this.formatOrder(updatedOrder);
+    return this.formatCustomerOrder(updatedOrder);
   }
 
   async listCustomerOrders(userId: string) {
@@ -137,7 +139,7 @@ export class OrderService {
       where: { userId },
     });
 
-    return orders.map((order) => this.formatOrder(order));
+    return orders.map((order) => this.formatCustomerOrder(order));
   }
 
   async listAdminOrders(filters: OrderFiltersInput) {
@@ -428,6 +430,11 @@ export class OrderService {
     const datePart = `${now.getUTCFullYear()}${String(now.getUTCMonth() + 1).padStart(2, '0')}${String(now.getUTCDate()).padStart(2, '0')}`;
     const randomPart = Math.random().toString(36).slice(2, 6).toUpperCase();
     return `PED-${datePart}-${randomPart}`;
+  }
+
+  private formatCustomerOrder(order: PersistedOrder) {
+    const { internalNotes: _internalNotes, ...publicOrder } = this.formatOrder(order);
+    return publicOrder;
   }
 
   private formatOrder(order: PersistedOrder) {

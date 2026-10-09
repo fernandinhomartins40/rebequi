@@ -1,3 +1,4 @@
+import { QuoteStatus, LeadStatus } from '@rebequi/shared/types';
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Clock3, FileText, MessageCircle, Send, UserRound } from 'lucide-react';
@@ -38,7 +39,7 @@ export function MerchantDashboardQuotes() {
   });
 
   const quoteStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: 'IN_REVIEW' | 'RESPONDED' | 'ARCHIVED' }) =>
+    mutationFn: ({ id, status }: { id: string; status: QuoteStatus.IN_REVIEW | QuoteStatus.RESPONDED | QuoteStatus.ARCHIVED }) =>
       updateAdminQuoteStatus(id, { status }),
     onSuccess: async () => {
       await Promise.all([
@@ -49,7 +50,7 @@ export function MerchantDashboardQuotes() {
   });
 
   const leadStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: 'CONTACTED' | 'ARCHIVED' }) =>
+    mutationFn: ({ id, status }: { id: string; status: LeadStatus.CONTACTED | LeadStatus.ARCHIVED }) =>
       updateCapturedLeadStatus(id, { status }),
     onSuccess: async () => {
       await Promise.all([
@@ -300,14 +301,14 @@ export function MerchantDashboardQuotes() {
                     variant="outline"
                     size="sm"
                     disabled={quoteStatusMutation.isPending}
-                    onClick={() => quoteStatusMutation.mutate({ id: selectedQuote.id, status: 'IN_REVIEW' })}
+                    onClick={() => quoteStatusMutation.mutate({ id: selectedQuote.id, status: QuoteStatus.IN_REVIEW })}
                   >
                     Em análise
                   </Button>
                   <Button
                     size="sm"
                     disabled={quoteStatusMutation.isPending}
-                    onClick={() => quoteStatusMutation.mutate({ id: selectedQuote.id, status: 'RESPONDED' })}
+                    onClick={() => quoteStatusMutation.mutate({ id: selectedQuote.id, status: QuoteStatus.RESPONDED })}
                   >
                     Marcar respondido
                   </Button>
@@ -315,7 +316,7 @@ export function MerchantDashboardQuotes() {
                     variant="outline"
                     size="sm"
                     disabled={quoteStatusMutation.isPending}
-                    onClick={() => quoteStatusMutation.mutate({ id: selectedQuote.id, status: 'ARCHIVED' })}
+                    onClick={() => quoteStatusMutation.mutate({ id: selectedQuote.id, status: QuoteStatus.ARCHIVED })}
                   >
                     Arquivar
                   </Button>
@@ -357,7 +358,7 @@ export function MerchantDashboardQuotes() {
                   variant="outline"
                   size="sm"
                   disabled={leadStatusMutation.isPending}
-                  onClick={() => leadStatusMutation.mutate({ id: selectedLead.id, status: 'CONTACTED' })}
+                  onClick={() => leadStatusMutation.mutate({ id: selectedLead.id, status: LeadStatus.CONTACTED })}
                 >
                   Marcar contato
                 </Button>
@@ -373,7 +374,7 @@ export function MerchantDashboardQuotes() {
                   variant="outline"
                   size="sm"
                   disabled={leadStatusMutation.isPending}
-                  onClick={() => leadStatusMutation.mutate({ id: selectedLead.id, status: 'ARCHIVED' })}
+                  onClick={() => leadStatusMutation.mutate({ id: selectedLead.id, status: LeadStatus.ARCHIVED })}
                 >
                   Arquivar
                 </Button>

@@ -15,7 +15,7 @@ const orderController = new OrderController();
 const orderRoles = getRolesForMerchantPermission('orders:manage');
 
 router.post('/public/checkout', validateBody(publicCheckoutOrderSchema), orderController.publicCheckout);
-router.post('/public/:id/whatsapp-redirected', orderController.markWhatsappRedirected);
+router.post('/public/:id/whatsapp-redirected', authenticate, authorize('CUSTOMER'), orderController.markWhatsappRedirected);
 
 router.get('/me', authenticate, authorize('CUSTOMER'), orderController.listCustomerOrders);
 router.post('/checkout', authenticate, authorize('CUSTOMER'), validateBody(authenticatedCheckoutOrderSchema), orderController.authenticatedCheckout);

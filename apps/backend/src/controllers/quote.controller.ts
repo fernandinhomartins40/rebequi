@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import type {
   LeadFiltersInput,
+  CreateManualQuoteDraftInput,
   QuoteFiltersInput,
   StartLeadInput,
   SubmitAnonymousQuoteInput,
@@ -41,8 +42,10 @@ export class QuoteController {
   startPublicLead = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const data: StartLeadInput = req.body;
-      const result = await this.quoteService.startPublicLead(data);
-      successResponse(res, result, 201, 'Lead captured successfully');
+      const result = await this.quoteService.startPublicLead(data, req.user?.userId);
+      setAuthCookie(res, result.token);
+      const { token: _token, ...publicResult } = result;
+      successResponse(res, publicResult, 201, 'Lead captured successfully');
     } catch (error) {
       next(error);
     }
@@ -53,6 +56,7 @@ export class QuoteController {
       const leadId = String(req.body.leadId || '');
       const result = await this.quoteService.processPublicDocument({
         leadId,
+        userId: req.user!.userId,
         file: req.file,
         width: parseNumber(req.body.width),
         height: parseNumber(req.body.height),
@@ -98,6 +102,13 @@ export class QuoteController {
     }
   };
 
+  createManualDraft = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const data: CreateManualQuoteDraftInput = req.body;
+      successResponse(res, await this.quoteService.createManualDraft(data), 201, 'Lista criada para revisão');
+    } catch (error) { next(error); }
+  };
+
   updateAnonymousDraft = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const data: UpdateAnonymousQuoteDraftInput = req.body;
@@ -111,7 +122,7 @@ export class QuoteController {
   submitAnonymousDraft = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const data: SubmitAnonymousQuoteInput = req.body;
-      const result = await this.quoteService.submitAnonymousDraft(data);
+      const result = await this.quoteService.submitAnonymousDraft(data, req.user?.userId);
 
       setAuthCookie(res, result.token);
       successResponse(

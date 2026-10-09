@@ -190,6 +190,8 @@ export function buildQuoteStageLabel(quote: Pick<QuoteRequest, 'status' | 'ocrSt
 
 export function buildQuoteSourceLabel(source?: string | null) {
   switch (source) {
+    case 'public_manual':
+      return 'Lista digitada pelo cliente';
     case 'public_camera':
       return 'Capturado na pagina publica';
     case 'customer_dashboard':

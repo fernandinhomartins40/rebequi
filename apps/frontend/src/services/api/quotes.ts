@@ -56,13 +56,15 @@ function unwrapPaginated<T>(payload: unknown, key: 'quotes' | 'leads'): QuoteRes
     }
 
     const entries = (payload.data as T[]) ?? [];
-    return {
-      [key]: entries,
+    const pagination = {
       total: payload.pagination?.total ?? entries.length,
       page: payload.pagination?.page ?? 1,
       limit: payload.pagination?.limit ?? entries.length,
       totalPages: payload.pagination?.totalPages ?? 1,
-    } as QuoteResponse | LeadResponse;
+    };
+    return key === 'quotes'
+      ? { quotes: entries as QuoteRequest[], ...pagination }
+      : { leads: entries as StartLeadResponse['lead'][], ...pagination };
   }
 
   return payload as QuoteResponse | LeadResponse;
@@ -114,6 +116,13 @@ export type SubmitAnonymousResponse = {
   user: StartLeadResponse['user'];
   provisionalCredentials?: StartLeadResponse['provisionalCredentials'];
 };
+
+export async function createManualQuoteDraft(text: string, token?: string): Promise<AnonymousDraftResponse> {
+  const response = await apiFetch<ApiResponse<AnonymousDraftResponse>>('/quotes/public/manual', {
+    method: 'POST', body: JSON.stringify({ text, token }),
+  });
+  return unwrapData<AnonymousDraftResponse>(response);
+}
 
 export async function createAnonymousQuoteDraft(params: {
   file: File;

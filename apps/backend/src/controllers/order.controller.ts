@@ -69,7 +69,8 @@ export class OrderController {
 
   markWhatsappRedirected = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const order = await this.orderService.markOrderWhatsappRedirected(req.params.id);
+      if (!req.user) throw new UnauthorizedError('User not authenticated');
+      const order = await this.orderService.markOrderWhatsappRedirected(req.params.id, req.user.userId);
       successResponse(res, order, 200, 'Pedido marcado como encaminhado para o WhatsApp');
     } catch (error) {
       next(error);

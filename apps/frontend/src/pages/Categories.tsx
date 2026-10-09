@@ -39,7 +39,7 @@ function CategoriesPageSkeleton() {
 export default function CategoriesPage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["categories", "public-index"],
-    queryFn: fetchCategories,
+    queryFn: () => fetchCategories(),
   });
 
   const categories = [...(data?.categories ?? [])].sort((left, right) => left.name.localeCompare(right.name, "pt-BR"));

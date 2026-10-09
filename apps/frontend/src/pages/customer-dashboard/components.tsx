@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, HTMLAttributes } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { DashboardNavItem } from './types';
@@ -177,9 +177,9 @@ export function QuickLink({ label, onClick }: { label: string; onClick: () => vo
 
 // ── Section panel (card simples) ──────────────────────────────────────────────
 
-export function SectionPanel({ className, children }: { className?: string; children: ReactNode }) {
+export function SectionPanel({ className, children, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn('rounded-xl border border-slate-200/70 bg-white shadow-sm', className)}>
+    <div {...props} className={cn('rounded-xl border border-slate-200/70 bg-white shadow-sm', className)}>
       {children}
     </div>
   );

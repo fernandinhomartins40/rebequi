@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { getRolesForMerchantPermission } from '@rebequi/shared/constants';
 import {
   startLeadSchema,
+  createManualQuoteDraftSchema,
   submitAnonymousQuoteSchema,
   updateAnonymousQuoteDraftSchema,
   updateLeadStatusSchema,
@@ -19,7 +20,8 @@ const quoteController = new QuoteController();
 const quoteRoles = getRolesForMerchantPermission('quotes:manage');
 
 router.post('/public/start', validateBody(startLeadSchema), quoteController.startPublicLead);
-router.post('/public/document', uploadLimiter, upload.single('document'), quoteController.processPublicDocument);
+router.post('/public/manual', uploadLimiter, validateBody(createManualQuoteDraftSchema), quoteController.createManualDraft);
+router.post('/public/document', authenticate, authorize('CUSTOMER'), uploadLimiter, upload.single('document'), quoteController.processPublicDocument);
 
 // Fluxo foto-primeiro: a lista é fotografada antes de qualquer cadastro e o
 // WhatsApp só é pedido no envio. O token do rascunho faz as vezes de sessão.

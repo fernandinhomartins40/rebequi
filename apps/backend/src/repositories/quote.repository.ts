@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
+import { ConflictError } from '../utils/errors.util.js';
 
 const leadInclude = {
   user: true,
@@ -92,20 +93,29 @@ export class QuoteRepository {
     });
   }
 
-  async replaceQuoteItems(id: string, items: Prisma.QuoteItemCreateManyInput[]) {
-    await prisma.quoteItem.deleteMany({
-      where: { quoteRequestId: id },
-    });
-
-    if (items.length > 0) {
-      await prisma.quoteItem.createMany({
-        data: items,
+  async replaceQuoteItems(id: string, items: Prisma.QuoteItemCreateManyInput[], options?: {
+    anonymousToken: string;
+    update?: Prisma.QuoteRequestUpdateInput;
+  }) {
+    return prisma.$transaction(async (tx) => {
+        // Lock the parent so concurrent edits cannot interleave replacements.
+        try {
+          await tx.quoteRequest.update({
+            where: { id, ...(options ? { anonymousToken: options.anonymousToken, status: 'DRAFT', anonymousExpiresAt: { gt: new Date() } } : {}) },
+            data: { updatedAt: new Date(), ...options?.update },
+          });
+        } catch (error) {
+          if (options && error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+            throw new ConflictError('Este rascunho expirou ou já foi enviado');
+          }
+          throw error;
+        }
+      await tx.quoteItem.deleteMany({ where: { quoteRequestId: id } });
+      if (items.length > 0) await tx.quoteItem.createMany({ data: items });
+      return tx.quoteRequest.findUnique({
+        where: { id },
+        include: quoteInclude,
       });
-    }
-
-    return prisma.quoteRequest.findUnique({
-      where: { id },
-      include: quoteInclude,
     });
   }
 
@@ -113,6 +123,33 @@ export class QuoteRepository {
     return prisma.quoteRequest.findUnique({
       where: { id },
       include: quoteInclude,
+    });
+  }
+
+  async startOcr(id: string) {
+    return prisma.quoteRequest.updateMany({
+      where: { id, ocrStatus: 'PENDING' },
+      data: { ocrStatus: 'PROCESSING', ocrError: null, ocrAttempts: { increment: 1 } },
+    });
+  }
+
+  async finishOcr(id: string, data: Prisma.QuoteRequestUpdateManyMutationInput,
+    items: Prisma.QuoteItemCreateManyInput[], title: string, customerNote: string | null) {
+    return prisma.$transaction(async (tx) => {
+      // Serialize against manual edits/claiming; a manual fallback cancels OCR.
+      const locked = await tx.quoteRequest.updateMany({ where: { id, ocrStatus: 'PROCESSING' }, data });
+      if (!locked.count) return;
+      const count = await tx.quoteItem.count({ where: { quoteRequestId: id } });
+      if (!count) {
+        if (items.length) await tx.quoteItem.createMany({ data: items });
+        await tx.quoteRequest.update({ where: { id }, data: { title, customerNote } });
+      }
+    });
+  }
+
+  async failOcr(id: string, message: string) {
+    return prisma.quoteRequest.updateMany({
+      where: { id, ocrStatus: 'PROCESSING' }, data: { ocrStatus: 'FAILED', ocrError: message },
     });
   }
 

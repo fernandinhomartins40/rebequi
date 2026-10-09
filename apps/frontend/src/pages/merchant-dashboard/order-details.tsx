@@ -1,3 +1,4 @@
+import { OrderStatus as OrderStatusValue } from '@rebequi/shared/types';
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -25,11 +26,11 @@ import { DashboardPanel, InfoRow, SectionLeadCard } from './components';
 import { ADMIN_BASE_PATH } from './config';
 
 const STATUS_OPTIONS: Array<{ label: string; value: OrderStatus }> = [
-  { label: 'Aguardando WhatsApp', value: 'PENDING_WHATSAPP' },
-  { label: 'Enviado ao WhatsApp', value: 'WHATSAPP_REDIRECTED' },
-  { label: 'Em recuperação', value: 'IN_RECOVERY' },
-  { label: 'Concluído', value: 'COMPLETED' },
-  { label: 'Cancelado', value: 'CANCELED' },
+  { label: 'Aguardando WhatsApp', value: OrderStatusValue.PENDING_WHATSAPP },
+  { label: 'Enviado ao WhatsApp', value: OrderStatusValue.WHATSAPP_REDIRECTED },
+  { label: 'Em recuperação', value: OrderStatusValue.IN_RECOVERY },
+  { label: 'Concluído', value: OrderStatusValue.COMPLETED },
+  { label: 'Cancelado', value: OrderStatusValue.CANCELED },
 ];
 
 function formatPrice(value: number) {
@@ -44,7 +45,7 @@ export function MerchantDashboardOrderDetails() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [internalNotes, setInternalNotes] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState<OrderStatus>('PENDING_WHATSAPP');
+  const [selectedStatus, setSelectedStatus] = useState<OrderStatus>(OrderStatusValue.PENDING_WHATSAPP);
 
   const orderQuery = useQuery({
     queryKey: ['merchant-dashboard', 'orders', 'detail', orderId],
@@ -263,19 +264,19 @@ export function MerchantDashboardOrderDetails() {
                 <Button
                   variant="secondary"
                   disabled={updateMutation.isPending}
-                  onClick={() => void saveOrder('IN_RECOVERY')}
+                  onClick={() => void saveOrder(OrderStatusValue.IN_RECOVERY)}
                 >
                   <RotateCcw className="mr-2 h-4 w-4" />
                   Colocar em recuperação
                 </Button>
-                <Button disabled={updateMutation.isPending} onClick={() => void saveOrder('COMPLETED')}>
+                <Button disabled={updateMutation.isPending} onClick={() => void saveOrder(OrderStatusValue.COMPLETED)}>
                   <CheckCircle2 className="mr-2 h-4 w-4" />
                   Aprovar pedido
                 </Button>
                 <Button
                   variant="destructive"
                   disabled={updateMutation.isPending}
-                  onClick={() => void saveOrder('CANCELED')}
+                  onClick={() => void saveOrder(OrderStatusValue.CANCELED)}
                 >
                   <XCircle className="mr-2 h-4 w-4" />
                   Cancelar pedido

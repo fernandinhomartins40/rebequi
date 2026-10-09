@@ -35,9 +35,12 @@ import {
 } from '@/lib/quote-draft-storage';
 import {
   createAnonymousQuoteDraft,
+  createManualQuoteDraft,
   fetchAnonymousQuoteDraft,
   submitAnonymousQuote,
+  updateAnonymousQuoteDraft,
 } from '@/services/api/quotes';
+import { ApiError } from '@/services/api/client';
 import type { QuoteItem, QuoteRequest } from '@/types';
 
 type EditableItem = {
@@ -72,7 +75,7 @@ export default function RequestQuotePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { refreshSession } = useAuth();
+  const { refreshSession, user } = useAuth();
 
   const [step, setStep] = useState<Step>('scan');
   const [draftToken, setDraftToken] = useState<string | null>(null);
@@ -83,9 +86,28 @@ export default function RequestQuotePage() {
   const [nameInput, setNameInput] = useState('');
   const [failureReason, setFailureReason] = useState<string | null>(null);
   const pollStartedAt = useRef<number | null>(null);
+  const [restoring, setRestoring] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'saving' | 'saved' | 'error'>('saved');
+  const saveTimer = useRef<ReturnType<typeof setTimeout>>();
+  const pendingSave = useRef<Promise<unknown>>(Promise.resolve());
+  const submitting = useRef(false);
+  const saveVersion = useRef(0);
 
   const documentMutation = useMutation({ mutationFn: createAnonymousQuoteDraft });
   const submitMutation = useMutation({ mutationFn: submitAnonymousQuote });
+  const manualMutation = useMutation({
+    mutationFn: ({ text, token }: { text: string; token?: string }) => createManualQuoteDraft(text, token),
+  });
+
+  useEffect(() => {
+    if (user?.role !== 'CUSTOMER') return;
+    setNameInput((current) => current || user.name);
+    setWhatsappInput((current) => current || user.whatsapp || '');
+  }, [user]);
+
+  useEffect(() => () => {
+    if (photoUrl?.startsWith('blob:')) URL.revokeObjectURL(photoUrl);
+  }, [photoUrl]);
 
   // Restore an unsent list (refresh, incoming call, tab discarded).
   useEffect(() => {
@@ -96,6 +118,7 @@ export default function RequestQuotePage() {
     setItems(backup.items);
     setPhotoUrl(backup.photoUrl ?? null);
     setStep('review');
+    setRestoring(true);
   }, []);
 
   useEffect(() => {
@@ -103,10 +126,35 @@ export default function RequestQuotePage() {
     saveDraftBackup({ token: draftToken, items, photoUrl });
   }, [draftToken, items, photoUrl, step]);
 
+  useEffect(() => {
+    if (!draftToken || step !== 'review' || restoring || submitting.current) return;
+    const valid = items.filter((item) => item.name.trim());
+    if (!valid.length) return;
+    const version = ++saveVersion.current;
+    setSaveStatus('saving');
+    saveTimer.current = setTimeout(() => {
+      const save = pendingSave.current.catch(() => undefined).then(() =>
+        updateAnonymousQuoteDraft(draftToken, valid.map((item) => ({
+          productId: item.productId ?? null, name: item.name.trim(), quantity: item.quantity,
+          unit: item.unit ?? null, notes: item.notes ?? null,
+          recognitionSourceLine: item.sourceLine ?? null,
+        })))
+      );
+      pendingSave.current = save;
+      void save.then(() => {
+        if (version === saveVersion.current) setSaveStatus('saved');
+      }, () => {
+        if (version === saveVersion.current) setSaveStatus('error');
+      });
+    }, 700);
+    return () => clearTimeout(saveTimer.current);
+  }, [draftToken, step, items, restoring]);
+
   const draftQuery = useQuery({
     queryKey: ['quote', 'anonymous', draftToken],
     queryFn: () => fetchAnonymousQuoteDraft(draftToken as string),
-    enabled: Boolean(draftToken) && step === 'processing',
+    enabled: Boolean(draftToken) && (step === 'processing' || restoring),
+    retry: (count, error) => !(error instanceof ApiError && [403, 404].includes(error.status)) && count < 2,
     refetchInterval: (query) => {
       if (step !== 'processing') return false;
       const current = query.state.data as QuoteRequest | undefined;
@@ -115,6 +163,43 @@ export default function RequestQuotePage() {
       return finished ? false : 1500;
     },
   });
+
+  useEffect(() => {
+    if (!restoring || !draftQuery.data) return;
+    const draft = draftQuery.data;
+    setQuoteId(draft.id);
+    setPhotoUrl(draft.documentUrl || null);
+    if (!items.length && ['PENDING', 'PROCESSING'].includes(draft.ocrStatus)) {
+      pollStartedAt.current = Date.now();
+      setStep('processing');
+    } else if (!items.length) {
+      setItems(draft.items.map(editableFromQuote));
+      if (!draft.items.length) {
+        setFailureReason(draft.ocrError || 'Revise ou digite a lista para continuar.');
+        setStep('failed');
+      }
+    }
+    setRestoring(false);
+  }, [restoring, draftQuery.data, items.length]);
+
+  useEffect(() => {
+    if (!draftQuery.error || (!restoring && step !== 'processing')) return;
+    const expired = draftQuery.error instanceof ApiError && [403, 404].includes(draftQuery.error.status);
+    if (expired) { clearDraftBackup(); setDraftToken(null); }
+    setRestoring(false);
+    setFailureReason(expired ? 'O rascunho expirou. Envie outra foto ou digite sua lista.' : 'Não foi possível consultar a leitura. Você pode continuar com sua lista.');
+    setStep('failed');
+  }, [draftQuery.error, restoring, step]);
+
+  useEffect(() => {
+    if (step !== 'processing') return;
+    const remaining = Math.max(0, MAX_POLL_MS - (Date.now() - (pollStartedAt.current ?? Date.now())));
+    const timeout = setTimeout(() => {
+      setFailureReason('A leitura está demorando mais que o normal.');
+      setStep('failed');
+    }, remaining);
+    return () => clearTimeout(timeout);
+  }, [step]);
 
   // OCR finished (or gave up) — move on.
   useEffect(() => {
@@ -181,6 +266,8 @@ export default function RequestQuotePage() {
         });
         setDraftToken(result.token);
         setQuoteId(result.quote.id);
+        setPhotoUrl(result.quote.documentUrl || null);
+        saveDraftBackup({ token: result.token, items: [], photoUrl: result.quote.documentUrl });
       } catch (error) {
         setStep('scan');
         toast({
@@ -194,6 +281,7 @@ export default function RequestQuotePage() {
   );
 
   const handleSend = async () => {
+    if (submitting.current) return;
     const cleaned = items.filter((item) => item.name.trim().length > 0);
     if (cleaned.length === 0) {
       toast({ variant: 'destructive', title: 'Lista vazia', description: 'Adicione pelo menos um item.' });
@@ -216,7 +304,10 @@ export default function RequestQuotePage() {
       return;
     }
 
+    submitting.current = true;
+    clearTimeout(saveTimer.current);
     try {
+      await pendingSave.current.catch(() => undefined);
       const result = await submitMutation.mutateAsync({
         token: draftToken,
         name: nameInput.trim() || undefined,
@@ -233,17 +324,23 @@ export default function RequestQuotePage() {
 
       saveProvisionalCredentials(result.provisionalCredentials);
       clearDraftBackup();
-      await refreshSession();
+      await refreshSession().catch(() => undefined);
       queryClient.invalidateQueries({ queryKey: ['customer', 'quotes'] });
       setQuoteId(result.quote.id);
       setStep('done');
     } catch (error) {
+      if (error instanceof ApiError && error.code === 'LOGIN_REQUIRED') {
+        saveDraftBackup({ token: draftToken, items, photoUrl });
+        toast({ title: 'Entre para enviar', description: 'Sua lista está salva. Depois do login, você volta para conferir e enviar.' });
+        navigate('/login', { state: { from: { pathname: '/pedido' }, prefillIdentifier: whatsappInput } });
+        return;
+      }
       toast({
         variant: 'destructive',
         title: 'Não foi possível enviar',
         description: error instanceof Error ? error.message : 'Tente novamente.',
       });
-    }
+    } finally { submitting.current = false; }
   };
 
   const restartScan = () => {
@@ -252,12 +349,14 @@ export default function RequestQuotePage() {
     setDraftToken(null);
     setPhotoUrl(null);
     setFailureReason(null);
+    setRestoring(false);
     setStep('scan');
   };
 
   switch (step) {
     case 'scan':
-      return <LiveDocumentScanner onCapture={(doc) => void handleScanCapture(doc)} onCancel={() => navigate('/')} />;
+      return <LiveDocumentScanner onCapture={(doc) => void handleScanCapture(doc)} onCancel={() => navigate('/')}
+        onManualEntry={() => setStep('manual')} />;
 
     case 'processing':
       return <ProcessingScreen />;
@@ -266,6 +365,7 @@ export default function RequestQuotePage() {
       return (
         <FailedScreen
           reason={failureReason}
+          hasDraft={Boolean(draftToken)}
           onRetry={restartScan}
           onTypeManually={() => {
             setItems([{ key: makeKey('item'), name: '', quantity: 1, unit: null }]);
@@ -288,17 +388,24 @@ export default function RequestQuotePage() {
     case 'manual':
       return (
         <ManualEntryScreen
-          onBack={() => setStep('failed')}
-          onConfirm={(lines) => {
-            setItems(
-              lines.map((line) => ({
-                key: makeKey('item'),
-                name: line,
-                quantity: 1,
-                unit: null,
-              }))
-            );
-            setStep('review');
+          busy={manualMutation.isPending}
+          onBack={() => setStep(draftToken ? 'failed' : 'scan')}
+          onConfirm={async (lines) => {
+            try {
+              const result = await manualMutation.mutateAsync({ text: lines.join('\n'), token: draftToken || undefined });
+              setDraftToken(result.token);
+              setQuoteId(result.quote.id);
+              setPhotoUrl(result.quote.documentUrl || null);
+              setItems(result.quote.items.map(editableFromQuote));
+              saveDraftBackup({ token: result.token, items: result.quote.items.map(editableFromQuote), photoUrl: result.quote.documentUrl });
+              setStep('review');
+            } catch (error) {
+              if (error instanceof ApiError && [403, 404, 409].includes(error.status)) {
+                setDraftToken(null);
+                clearDraftBackup();
+              }
+              toast({ variant: 'destructive', title: 'Não foi possível preparar a lista', description: error instanceof Error ? error.message : 'Tente novamente.' });
+            }
           }}
         />
       );
@@ -311,7 +418,8 @@ export default function RequestQuotePage() {
           onItemsChange={setItems}
           onRetake={restartScan}
           onSend={handleSend}
-          sending={submitMutation.isPending}
+          sending={submitMutation.isPending || restoring}
+          saveStatus={restoring ? 'Recuperando rascunho…' : saveStatus === 'saving' ? 'Salvando rascunho…' : saveStatus === 'saved' ? 'Rascunho salvo' : 'Não foi possível salvar agora. Sua lista continua nesta tela.'}
           whatsappInput={whatsappInput}
           nameInput={nameInput}
           onWhatsappChange={setWhatsappInput}
@@ -380,11 +488,13 @@ function SkeletonRow() {
  */
 function FailedScreen({
   reason,
+  hasDraft,
   onRetry,
   onTypeManually,
   onSendPhotoAnyway,
 }: {
   reason: string | null;
+  hasDraft: boolean;
   onRetry: () => void;
   onTypeManually: () => void;
   onSendPhotoAnyway: () => void;
@@ -424,7 +534,7 @@ function FailedScreen({
             </span>
           </Button>
 
-          <Button
+          {hasDraft ? <Button
             onClick={onSendPhotoAnyway}
             variant="outline"
             size="lg"
@@ -435,7 +545,7 @@ function FailedScreen({
               Mandar a foto direto pra loja
               <span className="block text-xs font-normal text-muted-foreground">A loja lê e te responde</span>
             </span>
-          </Button>
+          </Button> : null}
         </div>
 
         <div className="mt-6 text-center">
@@ -454,9 +564,11 @@ function FailedScreen({
 function ManualEntryScreen({
   onBack,
   onConfirm,
+  busy,
 }: {
   onBack: () => void;
   onConfirm: (lines: string[]) => void;
+  busy: boolean;
 }) {
   const [text, setText] = useState('');
   const lines = text
@@ -467,7 +579,7 @@ function ManualEntryScreen({
   return (
     <main className="flex min-h-screen flex-col bg-gradient-to-br from-slate-50 to-white pb-32">
       <header className="sticky top-0 z-10 border-b border-slate-200/70 bg-white/90 px-4 py-3 backdrop-blur">
-        <Button variant="ghost" size="sm" onClick={onBack} className="gap-1.5 px-0">
+        <Button variant="ghost" size="sm" onClick={onBack} disabled={busy} className="gap-1.5 px-0">
           <ArrowLeft className="h-4 w-4" />
           Voltar
         </Button>
@@ -484,6 +596,8 @@ function ManualEntryScreen({
           value={text}
           onChange={(event) => setText(event.target.value)}
           rows={12}
+          maxLength={10000}
+          aria-label="Lista de produtos, um por linha"
           placeholder={'5 sacos de cimento\n2 caixas de porcelanato 60x60\n1 tinta acrílica 18L'}
           className="mt-5 text-base leading-relaxed"
         />
@@ -496,12 +610,12 @@ function ManualEntryScreen({
         <div className="mx-auto max-w-2xl">
           <Button
             onClick={() => onConfirm(lines)}
-            disabled={lines.length === 0}
+            disabled={lines.length === 0 || lines.length > 100 || busy}
             size="lg"
             className="h-14 w-full gap-2 text-base font-bold"
           >
             <ArrowRight className="h-5 w-5" />
-            Continuar com {lines.length} {lines.length === 1 ? 'item' : 'itens'}
+            {busy ? 'Preparando lista…' : `Continuar com ${lines.length} ${lines.length === 1 ? 'item' : 'itens'}`}
           </Button>
         </div>
       </div>
@@ -518,6 +632,7 @@ function ReviewScreen({
   onRetake,
   onSend,
   sending,
+  saveStatus,
   whatsappInput,
   nameInput,
   onWhatsappChange,
@@ -529,6 +644,7 @@ function ReviewScreen({
   onRetake: () => void;
   onSend: () => void;
   sending: boolean;
+  saveStatus: string;
   whatsappInput: string;
   nameInput: string;
   onWhatsappChange: (value: string) => void;
@@ -572,6 +688,7 @@ function ReviewScreen({
 
       <div className="mx-auto w-full max-w-2xl px-4 py-6">
         <h1 className="text-2xl font-extrabold tracking-tight text-foreground">Confira sua lista</h1>
+        <p className="mt-2 text-xs text-muted-foreground" role="status">{saveStatus}</p>
         <p className="mt-1 text-sm text-muted-foreground">
           {needsAttention > 0 ? (
             <>

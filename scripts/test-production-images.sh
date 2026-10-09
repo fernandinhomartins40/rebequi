@@ -164,6 +164,9 @@ curl -fsS "http://127.0.0.1:3190$uploaded_path" -o "$TEST_DIR/rollback-upload.pn
 cmp "$TEST_DIR/multipart.png" "$TEST_DIR/rollback-upload.png"
 login
 
+# Browser and security flows use this runner's actual PostgreSQL and images.
+npm test --prefix tests/product
+
 curl -fsS --cookie "$TEST_DIR/cookies" --cookie-jar "$TEST_DIR/cookies" -X POST http://127.0.0.1:3190/api/auth/logout >/dev/null
 [[ $(curl -sS -o /dev/null -w '%{http_code}' --cookie "$TEST_DIR/cookies" http://127.0.0.1:3190/api/auth/me) == 401 ]]
 printf 'Production images: migrations, auth, OCR, upload download, recreation, backup restore and deploy rollback passed.\n'

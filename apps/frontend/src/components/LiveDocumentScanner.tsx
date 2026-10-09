@@ -21,6 +21,7 @@ export type ScannedDocument = {
 type Props = {
   onCapture: (doc: ScannedDocument) => void;
   onCancel: () => void;
+  onManualEntry?: () => void;
 };
 
 const STABLE_FRAMES_REQUIRED = 18;   // ~600ms a 30fps
@@ -130,7 +131,7 @@ function measureFrameQuality(cv: any, src: any): { sharpness: number; brightness
   }
 }
 
-export function LiveDocumentScanner({ onCapture, onCancel }: Props) {
+export function LiveDocumentScanner({ onCapture, onCancel, onManualEntry }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
   const sampleRef = useRef<HTMLCanvasElement | null>(null);
@@ -568,7 +569,7 @@ export function LiveDocumentScanner({ onCapture, onCancel }: Props) {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_55%,_rgba(0,0,0,0.55)_100%)]" />
 
       {/* Header */}
-      <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 py-4">
+      <div className="absolute inset-x-0 top-0 z-30 flex items-center justify-between px-4 py-4">
         <button
           type="button"
           onClick={() => {
@@ -589,7 +590,12 @@ export function LiveDocumentScanner({ onCapture, onCancel }: Props) {
         >
           {helperText}
         </p>
-        <div className="w-10" />
+        {onManualEntry ? (
+          <button type="button" onClick={onManualEntry}
+            className="shrink-0 rounded-full bg-black/60 px-3 py-2 text-sm font-medium text-white backdrop-blur">
+            Digitar lista
+          </button>
+        ) : <div className="w-10" />}
       </div>
 
       {/* Countdown gigante */}

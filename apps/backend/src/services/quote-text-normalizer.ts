@@ -50,7 +50,7 @@ const ACCENT_FIXES: Array<[RegExp, string]> = [
   [/(?<![a-z0-9])conexoes(?![a-z0-9])/gi, 'conexões'],
 ];
 
-export type RecognitionEngine = 'paddleocr' | 'tesseract' | 'openrouter';
+export type RecognitionEngine = 'paddleocr' | 'tesseract' | 'openrouter' | 'manual';
 
 /**
  * Fixes character-level OCR artefacts.
@@ -62,7 +62,7 @@ export type RecognitionEngine = 'paddleocr' | 'tesseract' | 'openrouter';
 export function applyOcrCorrections(raw: string, engine: RecognitionEngine = 'paddleocr'): string {
   let result = raw;
 
-  if (engine !== 'openrouter') {
+  if (engine !== 'openrouter' && engine !== 'manual') {
     for (const [pattern, replacement] of OCR_CORRECTIONS) {
       result = result.replace(pattern, replacement);
     }

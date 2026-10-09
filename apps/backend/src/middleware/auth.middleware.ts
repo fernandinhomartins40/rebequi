@@ -7,12 +7,25 @@ import { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../utils/jwt.util.js';
 import { UnauthorizedError, ForbiddenError } from '../utils/errors.util.js';
 import { env } from '../config/env.js';
+import { prisma } from '../lib/prisma.js';
+
+async function resolveActiveSession(token: string) {
+  const payload = verifyToken(token);
+  const user = await prisma.user.findUnique({
+    where: { id: payload.userId },
+    select: { id: true, email: true, role: true, isActive: true },
+  });
+  if (!user?.isActive) throw new UnauthorizedError('Sessão inválida ou conta desativada');
+  return { ...payload, identifier: user.email, role: user.role };
+}
 
 /**
  * Authenticate user from JWT token
  */
-export function authenticate(req: Request, _res: Response, next: NextFunction): void {
+export async function authenticate(req: Request, _res: Response, next: NextFunction): Promise<void> {
   try {
+    // The application-level optional middleware already checked this request.
+    if (req.user) { next(); return; }
     // Get token from HttpOnly cookie or Authorization header
     const cookieToken = req.cookies?.[env.AUTH_COOKIE_NAME];
     const authHeader = req.headers.authorization;
@@ -25,7 +38,7 @@ export function authenticate(req: Request, _res: Response, next: NextFunction): 
     }
 
     // Verify token
-    const payload = verifyToken(token);
+    const payload = await resolveActiveSession(token);
 
     // Attach user to request
     req.user = payload;
@@ -60,7 +73,7 @@ export function authorize(...allowedRoles: string[]) {
 /**
  * Optional authentication (doesn't throw error if no token)
  */
-export function optionalAuthenticate(req: Request, _res: Response, next: NextFunction): void {
+export async function optionalAuthenticate(req: Request, _res: Response, next: NextFunction): Promise<void> {
   try {
     const cookieToken = req.cookies?.[env.AUTH_COOKIE_NAME];
     const authHeader = req.headers.authorization;
@@ -69,7 +82,7 @@ export function optionalAuthenticate(req: Request, _res: Response, next: NextFun
     const token = cookieToken || headerToken;
 
     if (token) {
-      const payload = verifyToken(token);
+      const payload = await resolveActiveSession(token);
       req.user = payload;
     }
 

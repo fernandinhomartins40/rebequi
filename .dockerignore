@@ -32,5 +32,6 @@ coverage
 **/coverage
 **/*.tsbuildinfo
 docs
+tests
 .idea
 .vscode

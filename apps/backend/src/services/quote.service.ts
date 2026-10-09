@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import type { LeadStatus, QuoteStatus } from '@prisma/client';
 import type {
   LeadFiltersInput,
+  CreateManualQuoteDraftInput,
   QuoteFiltersInput,
   StartLeadInput,
   SubmitAnonymousQuoteInput,
@@ -111,8 +112,8 @@ function normalizeText(value: string) {
     .trim();
 }
 
-function extractQuantity(line: string): { quantity: number; unit: string | null } {
-  const corrected = applyOcrCorrections(line);
+function extractQuantity(line: string, engine: RecognitionEngine = 'paddleocr'): { quantity: number; unit: string | null } {
+  const corrected = applyOcrCorrections(line, engine);
   const normalized = corrected.replace(',', '.');
 
   // Only treat leading number as quantity if it is NOT part of a product size spec
@@ -141,8 +142,8 @@ function extractQuantity(line: string): { quantity: number; unit: string | null 
   return { quantity: 1, unit: null };
 }
 
-function cleanLineForItem(line: string): string {
-  const corrected = applyOcrCorrections(line);
+function cleanLineForItem(line: string, engine: RecognitionEngine = 'paddleocr'): string {
+  const corrected = applyOcrCorrections(line, engine);
   return corrected
     .replace(QTY_BEGINNING_RE, '')
     .replace(QTY_SUFFIX_RE, '')
@@ -239,10 +240,11 @@ export class QuoteService {
     this.customerService = new CustomerService();
   }
 
-  async startPublicLead(data: StartLeadInput) {
+  async startPublicLead(data: StartLeadInput, authenticatedUserId?: string) {
     const ensured = await this.authService.ensureCustomerForLead({
       name: data.name,
       whatsapp: data.whatsapp,
+      authenticatedUserId,
     });
 
     const lead = await this.quoteRepository.createLead({
@@ -255,21 +257,24 @@ export class QuoteService {
       },
     });
 
+    const session = await this.authService.createSessionForUser(ensured.user.id);
     return {
       lead: this.formatLead(lead),
       user: this.formatUser(ensured.user),
       provisionalCredentials: ensured.provisionalCredentials,
+      token: session.token,
     };
   }
 
   async processPublicDocument(params: {
     leadId: string;
+    userId: string;
     file?: Express.Multer.File;
     width?: number;
     height?: number;
   }) {
     const lead = await this.quoteRepository.findLeadById(params.leadId);
-    if (!lead) {
+    if (!lead || lead.userId !== params.userId) {
       throw new NotFoundError('Lead nao encontrado');
     }
 
@@ -371,6 +376,46 @@ export class QuoteService {
     };
   }
 
+  async createManualDraft(data: CreateManualQuoteDraftInput) {
+    const lines = data.text.split(/\r?\n/).map((text) => text.trim()).filter(Boolean);
+    if (lines.length > 100) throw new ValidationError('Use até 100 linhas por lista.');
+    const parsed = await this.parseItemsFromRecognition(
+      lines.map((text) => ({ text, confidence: 1, source: 'manual' as const })),
+      'manual'
+    );
+    if (!parsed.items.length) throw new ValidationError('Adicione pelo menos um produto à lista.');
+    if (data.token) {
+      const existing = await this.requireAnonymousDraft(data.token);
+      const quote = await this.quoteRepository.replaceQuoteItems(existing.id, parsed.items.map((item) => ({
+        ...item, quoteRequestId: existing.id,
+      })), { anonymousToken: data.token, update: {
+        ocrStatus: 'SKIPPED', ocrError: null,
+        title: buildDraftTitle(parsed.items, parsed.customerNote),
+        customerNote: parsed.customerNote ?? existing.customerNote,
+      } });
+      if (!quote) throw new NotFoundError('Orçamento não encontrado');
+      return { quote: this.formatQuote(quote), token: data.token, expiresAt: existing.anonymousExpiresAt };
+    }
+    const token = randomBytes(24).toString('hex');
+    const expiresAt = new Date(Date.now() + ANONYMOUS_DRAFT_TTL_MS);
+    const quote = await this.quoteRepository.createQuote({
+      referenceCode: this.generateReferenceCode(),
+      source: 'public_manual', status: 'DRAFT', ocrStatus: 'SKIPPED',
+      anonymousToken: token, anonymousExpiresAt: expiresAt,
+      title: buildDraftTitle(parsed.items, parsed.customerNote),
+      customerNote: parsed.customerNote,
+      // No document was uploaded in this flow; do not create a fake image.
+      documentUrl: '',
+      items: { create: parsed.items.map((item) => ({
+        productId: item.productId ?? null, name: item.name,
+        quantity: item.quantity, unit: item.unit ?? null,
+        notes: item.notes ?? null, confidence: item.confidence ?? null,
+        recognitionSourceLine: item.recognitionSourceLine ?? null, position: item.position,
+      })) },
+    });
+    return { quote: this.formatQuote(quote), token, expiresAt };
+  }
+
   /** Polling target for an anonymous draft while the OCR job runs. */
   async getAnonymousDraft(token: string) {
     const quote = await this.requireAnonymousDraft(token);
@@ -393,7 +438,8 @@ export class QuoteService {
         confidence: item.confidence ?? null,
         recognitionSourceLine: item.recognitionSourceLine ?? null,
         position: item.position,
-      }))
+      })),
+      { anonymousToken: data.token }
     );
 
     if (!updatedQuote) {
@@ -407,12 +453,13 @@ export class QuoteService {
    * Final step of the photo-first flow: the customer identifies themselves and
    * the anonymous draft is attached to a real (possibly provisional) account.
    */
-  async submitAnonymousDraft(data: SubmitAnonymousQuoteInput) {
+  async submitAnonymousDraft(data: SubmitAnonymousQuoteInput, authenticatedUserId?: string) {
     const quote = await this.requireAnonymousDraft(data.token);
 
     const ensured = await this.authService.ensureCustomerForLead({
       name: data.name,
       whatsapp: data.whatsapp,
+      authenticatedUserId,
     });
 
     const lead = await this.quoteRepository.createLead({
@@ -425,7 +472,7 @@ export class QuoteService {
     });
 
     const normalizedItems = await this.normalizeManualItems(data.items);
-    await this.quoteRepository.replaceQuoteItems(
+    const updatedQuote = await this.quoteRepository.replaceQuoteItems(
       quote.id,
       normalizedItems.map((item) => ({
         quoteRequestId: quote.id,
@@ -437,10 +484,7 @@ export class QuoteService {
         confidence: item.confidence ?? null,
         recognitionSourceLine: item.recognitionSourceLine ?? null,
         position: item.position,
-      }))
-    );
-
-    const updatedQuote = await this.quoteRepository.updateQuote(quote.id, {
+      })), { anonymousToken: data.token, update: {
       status: 'SUBMITTED',
       submittedAt: new Date(),
       title: buildDraftTitle(normalizedItems, quote.customerNote),
@@ -449,7 +493,9 @@ export class QuoteService {
       anonymousExpiresAt: null,
       user: { connect: { id: ensured.user.id } },
       lead: { connect: { id: lead.id } },
-    });
+    } });
+
+    if (!updatedQuote) throw new NotFoundError('Orcamento nao encontrado');
 
     await this.afterQuoteSubmitted(updatedQuote, ensured.user.id);
 
@@ -771,11 +817,8 @@ export class QuoteService {
     const startedAt = Date.now();
 
     try {
-      await this.quoteRepository.updateQuote(params.quoteId, {
-        ocrStatus: 'PROCESSING',
-        ocrError: null,
-        ocrAttempts: { increment: 1 },
-      });
+      const started = await this.quoteRepository.startOcr(params.quoteId);
+      if (!started.count) return;
 
       // Build the index first: it feeds the model as context AND is reused for
       // matching afterwards, so it is only computed once per quote.
@@ -824,14 +867,8 @@ export class QuoteService {
         ocrModelId: recognized.modelId ?? null,
       };
 
-      if (currentQuote.items.length > 0) {
-        await this.quoteRepository.updateQuote(params.quoteId, baseUpdate);
-        return;
-      }
-
-      await this.quoteRepository.replaceQuoteItems(
-        params.quoteId,
-        parsedRecognition.items.map((item) => ({
+      await this.quoteRepository.finishOcr(
+        params.quoteId, baseUpdate, parsedRecognition.items.map((item) => ({
           quoteRequestId: params.quoteId,
           productId: item.productId ?? null,
           name: item.name,
@@ -841,16 +878,10 @@ export class QuoteService {
           confidence: item.confidence ?? null,
           recognitionSourceLine: item.recognitionSourceLine ?? null,
           position: item.position,
-        }))
+        })),
+        buildDraftTitle(parsedRecognition.items, parsedRecognition.customerNote),
+        parsedRecognition.customerNote ?? currentQuote.customerNote
       );
-
-      // Polling clients stop when COMPLETED is visible. Publish that status
-      // only after all recognised items have been persisted.
-      await this.quoteRepository.updateQuote(params.quoteId, {
-        ...baseUpdate,
-        title: buildDraftTitle(parsedRecognition.items, parsedRecognition.customerNote),
-        customerNote: parsedRecognition.customerNote ?? currentQuote.customerNote,
-      });
     } catch (error) {
       logger.error('Background OCR job failed.', {
         quoteId: params.quoteId,
@@ -870,10 +901,7 @@ export class QuoteService {
         errorMessage: error instanceof Error ? error.message : 'Falha ao processar OCR',
       });
 
-      await this.quoteRepository.updateQuote(params.quoteId, {
-        ocrStatus: 'FAILED',
-        ocrError: error instanceof Error ? error.message : 'Falha ao processar OCR',
-      });
+      await this.quoteRepository.failOcr(params.quoteId, error instanceof Error ? error.message : 'Falha ao processar OCR');
     }
   }
 
@@ -912,7 +940,7 @@ export class QuoteService {
     lines.forEach((line) => {
       const text = applyOcrCorrections(line.text.trim(), engine);
 
-      if (!isRelevantFreeformLine(text)) {
+      if (engine !== 'manual' && !isRelevantFreeformLine(text)) {
         return;
       }
 
@@ -928,7 +956,7 @@ export class QuoteService {
       const hasStructuredQuantity = typeof line.quantity === 'number' && line.quantity > 0;
       const quantityData = hasStructuredQuantity
         ? { quantity: line.quantity as number, unit: canonicalUnit(line.unit ?? null) }
-        : extractQuantity(text);
+        : extractQuantity(text, engine);
 
       // A product id resolved by the model was already validated against the
       // catalogue in the OCR service, so it outranks fuzzy matching.
@@ -947,9 +975,9 @@ export class QuoteService {
         return;
       }
 
-      const nameForMatching = hasStructuredQuantity ? text : cleanLineForItem(text);
+      const nameForMatching = hasStructuredQuantity ? text : cleanLineForItem(text, engine);
       const match = this.findBestProductMatch(nameForMatching || text, index, engine);
-      const itemName = hasStructuredQuantity ? text : cleanLineForItem(text);
+      const itemName = hasStructuredQuantity ? text : cleanLineForItem(text, engine);
 
       if (match) {
         parsedItems.push({

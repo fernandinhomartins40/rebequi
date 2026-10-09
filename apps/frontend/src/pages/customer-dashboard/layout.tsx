@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { FileText, Home, KeyRound, LogOut, Shield, Sparkles, User } from 'lucide-react';
+import { FileText, Home, KeyRound, LogOut, Shield, ShoppingCart, Sparkles, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatWhatsapp } from '@rebequi/shared/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -36,6 +36,7 @@ function buildNavItems(draftCount: number, mustChangePassword?: boolean): Dashbo
       badge: draftCount > 0 ? String(draftCount) : undefined,
     },
     { id: 'profile', icon: User, label: 'Minha conta', description: 'Dados pessoais e de contato.' },
+    { id: 'orders', icon: ShoppingCart, label: 'Meus pedidos', description: 'Acompanhar pedidos e retomar a conversa.' },
     {
       id: 'security',
       icon: Shield,
@@ -197,7 +198,7 @@ export function CustomerDashboardLayout({
           style={{ paddingBottom: 'calc(0.625rem + env(safe-area-inset-bottom))' }}
           aria-label="Navegação"
         >
-          <div className="mx-auto grid max-w-sm grid-cols-4 gap-1">
+          <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
             {navItems.map((item) => (
               <BottomNavItem
                 key={item.id}

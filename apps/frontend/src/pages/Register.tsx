@@ -101,7 +101,7 @@ const Register = () => {
             <div className="rounded-[1.5rem] border border-[#e7dcc3] bg-slate-50 px-4 py-4 text-sm text-muted-foreground">
               Usuário: número do WhatsApp informado.
               <br />
-              Senha provisória: as 3 primeiras letras do seu nome.
+              Uma senha temporária segura será gerada para você. Guarde-a e troque-a no painel.
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>

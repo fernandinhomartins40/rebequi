@@ -9,7 +9,7 @@ export type DraftEditorState = {
   items: EditableQuoteItem[];
 };
 
-export type ActiveTab = 'overview' | 'quotes' | 'profile' | 'security';
+export type ActiveTab = 'overview' | 'quotes' | 'orders' | 'profile' | 'security';
 
 export type DashboardNavItem = {
   id: ActiveTab;
