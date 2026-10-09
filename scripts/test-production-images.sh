@@ -47,7 +47,10 @@ for volume in rebequi-postgres-data rebequi-uploads rebequi-logs; do
   docker volume create "$volume" >/dev/null
 done
 compose config --quiet
-compose --profile tools pull
+# The disposable runner uses the public mirror to avoid Docker Hub IP quotas.
+docker pull mirror.gcr.io/library/postgres:16-alpine
+docker tag mirror.gcr.io/library/postgres:16-alpine postgres:16-alpine
+compose --profile tools pull api migrator web
 compose up -d --wait --wait-timeout 120 postgres
 compose run --rm --no-deps migrator
 compose run --rm --no-deps migrator npm run prisma:bootstrap
