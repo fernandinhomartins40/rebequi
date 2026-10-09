@@ -1236,7 +1236,7 @@ export class QuoteService {
       id: quote.id,
       referenceCode: quote.referenceCode,
       userId: quote.userId,
-      user: this.formatUser(quote.user),
+      user: quote.user ? this.formatUser(quote.user) : null,
       leadId: quote.leadId,
       lead: quote.lead ? this.formatLead(quote.lead) : undefined,
       status: quote.status,

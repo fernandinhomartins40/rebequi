@@ -1,5 +1,7 @@
 # Acesso à produção
 
+- Trabalhar exclusivamente na branch `main`. Fazer commit e push diretamente para `main`; não criar novas branches.
+
 - Destino do workflow `.github/workflows/deploy-production.yml`: `root@rebequi.com.br`, aplicação em `/opt/rebequi`. Por preferência do usuário, o apelido local `rebequi-vps` aponta diretamente para `72.60.10.108`; usar a chave `~/.ssh/rebequi_codex_vps`.
 
 - Consultas somente de leitura (status, logs e SELECT sem efeitos de escrita) podem ser executadas diretamente.
