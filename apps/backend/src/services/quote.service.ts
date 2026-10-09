@@ -495,7 +495,7 @@ export class QuoteService {
       lead: { connect: { id: lead.id } },
     } });
 
-    if (!updatedQuote) throw new NotFoundError('Orcamento nao encontrado');
+    if (!updatedQuote) throw new NotFoundError('Orçamento não encontrado');
 
     await this.afterQuoteSubmitted(updatedQuote, ensured.user.id);
 
