@@ -921,9 +921,9 @@ function ItemRow({
           <button
             type="button"
             onClick={() => setEditingName(true)}
-            className="group flex min-w-0 flex-1 items-center gap-1 truncate text-left text-sm font-medium text-foreground"
+            className="group flex min-w-0 flex-1 items-center gap-1 text-left text-sm font-medium text-foreground"
           >
-            <span className="truncate">{item.name}</span>
+            <span className="min-w-0 break-words">{item.name}</span>
             <Pencil className="h-3 w-3 shrink-0 opacity-0 transition group-hover:opacity-50" />
           </button>
         )}
