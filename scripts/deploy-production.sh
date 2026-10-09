@@ -11,6 +11,7 @@ ENV_FILE="$APP_ROOT/.env.production"
 PRIMARY_DOMAIN=rebequi.com.br
 SECONDARY_DOMAIN=www.rebequi.com.br
 SITE_CONF=/etc/nginx/sites-available/rebequi
+CERTBOT_WEBROOT=/var/www/rebequi-acme
 REGISTRY_USER=${1:?GHCR user is required}
 PREVIOUS_DIR=$(readlink -f "$APP_ROOT/current" 2>/dev/null || true)
 ACTIVATED=0
@@ -28,7 +29,9 @@ if [[ -d "$APP_ROOT/current" && ! -L "$APP_ROOT/current" ]]; then
   fail 'Legacy current directory needs an explicit migration; it was preserved.'
 fi
 [[ $(uname -m) == x86_64 ]] || fail 'Images require an x86_64 VPS.'
-mkdir -p "$APP_ROOT/backups" "$APP_ROOT/releases" /var/www/certbot
+mkdir -p "$APP_ROOT/backups" "$APP_ROOT/releases"
+# Public challenge files need to be readable by Nginx workers despite umask 077.
+install -d -m 755 "$CERTBOT_WEBROOT"
 exec 9>"$APP_ROOT/deploy.lock"
 flock -n 9 || fail 'Another Rebequi deploy is in progress.'
 
@@ -215,7 +218,7 @@ server {
     listen 80;
     listen [::]:80;
     server_name $PRIMARY_DOMAIN $SECONDARY_DOMAIN;
-    location /.well-known/acme-challenge/ { root /var/www/certbot; }
+    location /.well-known/acme-challenge/ { root $CERTBOT_WEBROOT; }
     location / {
         proxy_pass http://127.0.0.1:3190;
         proxy_set_header Host \$host;
@@ -236,7 +239,7 @@ cert=/etc/letsencrypt/live/$PRIMARY_DOMAIN/fullchain.pem
 if [[ ! -f "$cert" ]] || ! openssl x509 -in "$cert" -noout -checkhost "$SECONDARY_DOMAIN" >/dev/null 2>&1 \
   || ! openssl x509 -in "$cert" -noout -checkhost "$PRIMARY_DOMAIN" >/dev/null 2>&1 \
   || ! openssl x509 -in "$cert" -noout -checkend 604800 >/dev/null 2>&1; then
-  certbot certonly --webroot -w /var/www/certbot --cert-name "$PRIMARY_DOMAIN" \
+  certbot certonly --webroot -w "$CERTBOT_WEBROOT" --cert-name "$PRIMARY_DOMAIN" \
     -d "$PRIMARY_DOMAIN" -d "$SECONDARY_DOMAIN" --expand --non-interactive \
     --agree-tos --email admin@rebequi.com.br
 fi
@@ -245,7 +248,7 @@ server {
     listen 80;
     listen [::]:80;
     server_name $PRIMARY_DOMAIN $SECONDARY_DOMAIN;
-    location /.well-known/acme-challenge/ { root /var/www/certbot; }
+    location /.well-known/acme-challenge/ { root $CERTBOT_WEBROOT; }
     location / { return 301 https://\$host\$request_uri; }
 }
 server {
@@ -271,15 +274,16 @@ for domain in "$PRIMARY_DOMAIN" "$SECONDARY_DOMAIN"; do
   verify_health --resolve "$domain:443:127.0.0.1" "https://$domain/api/health"
 done
 
+# Prepare rollback pointer before committing the new current release.
+if [[ -n "$PREVIOUS_DIR" && "$PREVIOUS_DIR" != "$RELEASE_DIR" ]]; then
+  ln -sfnT "$PREVIOUS_DIR" "$APP_ROOT/previous"
+fi
 # Atomic pointer update only AFTER health, TLS and exact image validation.
 ln -sfn "$RELEASE_DIR" "$APP_ROOT/.current-$RELEASE_VERSION"
 if [[ -d "$APP_ROOT/current" && ! -L "$APP_ROOT/current" ]]; then
   fail 'Legacy current directory needs an explicit migration; it was preserved.'
 fi
 mv -Tf "$APP_ROOT/.current-$RELEASE_VERSION" "$APP_ROOT/current"
-if [[ -n "$PREVIOUS_DIR" && "$PREVIOUS_DIR" != "$RELEASE_DIR" ]]; then
-  ln -sfn "$PREVIOUS_DIR" "$APP_ROOT/previous"
-fi
 ACTIVATED=0
 NGINX_CHANGED=0
 printf 'Deployed %s. No builds, image/volume pruning or backup removal on the VPS.\n' "$RELEASE_VERSION"
