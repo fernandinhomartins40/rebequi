@@ -33,19 +33,16 @@ export const logger = winston.createLogger({
     new winston.transports.File({
       filename: 'logs/error.log',
       level: 'error',
+      maxsize: 10 * 1024 * 1024,
+      maxFiles: 5,
+      tailable: true,
     }),
     // File transport for all logs
     new winston.transports.File({
       filename: 'logs/combined.log',
+      maxsize: 10 * 1024 * 1024,
+      maxFiles: 5,
+      tailable: true,
     }),
   ],
 });
-
-// If not in production, log to the console with colorized output
-if (env.NODE_ENV !== 'production') {
-  logger.add(
-    new winston.transports.Console({
-      format: combine(colorize(), logFormat),
-    })
-  );
-}

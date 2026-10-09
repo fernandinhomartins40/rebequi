@@ -3,7 +3,9 @@
 PaddleOCR bridge — compatible with PaddleOCR 2.x and 3.x.
 """
 import argparse
+from contextlib import redirect_stdout
 import importlib.util
+from importlib.metadata import version
 import inspect
 import json
 import sys
@@ -143,6 +145,10 @@ def build_ocr(lang):
         params = set()
 
     kwargs = {"lang": lang}
+    # PaddleOCR 2.x exposes **kwargs, so signature inspection misses show_log.
+    # Keep stdout reserved for the JSON consumed by the Node bridge.
+    if version("paddleocr").split(".")[0] == "2":
+        kwargs["show_log"] = False
     optional = {
         "use_doc_orientation_classify": True,
         "use_doc_unwarping":            True,
@@ -178,26 +184,28 @@ def main():
     # build da imagem: sem isso o primeiro pedido de cada container gastaria
     # ~30s baixando pesos e provavelmente estouraria o timeout do job de OCR.
     if args.warmup:
-        build_ocr(args.lang)
+        with redirect_stdout(sys.stderr):
+            build_ocr(args.lang)
         print(json.dumps({"ok": True, "warmed": True}))
         return 0
 
     if not args.image:
         raise ValueError("Missing --image parameter")
 
-    ocr   = build_ocr(args.lang)
-    lines = []
+    with redirect_stdout(sys.stderr):
+        ocr = build_ocr(args.lang)
+        lines = []
 
-    # Try modern predict() API first (3.x)
-    if hasattr(ocr, "predict"):
-        try:
-            lines = parse_predict_result(ocr.predict(args.image))
-        except Exception as exc:
-            sys.stderr.write(f"predict() failed, trying legacy ocr(): {exc}\n")
+        # Try modern predict() API first (3.x)
+        if hasattr(ocr, "predict"):
+            try:
+                lines = parse_predict_result(ocr.predict(args.image))
+            except Exception as exc:
+                sys.stderr.write(f"predict() failed, trying legacy ocr(): {exc}\n")
 
-    # Fall back to legacy ocr() API (2.x) if predict produced nothing
-    if not lines and hasattr(ocr, "ocr"):
-        lines = parse_legacy_result(ocr.ocr(args.image, cls=True))
+        # Fall back to legacy ocr() API (2.x) if predict produced nothing
+        if not lines and hasattr(ocr, "ocr"):
+            lines = parse_legacy_result(ocr.ocr(args.image, cls=True))
 
     text       = "\n".join(line["text"] for line in lines)
     confidence = round(sum(line["confidence"] for line in lines) / len(lines), 2) if lines else 0

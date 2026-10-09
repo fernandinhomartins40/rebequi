@@ -44,7 +44,6 @@ export function loadOpenCv(): Promise<unknown> {
     }
 
     let settled = false;
-    let timer: number | undefined;
 
     const finish = (fn: () => void) => {
       if (settled) return;
@@ -82,7 +81,7 @@ export function loadOpenCv(): Promise<unknown> {
     }
 
     const start = Date.now();
-    timer = window.setInterval(() => {
+    const timer = window.setInterval(() => {
       if (window.cv && typeof window.cv.imread === 'function') {
         finish(() => resolve(window.cv));
       } else if (Date.now() - start > LOAD_TIMEOUT_MS) {

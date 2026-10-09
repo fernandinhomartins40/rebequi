@@ -1,672 +1,253 @@
-name: Deploy Production
+name: Build and Deploy Production
 
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+# Never cancel a running migration or deployment.
 concurrency:
-  group: deploy-production
-  cancel-in-progress: true
+  group: rebequi-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 env:
-  VPS_HOST: rebequi.com.br
+  VPS_HOST: 72.60.10.108
   VPS_USER: root
-  APP_ROOT: /opt/rebequi
-  RELEASE_DIR: /opt/rebequi/current
-  DEPLOY_PORT: "3190"
-  PRIMARY_DOMAIN: rebequi.com.br
-  SECONDARY_DOMAIN: www.rebequi.com.br
-  SSL_EMAIL: admin@rebequi.com.br
 
 jobs:
-  deploy:
-    name: Deploy to VPS
+  validate:
+    name: Tests and infrastructure checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Check texts, shared types and API
+        run: |
+          npm run check:texts
+          npm run build --workspace=packages/shared
+          npm run lint --workspace=apps/backend
+          npm run test --workspace=apps/backend
+          npm run lint --workspace=apps/frontend
+      - name: Check deployment scripts
+        run: |
+          bash -n scripts/deploy-production.sh
+          bash -n scripts/test-production-images.sh
+          shellcheck scripts/deploy-production.sh scripts/test-production-images.sh
+          node scripts/check-production-config.mjs
+
+  build-backend:
+    name: Build API and migration images
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      api: ${{ steps.refs.outputs.api }}
+      migrator: ${{ steps.refs.outputs.migrator }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Image names
+        id: names
+        env:
+          REPOSITORY: ${{ github.repository }}
+        run: echo "base=ghcr.io/${REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+      - uses: docker/login-action@v3
+        if: github.event_name != 'pull_request'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build migrator (shares the compiled backend with API)
+        id: migrator
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/backend/Dockerfile
+          target: migrator
+          platforms: linux/amd64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.names.outputs.base }}-migrator:${{ github.sha }}
+          build-args: RELEASE_VERSION=${{ github.sha }}
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          cache-from: type=gha,scope=rebequi-migrator
+          cache-to: type=gha,mode=max,scope=rebequi-migrator
+      - name: Build API including local OCR
+        id: api
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/backend/Dockerfile
+          target: production
+          platforms: linux/amd64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.names.outputs.base }}-api:${{ github.sha }}
+          build-args: RELEASE_VERSION=${{ github.sha }}
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          cache-from: |
+            type=gha,scope=rebequi-api
+            type=gha,scope=rebequi-migrator
+          cache-to: type=gha,mode=max,scope=rebequi-api
+      - name: Immutable image references
+        if: github.event_name != 'pull_request'
+        id: refs
+        env:
+          IMAGE_BASE: ${{ steps.names.outputs.base }}
+          API_DIGEST: ${{ steps.api.outputs.digest }}
+          MIGRATOR_DIGEST: ${{ steps.migrator.outputs.digest }}
+        run: |
+          echo "api=$IMAGE_BASE-api@$API_DIGEST" >> "$GITHUB_OUTPUT"
+          echo "migrator=$IMAGE_BASE-migrator@$MIGRATOR_DIGEST" >> "$GITHUB_OUTPUT"
 
+  build-frontend:
+    name: Build frontend image (parallel with backend)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      web: ${{ steps.refs.outputs.web }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Image name
+        id: names
+        env:
+          REPOSITORY: ${{ github.repository }}
+        run: echo "web=ghcr.io/${REPOSITORY,,}-web" >> "$GITHUB_OUTPUT"
+      - uses: docker/login-action@v3
+        if: github.event_name != 'pull_request'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build frontend
+        id: web
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/frontend/Dockerfile
+          platforms: linux/amd64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.names.outputs.web }}:${{ github.sha }}
+          build-args: RELEASE_VERSION=${{ github.sha }}
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          cache-from: type=gha,scope=rebequi-web
+          cache-to: type=gha,mode=max,scope=rebequi-web
+      - name: Immutable image reference
+        if: github.event_name != 'pull_request'
+        id: refs
+        env:
+          IMAGE_NAME: ${{ steps.names.outputs.web }}
+          DIGEST: ${{ steps.web.outputs.digest }}
+        run: echo "web=$IMAGE_NAME@$DIGEST" >> "$GITHUB_OUTPUT"
+
+  integration:
+    name: Validate production images in an isolated database
+    if: github.event_name != 'pull_request'
+    needs: [validate, build-backend, build-frontend]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Migrations, bootstrap, OCR, auth, persistence and backup/restore
+        env:
+          API_IMAGE_REF: ${{ needs.build-backend.outputs.api }}
+          MIGRATOR_IMAGE_REF: ${{ needs.build-backend.outputs.migrator }}
+          WEB_IMAGE_REF: ${{ needs.build-frontend.outputs.web }}
+          RELEASE_VERSION: ${{ github.sha }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+        run: bash scripts/test-production-images.sh
+
+  deploy:
+    name: Pull GHCR images and deploy to VPS
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: [build-backend, build-frontend, integration]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
     environment:
       name: production
       url: https://www.rebequi.com.br
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install SSH tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y sshpass
-
-      - name: Create deploy archive
-        run: |
-          tar \
-            --exclude=.git \
-            --exclude=.github \
-            --exclude=node_modules \
-            --exclude=apps/frontend/dist \
-            --exclude=apps/backend/dist \
-            --exclude=apps/backend/node_modules \
-            --exclude=packages/shared/node_modules \
-            -czf /tmp/rebequi-release.tar.gz .
-
-      - name: Upload release to VPS
+      - uses: actions/checkout@v4
+      - name: Configure SSH and check credentials
         env:
           SSHPASS: ${{ secrets.VPS_PASSWORD }}
         run: |
-          sshpass -e scp -o StrictHostKeyChecking=no \
-            /tmp/rebequi-release.tar.gz \
-            "${VPS_USER}@${VPS_HOST}:/tmp/rebequi-release.tar.gz"
-
-      - name: Deploy on VPS
+          test -n "$SSHPASS" || { echo 'Missing existing VPS_PASSWORD secret.' >&2; exit 1; }
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq sshpass
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          install -m 600 scripts/deploy-known-hosts ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host rebequi-vps
+              HostName $VPS_HOST
+              User $VPS_USER
+              StrictHostKeyChecking yes
+              ConnectTimeout 20
+              ServerAliveInterval 15
+              ServerAliveCountMax 4
+          EOF
+          chmod 600 ~/.ssh/config
+      - name: Create small deployment bundle (no application source)
+        env:
+          API_IMAGE_REF: ${{ needs.build-backend.outputs.api }}
+          MIGRATOR_IMAGE_REF: ${{ needs.build-backend.outputs.migrator }}
+          WEB_IMAGE_REF: ${{ needs.build-frontend.outputs.web }}
+          RELEASE_VERSION: ${{ github.sha }}
+        run: |
+          printf 'API_IMAGE_REF=%s\nMIGRATOR_IMAGE_REF=%s\nWEB_IMAGE_REF=%s\nRELEASE_VERSION=%s\n' \
+            "$API_IMAGE_REF" "$MIGRATOR_IMAGE_REF" "$WEB_IMAGE_REF" "$RELEASE_VERSION" > .images.env
+          tar -czf "$RUNNER_TEMP/rebequi-deploy.tar.gz" \
+            docker-compose.production.yml scripts/deploy-production.sh .images.env
+      - name: Upload deployment bundle
         env:
           SSHPASS: ${{ secrets.VPS_PASSWORD }}
+          RELEASE_ID: ${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
-          sshpass -e ssh -o StrictHostKeyChecking=no "${VPS_USER}@${VPS_HOST}" <<'REMOTE'
-          set -euo pipefail
-
-          APP_ROOT="/opt/rebequi"
-          RELEASE_DIR="/opt/rebequi/current"
-          DEPLOY_PORT="3190"
-          PRIMARY_DOMAIN="rebequi.com.br"
-          SECONDARY_DOMAIN="www.rebequi.com.br"
-          SSL_EMAIL="admin@rebequi.com.br"
-          ARCHIVE="/tmp/rebequi-release.tar.gz"
-          SITE_CONF="/etc/nginx/sites-available/rebequi"
-
-          compose() {
-            if docker compose version >/dev/null 2>&1; then
-              docker compose --env-file "$RELEASE_DIR/.env.production" "$@"
-              return
-            fi
-
-            if command -v docker-compose >/dev/null 2>&1; then
-              docker-compose --env-file "$RELEASE_DIR/.env.production" "$@"
-              return
-            fi
-
-            echo "docker compose nao encontrado." >&2
-            exit 1
-          }
-
-          require_command() {
-            if ! command -v "$1" >/dev/null 2>&1; then
-              echo "Dependencia obrigatoria ausente: $1" >&2
-              exit 1
-            fi
-          }
-
-          ensure_named_volume() {
-            local volume_name="$1"
-
-            if docker volume inspect "$volume_name" >/dev/null 2>&1; then
-              return
-            fi
-
-            docker volume create "$volume_name" >/dev/null
-          }
-
-          dump_diagnostics() {
-            echo "=== docker compose ps ==="
-            compose -f docker-compose.production.yml ps || true
-            echo "=== rebequi-postgres logs ==="
-            docker logs rebequi-postgres --tail 100 || true
-            echo "=== rebequi-api logs ==="
-            docker logs rebequi-api --tail 100 || true
-            echo "=== rebequi-web logs ==="
-            docker logs rebequi-web --tail 100 || true
-            echo "=== nginx site config ==="
-            cat "$SITE_CONF" || true
-            echo "=== listeners ==="
-            ss -tulpn | grep -E ':80 |:443 |:3190 ' || true
-            if [ -f "/etc/letsencrypt/live/${PRIMARY_DOMAIN}/fullchain.pem" ]; then
-              echo "=== certificate details ==="
-              openssl x509 -in "/etc/letsencrypt/live/${PRIMARY_DOMAIN}/fullchain.pem" -noout -subject -issuer -dates -ext subjectAltName || true
-            fi
-          }
-
-          verify_json_health() {
-            local url="$1"
-            shift
-            local body
-            body="$(curl -fsSL "$@" "$url")"
-            printf '%s' "$body" | grep -q '"status":"ok"'
-          }
-
-          verify_frontend_cache_headers() {
-            local origin="$1"
-            local html_headers
-            local html_body
-            local asset_path
-            local asset_headers
-
-            html_headers="$(curl -fsSI "$origin/")"
-            printf '%s' "$html_headers" | grep -qi '^Cache-Control: no-store, no-cache, must-revalidate'
-
-            html_body="$(curl -fsSL "$origin/")"
-            asset_path="$(printf '%s' "$html_body" | grep -oE '/assets/[^"]+\.(js|css)' | head -n 1)"
-
-            if [ -z "$asset_path" ]; then
-              echo "Nao foi possivel localizar asset versionado no HTML." >&2
-              exit 1
-            fi
-
-            asset_headers="$(curl -fsSI "${origin}${asset_path}")"
-            printf '%s' "$asset_headers" | grep -qi 'Cache-Control: .*immutable'
-          }
-
-          assert_container_uses_latest_image() {
-            local container_name="$1"
-            local image_ref="$2"
-            local container_image
-            local latest_image
-
-            container_image="$(docker inspect --format '{{.Image}}' "$container_name")"
-            latest_image="$(docker image inspect --format '{{.Id}}' "$image_ref")"
-
-            if [ "$container_image" != "$latest_image" ]; then
-              echo "Container $container_name nao esta usando a imagem mais recente de $image_ref." >&2
-              echo "container_image=$container_image" >&2
-              echo "latest_image=$latest_image" >&2
-              exit 1
-            fi
-          }
-
-          assert_container_image_ref() {
-            local container_name="$1"
-            local expected_image_ref="$2"
-            local actual_image_ref
-
-            actual_image_ref="$(docker inspect --format '{{.Config.Image}}' "$container_name")"
-
-            if [ "$actual_image_ref" != "$expected_image_ref" ]; then
-              echo "Container $container_name nao esta apontando para a imagem esperada." >&2
-              echo "expected_image_ref=$expected_image_ref" >&2
-              echo "actual_image_ref=$actual_image_ref" >&2
-              exit 1
-            fi
-          }
-
-          assert_release_version() {
-            local container_name="$1"
-            local expected_release="$2"
-            local command="$3"
-            local actual_release
-
-            actual_release="$(docker exec "$container_name" sh -lc "$command" | tr -d '\r')"
-
-            if [ "$actual_release" != "$expected_release" ]; then
-              echo "Container $container_name nao esta com a release esperada." >&2
-              echo "expected_release=$expected_release" >&2
-              echo "actual_release=$actual_release" >&2
-              exit 1
-            fi
-          }
-
-          wait_for_container_health() {
-            local container_name="$1"
-            local timeout_seconds="${2:-120}"
-            local elapsed="0"
-
-            while [ "$elapsed" -lt "$timeout_seconds" ]; do
-              local status
-              status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container_name" 2>/dev/null || true)"
-
-              if [ "$status" = "healthy" ] || [ "$status" = "running" ]; then
-                return 0
-              fi
-
-              sleep 5
-              elapsed=$((elapsed + 5))
-            done
-
-            echo "Container $container_name nao ficou saudavel a tempo." >&2
-            docker logs "$container_name" --tail 100 || true
-            exit 1
-          }
-
-          certificate_covers_domain() {
-            local cert_path="$1"
-            local domain="$2"
-
-            [ -f "$cert_path" ] || return 1
-
-            openssl x509 -in "$cert_path" -noout -ext subjectAltName 2>/dev/null |
-              tr ',' '\n' |
-              grep -Fq "DNS:${domain}"
-          }
-
-          ensure_tls_certificate() {
-            local cert_path="/etc/letsencrypt/live/${PRIMARY_DOMAIN}/fullchain.pem"
-
-            if [ -f "$cert_path" ] &&
-              certificate_covers_domain "$cert_path" "$PRIMARY_DOMAIN" &&
-              certificate_covers_domain "$cert_path" "$SECONDARY_DOMAIN"; then
-              return 0
-            fi
-
-            certbot certonly \
-              --webroot \
-              -w /var/www/certbot \
-              --cert-name "${PRIMARY_DOMAIN}" \
-              -d "${PRIMARY_DOMAIN}" \
-              -d "${SECONDARY_DOMAIN}" \
-              --expand \
-              --non-interactive \
-              --agree-tos \
-              --email "${SSL_EMAIL}"
-          }
-
-          ensure_release_running() {
-            local mismatch="0"
-
-            if [ "$(docker inspect --format '{{.Config.Image}}' rebequi-api 2>/dev/null || true)" != "$API_IMAGE_REF" ]; then
-              mismatch="1"
-            fi
-
-            if [ "$(docker inspect --format '{{.Config.Image}}' rebequi-web 2>/dev/null || true)" != "$WEB_IMAGE_REF" ]; then
-              mismatch="1"
-            fi
-
-            if [ "$mismatch" = "0" ]; then
-              return
-            fi
-
-            echo "Containers ainda nao refletiram a release esperada. Forcando recriacao final de api e web."
-            docker rm -f rebequi-api rebequi-web >/dev/null 2>&1 || true
-            compose -f docker-compose.production.yml up -d api web
-          }
-
-          require_command docker
-          require_command nginx
-          require_command certbot
-          require_command curl
-          require_command openssl
-          require_command ss
-          require_command tar
-
-          trap 'dump_diagnostics' ERR
-
-          mkdir -p "$APP_ROOT" "$RELEASE_DIR" /var/www/certbot
-          ensure_named_volume "rebequi-postgres-data"
-          ensure_named_volume "rebequi-uploads"
-          ensure_named_volume "rebequi-logs"
-
-          find "$RELEASE_DIR" -mindepth 1 -maxdepth 1 ! -name '.env.production' -exec rm -rf {} +
-          tar -xzf "$ARCHIVE" -C "$RELEASE_DIR"
-          rm -f "$ARCHIVE"
-
-          cd "$RELEASE_DIR"
-
-          read_env_value() {
-            local key="$1"
-            sed -n "s/^${key}=//p" "$RELEASE_DIR/.env.production" | tail -n 1
-          }
-
-          ensure_env_value() {
-            local key="$1"
-            local value="$2"
-            local current_value
-            current_value="$(read_env_value "$key")"
-
-            if [ -n "$current_value" ]; then
-              return
-            fi
-
-            if grep -q "^${key}=" "$RELEASE_DIR/.env.production"; then
-              sed -i "s|^${key}=.*|${key}=${value}|" "$RELEASE_DIR/.env.production"
-            else
-              printf '%s=%s\n' "$key" "$value" >> "$RELEASE_DIR/.env.production"
-            fi
-          }
-
-          set_env_value() {
-            local key="$1"
-            local value="$2"
-
-            if grep -q "^${key}=" "$RELEASE_DIR/.env.production"; then
-              sed -i "s|^${key}=.*|${key}=${value}|" "$RELEASE_DIR/.env.production"
-            else
-              printf '%s=%s\n' "$key" "$value" >> "$RELEASE_DIR/.env.production"
-            fi
-          }
-
-          require_env_value() {
-            local key="$1"
-            if [ -z "$(read_env_value "$key")" ]; then
-              echo "Variavel obrigatoria ausente em .env.production: $key" >&2
-              exit 1
-            fi
-          }
-
-          touch "$RELEASE_DIR/.env.production"
-          chmod 600 "$RELEASE_DIR/.env.production"
-
-          POSTGRES_DB_VALUE="$(read_env_value POSTGRES_DB)"
-          [ -n "$POSTGRES_DB_VALUE" ] || POSTGRES_DB_VALUE="rebequi"
-
-          POSTGRES_USER_VALUE="$(read_env_value POSTGRES_USER)"
-          [ -n "$POSTGRES_USER_VALUE" ] || POSTGRES_USER_VALUE="rebequi"
-
-          POSTGRES_PASSWORD_VALUE="$(read_env_value POSTGRES_PASSWORD)"
-          [ -n "$POSTGRES_PASSWORD_VALUE" ] || POSTGRES_PASSWORD_VALUE="$(openssl rand -hex 24)"
-
-          JWT_SECRET_VALUE="$(read_env_value JWT_SECRET)"
-          [ -n "$JWT_SECRET_VALUE" ] || JWT_SECRET_VALUE="$(openssl rand -hex 32)"
-
-          RELEASE_VERSION_VALUE="${{ github.sha }}"
-          MIGRATOR_IMAGE_REF="rebequi-migrator:${RELEASE_VERSION_VALUE}"
-          API_IMAGE_REF="rebequi-api:${RELEASE_VERSION_VALUE}"
-          WEB_IMAGE_REF="rebequi-web:${RELEASE_VERSION_VALUE}"
-
-          ensure_env_value "NODE_ENV" "production"
-          ensure_env_value "PORT" "3000"
-          ensure_env_value "HOST" "0.0.0.0"
-          ensure_env_value "POSTGRES_DB" "$POSTGRES_DB_VALUE"
-          ensure_env_value "POSTGRES_USER" "$POSTGRES_USER_VALUE"
-          ensure_env_value "POSTGRES_PASSWORD" "$POSTGRES_PASSWORD_VALUE"
-          ensure_env_value "DATABASE_URL" "postgresql://${POSTGRES_USER_VALUE}:${POSTGRES_PASSWORD_VALUE}@postgres:5432/${POSTGRES_DB_VALUE}"
-          ensure_env_value "JWT_SECRET" "$JWT_SECRET_VALUE"
-          ensure_env_value "JWT_EXPIRES_IN" "7d"
-          set_env_value "BOOTSTRAP_ADMIN_EMAIL" "admin@rebequi.com.br"
-          set_env_value "BOOTSTRAP_ADMIN_PASSWORD" "ChangeMe123!"
-          set_env_value "BOOTSTRAP_ADMIN_NAME" "Administrador Rebequi"
-          set_env_value "BOOTSTRAP_CUSTOMER_EMAIL" "cliente@rebequi.com.br"
-          set_env_value "BOOTSTRAP_CUSTOMER_PASSWORD" "Cliente123!"
-          set_env_value "BOOTSTRAP_CUSTOMER_NAME" "Cliente de Teste"
-          ensure_env_value "AUTH_COOKIE_NAME" "rebequi_token"
-          ensure_env_value "AUTH_COOKIE_SECURE" "true"
-          ensure_env_value "AUTH_COOKIE_SAMESITE" "lax"
-          ensure_env_value "AUTH_COOKIE_MAX_AGE_MS" "604800000"
-          ensure_env_value "AUTH_COOKIE_PATH" "/"
-          ensure_env_value "ALLOWED_ORIGINS" "https://rebequi.com.br,https://www.rebequi.com.br"
-          ensure_env_value "MAX_FILE_SIZE" "5242880"
-          ensure_env_value "UPLOAD_DIR" "./uploads"
-          ensure_env_value "LOG_LEVEL" "info"
-          ensure_env_value "QUOTE_PADDLE_PYTHON_BIN" "python3"
-          ensure_env_value "QUOTE_PADDLE_SCRIPT_PATH" "scripts/paddleocr_bridge.py"
-          ensure_env_value "QUOTE_PADDLE_LANG" "la"
-          ensure_env_value "QUOTE_PADDLE_TIMEOUT_MS" "120000"
-          set_env_value "RELEASE_VERSION" "$RELEASE_VERSION_VALUE"
-          export RELEASE_VERSION="$RELEASE_VERSION_VALUE"
-
-          require_env_value "POSTGRES_DB"
-          require_env_value "POSTGRES_USER"
-          require_env_value "POSTGRES_PASSWORD"
-          require_env_value "DATABASE_URL"
-          require_env_value "JWT_SECRET"
-          require_env_value "RELEASE_VERSION"
-
-          compose -f docker-compose.production.yml build --pull --no-cache migrator api web
-          docker image inspect "$MIGRATOR_IMAGE_REF" "$API_IMAGE_REF" "$WEB_IMAGE_REF" >/dev/null
-          compose -f docker-compose.production.yml up -d postgres
-
-          wait_for_container_health "rebequi-postgres" 120
-
-          docker rm -f rebequi-migrator >/dev/null 2>&1 || true
-
-          # O migrator roda scripts/migrate-deploy.sh: faz baseline de banco
-          # legado (schema sem historico) e aplica as migrations pendentes.
-          # Ele nao usa `db push --accept-data-loss`, entao uma migration que
-          # falha derruba o deploy aqui em vez de corromper o banco em silencio.
-          echo "=== Aplicando migrations do banco ==="
-          if ! compose -f docker-compose.production.yml run --rm migrator; then
-            echo "ERRO: a migracao do banco falhou. A release NAO foi publicada." >&2
-            echo "O banco permanece no estado anterior e os containers atuais seguem no ar." >&2
-            echo "--- logs do postgres ---" >&2
-            docker logs rebequi-postgres --tail 50 >&2 || true
-            exit 1
-          fi
-
-          # Confirma que nao sobrou migration pendente antes de subir a release.
-          # `migrate status` sai com codigo 1 quando ha pendencia.
-          echo "=== Conferindo estado final das migrations ==="
-          if ! compose -f docker-compose.production.yml run --rm migrator \
-              sh -lc "cd /app/apps/backend && npx prisma migrate status"; then
-            echo "ERRO: ainda existem migrations pendentes apos o deploy das migrations." >&2
-            exit 1
-          fi
-
-          echo "Migracao concluida. Substituindo os containers da aplicacao pela release ${RELEASE_VERSION_VALUE}."
-          docker rm -f rebequi-api rebequi-web >/dev/null 2>&1 || true
-          compose -f docker-compose.production.yml up -d --force-recreate --renew-anon-volumes --remove-orphans api web
-          ensure_release_running
-
-          wait_for_container_health "rebequi-api" 120
-          wait_for_container_health "rebequi-web" 120
-          assert_container_image_ref "rebequi-api" "$API_IMAGE_REF"
-          assert_container_image_ref "rebequi-web" "$WEB_IMAGE_REF"
-          assert_container_uses_latest_image "rebequi-api" "$API_IMAGE_REF"
-          assert_container_uses_latest_image "rebequi-web" "$WEB_IMAGE_REF"
-          assert_release_version "rebequi-api" "$RELEASE_VERSION_VALUE" "cat /app/.release-version"
-          assert_release_version "rebequi-web" "$RELEASE_VERSION_VALUE" "cat /usr/share/nginx/html/release.txt"
-          verify_json_health "http://127.0.0.1:${DEPLOY_PORT}/api/health"
-          verify_frontend_cache_headers "http://127.0.0.1:${DEPLOY_PORT}"
-
-          cat > "$SITE_CONF" <<NGINX_HTTP
-          server {
-              listen 80;
-              listen [::]:80;
-              server_name ${PRIMARY_DOMAIN} ${SECONDARY_DOMAIN};
-
-              location /.well-known/acme-challenge/ {
-                  root /var/www/certbot;
-              }
-
-              location / {
-                  proxy_pass http://127.0.0.1:${DEPLOY_PORT};
-                  proxy_http_version 1.1;
-                  proxy_set_header Host \$host;
-                  proxy_set_header X-Real-IP \$remote_addr;
-                  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-                  proxy_set_header X-Forwarded-Proto \$scheme;
-              }
-          }
-          NGINX_HTTP
-
-          ln -sf "$SITE_CONF" /etc/nginx/sites-enabled/rebequi
-          rm -f /etc/nginx/sites-enabled/default
-          nginx -t
-          systemctl reload nginx
-
-          verify_json_health "http://127.0.0.1:${DEPLOY_PORT}/api/health"
-          verify_json_health "http://127.0.0.1/api/health" --header "Host: ${PRIMARY_DOMAIN}"
-          verify_json_health "http://127.0.0.1/api/health" --header "Host: ${SECONDARY_DOMAIN}"
-
-          ensure_tls_certificate
-
-          if [ -f "/etc/letsencrypt/live/${PRIMARY_DOMAIN}/fullchain.pem" ]; then
-          SSL_OPTIONS_DIRECTIVE=""
-          SSL_DHPARAM_DIRECTIVE=""
-
-          if [ -f "/etc/letsencrypt/options-ssl-nginx.conf" ]; then
-            SSL_OPTIONS_DIRECTIVE="    include /etc/letsencrypt/options-ssl-nginx.conf;"
-          fi
-
-          if [ -f "/etc/letsencrypt/ssl-dhparams.pem" ]; then
-            SSL_DHPARAM_DIRECTIVE="    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;"
-          fi
-
-          cat > "$SITE_CONF" <<NGINX_HTTPS
-          server {
-              listen 80;
-              listen [::]:80;
-              server_name ${PRIMARY_DOMAIN} ${SECONDARY_DOMAIN};
-
-              location /.well-known/acme-challenge/ {
-                  root /var/www/certbot;
-              }
-
-              location / {
-                  return 301 https://\$host\$request_uri;
-              }
-          }
-
-          server {
-              listen 443 ssl http2;
-              listen [::]:443 ssl http2;
-              server_name ${PRIMARY_DOMAIN} ${SECONDARY_DOMAIN};
-
-              ssl_certificate /etc/letsencrypt/live/${PRIMARY_DOMAIN}/fullchain.pem;
-              ssl_certificate_key /etc/letsencrypt/live/${PRIMARY_DOMAIN}/privkey.pem;
-          ${SSL_OPTIONS_DIRECTIVE}
-          ${SSL_DHPARAM_DIRECTIVE}
-
-              location / {
-                  proxy_pass http://127.0.0.1:${DEPLOY_PORT};
-                  proxy_http_version 1.1;
-                  proxy_set_header Host \$host;
-                  proxy_set_header X-Real-IP \$remote_addr;
-                  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-                  proxy_set_header X-Forwarded-Proto \$scheme;
-              }
-          }
-          NGINX_HTTPS
-            nginx -t
-            systemctl reload nginx
-          fi
-
-          curl -fsS "http://127.0.0.1:${DEPLOY_PORT}/health" >/dev/null
-          verify_json_health "http://127.0.0.1:${DEPLOY_PORT}/api/health"
-          curl -fsSI -H "Host: ${PRIMARY_DOMAIN}" "http://127.0.0.1/" >/dev/null
-          curl -fsSI -H "Host: ${SECONDARY_DOMAIN}" "http://127.0.0.1/" >/dev/null
-
-          if [ -f "/etc/letsencrypt/live/${PRIMARY_DOMAIN}/fullchain.pem" ]; then
-            verify_frontend_cache_headers "https://${PRIMARY_DOMAIN}"
-            verify_json_health "https://${PRIMARY_DOMAIN}/api/health" --resolve "${PRIMARY_DOMAIN}:443:127.0.0.1"
-            verify_json_health "https://${SECONDARY_DOMAIN}/api/health" --resolve "${SECONDARY_DOMAIN}:443:127.0.0.1"
-          fi
-
-          verify_auth_flow() {
-            local domain="$1"
-            local identifier="$2"
-            local password="$3"
-            local expected_role="$4"
-            local cookie_file
-            local login_body
-            local profile_body
-            local status
-
-            cookie_file="$(mktemp)"
-            login_body="$(mktemp)"
-            profile_body="$(mktemp)"
-
-            status="$(curl -ksS -o "$login_body" -w "%{http_code}" \
-              --resolve "${domain}:443:127.0.0.1" \
-              --cookie-jar "$cookie_file" \
-              --header "Content-Type: application/json" \
-              --data "{\"identifier\":\"${identifier}\",\"password\":\"${password}\"}" \
-              "https://${domain}/api/auth/login")"
-            [ "$status" = "200" ]
-            grep -q "\"success\":true" "$login_body"
-            grep -q "\"email\":\"${identifier}\"" "$login_body"
-
-            status="$(curl -ksS -o "$profile_body" -w "%{http_code}" \
-              --resolve "${domain}:443:127.0.0.1" \
-              --cookie "$cookie_file" \
-              "https://${domain}/api/auth/me")"
-            [ "$status" = "200" ]
-            grep -q "\"email\":\"${identifier}\"" "$profile_body"
-            grep -q "\"role\":\"${expected_role}\"" "$profile_body"
-
-            status="$(curl -ksS -o /dev/null -w "%{http_code}" \
-              --resolve "${domain}:443:127.0.0.1" \
-              --cookie "$cookie_file" \
-              --cookie-jar "$cookie_file" \
-              --request POST \
-              "https://${domain}/api/auth/logout")"
-            [ "$status" = "200" ]
-
-            status="$(curl -ksS -o /dev/null -w "%{http_code}" \
-              --resolve "${domain}:443:127.0.0.1" \
-              --cookie "$cookie_file" \
-              "https://${domain}/api/auth/me")"
-            [ "$status" = "401" ]
-
-            rm -f "$cookie_file" "$login_body" "$profile_body"
-          }
-
-          verify_auth_flow "${PRIMARY_DOMAIN}" "$(read_env_value BOOTSTRAP_ADMIN_EMAIL)" "$(read_env_value BOOTSTRAP_ADMIN_PASSWORD)" "ADMIN"
-          verify_auth_flow "${PRIMARY_DOMAIN}" "$(read_env_value BOOTSTRAP_CUSTOMER_EMAIL)" "$(read_env_value BOOTSTRAP_CUSTOMER_PASSWORD)" "CUSTOMER"
-          wait_for_container_health "rebequi-api" 120
-          wait_for_container_health "rebequi-web" 120
-          assert_container_image_ref "rebequi-api" "$API_IMAGE_REF"
-          assert_container_image_ref "rebequi-web" "$WEB_IMAGE_REF"
-          assert_release_version "rebequi-api" "$RELEASE_VERSION_VALUE" "cat /app/.release-version"
-          assert_release_version "rebequi-web" "$RELEASE_VERSION_VALUE" "cat /usr/share/nginx/html/release.txt"
-
-          echo "Deploy concluido em ${PRIMARY_DOMAIN} e ${SECONDARY_DOMAIN}"
-          REMOTE
-
-      - name: Deployment summary
-        run: |
-          echo "Deploy concluido."
-          echo "Frontend exposto internamente em 127.0.0.1:${DEPLOY_PORT}"
-          echo "Dominios: https://${PRIMARY_DOMAIN} e https://${SECONDARY_DOMAIN}"
-
-      - name: Verify release on VPS
+          sshpass -e ssh rebequi-vps "mkdir -p /opt/rebequi/releases/$RELEASE_ID"
+          sshpass -e scp "$RUNNER_TEMP/rebequi-deploy.tar.gz" "rebequi-vps:/opt/rebequi/releases/$RELEASE_ID/bundle.tar.gz"
+          sshpass -e ssh rebequi-vps \
+            "tar -xzf /opt/rebequi/releases/$RELEASE_ID/bundle.tar.gz -C /opt/rebequi/releases/$RELEASE_ID"
+      - name: Deploy (temporary GHCR authentication over SSH stdin)
         env:
           SSHPASS: ${{ secrets.VPS_PASSWORD }}
-          EXPECTED_RELEASE: ${{ github.sha }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+          RELEASE_ID: ${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
-          sshpass -e ssh -o StrictHostKeyChecking=no "${VPS_USER}@${VPS_HOST}" <<REMOTE
-          set -euo pipefail
-
-          RELEASE_DIR="/opt/rebequi/current"
-
-          compose() {
-            if docker compose version >/dev/null 2>&1; then
-              docker compose --env-file "\$RELEASE_DIR/.env.production" -f "\$RELEASE_DIR/docker-compose.production.yml" "\$@"
-              return
-            fi
-
-            docker-compose --env-file "\$RELEASE_DIR/.env.production" -f "\$RELEASE_DIR/docker-compose.production.yml" "\$@"
-          }
-
-          wait_for_health() {
-            local container_name="\$1"
-            local timeout_seconds="\${2:-120}"
-            local elapsed="0"
-
-            while [ "\$elapsed" -lt "\$timeout_seconds" ]; do
-              local status
-              status="\$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "\$container_name" 2>/dev/null || true)"
-
-              if [ "\$status" = "healthy" ] || [ "\$status" = "running" ]; then
-                return 0
-              fi
-
-              sleep 5
-              elapsed=\$((elapsed + 5))
-            done
-
-            docker logs "\$container_name" --tail 100 || true
-            return 1
-          }
-
-          current_api_image="\$(docker inspect --format '{{.Config.Image}}' rebequi-api 2>/dev/null || true)"
-          current_web_image="\$(docker inspect --format '{{.Config.Image}}' rebequi-web 2>/dev/null || true)"
-
-          if [ "\$current_api_image" != "rebequi-api:${EXPECTED_RELEASE}" ] || [ "\$current_web_image" != "rebequi-web:${EXPECTED_RELEASE}" ]; then
-            echo "Release ativa divergente da esperada. Forcando troca final de api e web."
-            export RELEASE_VERSION="${EXPECTED_RELEASE}"
-            docker rm -f rebequi-api rebequi-web >/dev/null 2>&1 || true
-            compose up -d --force-recreate --renew-anon-volumes --remove-orphans api web
-          fi
-
-          wait_for_health rebequi-api 120
-          wait_for_health rebequi-web 120
-
-          api_image="\$(docker inspect --format '{{.Config.Image}}' rebequi-api)"
-          web_image="\$(docker inspect --format '{{.Config.Image}}' rebequi-web)"
-          api_release="\$(docker exec rebequi-api sh -lc 'cat /app/.release-version' | tr -d '\r')"
-          web_release="\$(docker exec rebequi-web sh -lc 'cat /usr/share/nginx/html/release.txt' | tr -d '\r')"
-
-          test "\$api_image" = "rebequi-api:${EXPECTED_RELEASE}"
-          test "\$web_image" = "rebequi-web:${EXPECTED_RELEASE}"
-          test "\$api_release" = "${EXPECTED_RELEASE}"
-          test "\$web_release" = "${EXPECTED_RELEASE}"
-
-          curl -fsS "http://127.0.0.1:${DEPLOY_PORT}/api/health" >/dev/null
-          curl -fsSI "http://127.0.0.1:${DEPLOY_PORT}/" >/dev/null
-          REMOTE
+          printf '%s\n' "$GHCR_TOKEN" | sshpass -e ssh rebequi-vps \
+            "bash /opt/rebequi/releases/$RELEASE_ID/scripts/deploy-production.sh '$GHCR_USER'"
+      - name: Verify public HTTPS
+        run: |
+          curl -fsS --retry 3 --max-time 15 https://rebequi.com.br/api/health | grep -q '"status":"ok"'
+          curl -fsS --retry 3 --max-time 15 https://www.rebequi.com.br/health

@@ -14,12 +14,17 @@ const HOST = env.HOST;
 
 /** Housekeeping cadence for orphaned OCR jobs and expired anonymous drafts. */
 const QUOTE_MAINTENANCE_INTERVAL_MS = 15 * 60 * 1000;
+let quoteMaintenanceRunning = false;
 
 async function runQuoteMaintenance() {
+  if (quoteMaintenanceRunning) return;
+  quoteMaintenanceRunning = true;
   try {
     await new QuoteService().runMaintenance();
   } catch (error) {
     logger.warn('Quote maintenance run failed.', { error });
+  } finally {
+    quoteMaintenanceRunning = false;
   }
 }
 
