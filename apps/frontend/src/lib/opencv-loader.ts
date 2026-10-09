@@ -28,9 +28,9 @@ declare global {
  */
 const LOAD_TIMEOUT_MS = 90_000;
 
-let cvPromise: Promise<unknown> | null = null;
+let cvPromise: Promise<void> | null = null;
 
-export function loadOpenCv(): Promise<unknown> {
+export function loadOpenCv(): Promise<void> {
   if (typeof window === 'undefined') {
     return Promise.reject(new Error('OpenCV só carrega no navegador.'));
   }
@@ -39,7 +39,9 @@ export function loadOpenCv(): Promise<unknown> {
 
   cvPromise = new Promise((resolve, reject) => {
     if (window.cv && typeof window.cv.imread === 'function') {
-      resolve(window.cv);
+      // OpenCV's module has a self-returning `then`; resolving with the module
+      // recursively assimilates it and blocks the browser's main thread.
+      resolve();
       return;
     }
 
@@ -83,7 +85,7 @@ export function loadOpenCv(): Promise<unknown> {
     const start = Date.now();
     const timer = window.setInterval(() => {
       if (window.cv && typeof window.cv.imread === 'function') {
-        finish(() => resolve(window.cv));
+        finish(() => resolve());
       } else if (Date.now() - start > LOAD_TIMEOUT_MS) {
         fail('OpenCV demorou demais para carregar.');
       }

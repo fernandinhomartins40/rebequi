@@ -156,6 +156,7 @@ export function LiveDocumentScanner({ onCapture, onCancel, onManualEntry }: Prop
   const fallbackInputRef = useRef<HTMLInputElement | null>(null);
   const frameCounterRef = useRef(0);
   const qualityIssueRef = useRef<QualityIssue>(null);
+  const cameraAvailable = status !== 'loading' && status !== 'error';
 
   const clearCountdown = useCallback(() => {
     if (countdownTimerRef.current) {
@@ -345,6 +346,7 @@ export function LiveDocumentScanner({ onCapture, onCancel, onManualEntry }: Prop
   // continua utilizável: perde-se a detecção de borda e a captura automática,
   // e o botão manual assume.
   useEffect(() => {
+    if (!cameraAvailable) return;
     let cancelled = false;
 
     (async () => {
@@ -366,7 +368,7 @@ export function LiveDocumentScanner({ onCapture, onCancel, onManualEntry }: Prop
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [cameraAvailable]);
 
   // Frame loop — só faz sentido depois que o OpenCV terminou de carregar.
   useEffect(() => {
