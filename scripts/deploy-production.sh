@@ -184,7 +184,9 @@ wait_healthy rebequi-web
 
 verify_health() {
   local body
-  body=$(curl -fsS --max-time 15 "$@")
+  # Reload signals return before every Nginx worker uses the new TLS vhost.
+  # Retry transient failures while still validating the actual certificate.
+  body=$(curl -fsS --retry 5 --retry-delay 2 --retry-all-errors --max-time 15 "$@")
   [[ "$body" == *'"status":"ok"'* ]]
 }
 verify_health http://127.0.0.1:3190/api/health
@@ -275,7 +277,7 @@ for domain in "$PRIMARY_DOMAIN" "$SECONDARY_DOMAIN"; do
 done
 
 # Prepare rollback pointer before committing the new current release.
-if [[ -n "$PREVIOUS_DIR" && "$PREVIOUS_DIR" != "$RELEASE_DIR" ]]; then
+if [[ -f "$PREVIOUS_DIR/.images.env" && "$PREVIOUS_DIR" != "$RELEASE_DIR" ]]; then
   ln -sfnT "$PREVIOUS_DIR" "$APP_ROOT/previous"
 fi
 # Atomic pointer update only AFTER health, TLS and exact image validation.
