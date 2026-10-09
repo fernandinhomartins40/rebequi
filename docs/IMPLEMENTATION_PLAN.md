@@ -6,9 +6,9 @@ Rebequi vende materiais de construção por catálogo, carrinho e atendimento vi
 
 ## Principais problemas encontrados
 
-- P0 adicional: novas contas usavam senha previs?vel; cache privado sobrevivia ? troca de conta. Gerar senhas aleat?rias somente para contas novas e limpar cache ao trocar sess?o.
-- Integridade: substituir itens fora de transa??o podia apagar a lista se a inser??o falhasse; envio simult?neo e conclus?o tardia de OCR precisavam respeitar o rascunho e as edi??es.
-- Valida??o: TypeScript do frontend n?o era verificado no workflow e havia contratos antigos incorretos. Corrigir contratos sem enfraquecer tipos e adicionar a verifica??o.
+- P0 adicional: novas contas usavam senha previsível; cache privado sobrevivia à troca de conta. Gerar senhas aleatórias somente para contas novas e limpar cache ao trocar sessão.
+- Integridade: substituir itens fora de transação podia apagar a lista se a inserção falhasse; envio simultâneo e conclusão tardia de OCR precisavam respeitar o rascunho e as edições.
+- Validação: TypeScript do frontend não era verificado no workflow e havia contratos antigos incorretos. Corrigir contratos sem enfraquecer tipos e adicionar a verificação.
 
 - P0: `AuthService.ensureCustomerForLead` reutiliza e reativa contas pelo WhatsApp sem prova de autenticação; orçamento público pode emitir sessão de outra pessoa. O documento legado usa lead ID sem conferir proprietário. O endpoint público de redirecionamento de pedido modifica e devolve dados sem autorização.
 - P0: middleware verifica somente JWT; desativação e troca de papel não revogam permissões de sessões existentes. Resposta de pedidos do cliente inclui notas internas.
@@ -21,18 +21,18 @@ Rebequi vende materiais de construção por catálogo, carrinho e atendimento vi
 
 | ID | TIPO | SITUAÇÃO ATUAL | OPORTUNIDADE / SOLUÇÃO | ESFORÇO ELIMINADO / BENEFÍCIO | PRIORIDADE | RISCO | TESTE | STATUS |
 |---|---|---|---|---|---|---|---|---|
-| OP-01 | JUNTAR | Pedidos salvos sem acesso no painel do cliente | Pedidos com itens, situação, referência e retomada da conversa usando API existente | Evita procurar mensagem antiga ou refazer pedido | P1 | Baixo | Navegador, pedidos reais no banco e isolamento entre clientes | DOING |
-| OP-02 | ELIMINAR | Lista manual exige falhar na câmera | Entrada direta de texto, parsing/matching existentes, revisão e envio; rascunho real no PostgreSQL | Colar lista → revisar → enviar, sem foto fictícia nem OCR desnecessário | P1 | Médio | API e navegador com lista digitada, quantidades e catálogo reais | DOING |
-| OP-03 | AUTOMATIZAR | Edições perdidas ou guardadas só no navegador | Gravar rascunho público no backend; recuperar leitura/rascunho e preservar editor em auto-refresh | Evita redigitação após interrupção ou atualização | P1 | Médio | Reload, expiração, gravação, edição durante refresh e erros | DOING |
-| OP-04 | ELIMINAR | Cliente conectado redigita identificação | Preencher nome/WhatsApp a partir da sessão; login com retorno ao mesmo rascunho quando conta já existe | Reaproveita dados sem login indevido nem perder a lista | P2 | Baixo | Conta existente, conta nova e envio autenticado | DOING |
-| OP-05 | ANTECIPAR | Alerta de catálogo sem ação no contexto | Link direto ao editor do produto apontado como pendência | Elimina navegar para catálogo e buscar o mesmo item | P2 | Baixo | Navegador e autorização existente | DOING |
+| OP-01 | JUNTAR | Pedidos salvos sem acesso no painel do cliente | Pedidos com itens, situação, referência e retomada da conversa usando API existente | Evita procurar mensagem antiga ou refazer pedido | P1 | Baixo | Navegador, pedidos reais no banco e isolamento entre clientes | DONE |
+| OP-02 | ELIMINAR | Lista manual exige falhar na câmera | Entrada direta de texto, parsing/matching existentes, revisão e envio; rascunho real no PostgreSQL | Colar lista → revisar → enviar, sem foto fictícia nem OCR desnecessário | P1 | Médio | API e navegador com lista digitada, quantidades e catálogo reais | DONE |
+| OP-03 | AUTOMATIZAR | Edições perdidas ou guardadas só no navegador | Gravar rascunho público no backend; recuperar leitura/rascunho e preservar editor em auto-refresh | Evita redigitação após interrupção ou atualização | P1 | Médio | Reload, expiração, gravação, edição durante refresh e erros | DONE |
+| OP-04 | ELIMINAR | Cliente conectado redigita identificação | Preencher nome/WhatsApp a partir da sessão; login com retorno ao mesmo rascunho quando conta já existe | Reaproveita dados sem login indevido nem perder a lista | P2 | Baixo | Conta existente, conta nova e envio autenticado | DONE |
+| OP-05 | ANTECIPAR | Alerta de catálogo sem ação no contexto | Link direto ao editor do produto apontado como pendência | Elimina navegar para catálogo e buscar o mesmo item | P2 | Baixo | Navegador e autorização existente | DONE |
 
 ## Plano de execução
 
 | ID | PRIORIDADE | PROBLEMA | SOLUÇÃO | ARQUIVOS/ÁREAS | RISCO | TESTE | STATUS |
 |---|---|---|---|---|---|---|---|
-| FIX-01 | P0 | Sessões e acesso público sem conferir proprietário | Exigir sessão correspondente para conta existente/lead/pedido; não reativar contas; conferir usuário ativo/papel no backend; excluir notas internas da resposta ao cliente | Auth, quotes, orders | Médio | HTTP real: anônimo, cliente A/B, desativação e papel alterado | DOING |
-| OP-01–05 | P1/P2 | Fricções confirmadas acima | Implementar usando componentes, endpoints e regras existentes | Frontend e quotes | Baixo/médio | Build/lint, testes reais de banco e navegador em diferentes larguras | DOING |
+| FIX-01 | P0 | Sessões e acesso público sem conferir proprietário | Exigir sessão correspondente para conta existente/lead/pedido; não reativar contas; conferir usuário ativo/papel no backend; excluir notas internas da resposta ao cliente | Auth, quotes, orders | Médio | HTTP real: anônimo, cliente A/B, desativação e papel alterado | DONE |
+| OP-01–05 | P1/P2 | Fricções confirmadas acima | Implementar usando componentes, endpoints e regras existentes | Frontend e quotes | Baixo/médio | Build/lint, testes reais de banco e navegador em diferentes larguras | DONE |
 
 ## Ordem de implementação
 
@@ -45,3 +45,7 @@ Identidade visual, logo, preços, estoque, pagamento, políticas comerciais, cá
 ## Bloqueios reais
 
 Nenhum para os itens selecionados. Integração externa OpenRouter depende de configuração do lojista e não será acionada com gasto real. Banco de testes será isolado no GitHub, preservando dados de produção. Navegador automatizado de teste será usado somente para validar fluxos reais, sem mocks de APIs.
+
+## Validação concluída
+
+Todos os itens selecionados foram implementados e validados no workflow [37992058557](https://github.com/fernandinhomartins40/rebequi/actions/runs/37992058557): 18 testes existentes, 11 cenários reais de produto (12 resultados incluindo o agrupador), cinco larguras de navegador, PostgreSQL/imagens reais, OCR, uploads persistentes, recriação, backup/restauração e rollback. A configuração CORS do runner foi corrigida sem relaxar produção. Evidências de tela revelaram e confirmaram a correção do nome truncado em 320 px. Relatório final em IMPLEMENTATION_REPORT.md.
