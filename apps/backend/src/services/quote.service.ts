@@ -308,7 +308,7 @@ export class QuoteService {
     const session = await this.authService.createSessionForUser(lead.userId);
     this.scheduleOcrJob({
       quoteId: quote.id,
-      imageBuffer: Buffer.from(params.file!.buffer),
+      imageBuffer: params.file!.buffer,
     });
 
     return {
@@ -361,7 +361,7 @@ export class QuoteService {
 
     this.scheduleOcrJob({
       quoteId: quote.id,
-      imageBuffer: Buffer.from(params.file!.buffer),
+      imageBuffer: params.file!.buffer,
     });
 
     return {
@@ -514,7 +514,7 @@ export class QuoteService {
 
     this.scheduleOcrJob({
       quoteId: quote.id,
-      imageBuffer: Buffer.from(params.file!.buffer),
+      imageBuffer: params.file!.buffer,
     });
 
     return this.formatQuote(quote);

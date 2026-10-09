@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Destructive cleanup is confined to the disposable GitHub-hosted test runner.
 set -Eeuo pipefail
-[[ ${CI:-} == true && ${GITHUB_ACTIONS:-} == true ]] || {
+[[ ${CI:-} == true && ${GITHUB_ACTIONS:-} == true && ${RUNNER_ENVIRONMENT:-} == github-hosted ]] || {
   printf 'Run this integration test only in a disposable GitHub Actions runner.\n' >&2
   exit 1
 }
@@ -81,6 +81,8 @@ login
 docker exec rebequi-api python3 /app/apps/backend/scripts/paddleocr_bridge.py --check
 docker exec -e HOME=/home/node rebequi-api python3 /app/apps/backend/scripts/paddleocr_bridge.py --warmup --lang la
 docker exec rebequi-api node --input-type=module -e 'import sharp from "sharp"; import {PrismaClient} from "@prisma/client"; const p=new PrismaClient(); await p.$connect(); console.log("sharp and Prisma OK"); await p.$disconnect();'
+docker exec rebequi-api python3 -c 'from PIL import Image, ImageDraw, ImageFont; image=Image.new("RGB",(300,80),"white"); ImageDraw.Draw(image).text((10,10),"5 SACOS CIMENTO\n10 TIJOLOS",fill="black",font=ImageFont.load_default()); image.resize((1200,320)).save("/app/uploads/ocr-smoke.png")'
+docker exec rebequi-api node --input-type=module -e 'import {readFile} from "node:fs/promises"; import assert from "node:assert/strict"; import {QuoteOcrService} from "./apps/backend/dist/services/quote-ocr.service.js"; import {prisma} from "./apps/backend/dist/lib/prisma.js"; try { const result=await new QuoteOcrService().recognizeDocument(await readFile("/app/uploads/ocr-smoke.png")); assert.equal(result.engine,"paddleocr"); assert(result.text.toUpperCase().includes("CIMENTO")); console.log("Local OCR recognition passed"); } finally {await prisma.$disconnect();}'
 
 # Verify actual upload/download routes, not just volume presence.
 docker exec rebequi-api node --input-type=module -e 'import sharp from "sharp"; await sharp({create:{width:32,height:32,channels:3,background:"white"}}).png().toFile("/app/uploads/persistence-smoke.png");'
