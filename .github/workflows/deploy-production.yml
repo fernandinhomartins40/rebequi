@@ -195,6 +195,14 @@ jobs:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GHCR_USER: ${{ github.actor }}
         run: bash scripts/test-production-images.sh
+      - name: Product browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: product-browser-evidence
+          path: tests/product/artifacts
+          if-no-files-found: ignore
+          retention-days: 3
 
   deploy:
     name: Pull GHCR images and deploy to VPS

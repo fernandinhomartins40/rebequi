@@ -39,6 +39,7 @@ packages/*/build
 
 # Testing
 coverage
+tests/product/artifacts/
 *.tsbuildinfo
 
 # OS

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { mkdir } from 'node:fs/promises';
 import { chromium, request } from 'playwright';
 
 // Mutating validation is confined to a disposable, GitHub-hosted runner.
@@ -8,6 +9,7 @@ if (process.env.CI !== 'true' || process.env.GITHUB_ACTIONS !== 'true' || proces
   throw new Error('Product tests may only mutate the isolated GitHub-hosted integration database.');
 }
 const baseURL = 'http://127.0.0.1:3190';
+await mkdir(new URL('./artifacts/', import.meta.url), { recursive: true });
 const browser = await chromium.launch();
 const contexts = [];
 async function client() {
@@ -82,10 +84,20 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
         let rejected=false; try {await new QuoteRepository().replaceQuoteItems(id,[{quoteRequestId:id,name:'Invalid',quantity:1,productId:'missing-product'}]);} catch {rejected=true;}
         if(!rejected) throw new Error('Invalid foreign key accepted');
         const after=await prisma.quoteItem.findMany({where:{quoteRequestId:id}});
-        if(JSON.stringify(before)!==JSON.stringify(after)) throw new Error('Draft lost after failed replacement');`);
+        if(JSON.stringify(before)!==JSON.stringify(after)) throw new Error('Draft lost after failed replacement');
+        const repository=new QuoteRepository();
+        await repository.finishOcr(id,{ocrStatus:'COMPLETED'},[{quoteRequestId:id,name:'Late OCR',quantity:99}],'Late title',null);
+        await repository.failOcr(id,'Late failure');
+        const q=await prisma.quoteRequest.findUnique({where:{id},include:{items:true}});
+        if(q.ocrStatus!=='SKIPPED'||q.items[0].id!==before[0].id) throw new Error('Late OCR replaced manual work');`);
+      db(`await prisma.quoteRequest.update({where:{id:${JSON.stringify(draft.quote.id)}},data:{anonymousExpiresAt:new Date(0)}});`);
+      assert.equal((await anonymous.get(`/api/quotes/public/anonymous/${draft.token}`)).status(), 403);
+      assert.equal((await anonymous.put('/api/quotes/public/anonymous', { data: {
+        token: draft.token, items: [{ name: 'Overwrite expired', quantity: 1 }],
+      } })).status(), 403);
     });
 
-    for (const width of [320, 390, 768, 1440]) {
+    for (const width of [320, 390, 768, 1024, 1440]) {
       await t.test(`Manual list, database autosave and reload at ${width}px`, async () => {
         const context = await browser.newContext({ viewport: { width, height: 900 } });
         try {
@@ -109,6 +121,7 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
           await page.getByText('Rascunho salvo', { exact: true }).waitFor();
           assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true, 'Horizontal overflow');
           assert.equal(await page.getByRole('button', { name: 'Aumentar', exact: true }).first().locator('..').locator('span').innerText(), '6');
+          await page.screenshot({ path: new URL(`./artifacts/manual-${width}.png`, import.meta.url).pathname, fullPage: true });
         } finally { await context.close(); }
       });
     }
@@ -125,6 +138,7 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
         assert.equal(await page.getByText('Somente a equipe').count(), 0);
         await page.getByText('Ver itens do pedido', { exact: true }).click();
         await page.getByText(product.name, { exact: false }).first().waitFor();
+        await page.screenshot({ path: new URL('./artifacts/orders-mobile.png', import.meta.url).pathname, fullPage: true });
         const resume = page.getByRole('link', { name: 'Retomar no WhatsApp' });
         assert.ok((await resume.getAttribute('href')).startsWith('https://'));
         await page.getByRole('button', { name: 'Adicionar itens ao carrinho' }).click();
@@ -163,7 +177,8 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
     await t.test('Catalog alert opens the exact product editor', async () => {
       const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
       try {
-        db(`await prisma.productImage.deleteMany({where:{productId:${JSON.stringify(product.id)}}});`);
+        db(`await prisma.productImage.deleteMany({where:{productId:${JSON.stringify(product.id)}}});
+          await prisma.product.update({where:{id:${JSON.stringify(product.id)}},data:{stock:0,description:null,shortDesc:null,sku:null}});`);
         await data(await context.request.post(`${baseURL}/api/auth/login`, { data: {
           identifier: 'integration@example.invalid', password: 'integration-only-admin-password',
         } }));
