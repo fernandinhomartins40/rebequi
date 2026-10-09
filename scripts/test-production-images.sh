@@ -83,6 +83,19 @@ docker exec -e HOME=/home/node rebequi-api python3 /app/apps/backend/scripts/pad
 docker exec rebequi-api node --input-type=module -e 'import sharp from "sharp"; import {PrismaClient} from "@prisma/client"; const p=new PrismaClient(); await p.$connect(); console.log("sharp and Prisma OK"); await p.$disconnect();'
 docker exec rebequi-api python3 -c 'from PIL import Image, ImageDraw, ImageFont; image=Image.new("RGB",(300,80),"white"); ImageDraw.Draw(image).text((10,10),"5 SACOS CIMENTO\n10 TIJOLOS",fill="black",font=ImageFont.load_default()); image.resize((1200,320)).save("/app/uploads/ocr-smoke.png")'
 docker exec rebequi-api node --input-type=module -e 'import {readFile} from "node:fs/promises"; import assert from "node:assert/strict"; import {QuoteOcrService} from "./apps/backend/dist/services/quote-ocr.service.js"; import {prisma} from "./apps/backend/dist/lib/prisma.js"; try { const result=await new QuoteOcrService().recognizeDocument(await readFile("/app/uploads/ocr-smoke.png")); assert.equal(result.engine,"paddleocr"); assert(result.text.toUpperCase().includes("CIMENTO")); console.log("Local OCR recognition passed"); } finally {await prisma.$disconnect();}'
+docker cp rebequi-api:/app/uploads/ocr-smoke.png "$TEST_DIR/ocr.png"
+curl -fsS -F "document=@$TEST_DIR/ocr.png;type=image/png" \
+  http://127.0.0.1:3190/api/quotes/public/anonymous-document >"$TEST_DIR/draft.json"
+draft_token=$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).data.token)' "$TEST_DIR/draft.json")
+for ((attempt=0; attempt<60; attempt++)); do
+  curl -fsS "http://127.0.0.1:3190/api/quotes/public/anonymous/$draft_token" >"$TEST_DIR/draft-status.json"
+  ocr_status=$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).data.ocrStatus)' "$TEST_DIR/draft-status.json")
+  [[ "$ocr_status" == COMPLETED ]] && break
+  [[ "$ocr_status" != FAILED ]]
+  sleep 2
+done
+[[ "$ocr_status" == COMPLETED ]]
+node -e 'const q=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).data; require("assert").ok(q.items.some(item=>item.productId)); console.log("Uploaded quote OCR and catalogue matching passed");' "$TEST_DIR/draft-status.json"
 
 # Verify actual upload/download routes, not just volume presence.
 docker exec rebequi-api node --input-type=module -e 'import sharp from "sharp"; await sharp({create:{width:32,height:32,channels:3,background:"white"}}).png().toFile("/app/uploads/persistence-smoke.png");'
