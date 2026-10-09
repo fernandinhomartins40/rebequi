@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Loader2, Search } from "lucide-react";
 import type { Product } from "@rebequi/shared/types";
@@ -18,6 +25,7 @@ type PublicProductSearchProps = {
   onNavigate?: () => void;
   panelClassName?: string;
   placeholder?: string;
+  showSubmitButton?: boolean;
 };
 
 function formatPrice(value: number) {
@@ -50,18 +58,23 @@ export function PublicProductSearch({
   onNavigate,
   panelClassName,
   placeholder = "Buscar produtos...",
+  showSubmitButton = false,
 }: PublicProductSearchProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [search, setSearch] = useState(() => getSearchTermFromLocation(location.pathname, location.search));
+  const [search, setSearch] = useState(() =>
+    getSearchTermFromLocation(location.pathname, location.search),
+  );
 
   const debouncedSearch = useDebouncedValue(search, 250);
   const trimmedSearch = search.trim();
   const normalizedSearch = debouncedSearch.trim();
   const shouldSearch = normalizedSearch.length >= MIN_SEARCH_LENGTH;
-  const isWaitingForDebounce = trimmedSearch.length >= MIN_SEARCH_LENGTH && trimmedSearch !== normalizedSearch;
+  const isWaitingForDebounce =
+    trimmedSearch.length >= MIN_SEARCH_LENGTH &&
+    trimmedSearch !== normalizedSearch;
 
   useEffect(() => {
     setSearch(getSearchTermFromLocation(location.pathname, location.search));
@@ -108,7 +121,11 @@ export function PublicProductSearch({
         : "Nao foi possivel buscar produtos agora.";
     }
 
-    if (isWaitingForDebounce || searchQuery.isLoading || searchQuery.isFetching) {
+    if (
+      isWaitingForDebounce ||
+      searchQuery.isLoading ||
+      searchQuery.isFetching
+    ) {
       return "Buscando produtos...";
     }
 
@@ -117,7 +134,16 @@ export function PublicProductSearch({
     }
 
     return `${totalResults} resultado${totalResults === 1 ? "" : "s"} encontrado${totalResults === 1 ? "" : "s"}.`;
-  }, [isWaitingForDebounce, products.length, searchQuery.error, searchQuery.isError, searchQuery.isFetching, searchQuery.isLoading, shouldSearch, totalResults]);
+  }, [
+    isWaitingForDebounce,
+    products.length,
+    searchQuery.error,
+    searchQuery.isError,
+    searchQuery.isFetching,
+    searchQuery.isLoading,
+    shouldSearch,
+    totalResults,
+  ]);
 
   const navigateToSearchPage = (value = search) => {
     const nextSearch = value.trim();
@@ -172,6 +198,15 @@ export function PublicProductSearch({
               }
             }}
           />
+          {showSubmitButton ? (
+            <button
+              type="submit"
+              aria-label="Buscar produtos"
+              className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-md bg-red-600 text-white hover:bg-red-700"
+            >
+              <Search className="h-5 w-5" />
+            </button>
+          ) : null}
         </div>
       </form>
 
@@ -187,7 +222,9 @@ export function PublicProductSearch({
           </div>
 
           <div className="px-4 py-3 text-sm text-muted-foreground">
-            {isWaitingForDebounce || searchQuery.isLoading || searchQuery.isFetching ? (
+            {isWaitingForDebounce ||
+            searchQuery.isLoading ||
+            searchQuery.isFetching ? (
               <span className="inline-flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 {resultLabel}
@@ -197,7 +234,11 @@ export function PublicProductSearch({
             )}
           </div>
 
-          {shouldSearch && !searchQuery.isError && !isWaitingForDebounce && !searchQuery.isLoading && products.length > 0 ? (
+          {shouldSearch &&
+          !searchQuery.isError &&
+          !isWaitingForDebounce &&
+          !searchQuery.isLoading &&
+          products.length > 0 ? (
             <div className="max-h-[26rem] overflow-y-auto px-2 pb-2">
               {products.map((product) => (
                 <button
@@ -212,10 +253,16 @@ export function PublicProductSearch({
                     className="h-14 w-14 rounded-2xl border border-black/5 object-cover"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="line-clamp-2 font-semibold text-foreground">{product.name}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">{product.category?.name || "Catalogo"}</p>
+                    <p className="line-clamp-2 font-semibold text-foreground">
+                      {product.name}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {product.category?.name || "Catalogo"}
+                    </p>
                   </div>
-                  <span className="text-xs font-semibold text-primary">{formatPrice(product.price)}</span>
+                  <span className="text-xs font-semibold text-primary">
+                    {formatPrice(product.price)}
+                  </span>
                 </button>
               ))}
             </div>

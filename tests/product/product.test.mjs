@@ -174,6 +174,27 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
       } finally { await context.close(); }
     });
 
+    await t.test('Reference landing remains responsive and adds real products to the cart', async () => {
+      const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      try {
+        const page = await context.newPage();
+        await page.goto(baseURL);
+        await page.locator('.landing-product').first().waitFor();
+        for (const width of [320, 390, 768, 1024, 1440]) {
+          await page.setViewportSize({ width, height: 900 });
+          assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `Landing overflow at ${width}px`);
+          await page.screenshot({ path: `tests/product/artifacts/landing-${width}.png`, fullPage: true });
+        }
+        const card = page.locator('.landing-product').filter({ has: page.getByRole('button', { name: 'Adicionar', exact: true }) }).first();
+        await card.getByRole('button', { name: /^Aumentar quantidade/ }).click();
+        await card.getByRole('button', { name: 'Adicionar', exact: true }).click();
+        await page.getByRole('link', { name: 'Ver carrinho, 2 itens' }).waitFor();
+        await page.getByRole('link', { name: 'Ver carrinho, 2 itens' }).click();
+        await page.waitForURL('**/carrinho');
+        await page.getByRole('link', { name: 'Seguir para o checkout', exact: true }).waitFor();
+      } finally { await context.close(); }
+    });
+
     await t.test('Catalog alert opens the exact product editor', async () => {
       const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
       try {
