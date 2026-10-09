@@ -35,6 +35,7 @@ BOOTSTRAP_ADMIN_PASSWORD=integration-only-admin-password
 BOOTSTRAP_CUSTOMER_EMAIL=customer@example.invalid
 BOOTSTRAP_CUSTOMER_PASSWORD=integration-only-customer-password
 AUTH_COOKIE_SECURE=false
+ALLOWED_ORIGINS=http://127.0.0.1:3190
 UPLOAD_DIR=./uploads
 ENV
 for volume in rebequi-postgres-data rebequi-uploads rebequi-logs; do
