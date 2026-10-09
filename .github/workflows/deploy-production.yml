@@ -177,6 +177,8 @@ jobs:
           MIGRATOR_IMAGE_REF: ${{ needs.build-backend.outputs.migrator }}
           WEB_IMAGE_REF: ${{ needs.build-frontend.outputs.web }}
           RELEASE_VERSION: ${{ github.sha }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
         run: bash scripts/test-production-images.sh
 
   deploy:

@@ -85,10 +85,18 @@ docker exec rebequi-api node --input-type=module -e 'import sharp from "sharp"; 
 # Verify actual upload/download routes, not just volume presence.
 docker exec rebequi-api node --input-type=module -e 'import sharp from "sharp"; await sharp({create:{width:32,height:32,channels:3,background:"white"}}).png().toFile("/app/uploads/persistence-smoke.png");'
 curl -fsS http://127.0.0.1:3190/uploads/persistence-smoke.png -o "$TEST_DIR/upload.png"
+curl -fsS --cookie "$TEST_DIR/cookies" -F "image=@$TEST_DIR/upload.png;type=image/png" \
+  http://127.0.0.1:3190/api/products/images/upload >"$TEST_DIR/upload-response.json"
+uploaded_path=$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).data.url)' "$TEST_DIR/upload-response.json")
+[[ "$uploaded_path" == /uploads/* ]]
+curl -fsS "http://127.0.0.1:3190$uploaded_path" -o "$TEST_DIR/multipart.png"
+cmp "$TEST_DIR/upload.png" "$TEST_DIR/multipart.png"
 compose up -d --no-deps --no-build --force-recreate --wait --wait-timeout 180 api
 compose up -d --no-deps --no-build --force-recreate --wait --wait-timeout 120 web
 curl -fsS http://127.0.0.1:3190/uploads/persistence-smoke.png -o "$TEST_DIR/upload-after.png"
 cmp "$TEST_DIR/upload.png" "$TEST_DIR/upload-after.png"
+curl -fsS "http://127.0.0.1:3190$uploaded_path" -o "$TEST_DIR/multipart-after.png"
+cmp "$TEST_DIR/multipart.png" "$TEST_DIR/multipart-after.png"
 login
 
 # Restore into a separate database in the disposable runner; never production.
@@ -99,6 +107,43 @@ original_count=$(docker exec rebequi-postgres psql -U rebequi -d rebequi -Atc 'S
 restored_count=$(docker exec rebequi-postgres psql -U rebequi -d rebequi_restore_test -Atc 'SELECT count(*) FROM users')
 [[ "$original_count" == "$restored_count" && "$original_count" -gt 0 ]]
 
+# Run the real deploy script and force its first HTTP probe to fail. Existing
+# containers, credentials and upload volumes must survive the rollback path.
+mock_bin="$TEST_DIR/mock-bin"
+mkdir -p "$mock_bin"
+for command in nginx certbot; do
+  printf '#!/bin/sh\nexit 0\n' >"$mock_bin/$command"
+done
+printf '#!/bin/sh\nexit 22\n' >"$mock_bin/curl"
+chmod +x "$mock_bin"/*
+sudo mkdir -p /opt/rebequi/releases/test-before /opt/rebequi/releases/test-failing
+sudo chown -R "$(id -un):$(id -gn)" /opt/rebequi
+cp "$TEST_DIR/.env.production" /opt/rebequi/.env.production
+for release in test-before test-failing; do
+  cp docker-compose.production.yml "/opt/rebequi/releases/$release/"
+  ln -s /opt/rebequi/.env.production "/opt/rebequi/releases/$release/.env.production"
+  printf 'API_IMAGE_REF=%s\nMIGRATOR_IMAGE_REF=%s\nWEB_IMAGE_REF=%s\nRELEASE_VERSION=%s\n' \
+    "$API_IMAGE_REF" "$MIGRATOR_IMAGE_REF" "$WEB_IMAGE_REF" "$RELEASE_VERSION" \
+    >"/opt/rebequi/releases/$release/.images.env"
+done
+ln -s /opt/rebequi/releases/test-before /opt/rebequi/current
+mkdir -p /opt/rebequi/releases/test-failing/scripts
+cp scripts/deploy-production.sh /opt/rebequi/releases/test-failing/scripts/
+sed -i 's/^RELEASE_VERSION=.*/RELEASE_VERSION=0000000000000000000000000000000000000000/' \
+  /opt/rebequi/releases/test-failing/.images.env
+set +e
+printf '%s\n' "$GHCR_TOKEN" | sudo env "PATH=$mock_bin:$PATH" \
+  bash /opt/rebequi/releases/test-failing/scripts/deploy-production.sh "$GHCR_USER"
+rollback_status=$?
+set -e
+[[ "$rollback_status" -ne 0 ]]
+[[ $(readlink /opt/rebequi/current) == /opt/rebequi/releases/test-before ]]
+[[ $(docker exec rebequi-api node -p 'process.env.RELEASE_VERSION') == "$RELEASE_VERSION" ]]
+curl -fsS http://127.0.0.1:3190/api/health | grep -q '"status":"ok"'
+curl -fsS "http://127.0.0.1:3190$uploaded_path" -o "$TEST_DIR/rollback-upload.png"
+cmp "$TEST_DIR/multipart.png" "$TEST_DIR/rollback-upload.png"
+login
+
 curl -fsS --cookie "$TEST_DIR/cookies" --cookie-jar "$TEST_DIR/cookies" -X POST http://127.0.0.1:3190/api/auth/logout >/dev/null
 [[ $(curl -sS -o /dev/null -w '%{http_code}' --cookie "$TEST_DIR/cookies" http://127.0.0.1:3190/api/auth/me) == 401 ]]
-printf 'Production images: migrations, auth, OCR, upload download, recreation and backup restore passed.\n'
+printf 'Production images: migrations, auth, OCR, upload download, recreation, backup restore and deploy rollback passed.\n'

@@ -2,6 +2,8 @@
 # Executed exclusively by GitHub Actions. No builds or global Docker cleanup.
 set -Eeuo pipefail
 umask 077
+# Immutable refs must come from the release manifest, not the caller's shell.
+unset API_IMAGE_REF WEB_IMAGE_REF MIGRATOR_IMAGE_REF RELEASE_VERSION
 
 APP_ROOT=/opt/rebequi
 RELEASE_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
@@ -56,6 +58,8 @@ wait_healthy() {
 
 rollback_on_error() {
   local code=$? original_release=$RELEASE_DIR
+  # Command substitutions report failure to their parent; rollback runs once.
+  if (( BASH_SUBSHELL > 0 )); then exit "$code"; fi
   trap - ERR
   set +e
   printf 'Deploy failed; persistent data and backups are retained.\n' >&2
@@ -205,6 +209,7 @@ if [[ -e /etc/nginx/sites-enabled/rebequi || -L /etc/nginx/sites-enabled/rebequi
   [[ $(readlink -f /etc/nginx/sites-enabled/rebequi) == "$SITE_CONF" ]] || fail 'Unexpected Rebequi vhost symlink.'
 fi
 NGINX_CHANGED=1
+if (( ! HAD_SITE )); then
 cat >"$SITE_CONF" <<NGINX
 server {
     listen 80;
@@ -220,12 +225,16 @@ server {
     }
 }
 NGINX
+fi
 ln -sfn "$SITE_CONF" /etc/nginx/sites-enabled/rebequi
-nginx -t
-systemctl reload nginx
+if (( ! HAD_SITE || ! HAD_LINK )); then
+  nginx -t
+  systemctl reload nginx
+fi
 
 cert=/etc/letsencrypt/live/$PRIMARY_DOMAIN/fullchain.pem
 if [[ ! -f "$cert" ]] || ! openssl x509 -in "$cert" -noout -checkhost "$SECONDARY_DOMAIN" >/dev/null 2>&1 \
+  || ! openssl x509 -in "$cert" -noout -checkhost "$PRIMARY_DOMAIN" >/dev/null 2>&1 \
   || ! openssl x509 -in "$cert" -noout -checkend 604800 >/dev/null 2>&1; then
   certbot certonly --webroot -w /var/www/certbot --cert-name "$PRIMARY_DOMAIN" \
     -d "$PRIMARY_DOMAIN" -d "$SECONDARY_DOMAIN" --expand --non-interactive \
@@ -263,7 +272,7 @@ for domain in "$PRIMARY_DOMAIN" "$SECONDARY_DOMAIN"; do
 done
 
 # Atomic pointer update only AFTER health, TLS and exact image validation.
-ln -s "$RELEASE_DIR" "$APP_ROOT/.current-$RELEASE_VERSION"
+ln -sfn "$RELEASE_DIR" "$APP_ROOT/.current-$RELEASE_VERSION"
 if [[ -d "$APP_ROOT/current" && ! -L "$APP_ROOT/current" ]]; then
   fail 'Legacy current directory needs an explicit migration; it was preserved.'
 fi

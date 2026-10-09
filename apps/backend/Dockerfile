@@ -46,8 +46,6 @@ RUN npm run build
 
 # Migration tooling is short-lived, without compiler OS packages or OCR.
 FROM node:22-bookworm-slim AS migrator
-ARG RELEASE_VERSION=dev
-LABEL org.opencontainers.image.revision=$RELEASE_VERSION
 WORKDIR /app
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates openssl \
@@ -60,6 +58,8 @@ COPY --from=builder /app/apps/backend/scripts/migrate-deploy.sh ./apps/backend/s
 COPY --from=builder /app/packages/shared/package.json ./packages/shared/package.json
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 WORKDIR /app/apps/backend
+ARG RELEASE_VERSION=dev
+LABEL org.opencontainers.image.revision=$RELEASE_VERSION
 CMD ["sh", "scripts/migrate-deploy.sh"]
 
 # =============================================================================
@@ -135,7 +135,7 @@ LABEL org.opencontainers.image.revision=$RELEASE_VERSION
 ENV RELEASE_VERSION=$RELEASE_VERSION
 RUN mkdir -p /app/uploads /app/logs \
   && printf '%s\n' "$RELEASE_VERSION" > /app/.release-version \
-  && chown -R node:node /app
+  && chown node:node /app/uploads /app/logs /app/.release-version
 
 # Switch to non-root user
 USER node
