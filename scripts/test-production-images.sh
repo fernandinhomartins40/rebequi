@@ -95,7 +95,7 @@ for ((attempt=0; attempt<60; attempt++)); do
   sleep 2
 done
 [[ "$ocr_status" == COMPLETED ]]
-node -e 'const q=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).data; require("assert").ok(q.items.some(item=>item.productId)); console.log("Uploaded quote OCR and catalogue matching passed");' "$TEST_DIR/draft-status.json"
+node -e 'const q=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).data; require("assert").ok(q.items.some(item=>item.productId), JSON.stringify({ocrText:q.ocrText,items:q.items})); console.log("Uploaded quote OCR and catalogue matching passed");' "$TEST_DIR/draft-status.json"
 
 # Verify actual upload/download routes, not just volume presence.
 docker exec rebequi-api node --input-type=module -e 'import sharp from "sharp"; await sharp({create:{width:32,height:32,channels:3,background:"white"}}).png().toFile("/app/uploads/persistence-smoke.png");'

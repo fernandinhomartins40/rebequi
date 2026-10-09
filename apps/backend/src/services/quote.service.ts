@@ -829,12 +829,6 @@ export class QuoteService {
         return;
       }
 
-      await this.quoteRepository.updateQuote(params.quoteId, {
-        ...baseUpdate,
-        title: buildDraftTitle(parsedRecognition.items, parsedRecognition.customerNote),
-        customerNote: parsedRecognition.customerNote ?? currentQuote.customerNote,
-      });
-
       await this.quoteRepository.replaceQuoteItems(
         params.quoteId,
         parsedRecognition.items.map((item) => ({
@@ -849,6 +843,14 @@ export class QuoteService {
           position: item.position,
         }))
       );
+
+      // Polling clients stop when COMPLETED is visible. Publish that status
+      // only after all recognised items have been persisted.
+      await this.quoteRepository.updateQuote(params.quoteId, {
+        ...baseUpdate,
+        title: buildDraftTitle(parsedRecognition.items, parsedRecognition.customerNote),
+        customerNote: parsedRecognition.customerNote ?? currentQuote.customerNote,
+      });
     } catch (error) {
       logger.error('Background OCR job failed.', {
         quoteId: params.quoteId,
