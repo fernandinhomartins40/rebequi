@@ -246,11 +246,12 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
         await page.goto(`${baseURL}/painel-lojista/painel/produtos/${product.id}/editar`);
         await page.getByLabel('Nome', { exact: true }).waitFor();
         await page.getByLabel('Nome', { exact: true }).fill('Edição local não salva');
-        await page.getByRole('button', { name: 'Fotos', exact: true }).click();
+        const steps = page.getByRole('navigation', { name: 'Em 3 passos', exact: true });
+        await steps.getByRole('button', { name: /Fotos$/ }).click();
         assert.equal(await page.locator('#product-images').evaluate((element) => document.activeElement === element), true);
-        await page.getByRole('button', { name: 'Publicar', exact: true }).click();
+        await steps.getByRole('button', { name: /Publicar$/ }).click();
         assert.equal(await page.locator('#product-publish').evaluate((element) => document.activeElement === element), true);
-        await page.getByRole('button', { name: 'Dados', exact: true }).click();
+        await steps.getByRole('button', { name: /Dados$/ }).click();
         assert.equal(await page.getByLabel('Nome', { exact: true }).inputValue(), 'Edição local não salva');
         for (const width of [320, 390, 768, 1024, 1440]) {
           await page.setViewportSize({ width, height: 900 });
