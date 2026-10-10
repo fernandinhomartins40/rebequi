@@ -112,7 +112,7 @@ function normalizeText(value: string) {
     .trim();
 }
 
-function extractQuantity(line: string, engine: RecognitionEngine = 'paddleocr'): { quantity: number; unit: string | null } {
+function extractQuantity(line: string, engine: RecognitionEngine = 'manual'): { quantity: number; unit: string | null } {
   const corrected = applyOcrCorrections(line, engine);
   const normalized = corrected.replace(',', '.');
 
@@ -142,7 +142,7 @@ function extractQuantity(line: string, engine: RecognitionEngine = 'paddleocr'):
   return { quantity: 1, unit: null };
 }
 
-function cleanLineForItem(line: string, engine: RecognitionEngine = 'paddleocr'): string {
+function cleanLineForItem(line: string, engine: RecognitionEngine = 'manual'): string {
   const corrected = applyOcrCorrections(line, engine);
   return corrected
     .replace(QTY_BEGINNING_RE, '')
@@ -829,11 +829,10 @@ export class QuoteService {
       }));
 
       const recognized = await this.ocrService.recognizeDocument(params.imageBuffer, catalogHints);
-      const engine: RecognitionEngine = recognized.engine === 'openrouter' ? 'openrouter' : 'paddleocr';
+      const engine: RecognitionEngine = recognized.engine ?? 'manual';
 
-      // The index was normalised for the default engine; a VLM result needs
-      // the engine-specific normalisation, so rebuild only in that case.
-      const matchingIndex = engine === 'openrouter' ? await this.buildCatalogIndex(engine) : index;
+      // Cloud engines and manual input share non-destructive text normalization.
+      const matchingIndex = index;
 
       const parsedRecognition = await this.parseItemsFromRecognition(
         recognized.lines,
@@ -930,7 +929,7 @@ export class QuoteService {
 
   private async parseItemsFromRecognition(
     lines: RecognizedQuoteLine[],
-    engine: RecognitionEngine = 'paddleocr',
+    engine: RecognitionEngine = 'manual',
     prebuiltIndex?: CatalogIndex
   ): Promise<ParsedRecognitionResult> {
     const index = prebuiltIndex ?? (await this.buildCatalogIndex(engine));
@@ -968,7 +967,7 @@ export class QuoteService {
           name: modelResolved.product.name,
           quantity: quantityData.quantity,
           unit: quantityData.unit,
-          confidence: CONFIDENCE.modelResolved,
+          confidence: Math.min(CONFIDENCE.modelResolved, Math.max(0, line.confidence / 100)),
           recognitionSourceLine: sourceLine,
           position: parsedItems.length,
         });
@@ -987,7 +986,7 @@ export class QuoteService {
           unit: quantityData.unit,
           // The match score is the meaningful signal. Averaging it with the
           // engine's self-reported confidence mixed two incomparable scales.
-          confidence: Number(match.score.toFixed(2)),
+          confidence: Number((engine === 'deepseek' || engine === 'qwen' ? Math.min(match.score, line.confidence / 100) : match.score).toFixed(2)),
           recognitionSourceLine: sourceLine,
           position: parsedItems.length,
         });
@@ -1038,7 +1037,7 @@ export class QuoteService {
    * Builds the reusable catalogue index, including aliases learned from past
    * customer corrections.
    */
-  private async buildCatalogIndex(engine: RecognitionEngine = 'paddleocr'): Promise<CatalogIndex> {
+  private async buildCatalogIndex(engine: RecognitionEngine = 'manual'): Promise<CatalogIndex> {
     const [catalog, aliasRows] = await Promise.all([
       this.productRepository.findCatalogForMatching(),
       this.quoteRepository
@@ -1087,7 +1086,7 @@ export class QuoteService {
   private findBestProductMatch(
     line: string,
     index: CatalogIndex,
-    engine: RecognitionEngine = 'paddleocr'
+    engine: RecognitionEngine = 'manual'
   ) {
     const domainLine = normalizeDomainText(line, engine);
     const plainLine = normalizeText(line);

@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import type { OpenRouterUpdateBody, OpenRouterTestBody } from '@rebequi/shared/schemas';
+import type { QuoteAiUpdateBody, QuoteAiTestBody } from '@rebequi/shared/schemas';
 import { ProductRepository } from '../repositories/product.repository.js';
 import { IntegrationSettingsService } from '../services/integration-settings.service.js';
 import { ValidationError } from '../utils/errors.util.js';
@@ -14,33 +14,20 @@ export class IntegrationController {
     this.productRepository = new ProductRepository();
   }
 
-  getOpenRouter = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  getAi = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const config = await this.settingsService.getOpenRouterPublic();
+      const config = await this.settingsService.getAiPublic();
       successResponse(res, config, 200);
     } catch (error) {
       next(error);
     }
   };
 
-  updateOpenRouter = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  updateAi = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const body = req.body as OpenRouterUpdateBody;
-      const config = await this.settingsService.updateOpenRouter({
-        enabled: body.enabled,
-        apiKey:
-          body.apiKey === undefined
-            ? undefined
-            : body.apiKey === null || body.apiKey === ''
-              ? null
-              : body.apiKey,
-        primaryModel: body.primaryModel,
-        fallbackModel: body.fallbackModel,
-        timeoutMs: body.timeoutMs,
-        referer: body.referer,
-        title: body.title,
-      });
-      successResponse(res, config, 200, 'OpenRouter atualizado');
+      const body = req.body as QuoteAiUpdateBody;
+      const config = await this.settingsService.updateAi(body);
+      successResponse(res, config, 200, 'IA de orçamentos atualizada');
     } catch (error) {
       next(error);
     }
@@ -65,19 +52,10 @@ export class IntegrationController {
     }
   };
 
-  listVisionModels = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  testProvider = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const models = await this.settingsService.listVisionModels();
-      successResponse(res, models, 200);
-    } catch (error) {
-      next(error);
-    }
-  };
-
-  testOpenRouter = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const body = (req.body ?? {}) as OpenRouterTestBody;
-      const result = await this.settingsService.testOpenRouter(body.apiKey);
+      const body = (req.body ?? {}) as QuoteAiTestBody;
+      const result = await this.settingsService.testProvider(body.provider);
       successResponse(res, result, 200);
     } catch (error) {
       next(error);

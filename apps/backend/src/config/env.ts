@@ -7,26 +7,6 @@ import { z } from 'zod';
 
 dotenv.config();
 
-function normalizePaddleLang(value: string) {
-  const normalized = value.trim().toLowerCase();
-
-  if (!normalized || normalized === 'latin') {
-    return 'la';
-  }
-
-  return normalized;
-}
-
-function normalizeBridgeScriptPath(value: string) {
-  const normalized = value.trim().replace(/\\/g, '/');
-
-  if (!normalized) {
-    return 'scripts/paddleocr_bridge.py';
-  }
-
-  return normalized.replace(/^(?:\.\/)?apps\/backend\//i, '');
-}
-
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().positive().default(3000),
@@ -52,17 +32,13 @@ const envSchema = z.object({
     .transform((value) => value.split(',').map((item) => item.trim()).filter(Boolean)),
 
   STORE_WHATSAPP: z.string().default('11999999999'),
-  QUOTE_PADDLE_PYTHON_BIN: z.string().default('python3'),
-  QUOTE_PADDLE_SCRIPT_PATH: z.string().default('scripts/paddleocr_bridge.py').transform(normalizeBridgeScriptPath),
-  QUOTE_PADDLE_LANG: z.string().default('la').transform(normalizePaddleLang),
-  QUOTE_PADDLE_TIMEOUT_MS: z.coerce.number().positive().default(120000),
 
   MAX_FILE_SIZE: z.coerce.number().positive().default(5242880),
   UPLOAD_DIR: z.string().default('./uploads'),
 
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
 
-  // Encryption key for secret settings stored in the database (OpenRouter API key, etc.).
+  // Encryption key for secret settings stored in the database (AI provider keys, etc.).
   // Defaults to JWT_SECRET when not set so dev environments do not break, but in production
   // a dedicated key is recommended.
   SETTINGS_ENCRYPTION_KEY: z

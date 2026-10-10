@@ -81,36 +81,26 @@ login() {
   curl -fsS --cookie "$TEST_DIR/cookies" http://127.0.0.1:3190/api/auth/me | grep -q '"role":"ADMIN"'
 }
 login
-# OCR is preserved and loads its models without requiring a new runtime download.
-docker exec rebequi-api python3 /app/apps/backend/scripts/paddleocr_bridge.py --check
-docker exec -e HOME=/home/node rebequi-api python3 /app/apps/backend/scripts/paddleocr_bridge.py --warmup --lang la
-docker exec rebequi-api node --input-type=module -e 'import sharp from "sharp"; import {PrismaClient} from "@prisma/client"; const p=new PrismaClient(); await p.$connect(); console.log("sharp and Prisma OK"); await p.$disconnect();'
-docker exec -i rebequi-api python3 - <<'PY'
-from PIL import Image, ImageDraw, ImageFont
-image = Image.new("RGB", (300, 80), "white")
-draw, font = ImageDraw.Draw(image), ImageFont.load_default()
-# Explicit word spacing keeps the bitmap test document legible after scaling.
-for y, line in [(10, "5 SACOS CIMENTO"), (40, "10 TIJOLOS")]:
-    x = 10
-    for word in line.split():
-        draw.text((x, y), word, fill="black", font=font)
-        x += int(draw.textlength(word, font=font)) + 14
-image.resize((1200, 320)).save("/app/uploads/ocr-smoke.png")
-PY
-docker exec rebequi-api node --input-type=module -e 'import {readFile} from "node:fs/promises"; import assert from "node:assert/strict"; import {QuoteOcrService} from "./apps/backend/dist/services/quote-ocr.service.js"; import {prisma} from "./apps/backend/dist/lib/prisma.js"; try { const result=await new QuoteOcrService().recognizeDocument(await readFile("/app/uploads/ocr-smoke.png")); assert.equal(result.engine,"paddleocr"); assert(result.text.toUpperCase().includes("CIMENTO")); console.log("Local OCR recognition passed"); } finally {await prisma.$disconnect();}'
+# Production runtime must not contain a local inference engine.
+if docker exec rebequi-api sh -c 'command -v python3'; then
+  echo 'Unexpected local Python runtime' >&2
+  exit 1
+fi
+docker exec rebequi-api node --input-type=module -e 'import sharp from "sharp"; import {PrismaClient} from "@prisma/client"; const p=new PrismaClient(); await p.$connect(); await sharp({create:{width:32,height:32,channels:3,background:"white"}}).png().toFile("/app/uploads/ocr-smoke.png"); await p.$disconnect();'
+# No paid credentials in CI. Exercise cloud protocol with mocks in unit tests,
+# then prove HTTP upload persists the draft when no provider is configured.
 docker cp rebequi-api:/app/uploads/ocr-smoke.png "$TEST_DIR/ocr.png"
 curl -fsS -F "document=@$TEST_DIR/ocr.png;type=image/png" \
   http://127.0.0.1:3190/api/quotes/public/anonymous-document >"$TEST_DIR/draft.json"
 draft_token=$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).data.token)' "$TEST_DIR/draft.json")
-for ((attempt=0; attempt<60; attempt++)); do
+for ((attempt=0; attempt<15; attempt++)); do
   curl -fsS "http://127.0.0.1:3190/api/quotes/public/anonymous/$draft_token" >"$TEST_DIR/draft-status.json"
   ocr_status=$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).data.ocrStatus)' "$TEST_DIR/draft-status.json")
-  [[ "$ocr_status" == COMPLETED ]] && break
-  [[ "$ocr_status" != FAILED ]]
-  sleep 2
+  [[ "$ocr_status" == FAILED ]] && break
+  sleep 1
 done
-[[ "$ocr_status" == COMPLETED ]]
-node -e 'const q=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).data; require("assert").ok(q.items.some(item=>item.productId), JSON.stringify({ocrText:q.ocrText,items:q.items})); console.log("Uploaded quote OCR and catalogue matching passed");' "$TEST_DIR/draft-status.json"
+[[ "$ocr_status" == FAILED ]]
+node -e 'const q=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).data; require("assert").ok(q.documentUrl || q.documentPath || q.originalDocumentUrl, "Original document must be preserved"); console.log("Quote draft survives unavailable cloud providers");' "$TEST_DIR/draft-status.json"
 
 # Verify actual upload/download routes, not just volume presence.
 docker exec rebequi-api node --input-type=module -e 'import sharp from "sharp"; await sharp({create:{width:32,height:32,channels:3,background:"white"}}).png().toFile("/app/uploads/persistence-smoke.png");'

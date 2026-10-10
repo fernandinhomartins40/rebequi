@@ -61,7 +61,7 @@ describe('applyOcrCorrections', () => {
   it('não mexe no texto vindo de um modelo de visão', () => {
     // O VLM já devolve texto limpo e acentuado; "corrigir" só estraga.
     const original = 'Tinta 18L cor 0800';
-    assert.equal(applyOcrCorrections(original, 'openrouter'), original);
+    for (const engine of ['openrouter', 'deepseek', 'qwen'] as const) assert.equal(applyOcrCorrections(original, engine), original);
   });
 
   it('restaura acentos apenas em palavras conhecidas do domínio', () => {

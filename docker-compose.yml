@@ -41,10 +41,6 @@ services:
       MAX_FILE_SIZE: ${MAX_FILE_SIZE:-5242880}
       UPLOAD_DIR: /app/uploads
       LOG_LEVEL: ${LOG_LEVEL:-info}
-      QUOTE_PADDLE_PYTHON_BIN: ${QUOTE_PADDLE_PYTHON_BIN:-python3}
-      QUOTE_PADDLE_SCRIPT_PATH: ${QUOTE_PADDLE_SCRIPT_PATH:-scripts/paddleocr_bridge.py}
-      QUOTE_PADDLE_LANG: ${QUOTE_PADDLE_LANG:-la}
-      QUOTE_PADDLE_TIMEOUT_MS: ${QUOTE_PADDLE_TIMEOUT_MS:-120000}
     ports:
       - "3000:3000"
     volumes:

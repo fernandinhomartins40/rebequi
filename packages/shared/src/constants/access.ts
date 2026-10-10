@@ -72,7 +72,7 @@ export const MERCHANT_PERMISSION_PROFILES: Record<MerchantPermission, Permission
   },
   'integrations:manage': {
     label: 'Integracoes',
-    description: 'Configura integracoes externas como OpenRouter (OCR) e chaves de API.',
+    description: 'Configura integracoes externas como IA de orçamentos e chaves de API.',
   },
 };
 

@@ -76,6 +76,51 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
       await data(await owner.get('/api/auth/me'));
     });
 
+    await t.test('Chinese AI configuration protects keys, validates limits and keeps manual fallback', async () => {
+      const admin = await client();
+      await data(await admin.post('/api/auth/login', { data: { identifier: 'integration@example.invalid', password: 'integration-only-admin-password' } }));
+      assert.equal((await owner.get('/api/integrations/ai')).status(), 403);
+      const secret = 'integration-only-fake-provider-key';
+      const configured = await data(await admin.put('/api/integrations/ai', { data: { enabled: false, primaryProvider: 'qwen', qwenApiKey: secret, maxTokens: 2500 } }));
+      assert.equal(configured.hasQwenApiKey, true);
+      assert.equal(JSON.stringify(configured).includes(secret), false);
+      assert.equal(Object.hasOwn(configured, 'qwenApiKey'), false);
+      db(`const row=await prisma.setting.findUnique({where:{key:'quoteAi.qwenApiKey'}}); if(!row.isSecret || row.value===${JSON.stringify(secret)}) throw new Error('Provider key is not encrypted');`);
+      assert.equal((await admin.put('/api/integrations/ai', { data: { maxTokens: 9000 } })).status(), 400);
+      assert.equal((await admin.put('/api/integrations/ai', { data: { endpoint: 'http://arbitrary.invalid' } })).status(), 400);
+      await data(await admin.put('/api/integrations/ai', { data: { qwenApiKey: null, deepseekApiKey: null, primaryProvider: 'deepseek', enabled: false } }));
+      const health = await data(await admin.get('/api/quotes/admin/ocr-health'));
+      assert.equal(health.unavailable, true); assert.equal(Object.hasOwn(health, 'local'), false);
+      const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+      try {
+        await data(await context.request.post(baseURL + '/api/auth/login', { data: { identifier: 'integration@example.invalid', password: 'integration-only-admin-password' } }));
+        const page = await context.newPage(); await page.goto(baseURL + '/painel-lojista/integrações');
+        await page.getByRole('heading', { name: '1. Conectar os provedores' }).waitFor();
+        await page.getByRole('heading', { name: '3. Testar uma lista real' }).waitFor();
+        assert.equal(await page.locator('#key-deepseek').getAttribute('type'), 'password');
+        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
+      } finally { await context.close(); }
+    });
+
+    await t.test('Cloud quote extraction persists items, matching and telemetry end to end with mocked provider transport', async () => {
+      const draft = await data(await anonymous.post('/api/quotes/public/manual', { data: { text: '2 cimento' } }), 201);
+      db(`const {QuoteService}=await import('./apps/backend/dist/services/quote.service.js');
+        const {QuoteOcrService}=await import('./apps/backend/dist/services/quote-ocr.service.js');
+        const sharp=(await import('sharp')).default;
+        const id=${JSON.stringify(draft.quote.id)};
+        await prisma.quoteItem.deleteMany({where:{quoteRequestId:id}});
+        await prisma.quoteRequest.update({where:{id},data:{ocrStatus:'PENDING'}});
+        const quoteService=new QuoteService();
+        quoteService.ocrService=new QuoteOcrService({settings:{getAiRuntime:async()=>({enabled:true,primaryProvider:'deepseek',fallbackEnabled:false,deepseekModel:'deepseek-flash',qwenModel:'qwen3-vl-flash',deepseekApiKey:'mock-key-not-real',qwenApiKey:null,timeoutMs:10000,maxTokens:2500})},fetch:async()=>Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify({tipo_documento:'impresso',itens:[{produto:'Cimento Portland CP II 50kg',quantidade:2,unidade:'sc',confianca:0.9,texto_original:'2 sc cimento'}]})}}],usage:{prompt_tokens:600,completion_tokens:100}})});
+        await quoteService.runOcrJob({quoteId:id,imageBuffer:await sharp({create:{width:32,height:32,channels:3,background:'white'}}).png().toBuffer()});
+        const saved=await prisma.quoteRequest.findUnique({where:{id},include:{items:true}});
+        if(saved.ocrStatus!=='COMPLETED' || saved.items.length!==1 || saved.items[0].quantity!==2 || !saved.items[0].productId) throw new Error('Cloud pipeline did not persist a matched quote');
+        const run=await prisma.ocrRun.findFirst({where:{quoteRequestId:id}});
+        if(run.engine!=='deepseek' || run.promptTokens!==600) throw new Error('Cloud telemetry was not persisted');`);
+      const saved = await data(await anonymous.get('/api/quotes/public/anonymous/' + draft.token));
+      assert.equal(saved.ocrStatus, 'COMPLETED'); assert.equal(saved.items[0].quantity, 2);
+    });
+
     await t.test('Failed item replacement rolls back without deleting the saved draft', async () => {
       const draft = await data(await anonymous.post('/api/quotes/public/manual', { data: { text: '2 cimento' } }), 201);
       db(`const {QuoteRepository}=await import('./apps/backend/dist/repositories/quote.repository.js');

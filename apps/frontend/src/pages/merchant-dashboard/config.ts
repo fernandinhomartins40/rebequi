@@ -164,11 +164,11 @@ export const NAV_SECTIONS: Omit<MerchantNavItem, 'badge'>[] = [
     group: 'ajustes',
     href: `${ADMIN_BASE_PATH}/integrações`,
     label: 'Integrações',
-    description: 'OCR via OpenRouter',
+    description: 'IA de orçamentos',
     icon: Plug,
     eyebrow: 'Integrações',
     title: 'Integrações externas',
-    intro: 'Configure a chave do OpenRouter, escolha os modelos VLM e teste a conexão usada pelo OCR de orçamentos.',
+    intro: 'Conecte DeepSeek e Qwen, defina os limites e teste a leitura de uma lista.',
     requiredPermission: 'integrations:manage',
   },
   {

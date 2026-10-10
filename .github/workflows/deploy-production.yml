@@ -92,7 +92,7 @@ jobs:
           labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
           cache-from: type=gha,scope=rebequi-migrator
           cache-to: type=gha,mode=max,scope=rebequi-migrator
-      - name: Build API including local OCR
+      - name: Build API with cloud recognition
         id: api
         uses: docker/build-push-action@v6
         with:

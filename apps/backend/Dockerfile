@@ -65,41 +65,10 @@ CMD ["sh", "scripts/migrate-deploy.sh"]
 # =============================================================================
 # Production Stage
 # =============================================================================
-FROM node:22-bookworm-slim AS ocr-runtime
-
-# Dependências de sistema
+FROM node:22-bookworm-slim AS production
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends dumb-init wget ca-certificates libgomp1 libgl1 libglib2.0-0 libsm6 libxext6 libxrender1 python3 python3-pip \
+  && apt-get install -y --no-install-recommends dumb-init wget ca-certificates openssl \
   && rm -rf /var/lib/apt/lists/*
-
-# ── Motor de OCR local (PaddleOCR) ───────────────────────────────────────────
-# Duas armadilhas que já travaram o build por ~20min:
-#
-# 1. O mirror `paddlepaddle.org.cn` era desnecessário: paddlepaddle==3.0.0 está
-#    no PyPI oficial. Pior, `-i <mirror>` SUBSTITUI o índice padrão em vez de
-#    adicionar, então TODAS as dependências transitivas do paddleocr também
-#    vinham do servidor na China — medido em ~10 KB/s contra ~76 KB/s do PyPI.
-#    Era isso que deixava o build pendurado por dezenas de minutos.
-#
-# 2. `paddleocr` sem versão resolve para 3.x, que arrasta o paddlex inteiro
-#    (pandas, huggingface-hub, modelscope, opencv-contrib…) — dezenas de MB que
-#    este projeto não usa. O bridge (scripts/paddleocr_bridge.py) suporta a API
-#    2.x, então fixamos a linha 2.x, muito mais enxuta.
-#
-# Versões devem ficar em sincronia com apps/backend/requirements-ocr.txt.
-COPY apps/backend/requirements-ocr.txt /tmp/requirements-ocr.txt
-RUN python3 -m pip install --no-cache-dir --break-system-packages \
-      --default-timeout=120 --retries=5 \
-      -r /tmp/requirements-ocr.txt \
-  && python3 -c "import paddle, paddleocr; print('paddleocr OK')"
-
-# Model downloads are cached independently of application source and release SHA.
-COPY apps/backend/scripts/paddleocr_bridge.py /opt/paddleocr_bridge.py
-USER node
-RUN python3 /opt/paddleocr_bridge.py --warmup --lang la
-USER root
-
-FROM ocr-runtime AS production
 
 WORKDIR /app
 

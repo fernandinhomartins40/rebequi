@@ -50,19 +50,19 @@ const ACCENT_FIXES: Array<[RegExp, string]> = [
   [/(?<![a-z0-9])conexoes(?![a-z0-9])/gi, 'conexões'],
 ];
 
-export type RecognitionEngine = 'paddleocr' | 'tesseract' | 'openrouter' | 'manual';
+export type RecognitionEngine = 'paddleocr' | 'tesseract' | 'openrouter' | 'deepseek' | 'qwen' | 'manual';
 
 /**
  * Fixes character-level OCR artefacts.
  *
  * These rules exist to repair classic raster-OCR confusions (0/o, 1/l, rn/m).
- * A VLM already returns clean, accented text, so applying them to OpenRouter
+ * A VLM already returns clean, accented text, so applying them to cloud providers
  * output only introduces damage — pass the engine to skip them.
  */
 export function applyOcrCorrections(raw: string, engine: RecognitionEngine = 'paddleocr'): string {
   let result = raw;
 
-  if (engine !== 'openrouter' && engine !== 'manual') {
+  if (!['openrouter', 'deepseek', 'qwen', 'manual'].includes(engine)) {
     for (const [pattern, replacement] of OCR_CORRECTIONS) {
       result = result.replace(pattern, replacement);
     }

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { getRolesForMerchantPermission } from '@rebequi/shared/constants';
-import { openRouterTestSchema, openRouterUpdateSchema } from '@rebequi/shared/schemas';
+import { quoteAiTestSchema, quoteAiUpdateSchema } from '@rebequi/shared/schemas';
 import { upload } from '../config/multer.js';
 import { IntegrationController } from '../controllers/integration.controller.js';
 import { authenticate, authorize } from '../middleware/auth.middleware.js';
@@ -12,29 +12,23 @@ const controller = new IntegrationController();
 const allowedRoles = getRolesForMerchantPermission('integrations:manage');
 
 router.get(
-  '/openrouter',
+  '/ai',
   authenticate,
   authorize(...allowedRoles),
-  controller.getOpenRouter
+  controller.getAi
 );
 
 router.put(
-  '/openrouter',
+  '/ai',
   authenticate,
   authorize(...allowedRoles),
-  validateBody(openRouterUpdateSchema),
-  controller.updateOpenRouter
+  validateBody(quoteAiUpdateSchema),
+  controller.updateAi
 );
 
-router.get(
-  '/openrouter/models',
-  authenticate,
-  authorize(...allowedRoles),
-  controller.listVisionModels
-);
 
 router.post(
-  '/openrouter/test-recognition',
+  '/ai/test-recognition',
   authenticate,
   authorize(...allowedRoles),
   uploadLimiter,
@@ -43,11 +37,11 @@ router.post(
 );
 
 router.post(
-  '/openrouter/test',
+  '/ai/test',
   authenticate,
   authorize(...allowedRoles),
-  validateBody(openRouterTestSchema),
-  controller.testOpenRouter
+  validateBody(quoteAiTestSchema),
+  controller.testProvider
 );
 
 export default router;
