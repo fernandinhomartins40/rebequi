@@ -100,22 +100,27 @@ export class QuoteOcrService {
    unavailable: !config.enabled || !(primary || (config.fallbackEnabled && secondary)),
    degraded: !config.enabled || !primary || (config.fallbackEnabled && !secondary), status: 'configuration-only' };
  }
- async recognizeDocument(buffer: Buffer, catalog: CatalogHint[] = []): Promise<RecognizedQuoteDocument> {
+ async recognizeDocument(buffer: Buffer, catalog: CatalogHint[] = [], shouldContinue?: () => Promise<boolean>): Promise<RecognizedQuoteDocument> {
   const config = await this.settings.getAiRuntime();
   const other: QuoteAiProvider = config.primaryProvider === 'deepseek' ? 'qwen' : 'deepseek';
   const providers: QuoteAiProvider[] = [config.primaryProvider, ...(config.fallbackEnabled ? [other] : [])];
   const available = providers.filter(provider => Boolean(provider === 'deepseek' ? config.deepseekApiKey : config.qwenApiKey));
   if (!config.enabled || !available.length) throw new Error('Leitura automática não configurada. Seu documento foi preservado; revise a lista manualmente.');
-  await acquire();
   const startedAt = Date.now();
+  const deadline = startedAt + 80000; // Customer polling stops at 90 seconds, including queue time.
+  await acquire();
   try {
+   if (shouldContinue && !(await shouldContinue())) throw new Error('Leitura cancelada após edição da lista.');
    const jpeg = await sharp(buffer, { limitInputPixels: 40000000 }).rotate().resize({ width: 1800, height: 1800, fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 85 }).toBuffer();
    // Limit both entry count and characters. Large catalogs still match locally after transcription.
    const inline = catalog.length <= 100 && catalog.reduce((n, p) => n + p.id.length + p.name.length, 0) <= 10000 ? catalog : [];
    const prompt = SYSTEM_PROMPT + JSON_INSTRUCTIONS + (inline.length ? '\n' + CATALOG_INSTRUCTIONS + '\n' + inline.map(p => '[' + p.id + '] ' + p.name).join('\n') : '');
    for (const provider of available) {
+    if (shouldContinue && !(await shouldContinue())) throw new Error('Leitura cancelada após edição da lista.');
+    const remaining = deadline - Date.now();
+    if (remaining < 1000) break;
     try {
-     const result = await this.call(provider, config, jpeg, prompt, inline);
+     const result = await this.call(provider, { ...config, timeoutMs: Math.min(config.timeoutMs, remaining) }, jpeg, prompt, inline);
      result.usage!.durationMs = Date.now() - startedAt;
      return result;
     } catch { logger.warn('Quote cloud recognition failed; trying configured fallback.', { provider }); }

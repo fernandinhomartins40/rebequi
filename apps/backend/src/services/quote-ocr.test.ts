@@ -80,3 +80,10 @@ test('disabled automatic reading never consumes provider tokens', async () => {
  await assert.rejects(service(async () => { calls++; return response(); }, { enabled: false }).recognizeDocument(await image()), /não configurada/);
  assert.equal(calls, 0);
 });
+
+test('manual editing cancels the reserve before another paid request', async () => {
+ let calls = 0; let edited = false;
+ const instance = service(async () => { calls++; edited = true; return new Response('', { status: 500 }); });
+ await assert.rejects(instance.recognizeDocument(await image(), [], async () => !edited), /cancelada após edição/);
+ assert.equal(calls, 1);
+});

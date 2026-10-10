@@ -828,7 +828,10 @@ export class QuoteService {
         name: entry.product.name,
       }));
 
-      const recognized = await this.ocrService.recognizeDocument(params.imageBuffer, catalogHints);
+      const recognized = await this.ocrService.recognizeDocument(params.imageBuffer, catalogHints, async () => {
+        const current = await this.quoteRepository.findQuoteById(params.quoteId);
+        return current?.ocrStatus === 'PROCESSING';
+      });
       const engine: RecognitionEngine = recognized.engine ?? 'manual';
 
       // Cloud engines and manual input share non-destructive text normalization.
