@@ -236,7 +236,7 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
           assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `Customer dashboard overflow at ${width}px`);
           await page.screenshot({ path: `tests/product/artifacts/customer-dashboard-${width}.png`, fullPage: true });
         }
-        await page.getByRole('button', { name: 'Minha conta', exact: true }).click();
+        await page.getByRole('button', { name: /^Minha conta/ }).click();
         await page.getByRole('button', { name: 'Senha e acesso', exact: true }).click();
         await page.getByLabel('Nova senha', { exact: true }).waitFor();
         assert.equal(await page.locator('.dashboard-nav-action[aria-current="page"]').innerText(), await page.locator('.dashboard-nav-action').filter({ hasText: 'Minha conta' }).innerText());
