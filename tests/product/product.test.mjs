@@ -234,7 +234,7 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
         for (const width of [320, 390, 768, 1024, 1440]) {
           await page.setViewportSize({ width, height: 900 });
           assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `Customer dashboard overflow at ${width}px`);
-          await page.screenshot({ path: `tests/product/artifacts/customer-dashboard-${width}.png`, fullPage: true });
+          await page.screenshot({ path: new URL(`./artifacts/customer-dashboard-${width}.png`, import.meta.url).pathname, fullPage: true });
         }
         await page.getByRole('button', { name: /^Minha conta/ }).click();
         await page.getByRole('button', { name: 'Senha e acesso', exact: true }).click();
@@ -255,7 +255,7 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
         for (const width of [320, 390, 768, 1024, 1440]) {
           await page.setViewportSize({ width, height: 900 });
           assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `Product editor overflow at ${width}px`);
-          await page.screenshot({ path: `tests/product/artifacts/admin-editor-${width}.png`, fullPage: true });
+          await page.screenshot({ path: new URL(`./artifacts/admin-editor-${width}.png`, import.meta.url).pathname, fullPage: true });
         }
       } finally { await context.close(); }
     });
