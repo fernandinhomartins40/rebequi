@@ -282,6 +282,10 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
             await page.getByRole('button', { name: 'Limpar busca', exact: true }).click();
             assert.equal(await search.inputValue(), '');
             assert.equal(await search.evaluate((element) => element === document.activeElement), true);
+          } else {
+            await page.setViewportSize({ width: 390, height: 900 });
+            await page.locator('.dashboard-selection').first().click();
+            assert.equal(await page.locator('#merchant-quote-detail').evaluate((element) => element === document.activeElement), true);
           }
         }
         await page.goto(`${baseURL}/painel-lojista/painel/produtos`);

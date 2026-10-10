@@ -13,6 +13,7 @@ Cliente e admin compartilham `DashboardElements.tsx` e `dashboard.css`. Usar ess
 - `DashboardLoading`, `DashboardEmpty` e `DashboardError`: carregamento anunciado, ausência de resultados com ação e falha com nova tentativa. Nunca apresentar erro como lista vazia.
 - `DashboardInfo`: pares de rótulo/valor sem truncar e-mails, nomes ou informações longas; variante inline para a conta.
 - `DashboardStatus`: apresentação compacta de estado com texto; preserva as cores e os nomes definidos pelas regras de negócio.
+- `DashboardSelection`: escolha de registro com estado `aria-pressed`; em telas com uma coluna, direciona o foco ao detalhe. Respeita movimento reduzido.
 
 ## Revisão de UX/UI dos componentes
 

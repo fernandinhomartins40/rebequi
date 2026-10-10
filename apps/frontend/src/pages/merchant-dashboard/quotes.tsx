@@ -1,4 +1,4 @@
-import { DashboardInfo, DashboardEmpty, DashboardLoading, DashboardError } from "@/components/dashboard/DashboardList";
+import { DashboardInfo, DashboardEmpty, DashboardLoading, DashboardError, DashboardSelection } from "@/components/dashboard/DashboardList";
 import { QuoteStatus, LeadStatus } from '@rebequi/shared/types';
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -178,7 +178,7 @@ export function MerchantDashboardQuotes() {
               ) : (
                 <div className="max-h-[600px] space-y-1.5 overflow-y-auto">
                   {quotes.map((quote) => (
-                    <button
+                    <DashboardSelection detailId="merchant-quote-detail"
                       key={quote.id}
                       type="button"
                       aria-pressed={selectedQuote?.id === quote.id}
@@ -198,7 +198,7 @@ export function MerchantDashboardQuotes() {
                         </div>
                         <QuoteStatusBadge status={quote.status} />
                       </div>
-                    </button>
+                    </DashboardSelection>
                   ))}
                 </div>
               )
@@ -211,7 +211,7 @@ export function MerchantDashboardQuotes() {
             ) : (
               <div className="max-h-[600px] space-y-1.5 overflow-y-auto">
                 {leads.map((lead) => (
-                  <button
+                  <DashboardSelection detailId="merchant-quote-detail"
                     key={lead.id}
                     type="button"
                     aria-pressed={selectedLead?.id === lead.id}
@@ -231,7 +231,7 @@ export function MerchantDashboardQuotes() {
                       </div>
                       <LeadStatusBadge status={lead.status} />
                     </div>
-                  </button>
+                  </DashboardSelection>
                 ))}
               </div>
             )}
@@ -239,7 +239,7 @@ export function MerchantDashboardQuotes() {
         </div>
 
         {/* Detail pane */}
-        <div className="rounded-xl border border-border/70 bg-card">
+        <div id="merchant-quote-detail" tabIndex={-1} className="dashboard-editor-step rounded-xl border border-border/70 bg-card">
           {activeTab === 'quotes' ? (
             selectedQuote ? (
               <div className="p-5">
@@ -294,12 +294,12 @@ export function MerchantDashboardQuotes() {
                 ) : null}
 
                 {selectedQuote.ocrText ? (
-                  <div className="mt-4 rounded-lg border border-border/60 bg-muted/30 px-4 py-3">
-                    <p className="mb-1 text-xs font-medium text-muted-foreground">Texto do documento original</p>
+                  <details className="mt-4 rounded-lg border border-border/60 bg-muted/30 px-4 py-3">
+                    <summary className="cursor-pointer text-xs font-medium text-muted-foreground">Texto do documento original</summary>
                     <p className="max-h-40 overflow-y-auto whitespace-pre-wrap text-xs text-muted-foreground">
                       {selectedQuote.ocrText}
                     </p>
-                  </div>
+                  </details>
                 ) : null}
 
                 {/* Actions */}

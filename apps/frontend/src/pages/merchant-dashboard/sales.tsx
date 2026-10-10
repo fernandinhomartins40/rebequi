@@ -201,7 +201,7 @@ export function MerchantDashboardSales() {
         ) : salesQuery.isError ? (
           <DashboardError message="Não foi possível carregar vendas." onRetry={() => void salesQuery.refetch()} retrying={salesQuery.isFetching} />
         ) : sales.length === 0 ? (
-          <DashboardEmpty title="Nenhum resultado encontrado" action={<Button variant="outline" size="sm" onClick={() => { setSearch(''); setStatusFilter('all'); setPaymentFilter('all'); }}>Limpar filtros</Button>} />
+          <DashboardEmpty title="Nenhum resultado encontrado" action={search || statusFilter !== 'all' || paymentFilter !== 'all' ? <Button variant="outline" size="sm" onClick={() => { setSearch(''); setStatusFilter('all'); setPaymentFilter('all'); }}>Limpar filtros</Button> : <Button size="sm" onClick={() => navigate(`${ADMIN_BASE_PATH}/vendas/nova`)}>Registrar venda</Button>} />
         ) : (
           <>
             {/* Desktop */}

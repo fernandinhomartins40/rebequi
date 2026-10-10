@@ -255,7 +255,7 @@ export function MerchantDashboardProducts() {
         ) : isError ? (
           <DashboardError message="Não foi possível carregar produtos." onRetry={() => void refetch()} retrying={isFetching} />
         ) : products.length === 0 ? (
-          <DashboardEmpty title="Nenhum resultado encontrado" description="Nenhum produto encontrado para esse filtro." action={<Button variant="outline" size="sm" onClick={() => { setSearch(''); setStatusFilter('all'); }}>Limpar filtros</Button>} />
+          <DashboardEmpty title="Nenhum resultado encontrado" description="Nenhum produto encontrado para esse filtro." action={search || statusFilter !== 'all' ? <Button variant="outline" size="sm" onClick={() => { setSearch(''); setStatusFilter('all'); }}>Limpar filtros</Button> : <Button size="sm" onClick={openCreateDialog} disabled={!canCreateProduct}>Cadastrar produto</Button>} />
         ) : (
           <div className="grid gap-3 xl:grid-cols-2">
             {products.map((product) => {

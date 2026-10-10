@@ -110,7 +110,7 @@ export function MerchantCategoryListPage() {
         ) : isError ? (
           <DashboardError message="Não foi possível carregar categorias." onRetry={() => void refetch()} retrying={isFetching} />
         ) : categories.length === 0 ? (
-          <DashboardEmpty title="Nenhum resultado encontrado" action={<Button variant="outline" size="sm" onClick={() => { setSearch(''); }}>Limpar filtros</Button>} />
+          <DashboardEmpty title="Nenhum resultado encontrado" action={search ? <Button variant="outline" size="sm" onClick={() => { setSearch(''); }}>Limpar filtros</Button> : <Button size="sm" onClick={openCreateDialog}>Criar categoria</Button>} />
         ) : (
           <>
             {/* Desktop table */}

@@ -255,7 +255,7 @@ export function MerchantDashboardPromotions() {
         ) : isError || productsError ? (
           <DashboardError message="Não foi possível carregar promoções." onRetry={() => void Promise.all([refetch(), refetchProducts()])} retrying={isFetching} />
         ) : promotions.length === 0 ? (
-          <DashboardEmpty title="Nenhum resultado encontrado" action={<Button variant="outline" size="sm" onClick={() => { setSearch(''); setStatusFilter('all'); }}>Limpar filtros</Button>} />
+          <DashboardEmpty title="Nenhum resultado encontrado" action={search || statusFilter !== 'all' ? <Button variant="outline" size="sm" onClick={() => { setSearch(''); setStatusFilter('all'); }}>Limpar filtros</Button> : <Button size="sm" onClick={openCreateDialog} disabled={!canCreatePromotion}>Criar promoção</Button>} />
         ) : (
           <>
             {/* Desktop table */}

@@ -1,3 +1,4 @@
+import { DashboardInfo } from '@/components/dashboard/DashboardList';
 import { Link } from "react-router-dom";
 import {
   DashboardHeading,
@@ -608,4 +609,4 @@ export function CustomerQuotesPanel({
 function InfoPanel({ label, value }: { label: string; value: string }) {
   return <DashboardInfo label={label} value={value} />;
 }
-import { DashboardInfo } from '@/components/dashboard/DashboardList';
+

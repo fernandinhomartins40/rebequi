@@ -251,7 +251,7 @@ export function MerchantDashboardAccess() {
         ) : usersQuery.isError || snapshotQuery.isError ? (
           <DashboardError message="Não foi possível carregar colaboradores." onRetry={() => void Promise.all([usersQuery.refetch(), snapshotQuery.refetch()])} retrying={usersQuery.isFetching || snapshotQuery.isFetching} />
         ) : !hasUsers ? (
-          <DashboardEmpty title="Nenhum resultado encontrado" action={<Button variant="outline" size="sm" onClick={() => { setSearch(''); setRoleFilter('all'); setIncludeInactive(true); }}>Limpar filtros</Button>} />
+          <DashboardEmpty title="Nenhum resultado encontrado" action={search || roleFilter !== 'all' || !includeInactive ? <Button variant="outline" size="sm" onClick={() => { setSearch(''); setRoleFilter('all'); setIncludeInactive(true); }}>Limpar filtros</Button> : <Button size="sm" onClick={openCreateDialog}>Cadastrar colaborador</Button>} />
         ) : (
           <>
             {/* Desktop table */}

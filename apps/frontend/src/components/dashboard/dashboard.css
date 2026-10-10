@@ -7,6 +7,7 @@
 }
 .dashboard-search { position: relative; min-width: 0; flex: 1; }
 .dashboard-record { padding: 16px; }
+.dashboard-selection[aria-pressed="true"] { background: #edf4ff; border-color: #0668ff; }
 .dashboard-heading > div, .dashboard-section-heading > div { min-width: 0; }
 .dashboard-heading :is(h2, h3), .dashboard-section-heading h3 { overflow-wrap: anywhere; }
 .design-workspace :is(input, textarea, select, [role="combobox"]):disabled { background: #f5f8fc; opacity: .65; cursor: not-allowed; }

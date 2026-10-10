@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from "react";
+import { useId, type ReactNode, type ButtonHTMLAttributes } from "react";
 import { Search, X, Inbox, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -49,4 +49,16 @@ export function DashboardInfo({ label, value, inline = false }: { label: string;
 
 export function DashboardStatus({ children, className }: { children: ReactNode; className?: string }) {
   return <span className={cn("dashboard-status", className)}>{children}</span>;
+}
+
+export function DashboardSelection({ detailId, onClick, className, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { detailId: string }) {
+  return <button {...props} type="button" className={cn("dashboard-selection", className)} onClick={(event) => {
+    onClick?.(event);
+    if (event.defaultPrevented || !window.matchMedia("(max-width: 1279px)").matches) return;
+    requestAnimationFrame(() => {
+      const detail = document.getElementById(detailId);
+      detail?.scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+      detail?.focus({ preventScroll: true });
+    });
+  }} />;
 }
