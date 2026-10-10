@@ -55,3 +55,13 @@ Sem uma chave válida e saldo, a integração fica preparada, mas a leitura remo
 Antes da migração, em produção: imagem API 3365136615 bytes (3,36 GB decimais); RAM API em repouso 57,56 MiB, web 5,05 MiB, PostgreSQL 60,22 MiB. Repouso não mede pico de PaddleOCR. Comparar tamanho após deploy; não prometer economia de RAM/latência em carga sem amostra equivalente.
 
 28 testes unitários passaram. Build do frontend, TypeScript dos dois aplicativos, lint, textos pt-BR e configurações de infraestrutura validados localmente. O workflow único mantém builds no GitHub, imagens GHCR e deploy condicionado a testes isolados, preservação de uploads, restauração de backup e rollback. A chamada paga real depende das chaves cadastradas no painel.
+
+## Resultado publicado
+
+Deploy aprovado no [workflow 38085900606](https://github.com/fernandinhomartins40/rebequi/actions/runs/38085900606), revisão de código a4aa27a8df4dfa572903259fae5cd6cf9850ad22, em 10/10/2026. Passaram os 28 testes unitários da API e os 17 cenários integrados (18 resultados incluindo o agrupador), além de uploads/recriação, backup/restauração e rollback.
+
+Verificação somente de leitura na VPS após deploy: API, web e PostgreSQL saudáveis; endpoint /api/health respondeu ok; runtime sem Python; configuração contém DeepSeek Flash e Qwen3-VL Flash sem chaves, leitura automática desativada conforme solicitação de preparar os provedores antes da contratação.
+
+Imagem API antes: 3365136615 bytes; depois: 812379915 bytes. Redução de 75,9% no tamanho da imagem ativa. Imagens anteriores podem permanecer para rollback; isso não representa liberação automática de todo esse espaço no disco da VPS. RAM da API após inicialização: 40,2 MiB. A comparação de RAM em repouso não comprova ganho sob carga nem qualidade de leitura.
+
+As chaves serão cadastradas pelo usuário em Admin → Integrações. A leitura paga real, o saldo e a qualidade sobre listas manuscritas ainda dependem desse cadastro e do teste de foto disponível na própria tela. Não foram feitos testes pagos nem recebidas chaves pelo chat.
