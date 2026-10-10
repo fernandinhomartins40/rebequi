@@ -1,16 +1,21 @@
-import { type CSSProperties } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { DashboardToolbar } from "@/components/dashboard/DashboardElements";
+import { type CSSProperties } from "react";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Sidebar,
   SidebarInset,
   SidebarProvider,
   SidebarRail,
   SidebarTrigger,
-} from '@/components/ui/sidebar';
-import { SIDEBAR_THEME } from './config';
-import { useMerchantDashboardData } from './data';
-import { AdminSidebarNavigation, MerchantSidebarFooter, MerchantSidebarHeader } from './components';
+} from "@/components/ui/sidebar";
+import { SIDEBAR_THEME } from "./config";
+import { useMerchantDashboardData } from "./data";
+import {
+  AdminSidebarNavigation,
+  MerchantSidebarFooter,
+  MerchantSidebarHeader,
+} from "./components";
 
 export function MerchantDashboardLayout() {
   const location = useLocation();
@@ -20,12 +25,14 @@ export function MerchantDashboardLayout() {
 
   const activeItem =
     dashboardData.navItems.find(
-      (item) => location.pathname === item.href || location.pathname.startsWith(`${item.href}/`)
+      (item) =>
+        location.pathname === item.href ||
+        location.pathname.startsWith(`${item.href}/`),
     ) ?? dashboardData.navItems[0];
 
   const handleLogout = async () => {
     await logout();
-    navigate('/');
+    navigate("/");
   };
 
   return (
@@ -33,23 +40,24 @@ export function MerchantDashboardLayout() {
       <SidebarProvider defaultOpen style={SIDEBAR_THEME as CSSProperties}>
         <Sidebar variant="inset" collapsible="icon" className="border-r-0">
           <MerchantSidebarHeader />
-          <AdminSidebarNavigation activePath={activeItem.href} items={dashboardData.navItems} />
-          <MerchantSidebarFooter userEmail={dashboardData.userEmail} userRole={dashboardData.userRole} onLogout={handleLogout} />
+          <AdminSidebarNavigation
+            activePath={activeItem.href}
+            items={dashboardData.navItems}
+          />
+          <MerchantSidebarFooter
+            userEmail={dashboardData.userEmail}
+            userRole={dashboardData.userRole}
+            onLogout={handleLogout}
+          />
           <SidebarRail />
         </Sidebar>
 
         <SidebarInset className="min-w-0 overflow-hidden border border-border/60 bg-background md:peer-data-[variant=inset]:shadow-sm">
           {/* Top bar */}
-          <header className="sticky top-0 z-20 border-b border-border/60 bg-background/95 backdrop-blur-sm">
-            <div className="flex h-14 items-center gap-3 px-4 md:px-6">
-              <SidebarTrigger className="h-8 w-8 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground" />
-              <div className="h-4 w-px bg-border" />
-              <div className="flex min-w-0 items-baseline gap-2">
-                <h1 className="truncate text-sm font-semibold text-foreground">{activeItem.title}</h1>
-                <span className="hidden truncate text-xs text-muted-foreground sm:inline">{activeItem.eyebrow}</span>
-              </div>
-            </div>
-          </header>
+          <DashboardToolbar
+            title={activeItem.label}
+            leading={<SidebarTrigger className="h-8 w-8 rounded-md" />}
+          />
 
           {/* Page content */}
           <div className="merchant-dashboard-scroll flex-1 overflow-y-auto">

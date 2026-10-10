@@ -1,31 +1,43 @@
-import { useEffect, useRef, useState, type ChangeEvent } from 'react';
-import { useForm } from 'react-hook-form';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ImagePlus, Loader2, Save, Trash2 } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
-import type { ProductImage } from '@rebequi/shared/types';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/components/ui/use-toast';
-import { fetchCategories } from '@/services/api/categories';
-import { createProduct, updateProduct, uploadProductImage } from '@/services/api/products';
-import { ADMIN_BASE_PATH } from './config';
-import { DashboardPanel, EditorBackLink, EditorError, EditorFooter, EditorLoading, PageHeader } from './components';
-import { ProductImageCropDialog } from './image-crop-dialog';
-import { fetchAllAdminProductsSnapshot } from './promotion-admin';
+import { DashboardSteps } from "@/components/dashboard/DashboardElements";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useForm } from "react-hook-form";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ImagePlus, Loader2, Save, Trash2 } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
+import type { ProductImage } from "@rebequi/shared/types";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/use-toast";
+import { fetchCategories } from "@/services/api/categories";
+import {
+  createProduct,
+  updateProduct,
+  uploadProductImage,
+} from "@/services/api/products";
+import { ADMIN_BASE_PATH } from "./config";
+import {
+  DashboardPanel,
+  EditorBackLink,
+  EditorError,
+  EditorFooter,
+  EditorLoading,
+  PageHeader,
+} from "./components";
+import { ProductImageCropDialog } from "./image-crop-dialog";
+import { fetchAllAdminProductsSnapshot } from "./promotion-admin";
 import {
   createObjectPreviewUrl,
   PRODUCT_IMAGE_HEIGHT,
   PRODUCT_IMAGE_WIDTH,
   readFileAsDataUrl,
   revokeObjectPreviewUrl,
-} from './image-tools';
+} from "./image-tools";
 
 type ProductDraftImage = ProductImage & {
   localId: string;
-  source: 'stored' | 'new';
+  source: "stored" | "new";
   file?: File;
   previewUrl?: string;
 };
@@ -51,18 +63,18 @@ type ProductFormFields = {
 
 function createEmptyFormValues(): ProductFormFields {
   return {
-    name: '',
-    sku: '',
-    price: '',
-    originalPrice: '',
-    description: '',
-    shortDesc: '',
-    stock: '0',
-    minStock: '0',
-    weight: '',
-    dimensions: '',
-    discount: '',
-    categoryId: '',
+    name: "",
+    sku: "",
+    price: "",
+    originalPrice: "",
+    description: "",
+    shortDesc: "",
+    stock: "0",
+    minStock: "0",
+    weight: "",
+    dimensions: "",
+    discount: "",
+    categoryId: "",
     isOffer: false,
     isNew: false,
     isFeatured: false,
@@ -70,7 +82,10 @@ function createEmptyFormValues(): ProductFormFields {
   };
 }
 
-function createDraftImageFromProductImage(image: ProductImage, index: number): ProductDraftImage {
+function createDraftImageFromProductImage(
+  image: ProductImage,
+  index: number,
+): ProductDraftImage {
   return {
     ...image,
     storageKey: image.storageKey ?? undefined,
@@ -80,7 +95,7 @@ function createDraftImageFromProductImage(image: ProductImage, index: number): P
     width: image.width ?? undefined,
     height: image.height ?? undefined,
     localId: image.id || image.storageKey || `${image.url}-${index}`,
-    source: 'stored',
+    source: "stored",
     order: image.order ?? index,
     isPrimary: image.isPrimary ?? index === 0,
   };
@@ -101,7 +116,7 @@ function normalizeDraftImages(images: ProductDraftImage[]) {
 
 function cleanupDraftImages(images: ProductDraftImage[]) {
   for (const image of images) {
-    if (image.source === 'new') {
+    if (image.source === "new") {
       revokeObjectPreviewUrl(image.previewUrl);
     }
   }
@@ -113,7 +128,7 @@ function toOptionalNumber(value: string) {
     return undefined;
   }
 
-  const numericValue = Number(trimmed.replace(',', '.'));
+  const numericValue = Number(trimmed.replace(",", "."));
   return Number.isNaN(numericValue) ? undefined : numericValue;
 }
 
@@ -122,11 +137,11 @@ function buildPayload(fields: ProductFormFields, images: ProductImage[]) {
   const stock = toOptionalNumber(fields.stock);
 
   if (price === undefined) {
-    throw new Error('Informe um preço válido.');
+    throw new Error("Informe um preço válido.");
   }
 
   if (stock === undefined) {
-    throw new Error('Informe um estoque válido.');
+    throw new Error("Informe um estoque válido.");
   }
 
   return {
@@ -153,17 +168,20 @@ function normalizeOptionalImageMetadata<T>(value: T | null | undefined) {
   return value ?? undefined;
 }
 
-async function resolveUploadedImages(images: ProductDraftImage[], productName: string) {
+async function resolveUploadedImages(
+  images: ProductDraftImage[],
+  productName: string,
+) {
   const resolved: ProductImage[] = [];
 
   for (const image of normalizeDraftImages(images)) {
-    if (image.source === 'stored') {
+    if (image.source === "stored") {
       resolved.push(image);
       continue;
     }
 
     if (!image.file) {
-      throw new Error('Existe uma imagem nova sem arquivo para upload.');
+      throw new Error("Existe uma imagem nova sem arquivo para upload.");
     }
 
     const storedImage = await uploadProductImage({
@@ -208,13 +226,27 @@ function ProductImageCard({
   return (
     <div className="rounded-xl border border-border/60 bg-muted/30 p-3">
       <div className="overflow-hidden rounded-lg border border-border/60 bg-background">
-        <img src={image.previewUrl || image.url} alt={image.alt || 'Imagem do produto'} className="aspect-square w-full object-cover" />
+        <img
+          src={image.previewUrl || image.url}
+          alt={image.alt || "Imagem do produto"}
+          className="aspect-square w-full object-cover"
+        />
       </div>
       <div className="mt-3 flex gap-2">
-        <Button type="button" variant="outline" className="flex-1" onClick={onMakePrimary}>
-          {image.isPrimary ? 'Principal' : 'Tornar principal'}
+        <Button
+          type="button"
+          variant="outline"
+          className="flex-1"
+          onClick={onMakePrimary}
+        >
+          {image.isPrimary ? "Principal" : "Tornar principal"}
         </Button>
-        <Button type="button" variant="outline" className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700" onClick={onRemove}>
+        <Button
+          type="button"
+          variant="outline"
+          className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+          onClick={onRemove}
+        >
           <Trash2 className="mr-2 h-4 w-4" />
           Remover
         </Button>
@@ -233,30 +265,36 @@ export function MerchantProductEditorPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [images, setImages] = useState<ProductDraftImage[]>([]);
   const [cropSourceUrl, setCropSourceUrl] = useState<string>();
-  const [cropOriginalFileName, setCropOriginalFileName] = useState('');
+  const [cropOriginalFileName, setCropOriginalFileName] = useState("");
   const isEditing = Boolean(productId);
 
   const categoriesQuery = useQuery({
-    queryKey: ['merchant-dashboard', 'categories', 'all'],
+    queryKey: ["merchant-dashboard", "categories", "all"],
     queryFn: () => fetchCategories({ includeInactive: true }),
   });
 
   const productsQuery = useQuery({
-    queryKey: ['merchant-dashboard', 'products-snapshot-all'],
+    queryKey: ["merchant-dashboard", "products-snapshot-all"],
     queryFn: fetchAllAdminProductsSnapshot,
     enabled: isEditing,
   });
 
-  const product = isEditing ? productsQuery.data?.find((item) => item.id === productId) ?? null : null;
+  const product = isEditing
+    ? (productsQuery.data?.find((item) => item.id === productId) ?? null)
+    : null;
 
   const managedCategories = categoriesQuery.data?.categories ?? [];
   const categories = managedCategories
     .filter((item) => item.isActive || item.id === product?.categoryId)
-    .map((item) => ({ id: item.id, name: item.isActive ? item.name : `${item.name} (inativa)` }));
+    .map((item) => ({
+      id: item.id,
+      name: item.isActive ? item.name : `${item.name} (inativa)`,
+    }));
 
-  const { register, handleSubmit, reset, watch, formState } = useForm<ProductFormFields>({
-    defaultValues: createEmptyFormValues(),
-  });
+  const { register, handleSubmit, reset, watch, formState } =
+    useForm<ProductFormFields>({
+      defaultValues: createEmptyFormValues(),
+    });
 
   useEffect(() => {
     if (!product) {
@@ -265,16 +303,16 @@ export function MerchantProductEditorPage() {
 
     reset({
       name: product.name,
-      sku: product.sku || '',
+      sku: product.sku || "",
       price: String(product.price),
-      originalPrice: product.originalPrice ? String(product.originalPrice) : '',
-      description: product.description || '',
-      shortDesc: product.shortDesc || '',
+      originalPrice: product.originalPrice ? String(product.originalPrice) : "",
+      description: product.description || "",
+      shortDesc: product.shortDesc || "",
       stock: String(product.stock),
       minStock: String(product.minStock ?? 0),
-      weight: product.weight ? String(product.weight) : '',
-      dimensions: product.dimensions || '',
-      discount: product.discount ? String(product.discount) : '',
+      weight: product.weight ? String(product.weight) : "",
+      dimensions: product.dimensions || "",
+      discount: product.discount ? String(product.discount) : "",
       categoryId: product.categoryId,
       isOffer: product.isOffer,
       isNew: product.isNew,
@@ -284,19 +322,24 @@ export function MerchantProductEditorPage() {
 
     setImages((current) => {
       cleanupDraftImages(current);
-      return normalizeDraftImages((product.images || []).map(createDraftImageFromProductImage));
+      return normalizeDraftImages(
+        (product.images || []).map(createDraftImageFromProductImage),
+      );
     });
   }, [product, reset]);
 
   const saveMutation = useMutation({
     mutationFn: async (fields: ProductFormFields) => {
-      const uploadedImages = await resolveUploadedImages(images, fields.name.trim());
+      const uploadedImages = await resolveUploadedImages(
+        images,
+        fields.name.trim(),
+      );
       if (uploadedImages.length === 0) {
-        throw new Error('Adicione pelo menos uma imagem para o produto.');
+        throw new Error("Adicione pelo menos uma imagem para o produto.");
       }
 
       if (!fields.categoryId) {
-        throw new Error('Selecione uma categoria.');
+        throw new Error("Selecione uma categoria.");
       }
 
       const payload = {
@@ -304,39 +347,44 @@ export function MerchantProductEditorPage() {
         isActive: fields.isActive,
       };
 
-      return isEditing && product ? updateProduct(product.id, payload) : createProduct(payload);
+      return isEditing && product
+        ? updateProduct(product.id, payload)
+        : createProduct(payload);
     },
     onSuccess: async () => {
       toast({
-        title: isEditing ? 'Produto atualizado' : 'Produto criado',
-        description: 'Os dados e as imagens foram persistidos com sucesso.',
+        title: isEditing ? "Produto atualizado" : "Produto criado",
+        description: "Os dados e as imagens foram persistidos com sucesso.",
       });
       setImages((current) => {
         cleanupDraftImages(current);
         return [];
       });
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['merchant-dashboard'] }),
-        queryClient.invalidateQueries({ queryKey: ['products'] }),
-        queryClient.invalidateQueries({ queryKey: ['categories'] }),
-        queryClient.invalidateQueries({ queryKey: ['promotions'] }),
+        queryClient.invalidateQueries({ queryKey: ["merchant-dashboard"] }),
+        queryClient.invalidateQueries({ queryKey: ["products"] }),
+        queryClient.invalidateQueries({ queryKey: ["categories"] }),
+        queryClient.invalidateQueries({ queryKey: ["promotions"] }),
       ]);
       navigate(BACK_HREF);
     },
     onError: (error) => {
       toast({
-        variant: 'destructive',
-        title: 'Falha ao salvar produto',
-        description: error instanceof Error ? error.message : 'Erro inesperado ao persistir o produto.',
+        variant: "destructive",
+        title: "Falha ao salvar produto",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Erro inesperado ao persistir o produto.",
       });
     },
   });
 
-  const categoryId = watch('categoryId');
+  const categoryId = watch("categoryId");
 
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    event.target.value = '';
+    event.target.value = "";
     if (!file) {
       return;
     }
@@ -346,9 +394,12 @@ export function MerchantProductEditorPage() {
       setCropOriginalFileName(file.name);
     } catch (error) {
       toast({
-        variant: 'destructive',
-        title: 'Falha ao abrir imagem',
-        description: error instanceof Error ? error.message : 'Não foi possível carregar a imagem selecionada.',
+        variant: "destructive",
+        title: "Falha ao abrir imagem",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Não foi possível carregar a imagem selecionada.",
       });
     }
   };
@@ -361,11 +412,11 @@ export function MerchantProductEditorPage() {
         ...current,
         {
           localId: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-          source: 'new',
+          source: "new",
           file,
           previewUrl,
           url: previewUrl,
-          alt: watch('name') || file.name.replace(/\.[^.]+$/, ''),
+          alt: watch("name") || file.name.replace(/\.[^.]+$/, ""),
           order: current.length,
           isPrimary: current.length === 0,
           width: PRODUCT_IMAGE_WIDTH,
@@ -374,16 +425,20 @@ export function MerchantProductEditorPage() {
           mimeType: file.type,
           size: file.size,
         },
-      ])
+      ]),
     );
   };
 
   const handleRemoveImage = (image: ProductDraftImage) => {
-    if (image.source === 'new') {
+    if (image.source === "new") {
       revokeObjectPreviewUrl(image.previewUrl);
     }
 
-    setImages((current) => normalizeDraftImages(current.filter((item) => item.localId !== image.localId)));
+    setImages((current) =>
+      normalizeDraftImages(
+        current.filter((item) => item.localId !== image.localId),
+      ),
+    );
   };
 
   if (isEditing && (productsQuery.isLoading || categoriesQuery.isLoading)) {
@@ -399,21 +454,32 @@ export function MerchantProductEditorPage() {
       <EditorBackLink to={BACK_HREF} label="Voltar para produtos" />
 
       <PageHeader
-        title={isEditing ? 'Editar produto' : 'Novo produto'}
+        title={isEditing ? "Editar produto" : "Novo produto"}
         description="Preencha os dados do produto e salve as imagens."
       />
 
+      <DashboardSteps
+        steps={[
+          { title: "Dados", targetId: "product-data" },
+          { title: "Fotos", targetId: "product-images" },
+          { title: "Publicar", targetId: "product-publish" },
+        ]}
+      />
       <form
         className="space-y-6"
         onSubmit={handleSubmit((fields) => {
           void saveMutation.mutateAsync(fields);
         })}
       >
-        <DashboardPanel title="Dados do produto">
+        <DashboardPanel id="product-data" title="Dados do produto">
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <div className="space-y-2 xl:col-span-2">
               <Label htmlFor="product-name">Nome</Label>
-              <Input id="product-name" placeholder="Ex.: Furadeira de Impacto 650W" {...register('name', { required: true })} />
+              <Input
+                id="product-name"
+                placeholder="Ex.: Furadeira de Impacto 650W"
+                {...register("name", { required: true })}
+              />
             </div>
 
             <div className="space-y-2">
@@ -421,7 +487,7 @@ export function MerchantProductEditorPage() {
               <select
                 id="product-category"
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                {...register('categoryId', { required: true })}
+                {...register("categoryId", { required: true })}
               >
                 <option value="">Selecione</option>
                 {categories.map((category) => (
@@ -434,61 +500,115 @@ export function MerchantProductEditorPage() {
 
             <div className="space-y-2">
               <Label htmlFor="product-price">Preço</Label>
-              <Input id="product-price" inputMode="decimal" placeholder="299.90" {...register('price')} />
+              <Input
+                id="product-price"
+                inputMode="decimal"
+                placeholder="299.90"
+                {...register("price")}
+              />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="product-original-price">Preço original</Label>
-              <Input id="product-original-price" inputMode="decimal" placeholder="349.90" {...register('originalPrice')} />
+              <Input
+                id="product-original-price"
+                inputMode="decimal"
+                placeholder="349.90"
+                {...register("originalPrice")}
+              />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="product-discount">Desconto (%)</Label>
-              <Input id="product-discount" inputMode="numeric" placeholder="15" {...register('discount')} />
+              <Input
+                id="product-discount"
+                inputMode="numeric"
+                placeholder="15"
+                {...register("discount")}
+              />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="product-stock">Estoque</Label>
-              <Input id="product-stock" inputMode="numeric" placeholder="12" {...register('stock')} />
+              <Input
+                id="product-stock"
+                inputMode="numeric"
+                placeholder="12"
+                {...register("stock")}
+              />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="product-min-stock">Estoque mínimo</Label>
-              <Input id="product-min-stock" inputMode="numeric" placeholder="3" {...register('minStock')} />
+              <Input
+                id="product-min-stock"
+                inputMode="numeric"
+                placeholder="3"
+                {...register("minStock")}
+              />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="product-sku">SKU</Label>
-              <Input id="product-sku" placeholder="FER-FUR-001" {...register('sku')} />
+              <Input
+                id="product-sku"
+                placeholder="FER-FUR-001"
+                {...register("sku")}
+              />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="product-weight">Peso (kg)</Label>
-              <Input id="product-weight" inputMode="decimal" placeholder="2.4" {...register('weight')} />
+              <Input
+                id="product-weight"
+                inputMode="decimal"
+                placeholder="2.4"
+                {...register("weight")}
+              />
             </div>
 
             <div className="space-y-2 xl:col-span-2">
               <Label htmlFor="product-dimensions">Dimensões</Label>
-              <Input id="product-dimensions" placeholder="30x25x10 cm" {...register('dimensions')} />
+              <Input
+                id="product-dimensions"
+                placeholder="30x25x10 cm"
+                {...register("dimensions")}
+              />
             </div>
 
             <div className="space-y-2 xl:col-span-3">
               <Label htmlFor="product-short-desc">Descrição curta</Label>
-              <Textarea id="product-short-desc" rows={3} placeholder="Resumo para cards e seções públicas." {...register('shortDesc')} />
+              <Textarea
+                id="product-short-desc"
+                rows={3}
+                placeholder="Resumo para cards e seções públicas."
+                {...register("shortDesc")}
+              />
             </div>
 
             <div className="space-y-2 xl:col-span-3">
               <Label htmlFor="product-description">Descrição completa</Label>
-              <Textarea id="product-description" rows={5} placeholder="Descrição detalhada do produto." {...register('description')} />
+              <Textarea
+                id="product-description"
+                rows={5}
+                placeholder="Descrição detalhada do produto."
+                {...register("description")}
+              />
             </div>
           </section>
         </DashboardPanel>
 
         <DashboardPanel
+          id="product-images"
           title="Imagens"
           description="As imagens são recortadas em 1:1 e comprimidas antes do upload."
           action={
-            <Button type="button" onClick={() => fileInputRef.current?.click()} size="sm" className="gap-2">
+            <Button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              size="sm"
+              className="gap-2"
+            >
               <ImagePlus className="h-4 w-4" />
               Adicionar imagem
             </Button>
@@ -513,8 +633,8 @@ export function MerchantProductEditorPage() {
                       current.map((item) => ({
                         ...item,
                         isPrimary: item.localId === image.localId,
-                      }))
-                    )
+                      })),
+                    ),
                   )
                 }
                 onRemove={() => handleRemoveImage(image)}
@@ -528,34 +648,51 @@ export function MerchantProductEditorPage() {
           </div>
         </DashboardPanel>
 
-        <DashboardPanel title="Publicação" description="Controle onde e como o produto aparece na vitrine.">
+        <DashboardPanel
+          id="product-publish"
+          title="Publicação"
+          description="Controle onde e como o produto aparece na vitrine."
+        >
           <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <label className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/30 px-4 py-3 text-sm">
-              <input type="checkbox" {...register('isOffer')} />
+              <input type="checkbox" {...register("isOffer")} />
               Produto em oferta
             </label>
             <label className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/30 px-4 py-3 text-sm">
-              <input type="checkbox" {...register('isNew')} />
+              <input type="checkbox" {...register("isNew")} />
               Sinalizar como novidade
             </label>
             <label className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/30 px-4 py-3 text-sm">
-              <input type="checkbox" {...register('isFeatured')} />
+              <input type="checkbox" {...register("isFeatured")} />
               Exibir em destaque
             </label>
             <label className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/30 px-4 py-3 text-sm">
-              <input type="checkbox" {...register('isActive')} />
+              <input type="checkbox" {...register("isActive")} />
               Produto ativo
             </label>
           </section>
         </DashboardPanel>
 
         <EditorFooter>
-          <Button type="button" variant="outline" onClick={() => navigate(BACK_HREF)}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate(BACK_HREF)}
+          >
             Cancelar
           </Button>
-          <Button type="submit" disabled={saveMutation.isPending || formState.isSubmitting || !categoryId}>
-            {saveMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            {isEditing ? 'Salvar alterações' : 'Cadastrar produto'}
+          <Button
+            type="submit"
+            disabled={
+              saveMutation.isPending || formState.isSubmitting || !categoryId
+            }
+          >
+            {saveMutation.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="mr-2 h-4 w-4" />
+            )}
+            {isEditing ? "Salvar alterações" : "Cadastrar produto"}
           </Button>
         </EditorFooter>
       </form>
@@ -567,13 +704,13 @@ export function MerchantProductEditorPage() {
         onOpenChange={(nextOpen) => {
           if (!nextOpen) {
             setCropSourceUrl(undefined);
-            setCropOriginalFileName('');
+            setCropOriginalFileName("");
           }
         }}
         onConfirm={async (file) => {
           await handleCroppedImage(file);
           setCropSourceUrl(undefined);
-          setCropOriginalFileName('');
+          setCropOriginalFileName("");
         }}
       />
     </div>

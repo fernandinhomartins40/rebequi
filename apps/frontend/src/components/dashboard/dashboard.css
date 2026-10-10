@@ -1,0 +1,316 @@
+.dashboard-surface {
+  border: 1px solid #e2e9f2;
+  border-radius: 9px;
+  background: white;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+.dashboard-heading,
+.dashboard-section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.dashboard-heading h2 {
+  font-size: 24px;
+  font-weight: 800;
+  border-left: 4px solid #ff0026;
+  padding-left: 10px;
+  line-height: 1.15;
+}
+.dashboard-section-heading {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e9f2;
+}
+.dashboard-section-heading h3 {
+  font-size: 15px;
+  font-weight: 700;
+}
+.dashboard-section-content {
+  padding: 20px;
+}
+.dashboard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+.dashboard-eyebrow {
+  font-size: 11px;
+  color: #51617b;
+}
+.dashboard-help {
+  font-size: 12px;
+  color: #51617b;
+  margin-top: 6px;
+  max-width: 640px;
+}
+.dashboard-help summary {
+  cursor: pointer;
+  color: #0668ff;
+  width: fit-content;
+}
+.dashboard-help > div {
+  margin-top: 6px;
+  line-height: 1.5;
+}
+.dashboard-metric {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+}
+.dashboard-metric-icon {
+  display: grid;
+  place-items: center;
+  background: #edf4ff;
+  color: #0668ff;
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+.dashboard-metric-icon svg {
+  width: 18px;
+  height: 18px;
+}
+.dashboard-metric p,
+.dashboard-metric small {
+  font-size: 12px;
+  color: #51617b;
+}
+.dashboard-metric strong {
+  display: block;
+  font-size: 25px;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.metric-red .dashboard-metric-icon,
+.metric-amber .dashboard-metric-icon,
+.metric-yellow .dashboard-metric-icon {
+  background: #fff4dc;
+  color: #976000;
+}
+.metric-emerald .dashboard-metric-icon,
+.metric-green .dashboard-metric-icon {
+  background: #eaf8ef;
+  color: #14763a;
+}
+.dashboard-nav-action {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  border-radius: 6px;
+  padding: 11px 10px;
+  text-align: left;
+  font-size: 13px;
+  color: #51617b;
+}
+.dashboard-nav-action > span:first-child svg {
+  width: 17px;
+  height: 17px;
+}
+.dashboard-nav-action:hover {
+  background: #edf4ff;
+  color: #06142c;
+}
+.dashboard-nav-action[aria-current] {
+  background: #0668ff;
+  color: white;
+}
+.dashboard-nav-action b {
+  margin-left: auto;
+  background: #ffeb18;
+  color: #06142c;
+  border-radius: 12px;
+  padding: 2px 6px;
+  font-size: 10px;
+}
+.dashboard-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  background: #f5f8fc;
+  border-radius: 9px;
+  padding: 12px;
+}
+.dashboard-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 6px;
+  min-width: 0;
+  padding: 8px;
+}
+.dashboard-step b {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #ff0026;
+  color: white;
+  flex-shrink: 0;
+}
+.dashboard-step:nth-child(2) b {
+  background: #0668ff;
+}
+.dashboard-step:nth-child(3) b {
+  background: #ffeb18;
+  color: #06142c;
+}
+.dashboard-step > svg {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: #0668ff;
+}
+.dashboard-step[aria-current],
+.dashboard-step:hover {
+  background: white;
+}
+.dashboard-step:focus-visible {
+  outline: 3px solid #0668ff;
+  outline-offset: 2px;
+}
+.dashboard-account-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.dashboard-account-tabs button {
+  padding: 9px 14px;
+  border: 1px solid #e2e9f2;
+  border-radius: 6px;
+  background: white;
+  font-size: 13px;
+}
+.dashboard-account-tabs button[aria-pressed="true"] {
+  background: #0668ff;
+  color: white;
+  border-color: #0668ff;
+}
+.dashboard-editor-step {
+  scroll-margin-top: 84px;
+  outline: none;
+}
+.dashboard-editor-step:focus-visible {
+  outline: 3px solid #0668ff;
+  outline-offset: 4px;
+}
+.dashboard-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 4px 8px;
+}
+.dashboard-brand img {
+  width: 112px;
+  height: 34px;
+  object-fit: contain;
+}
+.dashboard-brand span {
+  font-size: 11px;
+  color: #51617b;
+}
+.dashboard-toolbar {
+  border-bottom: 1px solid #ead614;
+  background: #ffeb18;
+}
+.dashboard-toolbar > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 58px;
+  padding: 10px 20px;
+  max-width: 1200px;
+  margin: auto;
+}
+.dashboard-toolbar h1 {
+  font-size: 16px !important;
+  letter-spacing: 0 !important;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dashboard-toolbar-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.group[data-collapsible="icon"] .dashboard-brand img {
+  width: 28px;
+}
+.group[data-collapsible="icon"] .dashboard-brand span {
+  display: none;
+}
+.dashboard-nav-icon {
+  display: flex;
+  flex-shrink: 0;
+}
+.dashboard-nav-icon svg {
+  width: 17px;
+  height: 17px;
+}
+.dashboard-nav-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.group[data-collapsible="icon"] .dashboard-nav-label {
+  display: none;
+}
+.dashboard-metric > div {
+  min-width: 0;
+}
+.metric-red .dashboard-metric-icon {
+  background: #fff0f2;
+  color: #d00020;
+}
+@media (max-width: 600px) {
+  .dashboard-steps {
+    gap: 4px;
+    padding: 6px;
+  }
+  .dashboard-step {
+    font-size: 11px;
+    gap: 6px;
+    padding: 5px;
+  }
+  .dashboard-step b {
+    width: 22px;
+    height: 22px;
+    font-size: 12px;
+  }
+  .dashboard-step > svg {
+    display: none;
+  }
+  .dashboard-section-content {
+    padding: 16px;
+  }
+  .dashboard-section-heading {
+    padding: 14px 16px;
+  }
+  .dashboard-metric {
+    padding: 12px;
+    gap: 8px;
+  }
+  .dashboard-metric-icon {
+    width: 28px;
+    height: 28px;
+  }
+  .dashboard-metric strong {
+    font-size: 22px;
+  }
+}

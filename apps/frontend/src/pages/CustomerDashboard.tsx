@@ -1,10 +1,10 @@
-import { CustomerQuotesPanel } from '@/components/CustomerQuotesPanel';
-import { useCustomerDashboard } from './customer-dashboard/hooks';
-import { CustomerDashboardLayout } from './customer-dashboard/layout';
-import { OverviewTab } from './customer-dashboard/overview-tab';
-import { ProfileTab } from './customer-dashboard/profile-tab';
-import { SecurityTab } from './customer-dashboard/security-tab';
-import { OrdersTab } from './customer-dashboard/orders-tab';
+import { CustomerQuotesPanel } from "@/components/CustomerQuotesPanel";
+import { useCustomerDashboard } from "./customer-dashboard/hooks";
+import { CustomerDashboardLayout } from "./customer-dashboard/layout";
+import { OverviewTab } from "./customer-dashboard/overview-tab";
+import { ProfileTab } from "./customer-dashboard/profile-tab";
+import { SecurityTab } from "./customer-dashboard/security-tab";
+import { OrdersTab } from "./customer-dashboard/orders-tab";
 
 const CustomerDashboard = () => {
   const dashboard = useCustomerDashboard();
@@ -38,8 +38,8 @@ const CustomerDashboard = () => {
 
   return (
     <CustomerDashboardLayout {...dashboard}>
-      {activeTab === 'orders' ? <OrdersTab /> : null}
-      {activeTab === 'overview' ? (
+      {activeTab === "orders" ? <OrdersTab /> : null}
+      {activeTab === "overview" ? (
         <OverviewTab
           user={user}
           quotes={quotes}
@@ -48,10 +48,11 @@ const CustomerDashboard = () => {
           inReviewQuotes={inReviewQuotes}
           respondedQuotes={respondedQuotes}
           onTabChange={handleTabChange}
+          onResumeQuote={handleSelectQuote}
         />
       ) : null}
 
-      {activeTab === 'quotes' ? (
+      {activeTab === "quotes" ? (
         <CustomerQuotesPanel
           quotes={quotes}
           quotesLoading={quotesLoading}
@@ -75,22 +76,38 @@ const CustomerDashboard = () => {
         />
       ) : null}
 
-      {activeTab === 'profile' ? (
-        <ProfileTab
-          user={user}
-          quotes={quotes}
-          draftQuotes={draftQuotes}
-        />
+      {activeTab === "profile" || activeTab === "security" ? (
+        <div className="dashboard-account-tabs" aria-label="Minha conta">
+          <button
+            type="button"
+            aria-pressed={activeTab === "profile"}
+            onClick={() => handleTabChange("profile")}
+          >
+            Dados pessoais
+          </button>
+          <button
+            type="button"
+            aria-pressed={activeTab === "security"}
+            onClick={() => handleTabChange("security")}
+          >
+            Senha e acesso
+          </button>
+        </div>
+      ) : null}
+      {activeTab === "profile" ? (
+        <ProfileTab user={user} quotes={quotes} draftQuotes={draftQuotes} />
       ) : null}
 
-      {activeTab === 'security' ? (
+      {activeTab === "security" ? (
         <SecurityTab
           user={user}
           provisionalCredentials={provisionalCredentials}
           passwordForm={passwordForm}
           setPasswordForm={setPasswordForm}
           changePasswordPending={changePasswordMutation.isPending}
-          onChangePassword={() => void changePasswordMutation.mutateAsync(passwordForm)}
+          onChangePassword={() =>
+            void changePasswordMutation.mutateAsync(passwordForm)
+          }
         />
       ) : null}
     </CustomerDashboardLayout>

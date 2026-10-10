@@ -224,6 +224,42 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
       } finally { await context.close(); }
     });
 
+    await t.test('Shared dashboards group account settings and guide product editing in three steps', async () => {
+      const context = await browser.newContext();
+      try {
+        await data(await context.request.post(`${baseURL}/api/auth/login`, { data: { identifier: '11987654321', password: account.provisionalCredentials.password } }));
+        const page = await context.newPage();
+        await page.goto(`${baseURL}/painel-cliente`);
+        await page.locator('.dashboard-heading').waitFor();
+        for (const width of [320, 390, 768, 1024, 1440]) {
+          await page.setViewportSize({ width, height: 900 });
+          assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `Customer dashboard overflow at ${width}px`);
+          await page.screenshot({ path: `tests/product/artifacts/customer-dashboard-${width}.png`, fullPage: true });
+        }
+        await page.getByRole('button', { name: 'Minha conta', exact: true }).click();
+        await page.getByRole('button', { name: 'Senha e acesso', exact: true }).click();
+        await page.getByLabel('Nova senha', { exact: true }).waitFor();
+        assert.equal(await page.locator('.dashboard-nav-action[aria-current="page"]').innerText(), await page.locator('.dashboard-nav-action').filter({ hasText: 'Minha conta' }).innerText());
+        await page.reload();
+        await page.getByLabel('Nova senha', { exact: true }).waitFor();
+        await data(await context.request.post(`${baseURL}/api/auth/login`, { data: { identifier: 'integration@example.invalid', password: 'integration-only-admin-password' } }));
+        await page.goto(`${baseURL}/painel-lojista/painel/produtos/${product.id}/editar`);
+        await page.getByLabel('Nome', { exact: true }).waitFor();
+        await page.getByLabel('Nome', { exact: true }).fill('Edição local não salva');
+        await page.getByRole('button', { name: 'Fotos', exact: true }).click();
+        assert.equal(await page.locator('#product-images').evaluate((element) => document.activeElement === element), true);
+        await page.getByRole('button', { name: 'Publicar', exact: true }).click();
+        assert.equal(await page.locator('#product-publish').evaluate((element) => document.activeElement === element), true);
+        await page.getByRole('button', { name: 'Dados', exact: true }).click();
+        assert.equal(await page.getByLabel('Nome', { exact: true }).inputValue(), 'Edição local não salva');
+        for (const width of [320, 390, 768, 1024, 1440]) {
+          await page.setViewportSize({ width, height: 900 });
+          assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `Product editor overflow at ${width}px`);
+          await page.screenshot({ path: `tests/product/artifacts/admin-editor-${width}.png`, fullPage: true });
+        }
+      } finally { await context.close(); }
+    });
+
     await t.test('Catalog alert opens the exact product editor', async () => {
       const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
       try {
