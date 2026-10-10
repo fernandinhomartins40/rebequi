@@ -16,16 +16,26 @@ export function MerchantDashboardIntegrations() {
  const [keys, setKeys] = useState({ deepseek: '', qwen: '' });
  const [remove, setRemove] = useState({ deepseek: false, qwen: false });
  const [file, setFile] = useState<File | null>(null);
+ const [connections, setConnections] = useState<Partial<Record<QuoteAiProvider, AiTestResult>>>({});
  const [result, setResult] = useState<AiTestResult | null>(null);
  useEffect(() => { if (config.data) {
   const { enabled, primaryProvider, fallbackEnabled, qwenModel, timeoutMs, maxTokens } = config.data;
   setForm({ enabled, primaryProvider, fallbackEnabled, qwenModel: qwenModel as 'qwen3-vl-flash' | 'qwen3-vl-plus', timeoutMs, maxTokens });
  } }, [config.data]);
  const save = useMutation({ mutationFn: updateQuoteAiConfig, onSuccess: data => {
-  setKeys({ deepseek: '', qwen: '' }); setRemove({ deepseek: false, qwen: false }); setResult(null);
+  setKeys({ deepseek: '', qwen: '' }); setRemove({ deepseek: false, qwen: false }); setResult(null); setConnections({});
   client.setQueryData(['quote-ai'], data); toast({ title: 'Configuração salva' });
  }, onError: error => toast({ title: 'Não foi possível salvar', description: error.message, variant: 'destructive' }) });
- const connection = useMutation({ mutationFn: testAiConnection, onSuccess: setResult, onError: error => setResult({ ok: false, message: error.message }) });
+ const showConnectionResult = (provider: QuoteAiProvider, data: AiTestResult) => {
+  setConnections(current => ({ ...current, [provider]: data }));
+  toast({ title: (provider === 'deepseek' ? 'DeepSeek' : 'Qwen') + (data.ok ? ': conexão validada' : ': falha na conexão'), description: data.message, variant: data.ok ? 'default' : 'destructive' });
+ };
+ const connection = useMutation({
+  mutationFn: testAiConnection,
+  onMutate: provider => setConnections(current => ({ ...current, [provider]: undefined })),
+  onSuccess: (data, provider) => showConnectionResult(provider, data),
+  onError: (error, provider) => showConnectionResult(provider, { ok: false, message: error.message }),
+ });
  const recognition = useMutation({ mutationFn: testAiRecognition, onSuccess: setResult, onError: error => setResult({ ok: false, message: error.message }) });
  const submit = (event: FormEvent) => {
   event.preventDefault(); save.mutate({ ...form,
@@ -49,7 +59,9 @@ export function MerchantDashboardIntegrations() {
       <Label htmlFor={`key-${provider}`}>{configured ? 'Substituir chave' : 'Chave da API'}</Label>
       <Input id={`key-${provider}`} type="password" autoComplete="new-password" value={keys[provider]} disabled={remove[provider]} onChange={e => setKeys(k => ({ ...k, [provider]: e.target.value }))} placeholder={configured ? 'Deixe vazio para manter' : 'Cole a chave aqui'} />
       <div className="flex flex-wrap gap-3 items-center"><a className="text-sm text-blue-600 underline" target="_blank" rel="noreferrer" href={provider === 'deepseek' ? 'https://platform.deepseek.com/api_keys' : 'https://www.alibabacloud.com/help/en/model-studio/get-api-key'}>Obter chave</a>
-       <Button type="button" variant="outline" size="sm" disabled={busy || Boolean(dirty) || !configured} onClick={() => connection.mutate(provider)}>Testar conexão</Button></div>
+       <Button type="button" variant="outline" size="sm" disabled={busy || Boolean(dirty) || !configured} aria-busy={connection.isPending && connection.variables === provider} onClick={() => connection.mutate(provider)}>{connection.isPending && connection.variables === provider ? 'Testando…' : 'Testar conexão'}</Button></div>
+      {connections[provider] && <div data-testid={`connection-result-${provider}`} role={connections[provider]!.ok ? 'status' : 'alert'} className={connections[provider]!.ok ? 'rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800' : 'rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700'}>{connections[provider]!.message}</div>}
+      {dirty && configured && <p className="text-xs text-muted-foreground">Salve as alterações para testar.</p>}
       {provider === 'qwen' && <p className="text-xs text-muted-foreground">Use uma chave da região Singapura (DashScope internacional).</p>}
       {configured && <label className="flex gap-2 text-xs items-center"><input type="checkbox" checked={remove[provider]} onChange={e => setRemove(r => ({ ...r, [provider]: e.target.checked }))} />Remover chave ao salvar</label>}
      </div>;

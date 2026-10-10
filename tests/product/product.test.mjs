@@ -108,6 +108,25 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
         await page.getByRole('heading', { name: '1. Conectar os provedores' }).waitFor();
         await page.getByRole('heading', { name: '3. Testar uma lista real' }).waitFor();
         assert.equal(await page.locator('#key-deepseek').getAttribute('type'), 'password');
+        // Only provider transport is simulated; production keys are never used in CI.
+        const savedConfig = await data(await admin.get('/api/integrations/ai'));
+        await page.route('**/api/integrations/ai', route => route.fulfill({ json: { success: true, data: { ...savedConfig, hasDeepseekApiKey: true } } }));
+        let providerOk = true;
+        await page.route('**/api/integrations/ai/test', async route => {
+          await new Promise(resolve => setTimeout(resolve, 700));
+          await route.fulfill({ json: { success: true, data: { ok: providerOk, message: providerOk ? 'Conexão validada no teste.' : 'Confira a chave do provedor.' } } });
+        });
+        await page.reload();
+        const card = page.locator('#key-deepseek').locator('..');
+        await card.getByRole('button', { name: 'Testar conexão', exact: true }).click();
+        await card.getByRole('button', { name: 'Testando…', exact: true }).waitFor();
+        await card.getByTestId('connection-result-deepseek').waitFor();
+        assert.equal(await card.getByTestId('connection-result-deepseek').getAttribute('role'), 'status');
+        assert.match(await card.innerText(), /Conexão validada no teste/);
+        providerOk = false;
+        await card.getByRole('button', { name: 'Testar conexão', exact: true }).click();
+        await card.getByRole('alert').waitFor();
+        assert.match(await card.getByRole('alert').innerText(), /Confira a chave/);
         assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
       } finally { await context.close(); }
     });
