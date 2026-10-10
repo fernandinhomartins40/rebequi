@@ -12,6 +12,15 @@ const baseURL = 'http://127.0.0.1:3190';
 await mkdir(new URL('./artifacts/', import.meta.url), { recursive: true });
 const browser = await chromium.launch();
 const contexts = [];
+let adminCookies;
+async function authenticateAdminContext(context) {
+  if (!adminCookies) {
+    const admin = await client();
+    await data(await admin.post('/api/auth/login', { data: { identifier: 'integration@example.invalid', password: 'integration-only-admin-password' } }));
+    adminCookies = (await admin.storageState()).cookies;
+  }
+  await context.addCookies(adminCookies);
+}
 async function client() {
   const context = await request.newContext({ baseURL }); contexts.push(context); return context;
 }
@@ -79,6 +88,7 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
     await t.test('Chinese AI configuration protects keys, validates limits and keeps manual fallback', async () => {
       const admin = await client();
       await data(await admin.post('/api/auth/login', { data: { identifier: 'integration@example.invalid', password: 'integration-only-admin-password' } }));
+      adminCookies = (await admin.storageState()).cookies;
       assert.equal((await owner.get('/api/integrations/ai')).status(), 403);
       const secret = 'integration-only-fake-provider-key';
       const configured = await data(await admin.put('/api/integrations/ai', { data: { enabled: false, primaryProvider: 'qwen', qwenApiKey: secret, maxTokens: 2500 } }));
@@ -93,8 +103,8 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
       assert.equal(health.unavailable, true); assert.equal(Object.hasOwn(health, 'local'), false);
       const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
       try {
-        await data(await context.request.post(baseURL + '/api/auth/login', { data: { identifier: 'integration@example.invalid', password: 'integration-only-admin-password' } }));
-        const page = await context.newPage(); await page.goto(baseURL + '/painel-lojista/integrações');
+        await authenticateAdminContext(context);
+        const page = await context.newPage(); await page.goto(baseURL + '/painel-lojista/painel/integrações');
         await page.getByRole('heading', { name: '1. Conectar os provedores' }).waitFor();
         await page.getByRole('heading', { name: '3. Testar uma lista real' }).waitFor();
         assert.equal(await page.locator('#key-deepseek').getAttribute('type'), 'password');
@@ -252,9 +262,7 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
             assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${route} overflow at ${width}px`);
           }
         }
-        await data(await context.request.post(`${baseURL}/api/auth/login`, { data: {
-          identifier: 'integration@example.invalid', password: 'integration-only-admin-password',
-        } }));
+        await authenticateAdminContext(context);
         for (const route of ['/categorias', '/categorias/ferramentas', `/produto/${product.slug}`, '/promoções', '/novidades', '/buscar?q=cimento', '/contato', '/carrinho', '/checkout']) {
           await page.goto(`${baseURL}${route}`);
           await page.locator('.landing-header').waitFor();
@@ -287,7 +295,7 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
         assert.equal(await page.locator('.dashboard-nav-action[aria-current="page"]').innerText(), await page.locator('.dashboard-nav-action').filter({ hasText: 'Minha conta' }).innerText());
         await page.reload();
         await page.getByLabel('Nova senha', { exact: true }).waitFor();
-        await data(await context.request.post(`${baseURL}/api/auth/login`, { data: { identifier: 'integration@example.invalid', password: 'integration-only-admin-password' } }));
+        await authenticateAdminContext(context);
         await page.goto(`${baseURL}/painel-lojista/painel/produtos/${product.id}/editar`);
         await page.getByLabel('Nome', { exact: true }).waitFor();
         await page.getByLabel('Nome', { exact: true }).fill('Edição local não salva');
@@ -309,9 +317,7 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
     await t.test('Dashboard lists clear filters, recover from errors and fit every viewport', async () => {
       const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, hasTouch: true });
       try {
-        await data(await context.request.post(`${baseURL}/api/auth/login`, { data: {
-          identifier: 'integration@example.invalid', password: 'integration-only-admin-password',
-        } }));
+        await authenticateAdminContext(context);
         const page = await context.newPage();
         for (const route of ['produtos', 'produtos/categorias', 'clientes', 'pedidos', 'vendas', 'promoções', 'acesso', 'orçamentos']) {
           await page.goto(`${baseURL}/painel-lojista/painel/${route}`);
@@ -367,9 +373,7 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
       try {
         db(`await prisma.productImage.deleteMany({where:{productId:${JSON.stringify(product.id)}}});
           await prisma.product.update({where:{id:${JSON.stringify(product.id)}},data:{stock:0,description:null,shortDesc:null,sku:null}});`);
-        await data(await context.request.post(`${baseURL}/api/auth/login`, { data: {
-          identifier: 'integration@example.invalid', password: 'integration-only-admin-password',
-        } }));
+        await authenticateAdminContext(context);
         const page = await context.newPage();
         await page.goto(`${baseURL}/painel-lojista/painel`);
         const link = page.getByRole('link', { name: `Corrigir ${product.name}`, exact: true });

@@ -59,7 +59,7 @@ export type RecognitionEngine = 'paddleocr' | 'tesseract' | 'openrouter' | 'deep
  * A VLM already returns clean, accented text, so applying them to cloud providers
  * output only introduces damage — pass the engine to skip them.
  */
-export function applyOcrCorrections(raw: string, engine: RecognitionEngine = 'paddleocr'): string {
+export function applyOcrCorrections(raw: string, engine: RecognitionEngine = 'manual'): string {
   let result = raw;
 
   if (!['openrouter', 'deepseek', 'qwen', 'manual'].includes(engine)) {
@@ -438,7 +438,7 @@ export const CONSTRUCTION_DOMAIN_TOKENS = new Set([
  *  4. Collapse whitespace
  *  5. Synonym resolution
  */
-export function normalizeDomainText(raw: string, engine: RecognitionEngine = 'paddleocr'): string {
+export function normalizeDomainText(raw: string, engine: RecognitionEngine = 'manual'): string {
   const corrected = applyOcrCorrections(raw, engine);
 
   const stripped = corrected
@@ -456,7 +456,7 @@ export function normalizeDomainText(raw: string, engine: RecognitionEngine = 'pa
  * Tokenise a string using the same rules as normalisation, filtering out
  * tokens shorter than 2 characters.
  */
-export function domainTokenize(value: string, engine: RecognitionEngine = 'paddleocr'): string[] {
+export function domainTokenize(value: string, engine: RecognitionEngine = 'manual'): string[] {
   return tokenizeNormalized(normalizeDomainText(value, engine));
 }
 
