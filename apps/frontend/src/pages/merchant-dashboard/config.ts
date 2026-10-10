@@ -9,14 +9,14 @@ export const ADMIN_BASE_PATH = '/painel-lojista/painel';
  * reservado para o estado ativo e o anel de foco.
  */
 export const SIDEBAR_THEME = {
-  '--sidebar-background': '45 25% 96%',
-  '--sidebar-foreground': '30 8% 30%',
-  '--sidebar-primary': '217 91% 60%',
+  '--sidebar-background': '210 38% 97%',
+  '--sidebar-foreground': '218 40% 24%',
+  '--sidebar-primary': '216 100% 51%',
   '--sidebar-primary-foreground': '0 0% 100%',
-  '--sidebar-accent': '45 15% 90%',
+  '--sidebar-accent': '216 100% 96%',
   '--sidebar-accent-foreground': '30 10% 12%',
-  '--sidebar-border': '45 12% 87%',
-  '--sidebar-ring': '217 91% 60%',
+  '--sidebar-border': '216 38% 92%',
+  '--sidebar-ring': '216 100% 51%',
 } as const;
 
 export type MerchantSection =

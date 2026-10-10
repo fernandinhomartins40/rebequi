@@ -95,7 +95,8 @@ const ProductCard = ({
 
   return (
     <div
-      className="group flex flex-col overflow-hidden rounded-2xl border border-border/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+      data-ui="product-card"
+      className="group flex flex-col overflow-hidden rounded-lg border border-border/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
       data-product-id={id}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -109,7 +110,7 @@ const ProductCard = ({
           <img
             src={image}
             alt={name}
-            className={`aspect-square w-full object-cover transition-all duration-500 group-hover:scale-105 ${isImageLoaded ? 'opacity-100' : 'opacity-0'}`}
+            className={`aspect-square w-full object-contain p-2 transition-all duration-500 group-hover:scale-105 ${isImageLoaded ? 'opacity-100' : 'opacity-0'}`}
             onLoad={() => setIsImageLoaded(true)}
           />
         </Link>

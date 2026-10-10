@@ -7,7 +7,13 @@ import { INTERNAL_USER_ROLES } from "@rebequi/shared/constants";
 import { UserRole } from "@rebequi/shared/types";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
-import { GuestRoute, MerchantPermissionRoute, ProtectedRoute, RoleHomeRedirect } from "@/components/auth/RouteGuards";
+import {
+  GuestRoute,
+  MerchantPermissionRoute,
+  ProtectedRoute,
+  RoleHomeRedirect,
+} from "@/components/auth/RouteGuards";
+import { DesignFrame } from "@/components/DesignFrame";
 import Index from "./pages/Index";
 import MerchantPanel from "./pages/MerchantPanel";
 import MerchantDashboard, {
@@ -58,93 +64,246 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/pedido" element={<RequestQuotePage />} />
-              {/* URL antiga: tinha "ç", que vira %C3%A7 ao compartilhar no WhatsApp. */}
-              <Route path="/solicitar-orçamento" element={<Navigate to="/pedido" replace />} />
-              <Route path="/solicitar-orcamento" element={<Navigate to="/pedido" replace />} />
-              <Route path="/categorias" element={<CategoriesPage />} />
-              <Route path="/categorias/:slug" element={<CategoryDetailsPage />} />
-              <Route path="/ofertas/:slug" element={<PromotionDetailsPage />} />
-              <Route path="/promoções" element={<PromotionsPage />} />
-              <Route path="/promoções/:slug" element={<PromotionDetailsPage />} />
-              <Route path="/novidades" element={<NewsPage />} />
-              <Route path="/contato" element={<ContactPage />} />
-              <Route path="/buscar" element={<SearchResultsPage />} />
-              <Route path="/carrinho" element={<CartPage />} />
-              <Route path="/checkout" element={<CheckoutPage />} />
-              <Route path="/produto/:slug" element={<ProductDetails />} />
-              <Route path="/produtos/:slug" element={<ProductDetails />} />
+            <DesignFrame>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/pedido" element={<RequestQuotePage />} />
+                {/* URL antiga: tinha "ç", que vira %C3%A7 ao compartilhar no WhatsApp. */}
+                <Route
+                  path="/solicitar-orçamento"
+                  element={<Navigate to="/pedido" replace />}
+                />
+                <Route
+                  path="/solicitar-orcamento"
+                  element={<Navigate to="/pedido" replace />}
+                />
+                <Route path="/categorias" element={<CategoriesPage />} />
+                <Route
+                  path="/categorias/:slug"
+                  element={<CategoryDetailsPage />}
+                />
+                <Route
+                  path="/ofertas/:slug"
+                  element={<PromotionDetailsPage />}
+                />
+                <Route path="/promoções" element={<PromotionsPage />} />
+                <Route
+                  path="/promoções/:slug"
+                  element={<PromotionDetailsPage />}
+                />
+                <Route path="/novidades" element={<NewsPage />} />
+                <Route path="/contato" element={<ContactPage />} />
+                <Route path="/buscar" element={<SearchResultsPage />} />
+                <Route path="/carrinho" element={<CartPage />} />
+                <Route path="/checkout" element={<CheckoutPage />} />
+                <Route path="/produto/:slug" element={<ProductDetails />} />
+                <Route path="/produtos/:slug" element={<ProductDetails />} />
 
-              <Route element={<GuestRoute />}>
-                <Route path="/painel-lojista" element={<MerchantPanel />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/registrar" element={<Register />} />
-              </Route>
-
-              <Route
-                element={<ProtectedRoute allowedRoles={INTERNAL_USER_ROLES} redirectTo="/painel-lojista" />}
-              >
-                <Route path="/painel-lojista/painel" element={<MerchantDashboardLayout />}>
-                  <Route index element={<RoleHomeRedirect />} />
-                  <Route element={<MerchantPermissionRoute permission="dashboard:view" />}>
-                    <Route path="visão-geral" element={<MerchantDashboard />} />
-                  </Route>
-                  <Route element={<MerchantPermissionRoute permission="catalog:manage" />}>
-                    <Route path="produtos" element={<MerchantDashboardProducts />} />
-                    <Route path="produtos/novo" element={<MerchantProductEditorPage />} />
-                    <Route path="produtos/categorias" element={<MerchantCategoryListPage />} />
-                    <Route path="produtos/categorias/nova" element={<MerchantCategoryEditorPage />} />
-                    <Route path="produtos/categorias/:categoryId/editar" element={<MerchantCategoryEditorPage />} />
-                    <Route path="produtos/:productId/editar" element={<MerchantProductEditorPage />} />
-                    <Route path="produtos/:productId/oferta" element={<MerchantProductOfferPage />} />
-                    <Route path="ofertas" element={<Navigate to="/painel-lojista/painel/produtos" replace />} />
-                  </Route>
-                  <Route element={<MerchantPermissionRoute permission="promotions:manage" />}>
-                    <Route path="promoções" element={<MerchantDashboardPromotions />} />
-                    <Route path="promoções/nova" element={<MerchantPromotionEditorPage />} />
-                    <Route path="promoções/:promotionId/editar" element={<MerchantPromotionEditorPage />} />
-                  </Route>
-                  <Route element={<MerchantPermissionRoute permission="orders:manage" />}>
-                    <Route path="pedidos" element={<MerchantDashboardOrders />} />
-                    <Route path="pedidos/:orderId" element={<MerchantDashboardOrderDetails />} />
-                  </Route>
-                  <Route element={<MerchantPermissionRoute permission="sales:manage" />}>
-                    <Route path="vendas" element={<MerchantDashboardSales />} />
-                    <Route path="vendas/nova" element={<MerchantSaleEditorPage />} />
-                  </Route>
-                  <Route element={<MerchantPermissionRoute permission="customers:manage" />}>
-                    <Route path="clientes" element={<MerchantDashboardCustomers />} />
-                    <Route path="clientes/:customerId" element={<MerchantCustomerDetailPage />} />
-                  </Route>
-                  <Route element={<MerchantPermissionRoute permission="quotes:manage" />}>
-                    <Route path="orçamentos" element={<MerchantDashboardQuotes />} />
-                  </Route>
-                  <Route element={<MerchantPermissionRoute permission="channels:manage" />}>
-                    <Route path="canais" element={<MerchantDashboardChannels />} />
-                    <Route path="canais/:channelId" element={<MerchantChannelDetailPage />} />
-                  </Route>
-                  <Route element={<MerchantPermissionRoute permission="integrations:manage" />}>
-                    <Route path="integrações" element={<MerchantDashboardIntegrations />} />
-                  </Route>
-                  <Route element={<MerchantPermissionRoute permission="access:manage" />}>
-                    <Route path="acesso" element={<MerchantDashboardAccess />} />
-                    <Route path="acesso/novo" element={<MerchantUserEditorPage />} />
-                    <Route path="acesso/:userId/editar" element={<MerchantUserEditorPage />} />
-                  </Route>
-                  <Route path="*" element={<RoleHomeRedirect />} />
+                <Route element={<GuestRoute />}>
+                  <Route path="/painel-lojista" element={<MerchantPanel />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/registrar" element={<Register />} />
                 </Route>
-              </Route>
 
-              <Route
-                element={<ProtectedRoute allowedRoles={[UserRole.CUSTOMER]} redirectTo="/login" />}
-              >
-                <Route path="/painel-cliente" element={<CustomerDashboard />} />
-              </Route>
+                <Route
+                  element={
+                    <ProtectedRoute
+                      allowedRoles={INTERNAL_USER_ROLES}
+                      redirectTo="/painel-lojista"
+                    />
+                  }
+                >
+                  <Route
+                    path="/painel-lojista/painel"
+                    element={<MerchantDashboardLayout />}
+                  >
+                    <Route index element={<RoleHomeRedirect />} />
+                    <Route
+                      element={
+                        <MerchantPermissionRoute permission="dashboard:view" />
+                      }
+                    >
+                      <Route
+                        path="visão-geral"
+                        element={<MerchantDashboard />}
+                      />
+                    </Route>
+                    <Route
+                      element={
+                        <MerchantPermissionRoute permission="catalog:manage" />
+                      }
+                    >
+                      <Route
+                        path="produtos"
+                        element={<MerchantDashboardProducts />}
+                      />
+                      <Route
+                        path="produtos/novo"
+                        element={<MerchantProductEditorPage />}
+                      />
+                      <Route
+                        path="produtos/categorias"
+                        element={<MerchantCategoryListPage />}
+                      />
+                      <Route
+                        path="produtos/categorias/nova"
+                        element={<MerchantCategoryEditorPage />}
+                      />
+                      <Route
+                        path="produtos/categorias/:categoryId/editar"
+                        element={<MerchantCategoryEditorPage />}
+                      />
+                      <Route
+                        path="produtos/:productId/editar"
+                        element={<MerchantProductEditorPage />}
+                      />
+                      <Route
+                        path="produtos/:productId/oferta"
+                        element={<MerchantProductOfferPage />}
+                      />
+                      <Route
+                        path="ofertas"
+                        element={
+                          <Navigate
+                            to="/painel-lojista/painel/produtos"
+                            replace
+                          />
+                        }
+                      />
+                    </Route>
+                    <Route
+                      element={
+                        <MerchantPermissionRoute permission="promotions:manage" />
+                      }
+                    >
+                      <Route
+                        path="promoções"
+                        element={<MerchantDashboardPromotions />}
+                      />
+                      <Route
+                        path="promoções/nova"
+                        element={<MerchantPromotionEditorPage />}
+                      />
+                      <Route
+                        path="promoções/:promotionId/editar"
+                        element={<MerchantPromotionEditorPage />}
+                      />
+                    </Route>
+                    <Route
+                      element={
+                        <MerchantPermissionRoute permission="orders:manage" />
+                      }
+                    >
+                      <Route
+                        path="pedidos"
+                        element={<MerchantDashboardOrders />}
+                      />
+                      <Route
+                        path="pedidos/:orderId"
+                        element={<MerchantDashboardOrderDetails />}
+                      />
+                    </Route>
+                    <Route
+                      element={
+                        <MerchantPermissionRoute permission="sales:manage" />
+                      }
+                    >
+                      <Route
+                        path="vendas"
+                        element={<MerchantDashboardSales />}
+                      />
+                      <Route
+                        path="vendas/nova"
+                        element={<MerchantSaleEditorPage />}
+                      />
+                    </Route>
+                    <Route
+                      element={
+                        <MerchantPermissionRoute permission="customers:manage" />
+                      }
+                    >
+                      <Route
+                        path="clientes"
+                        element={<MerchantDashboardCustomers />}
+                      />
+                      <Route
+                        path="clientes/:customerId"
+                        element={<MerchantCustomerDetailPage />}
+                      />
+                    </Route>
+                    <Route
+                      element={
+                        <MerchantPermissionRoute permission="quotes:manage" />
+                      }
+                    >
+                      <Route
+                        path="orçamentos"
+                        element={<MerchantDashboardQuotes />}
+                      />
+                    </Route>
+                    <Route
+                      element={
+                        <MerchantPermissionRoute permission="channels:manage" />
+                      }
+                    >
+                      <Route
+                        path="canais"
+                        element={<MerchantDashboardChannels />}
+                      />
+                      <Route
+                        path="canais/:channelId"
+                        element={<MerchantChannelDetailPage />}
+                      />
+                    </Route>
+                    <Route
+                      element={
+                        <MerchantPermissionRoute permission="integrations:manage" />
+                      }
+                    >
+                      <Route
+                        path="integrações"
+                        element={<MerchantDashboardIntegrations />}
+                      />
+                    </Route>
+                    <Route
+                      element={
+                        <MerchantPermissionRoute permission="access:manage" />
+                      }
+                    >
+                      <Route
+                        path="acesso"
+                        element={<MerchantDashboardAccess />}
+                      />
+                      <Route
+                        path="acesso/novo"
+                        element={<MerchantUserEditorPage />}
+                      />
+                      <Route
+                        path="acesso/:userId/editar"
+                        element={<MerchantUserEditorPage />}
+                      />
+                    </Route>
+                    <Route path="*" element={<RoleHomeRedirect />} />
+                  </Route>
+                </Route>
 
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+                <Route
+                  element={
+                    <ProtectedRoute
+                      allowedRoles={[UserRole.CUSTOMER]}
+                      redirectTo="/login"
+                    />
+                  }
+                >
+                  <Route
+                    path="/painel-cliente"
+                    element={<CustomerDashboard />}
+                  />
+                </Route>
+
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </DesignFrame>
           </BrowserRouter>
         </TooltipProvider>
       </CartProvider>

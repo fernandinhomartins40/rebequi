@@ -29,7 +29,7 @@ export function MerchantDashboardLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-[hsl(45,25%,96%)]">
+    <div className="min-h-screen bg-[#f5f8fc]">
       <SidebarProvider defaultOpen style={SIDEBAR_THEME as CSSProperties}>
         <Sidebar variant="inset" collapsible="icon" className="border-r-0">
           <MerchantSidebarHeader />

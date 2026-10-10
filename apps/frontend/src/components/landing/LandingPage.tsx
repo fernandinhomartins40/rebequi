@@ -108,8 +108,8 @@ function SectionHeading({
     </div>
   );
 }
-function LandingHeader() {
-  const { user, isAuthenticated } = useAuth();
+export function LandingHeader() {
+  const { user, isAuthenticated, logout } = useAuth();
   const { totalItems } = useCart();
   const [open, setOpen] = useState(false);
   const categories = useQuery({
@@ -188,6 +188,17 @@ function LandingHeader() {
             <Link to="/novidades">Novidades</Link>
             <Link to="/pedido">Solicitar orçamento por foto ou lista</Link>
             <Link to="/contato">Falar com a loja</Link>
+            {isAuthenticated ? (
+              <button
+                className="landing-logout"
+                onClick={async () => {
+                  await logout();
+                  setOpen(false);
+                }}
+              >
+                Sair da conta
+              </button>
+            ) : null}
           </nav>
         ) : null}
       </div>
@@ -610,7 +621,11 @@ function LandingBrands() {
     </section>
   );
 }
-function LandingFooter() {
+export function LandingFooter({
+  showMobileCart = true,
+}: {
+  showMobileCart?: boolean;
+}) {
   const { totalItems } = useCart();
   const columns = [
     {
@@ -692,11 +707,13 @@ function LandingFooter() {
           </nav>
         </div>
       </footer>
-      <Link to="/carrinho" className="landing-mobile-cart">
-        <ShoppingCart size={21} />
-        Ver carrinho{totalItems ? <b>{totalItems}</b> : null}
-        <ArrowRight size={19} />
-      </Link>
+      {showMobileCart ? (
+        <Link to="/carrinho" className="landing-mobile-cart">
+          <ShoppingCart size={21} />
+          Ver carrinho{totalItems ? <b>{totalItems}</b> : null}
+          <ArrowRight size={19} />
+        </Link>
+      ) : null}
     </>
   );
 }

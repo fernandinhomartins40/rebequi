@@ -1,0 +1,147 @@
+/* Shared visual language; business flows and semantic status colors remain in their components. */
+.rebequi-app {
+  --brand-yellow: 55 100% 55%;
+  --brand-red: 351 100% 50%;
+  --brand-blue: 216 100% 51%;
+  --primary: var(--brand-red);
+  --secondary: var(--brand-yellow);
+  --accent: var(--brand-blue);
+  --foreground: 218 76% 10%;
+  --card-foreground: var(--foreground);
+  --muted: 210 38% 97%;
+  --muted-foreground: 219 20% 40%;
+  --border: 216 38% 92%;
+  --input: var(--border);
+  --ring: var(--brand-blue);
+  color: hsl(var(--foreground));
+  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+  background: linear-gradient(120deg, #fff, #fbfdff);
+}
+:is(.design-store, .design-auth, .design-workspace)
+  > :is(main, div:not(.design-auth-header)) {
+  background: transparent;
+}
+.design-store > main > .container {
+  max-width: 1280px;
+  width: 92%;
+  padding-inline: 0;
+}
+.rebequi-app:not(.design-landing)
+  :is(
+    [data-ui="card"],
+    [class*="rounded-[2rem]"],
+    [class*="rounded-[1.75rem]"]
+  ) {
+  border-color: #e2e9f2;
+  border-radius: 9px;
+  box-shadow: 0 2px 8px #06142c04;
+}
+.rebequi-app:not(.design-landing)
+  :is([class*="border-[#e7dcc3]"], [class*="border-[#e8dcc2]"]) {
+  border-color: #e2e9f2;
+}
+.rebequi-app:not(.design-landing) :is(h1, h2) {
+  font-weight: 800;
+  letter-spacing: -0.6px;
+}
+.design-store h1 {
+  border-left: 4px solid #ff0026;
+  padding-left: 12px;
+}
+.rebequi-app:not(.design-landing)
+  :is(
+    input:not([type="checkbox"]):not([type="radio"]),
+    textarea,
+    [role="combobox"]
+  ) {
+  border-radius: 6px;
+  border-color: #dce5ef;
+}
+.rebequi-app a.text-primary {
+  color: #0668ff;
+}
+.design-auth-header {
+  min-height: 62px;
+  background: linear-gradient(100deg, #ffef22, #ffe611);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px max(4%, calc((100vw - 1280px) / 2));
+  gap: 20px;
+}
+.design-auth-header img {
+  width: 116px;
+  height: 40px;
+  object-fit: contain;
+}
+.design-auth-header > a:last-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.design-auth > div {
+  min-height: calc(100vh - 62px);
+}
+.rebequi-app.design-auth [data-ui="card"] {
+  border-top: 4px solid #ff0026;
+}
+.design-workspace header.sticky,
+.design-quote header.sticky {
+  background: #ffeb18;
+  border-bottom-color: #ead614;
+  backdrop-filter: none;
+}
+.design-workspace [data-sidebar="sidebar"] {
+  background: #f5f8fc;
+}
+.design-workspace [data-sidebar="menu-button"][data-active="true"] {
+  background: #0668ff;
+  color: white;
+}
+.landing-logout {
+  padding: 12px 0;
+  font-weight: 700;
+  color: #ff0026;
+}
+@media (max-width: 899px) {
+  .design-store > main > .container {
+    padding-block: 22px;
+  }
+  .design-store h1 {
+    font-size: 26px;
+    line-height: 1.15;
+  }
+  .design-auth-header {
+    min-height: 54px;
+  }
+  .design-auth-header img {
+    height: 32px;
+    width: 100px;
+  }
+  .design-auth > div {
+    min-height: calc(100vh - 54px);
+    padding-block: 24px;
+  }
+}
+
+.design-store [class*="rounded-[2rem]"] {
+  background: white;
+}
+.design-store [data-ui="product-card"] {
+  border-color: #e2e9f2;
+  border-radius: 9px;
+}
+.design-store [data-ui="product-card"]:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px #06142c0d;
+}
+
+.design-store .grid > * {
+  min-width: 0;
+}
+.design-store :is(h1, h2, h3, p) {
+  overflow-wrap: break-word;
+}

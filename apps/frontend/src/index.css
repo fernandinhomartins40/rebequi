@@ -9,39 +9,39 @@ All colors MUST be HSL.
 @layer base {
   :root {
     /* Rebequi Brand Colors */
-    --brand-yellow: 51 100% 50%;        /* #FFD700 */
-    --brand-red: 0 84% 51%;             /* #DC2626 */
-    --brand-blue: 217 91% 60%;          /* #2563EB */
+    --brand-yellow: 55 100% 55%;        /* #ffeb18 */
+    --brand-red: 351 100% 50%;             /* #ff0026 */
+    --brand-blue: 216 100% 51%;          /* #0668ff */
     --brand-gray: 210 17% 98%;          /* #F8F9FA */
     
     /* Main Theme Colors */
     --background: 0 0% 100%;
-    --foreground: 0 0% 9%;
+    --foreground: 218 76% 10%;
     
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 9%;
+    --card-foreground: 218 76% 10%;
     
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 9%;
     
-    --primary: 217 91% 60%;              /* Brand Blue */
+    --primary: 351 100% 50%;              /* Brand Red */
     --primary-foreground: 0 0% 100%;
     
-    --secondary: 51 100% 50%;            /* Brand Yellow */
+    --secondary: 55 100% 55%;            /* Brand Yellow */
     --secondary-foreground: 0 0% 9%;
     
-    --accent: 0 84% 51%;                 /* Brand Red */
+    --accent: 216 100% 51%;                 /* Brand Blue */
     --accent-foreground: 0 0% 100%;
     
     --muted: 210 17% 98%;               /* Brand Gray */
     --muted-foreground: 0 0% 45%;
     
-    --destructive: 0 84% 51%;
+    --destructive: 351 100% 50%;
     --destructive-foreground: 0 0% 100%;
     
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 217 91% 60%;
+    --ring: 216 100% 51%;
     
     /* Custom Rebequi Variables */
     --gradient-hero: linear-gradient(135deg, hsl(var(--brand-yellow)), hsl(var(--brand-red)));

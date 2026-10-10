@@ -195,6 +195,35 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
       } finally { await context.close(); }
     });
 
+    await t.test('Store and authentication pages share the landing design at mobile and desktop sizes', async () => {
+      const context = await browser.newContext();
+      try {
+        const page = await context.newPage();
+        for (const route of ['/login', '/registrar', '/painel-lojista']) {
+          await page.goto(`${baseURL}${route}`);
+          await page.locator('.design-auth-header').waitFor();
+          for (const width of [320, 1440]) {
+            await page.setViewportSize({ width, height: 900 });
+            assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${route} overflow at ${width}px`);
+          }
+        }
+        await data(await context.request.post(`${baseURL}/api/auth/login`, { data: {
+          identifier: 'integration@example.invalid', password: 'integration-only-admin-password',
+        } }));
+        for (const route of ['/categorias', '/categorias/ferramentas', `/produto/${product.slug}`, '/promoções', '/novidades', '/buscar?q=cimento', '/contato', '/carrinho', '/checkout']) {
+          await page.goto(`${baseURL}${route}`);
+          await page.locator('.landing-header').waitFor();
+          await page.waitForTimeout(250);
+          for (const width of [320, 1440]) {
+            await page.setViewportSize({ width, height: 900 });
+            assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${route} overflow at ${width}px`);
+          }
+          assert.equal(await page.locator('.landing-header .landing-logo img').getAttribute('alt'), 'Rebequi');
+          if (['/carrinho', '/checkout'].includes(route)) assert.equal(await page.locator('.landing-mobile-cart').count(), 0);
+        }
+      } finally { await context.close(); }
+    });
+
     await t.test('Catalog alert opens the exact product editor', async () => {
       const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
       try {
@@ -210,6 +239,7 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
         assert.ok((await link.getAttribute('href')).endsWith(`/produtos/${product.id}/editar`));
         await link.click();
         await page.waitForURL(`**/produtos/${product.id}/editar`);
+        assert.equal(await page.locator('.design-workspace header.sticky').evaluate((header) => getComputedStyle(header).backgroundColor), 'rgb(255, 235, 24)');
       } finally { await context.close(); }
     });
   } finally {

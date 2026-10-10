@@ -59,11 +59,10 @@ export default function CategoriesPage() {
           <div className="mt-4 grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
             <div>
               <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                Navegue por todas as categorias da vitrine
+                Nossas categorias
               </h1>
               <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
-                Cada categoria leva para uma página própria com todos os produtos ativos daquele departamento,
-                facilitando a exploração do catálogo sem excesso de informação.
+                Encontre ferramentas e materiais para cada etapa da sua obra.
               </p>
             </div>
 
@@ -103,7 +102,7 @@ export default function CategoriesPage() {
             </Button>
           </div>
         ) : (
-          <section className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          <section className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-5">
             {categories.map((category, index) => {
               const Icon = getCategoryIcon(category.icon, `${category.slug} ${category.name}`);
               const iconColorClass = getCategoryColorClass(index);
@@ -112,30 +111,24 @@ export default function CategoriesPage() {
                 <Link
                   key={category.id}
                   to={`/categorias/${category.slug}`}
-                  className="group overflow-hidden rounded-[2rem] border border-[#e7dcc3] bg-white p-5 shadow-[0_30px_70px_-55px_rgba(15,23,42,0.35)] transition hover:-translate-y-1 hover:shadow-[0_35px_80px_-45px_rgba(15,23,42,0.32)]"
+                  className="group min-w-0 overflow-hidden rounded-lg border border-border bg-white p-3 transition hover:border-blue-300 hover:bg-blue-50/30 sm:p-4"
                 >
                   <div className="flex items-start justify-between gap-4">
-                    <div className="category-circle bg-white">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-50">
                       <Icon className={`h-8 w-8 ${iconColorClass}`} />
                     </div>
                     <ArrowRight className="h-5 w-5 text-muted-foreground transition group-hover:translate-x-1 group-hover:text-primary" />
                   </div>
 
-                  <div className="mt-5">
-                    <h2 className="text-xl font-semibold text-foreground">{category.name}</h2>
-                    <p className="mt-2 line-clamp-3 min-h-[4.5rem] text-sm leading-6 text-muted-foreground">
+                  <div className="mt-3">
+                    <h2 className="min-h-9 text-sm font-semibold leading-tight text-foreground">{category.name}</h2>
+                    <p className="mt-2 line-clamp-2 min-h-8 text-xs leading-4 text-muted-foreground">
                       {category.description || "Abra a categoria para visualizar todos os produtos disponíveis nesta área."}
                     </p>
                   </div>
 
-                  <div className="mt-5 flex items-center justify-between rounded-[1.5rem] border border-black/5 bg-slate-50 px-4 py-3">
-                    <div>
-                      <div className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">Produtos</div>
-                      <div className="mt-1 text-2xl font-bold text-foreground">{category.productsCount ?? 0}</div>
-                    </div>
-                    <div className="inline-flex items-center rounded-full bg-white px-3 py-2 text-xs font-semibold text-foreground shadow-sm">
-                      Ver categoria
-                    </div>
+                  <div className="mt-3 border-t border-border pt-2 text-xs font-semibold text-blue-600">
+                    {category.productsCount ?? 0} produtos
                   </div>
                 </Link>
               );
