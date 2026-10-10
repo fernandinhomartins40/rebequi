@@ -634,6 +634,7 @@ export function LandingFooter({
         { text: "Sobre a loja", href: "/sobre" },
         { text: "Fale conosco", href: "/contato" },
         { text: "Solicitar orçamento", href: "/pedido" },
+        { text: "Painel administrativo", href: "/painel-lojista" },
       ],
     },
     {
