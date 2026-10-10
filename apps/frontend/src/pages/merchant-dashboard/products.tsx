@@ -1,12 +1,13 @@
+import { DashboardSearch } from "@/components/dashboard/DashboardList";
+import { DashboardLoading, DashboardError, DashboardEmpty } from "@/components/dashboard/DashboardList";
 import { useDeferredValue, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Boxes, Clock3, Pencil, Plus, RefreshCcw, Search, Tags, Trash2 } from 'lucide-react';
+import { Boxes, Clock3, Pencil, Plus, RefreshCcw, Tags, Trash2 } from 'lucide-react';
 import type { Product, Promotion } from '@rebequi/shared/types';
 import { useNavigate } from 'react-router-dom';
 import { PromotionCountdown } from '@/components/PromotionCountdown';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
 import { formatPromotionStatusLabel, getPromotionStatusTone } from '@/lib/promotion-ui';
 import { fetchCategories } from '@/services/api/categories';
@@ -41,6 +42,7 @@ export function MerchantDashboardProducts() {
   const {
     data: adminProducts,
     isLoading,
+    isError,
     isFetching,
     refetch,
   } = useQuery({
@@ -232,15 +234,7 @@ export function MerchantDashboardProducts() {
       <DashboardPanel title="Produtos cadastrados" description="Gerencie seus produtos, preços e ofertas." accent="blue">
         {/* Filters */}
         <div className="mb-4 flex flex-col gap-3 sm:flex-row">
-          <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por nome, SKU ou descrição…"
-              className="pl-9"
-            />
-          </div>
+          <DashboardSearch value={search} onChange={setSearch} placeholder="Buscar por nome, SKU ou descrição…" />
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as ProductStatusFilter)}
@@ -257,15 +251,11 @@ export function MerchantDashboardProducts() {
         </div>
 
         {isLoading ? (
-          <div className="grid gap-3 xl:grid-cols-2">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-40 animate-pulse rounded-lg bg-muted" />
-            ))}
-          </div>
+          <DashboardLoading />
+        ) : isError ? (
+          <DashboardError message="Não foi possível carregar produtos." onRetry={() => void refetch()} retrying={isFetching} />
         ) : products.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border/70 py-10 text-center text-sm text-muted-foreground">
-            Nenhum produto encontrado para esse filtro.
-          </div>
+          <DashboardEmpty title="Nenhum resultado encontrado" description="Nenhum produto encontrado para esse filtro." action={<Button variant="outline" size="sm" onClick={() => { setSearch(''); setStatusFilter('all'); }}>Limpar filtros</Button>} />
         ) : (
           <div className="grid gap-3 xl:grid-cols-2">
             {products.map((product) => {

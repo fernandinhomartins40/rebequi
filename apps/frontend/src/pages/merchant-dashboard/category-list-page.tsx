@@ -1,11 +1,11 @@
+import { DashboardSearch, DashboardLoading, DashboardError, DashboardEmpty } from "@/components/dashboard/DashboardList";
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Pencil, Plus, Search, Tags, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Tags, Trash2 } from 'lucide-react';
 import type { Category } from '@rebequi/shared/types';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/components/ui/use-toast';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
@@ -24,7 +24,7 @@ export function MerchantCategoryListPage() {
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 300).trim().toLowerCase();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ['merchant-dashboard', 'categories', 'all'],
     queryFn: () => fetchCategories({ includeInactive: true }),
   });
@@ -98,15 +98,7 @@ export function MerchantCategoryListPage() {
 
       <DashboardPanel title="Todas as categorias" accent="yellow">
         <div className="mb-4 flex flex-col gap-3 sm:flex-row">
-          <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              className="pl-9"
-              placeholder="Buscar por nome ou slug…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
+          <DashboardSearch value={search} onChange={setSearch} placeholder="Buscar por nome ou slug…" />
           <Button size="sm" onClick={openCreateDialog} className="gap-1.5">
             <Plus className="h-3.5 w-3.5" />
             Nova
@@ -114,14 +106,11 @@ export function MerchantCategoryListPage() {
         </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Carregando categorias…
-          </div>
+          <DashboardLoading />
+        ) : isError ? (
+          <DashboardError message="Não foi possível carregar categorias." onRetry={() => void refetch()} retrying={isFetching} />
         ) : categories.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border/70 py-10 text-center text-sm text-muted-foreground">
-            {allCategories.length === 0 ? 'Nenhuma categoria cadastrada.' : 'Nenhuma categoria encontrada para essa busca.'}
-          </div>
+          <DashboardEmpty title="Nenhum resultado encontrado" action={<Button variant="outline" size="sm" onClick={() => { setSearch(''); }}>Limpar filtros</Button>} />
         ) : (
           <>
             {/* Desktop table */}

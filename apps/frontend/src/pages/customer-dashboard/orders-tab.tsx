@@ -13,6 +13,8 @@ import { fetchMyOrders } from '@/services/api/orders';
 import { fetchProductById } from '@/services/api/products';
 import type { CustomerOrder } from '@/types';
 import { SectionPanel } from './components';
+import { DashboardHeading } from '@/components/dashboard/DashboardElements';
+import { DashboardEmpty, DashboardError, DashboardLoading } from '@/components/dashboard/DashboardList';
 
 export function OrdersTab() {
   const [params] = useSearchParams();
@@ -62,21 +64,14 @@ export function OrdersTab() {
   };
 
   return <div className="space-y-5">
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h2 className="text-2xl font-bold">Meus pedidos</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Acompanhe o que já foi registrado e retome a conversa com a loja.</p>
-      </div>
+    <DashboardHeading title="Meus pedidos" description="Acompanhe seus pedidos e retome a conversa com a loja." actions={
       <Button variant="outline" size="sm" onClick={() => void ordersQuery.refetch()} disabled={ordersQuery.isFetching}>
         <RefreshCcw className="mr-2 h-4 w-4" /> Atualizar pedidos
       </Button>
-    </div>
-    {ordersQuery.isLoading ? <p role="status" className="flex items-center gap-2 py-8"><Loader2 className="h-4 w-4 animate-spin" /> Carregando pedidos…</p>
-      : ordersQuery.isError ? <SectionPanel className="p-5"><p role="alert">Não foi possível carregar seus pedidos. Tente atualizar novamente.</p></SectionPanel>
-      : !ordersQuery.data?.length ? <SectionPanel className="space-y-3 p-6">
-        <p>Você ainda não tem pedidos registrados.</p>
-        <Button asChild><Link to="/categorias">Escolher produtos</Link></Button>
-      </SectionPanel> : ordersQuery.data.map((order) => <SectionPanel key={order.id}
+    } />
+    {ordersQuery.isLoading ? <DashboardLoading label="Carregando pedidos…" />
+      : ordersQuery.isError ? <DashboardError message="Não foi possível carregar seus pedidos." onRetry={() => void ordersQuery.refetch()} retrying={ordersQuery.isFetching} />
+      : !ordersQuery.data?.length ? <DashboardEmpty title="Você ainda não tem pedidos" action={<Button asChild><Link to="/categorias">Escolher produtos</Link></Button>} /> : ordersQuery.data.map((order) => <SectionPanel key={order.id}
         id={`customer-order-${order.id}`} className={`scroll-mt-24 space-y-4 p-5 ${order.id === selectedId ? 'ring-2 ring-primary/40' : ''}`}>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">

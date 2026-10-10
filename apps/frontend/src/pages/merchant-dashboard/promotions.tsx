@@ -1,12 +1,12 @@
+import { DashboardSearch, DashboardLoading, DashboardError, DashboardEmpty } from "@/components/dashboard/DashboardList";
 import { useDeferredValue, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Boxes, LayoutTemplate, Megaphone, Pencil, RefreshCcw, Search, Trash2 } from 'lucide-react';
+import { Boxes, LayoutTemplate, Megaphone, Pencil, RefreshCcw, Trash2 } from 'lucide-react';
 import type { Product, Promotion, PromotionResponse } from '@rebequi/shared/types';
 import { Link, useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PromotionCountdown } from '@/components/PromotionCountdown';
-import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/components/ui/use-toast';
 import { fetchAdminProducts } from '@/services/api/products';
@@ -65,7 +65,7 @@ export function MerchantDashboardPromotions() {
     queryFn: fetchAllAdminPromotionsSnapshot,
   });
 
-  const { data: promotionProducts, isLoading: isLoadingProducts } = useQuery({
+  const { data: promotionProducts, isLoading: isLoadingProducts, isError: productsError, refetch: refetchProducts } = useQuery({
     queryKey: ['merchant-dashboard', 'promotion-products-selection'],
     queryFn: fetchAllAdminProductsSnapshot,
   });
@@ -73,6 +73,7 @@ export function MerchantDashboardPromotions() {
   const {
     data: filteredPromotions,
     isLoading,
+    isError,
     isFetching,
     refetch,
   } = useQuery({
@@ -231,15 +232,7 @@ export function MerchantDashboardPromotions() {
 
         {/* Filters */}
         <div className="mb-4 flex flex-col gap-3 sm:flex-row">
-          <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por nome, título ou descrição…"
-              className="pl-9"
-            />
-          </div>
+          <DashboardSearch value={search} onChange={setSearch} placeholder="Buscar por nome, título ou descrição…" />
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as PromotionStatusFilter)}
@@ -258,15 +251,11 @@ export function MerchantDashboardPromotions() {
         </div>
 
         {isLoading || isLoadingProducts ? (
-          <div className="space-y-2">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-24 animate-pulse rounded-lg bg-muted" />
-            ))}
-          </div>
+          <DashboardLoading />
+        ) : isError || productsError ? (
+          <DashboardError message="Não foi possível carregar promoções." onRetry={() => void Promise.all([refetch(), refetchProducts()])} retrying={isFetching} />
         ) : promotions.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border/40 py-10 text-center text-sm text-muted-foreground">
-            Nenhuma promoção encontrada para esse filtro.
-          </div>
+          <DashboardEmpty title="Nenhum resultado encontrado" action={<Button variant="outline" size="sm" onClick={() => { setSearch(''); setStatusFilter('all'); }}>Limpar filtros</Button>} />
         ) : (
           <>
             {/* Desktop table */}

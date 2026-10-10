@@ -1,3 +1,4 @@
+import { DashboardInfo, DashboardLoading } from "@/components/dashboard/DashboardList";
 import {
   DashboardHeading,
   DashboardSection,
@@ -230,11 +231,7 @@ export function EditorFooter({ children }: { children: ReactNode }) {
 }
 
 export function EditorLoading() {
-  return (
-    <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
-      Carregando…
-    </div>
-  );
+  return <DashboardLoading label="Carregando formulário…" />;
 }
 
 export function EditorError({
@@ -270,7 +267,7 @@ export function SectionHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3">
+    <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="min-w-0">
         <h3 className="text-base font-semibold text-foreground">{title}</h3>
         {description ? <DashboardHelp>{description}</DashboardHelp> : null}
@@ -399,7 +396,7 @@ export function SignalRow({
         )}
       />
       <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-sm font-medium text-foreground">{title}</p>
           <span
             className={cn(
@@ -466,14 +463,7 @@ export function SummarySurface({
 }
 
 export function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-border/60 bg-muted/30 px-4 py-3">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="mt-0.5 break-all text-sm font-medium text-foreground">
-        {value}
-      </p>
-    </div>
-  );
+ return <DashboardInfo label={label} value={value} />;
 }
 
 export function GuaranteeCard({

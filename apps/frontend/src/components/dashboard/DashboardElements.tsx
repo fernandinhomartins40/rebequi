@@ -46,6 +46,11 @@ export function DashboardSurface({
   );
 }
 
+/** A record has a clear boundary; only interactive records receive hover feedback. */
+export function DashboardRecord(props: HTMLAttributes<HTMLDivElement>) {
+  return <DashboardSurface {...props} className={cn("dashboard-record", props.className)} />;
+}
+
 export function DashboardSection({
   title,
   description,

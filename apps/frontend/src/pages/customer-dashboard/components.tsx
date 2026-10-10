@@ -1,3 +1,4 @@
+import { DashboardInfo } from "@/components/dashboard/DashboardList";
 import {
   DashboardNavAction,
   DashboardMetric,
@@ -108,16 +109,7 @@ export function MetricCard({
 // ── Data row (perfil) ─────────────────────────────────────────────────────────
 
 export function DataRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col gap-1 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
-      <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-        {label}
-      </span>
-      <span className="text-sm font-medium text-foreground sm:max-w-[60%] sm:text-right">
-        {value}
-      </span>
-    </div>
-  );
+ return <DashboardInfo label={label} value={value} inline />;
 }
 
 // ── Quick-link ────────────────────────────────────────────────────────────────

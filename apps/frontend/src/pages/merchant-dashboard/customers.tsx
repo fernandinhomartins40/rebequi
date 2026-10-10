@@ -1,6 +1,8 @@
+import { DashboardSearch } from "@/components/dashboard/DashboardList";
+import { DashboardLoading, DashboardError, DashboardEmpty } from "@/components/dashboard/DashboardList";
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { AlarmClock, BellRing, Search, TrendingUp, UserRound, Users } from 'lucide-react';
+import { AlarmClock, BellRing, TrendingUp, UserRound, Users } from 'lucide-react';
 import { formatDateTime, formatWhatsapp } from '@rebequi/shared/utils';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -113,10 +115,7 @@ export function MerchantDashboardCustomers() {
       {/* Lista */}
       <DashboardPanel title="Base de clientes" accent="red">
         <div className="mb-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_200px_auto]">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input className="pl-9" placeholder="Buscar por nome, e-mail ou WhatsApp…" value={search} onChange={(e) => setSearch(e.target.value)} />
-          </div>
+          <DashboardSearch value={search} onChange={setSearch} placeholder="Buscar por nome, e-mail ou WhatsApp…" />
           <Input placeholder="Filtrar por etiqueta…" value={tagFilter} onChange={(e) => setTagFilter(e.target.value)} />
           <label className="flex h-10 items-center gap-2 rounded-md border border-input bg-background px-3 text-sm">
             <input type="checkbox" checked={followUpOnly} onChange={(e) => setFollowUpOnly(e.target.checked)} />
@@ -125,15 +124,11 @@ export function MerchantDashboardCustomers() {
         </div>
 
         {customersQuery.isLoading ? (
-          <div className="space-y-2">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-16 animate-pulse rounded-lg bg-muted" />
-            ))}
-          </div>
+          <DashboardLoading />
+        ) : customersQuery.isError ? (
+          <DashboardError message="Não foi possível carregar clientes." onRetry={() => void customersQuery.refetch()} retrying={customersQuery.isFetching} />
         ) : customers.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border/70 py-10 text-center text-sm text-muted-foreground">
-            Nenhum cliente encontrado com os filtros atuais.
-          </div>
+          <DashboardEmpty title="Nenhum resultado encontrado" description="Nenhum cliente encontrado com os filtros atuais." action={<Button variant="outline" size="sm" onClick={() => { setSearch(''); setStageFilter('all'); setTagFilter(''); setFollowUpOnly(false); }}>Limpar filtros</Button>} />
         ) : (
           <>
             {/* Desktop */}

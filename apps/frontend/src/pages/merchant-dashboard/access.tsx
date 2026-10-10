@@ -1,3 +1,4 @@
+import { DashboardSearch, DashboardLoading, DashboardError, DashboardEmpty } from "@/components/dashboard/DashboardList";
 import { useDeferredValue, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -8,11 +9,10 @@ import {
   getMerchantRoleLabel,
 } from '@rebequi/shared/constants';
 import type { ManagedUserRole, User } from '@rebequi/shared/types';
-import { KeyRound, RefreshCcw, Search, ShieldCheck, UserCog, Users } from 'lucide-react';
+import { KeyRound, RefreshCcw, ShieldCheck, UserCog, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ADMIN_BASE_PATH } from './config';
 import { DashboardPanel, MetricChip, PageHeader, StatCard } from './components';
@@ -225,15 +225,7 @@ export function MerchantDashboardAccess() {
       >
         {/* Filters */}
         <div className="mb-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_200px_auto]">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por nome, e-mail ou WhatsApp…"
-              className="pl-9"
-            />
-          </div>
+          <DashboardSearch value={search} onChange={setSearch} placeholder="Buscar por nome, e-mail ou WhatsApp…" />
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value as RoleFilter)}
@@ -255,15 +247,11 @@ export function MerchantDashboardAccess() {
         </div>
 
         {isLoading ? (
-          <div className="space-y-2">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-14 animate-pulse rounded-lg bg-muted" />
-            ))}
-          </div>
+          <DashboardLoading />
+        ) : usersQuery.isError || snapshotQuery.isError ? (
+          <DashboardError message="Não foi possível carregar colaboradores." onRetry={() => void Promise.all([usersQuery.refetch(), snapshotQuery.refetch()])} retrying={usersQuery.isFetching || snapshotQuery.isFetching} />
         ) : !hasUsers ? (
-          <div className="rounded-lg border border-dashed border-border/40 py-10 text-center text-sm text-muted-foreground">
-            Nenhum colaborador encontrado para este filtro.
-          </div>
+          <DashboardEmpty title="Nenhum resultado encontrado" action={<Button variant="outline" size="sm" onClick={() => { setSearch(''); setRoleFilter('all'); setIncludeInactive(true); }}>Limpar filtros</Button>} />
         ) : (
           <>
             {/* Desktop table */}

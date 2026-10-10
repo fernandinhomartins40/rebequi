@@ -261,6 +261,48 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
       } finally { await context.close(); }
     });
 
+    await t.test('Dashboard lists clear filters, recover from errors and fit every viewport', async () => {
+      const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, hasTouch: true });
+      try {
+        await data(await context.request.post(`${baseURL}/api/auth/login`, { data: {
+          identifier: 'integration@example.invalid', password: 'integration-only-admin-password',
+        } }));
+        const page = await context.newPage();
+        for (const route of ['produtos', 'produtos/categorias', 'clientes', 'pedidos', 'vendas', 'promoções', 'acesso', 'orçamentos']) {
+          await page.goto(`${baseURL}/painel-lojista/painel/${route}`);
+          await page.locator('.dashboard-heading').waitFor();
+          await page.waitForTimeout(400);
+          for (const width of [320, 390, 768, 1024, 1440]) {
+            await page.setViewportSize({ width, height: 900 });
+            assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false, `${route} overflow at ${width}px`);
+          }
+          if (route !== 'orçamentos') {
+            const search = page.getByRole('searchbox');
+            await search.fill('zz-no-matching-record-ux');
+            await page.getByRole('button', { name: 'Limpar busca', exact: true }).click();
+            assert.equal(await search.inputValue(), '');
+            assert.equal(await search.evaluate((element) => element === document.activeElement), true);
+          }
+        }
+        await page.goto(`${baseURL}/painel-lojista/painel/produtos`);
+        await page.getByRole('searchbox').fill('zz-no-matching-record-ux');
+        await page.getByRole('button', { name: 'Limpar filtros', exact: true }).waitFor();
+        await page.getByRole('button', { name: 'Limpar filtros', exact: true }).click();
+        assert.equal(await page.getByRole('searchbox').inputValue(), '');
+        await page.locator('article').first().waitFor();
+        await page.route('**/api/products/admin/list*', (route) => route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ success: false, error: 'Integration test outage' }) }));
+        await page.reload();
+        await page.getByRole('alert').filter({ hasText: 'Não foi possível carregar produtos.' }).waitFor({ timeout: 30000 });
+        assert.equal(await page.getByText('Nenhum resultado encontrado', { exact: true }).count(), 0);
+        await page.unroute('**/api/products/admin/list*');
+        await page.getByRole('button', { name: 'Tentar novamente', exact: true }).click();
+        await page.locator('article').first().waitFor();
+        await page.screenshot({ path: new URL('./artifacts/admin-list-1440.png', import.meta.url).pathname, fullPage: true });
+        await page.setViewportSize({ width: 390, height: 900 });
+        await page.screenshot({ path: new URL('./artifacts/admin-list-390.png', import.meta.url).pathname, fullPage: true });
+      } finally { await context.close(); }
+    });
+
     await t.test('Catalog alert opens the exact product editor', async () => {
       const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
       try {

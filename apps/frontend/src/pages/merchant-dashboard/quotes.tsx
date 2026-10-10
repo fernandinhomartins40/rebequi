@@ -1,3 +1,4 @@
+import { DashboardInfo, DashboardEmpty, DashboardLoading, DashboardError } from "@/components/dashboard/DashboardList";
 import { QuoteStatus, LeadStatus } from '@rebequi/shared/types';
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -170,6 +171,8 @@ export function MerchantDashboardQuotes() {
             {activeTab === 'quotes' ? (
               quotesQuery.isLoading ? (
                 <ListSkeleton />
+              ) : quotesQuery.isError ? (
+                <DashboardError message="Não foi possível carregar orçamentos." onRetry={() => void quotesQuery.refetch()} retrying={quotesQuery.isFetching} />
               ) : quotes.length === 0 ? (
                 <EmptyList message="Nenhum orçamento enviado." />
               ) : (
@@ -178,6 +181,7 @@ export function MerchantDashboardQuotes() {
                     <button
                       key={quote.id}
                       type="button"
+                      aria-pressed={selectedQuote?.id === quote.id}
                       onClick={() => setSelectedQuoteId(quote.id)}
                       className={`w-full rounded-lg border px-3 py-3 text-left text-sm transition-colors ${
                         selectedQuote?.id === quote.id
@@ -200,6 +204,8 @@ export function MerchantDashboardQuotes() {
               )
             ) : leadsQuery.isLoading ? (
               <ListSkeleton />
+            ) : leadsQuery.isError ? (
+              <DashboardError message="Não foi possível carregar contatos." onRetry={() => void leadsQuery.refetch()} retrying={leadsQuery.isFetching} />
             ) : leads.length === 0 ? (
               <EmptyList message="Nenhum lead incompleto." />
             ) : (
@@ -208,6 +214,7 @@ export function MerchantDashboardQuotes() {
                   <button
                     key={lead.id}
                     type="button"
+                    aria-pressed={selectedLead?.id === lead.id}
                     onClick={() => setSelectedLeadId(lead.id)}
                     className={`w-full rounded-lg border px-3 py-3 text-left text-sm transition-colors ${
                       selectedLead?.id === lead.id
@@ -395,29 +402,12 @@ function buildWhatsappLink(value: string) {
   return `https://wa.me/55${value.replace(/\D/g, '')}`;
 }
 
-function EmptyList({ message }: { message: string }) {
-  return (
-    <div className="rounded-lg border border-dashed border-border/40 py-8 text-center text-sm text-muted-foreground">
-      {message}
-    </div>
-  );
+function EmptyList({ message }: { message: string }) { return <DashboardEmpty title={message} />;
 }
 
-function ListSkeleton() {
-  return (
-    <div className="space-y-1.5">
-      {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="h-14 animate-pulse rounded-lg bg-muted" />
-      ))}
-    </div>
-  );
+function ListSkeleton() { return <DashboardLoading />;
 }
 
 function InfoTile({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-border/60 bg-muted/30 px-4 py-3">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="mt-0.5 text-sm font-medium text-foreground">{value}</p>
-    </div>
-  );
+ return <DashboardInfo label={label} value={value} />;
 }

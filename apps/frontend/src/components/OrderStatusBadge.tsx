@@ -1,7 +1,7 @@
 import type { OrderStatus } from '@/types';
-import { Badge } from '@/components/ui/badge';
+import { DashboardStatus } from "@/components/dashboard/DashboardList";
 import { getOrderStatusBadgeClass, getOrderStatusLabel } from '@/lib/order-ui';
 
 export function OrderStatusBadge({ status }: { status: OrderStatus }) {
-  return <Badge className={getOrderStatusBadgeClass(status)}>{getOrderStatusLabel(status)}</Badge>;
+  return <DashboardStatus className={getOrderStatusBadgeClass(status)}>{getOrderStatusLabel(status)}</DashboardStatus>;
 }

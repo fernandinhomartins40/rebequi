@@ -192,6 +192,7 @@ export function CustomerQuotesPanel({
                   <button
                     key={quote.id}
                     type="button"
+                    aria-pressed={selectedQuote?.id === quote.id}
                     onClick={() => onSelectQuote(quote.id)}
                     className={`w-full rounded-xl border px-4 py-3 text-left transition-all ${
                       selectedQuote?.id === quote.id
@@ -605,12 +606,6 @@ export function CustomerQuotesPanel({
 }
 
 function InfoPanel({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-slate-200/70 bg-slate-50/80 p-3">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-        {label}
-      </p>
-      <p className="mt-1.5 text-sm font-semibold text-foreground">{value}</p>
-    </div>
-  );
+  return <DashboardInfo label={label} value={value} />;
 }
+import { DashboardInfo } from '@/components/dashboard/DashboardList';

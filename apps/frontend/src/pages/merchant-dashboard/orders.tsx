@@ -1,3 +1,6 @@
+import { DashboardRecord } from "@/components/dashboard/DashboardElements";
+import { DashboardSearch } from "@/components/dashboard/DashboardList";
+import { DashboardLoading, DashboardError, DashboardEmpty } from "@/components/dashboard/DashboardList";
 import { OrderStatus as OrderStatusValue } from '@rebequi/shared/types';
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -21,7 +24,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -155,15 +157,7 @@ export function MerchantDashboardOrders() {
       <DashboardPanel title="Lista de pedidos" accent="red">
         {/* Filters */}
         <div className="mb-4 flex flex-col gap-3 sm:flex-row">
-          <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              className="pl-9"
-              placeholder="Buscar por cliente, referência ou WhatsApp…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
+          <DashboardSearch value={search} onChange={setSearch} placeholder="Buscar por cliente, referência ou WhatsApp…" />
           <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilterValue)}>
             <SelectTrigger className="sm:w-52">
               <SelectValue placeholder="Filtrar status" />
@@ -196,15 +190,11 @@ export function MerchantDashboardOrders() {
         </Tabs>
 
         {ordersQuery.isLoading ? (
-          <div className="space-y-2">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-16 animate-pulse rounded-lg bg-muted" />
-            ))}
-          </div>
+          <DashboardLoading />
+        ) : ordersQuery.isError ? (
+          <DashboardError message="Não foi possível carregar pedidos." onRetry={() => void ordersQuery.refetch()} retrying={ordersQuery.isFetching} />
         ) : orders.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border/70 py-10 text-center text-sm text-muted-foreground">
-            Nenhum pedido encontrado com os filtros atuais.
-          </div>
+          <DashboardEmpty title="Nenhum resultado encontrado" description="Nenhum pedido encontrado com os filtros atuais." action={<Button variant="outline" size="sm" onClick={() => { setSearch(''); setStatusFilter('all'); setQueueView('all'); }}>Limpar filtros</Button>} />
         ) : (
           <>
             {/* Desktop table */}
@@ -257,7 +247,7 @@ export function MerchantDashboardOrders() {
             {/* Mobile cards */}
             <div className="space-y-2 xl:hidden">
               {orders.map((order) => (
-                <div key={order.id} className="rounded-lg border border-border/60 bg-card p-4">
+                <DashboardRecord key={order.id}>
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-semibold text-foreground">{order.customerNameSnapshot}</p>
@@ -284,7 +274,7 @@ export function MerchantDashboardOrders() {
                       onCancel={() => void handleStatusChange(order, OrderStatusValue.CANCELED)}
                     />
                   </div>
-                </div>
+                </DashboardRecord>
               ))}
             </div>
           </>
