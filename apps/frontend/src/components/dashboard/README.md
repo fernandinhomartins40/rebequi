@@ -14,6 +14,7 @@ Cliente e admin compartilham `DashboardElements.tsx` e `dashboard.css`. Usar ess
 - `DashboardInfo`: pares de rótulo/valor sem truncar e-mails, nomes ou informações longas; variante inline para a conta.
 - `DashboardStatus`: apresentação compacta de estado com texto; preserva as cores e os nomes definidos pelas regras de negócio.
 - `DashboardSelection`: escolha de registro com estado `aria-pressed`; em telas com uma coluna, direciona o foco ao detalhe. Respeita movimento reduzido.
+- `DashboardCatalogRecord`, `DashboardThumbnail` e `DashboardPagination`: registro alinhado no desktop, cartão compacto no celular, falha de imagem com placeholder e navegação de páginas pelo servidor. O catálogo mostra 12 registros por página, uma ação principal e ações secundárias em menu.
 
 ## Revisão de UX/UI dos componentes
 

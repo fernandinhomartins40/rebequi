@@ -1,19 +1,21 @@
 import { DashboardSearch } from "@/components/dashboard/DashboardList";
 import { DashboardLoading, DashboardError, DashboardEmpty } from "@/components/dashboard/DashboardList";
-import { useDeferredValue, useState } from 'react';
+import { useDeferredValue, useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Boxes, Clock3, Pencil, Plus, RefreshCcw, Tags, Trash2 } from 'lucide-react';
-import type { Product, Promotion } from '@rebequi/shared/types';
-import { useNavigate } from 'react-router-dom';
-import { PromotionCountdown } from '@/components/PromotionCountdown';
+import { Clock3, Pencil, Plus, RefreshCcw, Tags, Trash2, MoreHorizontal } from 'lucide-react';
+import type { Product } from '@rebequi/shared/types';
+import { Link, useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { formatPromotionStatusLabel, getPromotionStatusTone } from '@/lib/promotion-ui';
+import { formatPromotionStatusLabel } from '@/lib/promotion-ui';
+import { formatCurrency } from '@/lib/sale-ui';
+import { DashboardCatalogRecord, DashboardThumbnail, DashboardPagination } from '@/components/dashboard/DashboardCatalog';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { fetchCategories } from '@/services/api/categories';
 import { deleteProduct, fetchAdminProducts } from '@/services/api/products';
 import { ADMIN_BASE_PATH } from './config';
-import { DashboardPanel, PageHeader, StatCard } from './components';
+import { DashboardPanel, PageHeader } from './components';
 import { fetchAllAdminPromotionsSnapshot, buildSingleProductOfferMap, pickPrimaryPromotion } from './promotion-admin';
 
 type ProductStatusFilter = 'all' | 'active' | 'inactive';
@@ -22,9 +24,6 @@ function getPrimaryImage(product: Product) {
   return product.images?.find((img) => img.isPrimary) || product.images?.[0];
 }
 
-function trimText(value?: string | null) {
-  return value?.trim() || '';
-}
 
 export function MerchantDashboardProducts() {
   const { toast } = useToast();
@@ -32,6 +31,8 @@ export function MerchantDashboardProducts() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<ProductStatusFilter>('all');
+  const [page, setPage] = useState(1);
+  const pageSize = 12;
   const deferredSearch = useDeferredValue(search);
 
   const { data: categoriesData, isLoading: isLoadingCategories } = useQuery({
@@ -46,12 +47,13 @@ export function MerchantDashboardProducts() {
     isFetching,
     refetch,
   } = useQuery({
-    queryKey: ['merchant-dashboard', 'products-admin', deferredSearch, statusFilter],
+    queryKey: ['merchant-dashboard', 'products-admin', deferredSearch, statusFilter, page],
     queryFn: () =>
       fetchAdminProducts({
         search: deferredSearch.trim() || undefined,
         isActive: statusFilter === 'all' ? undefined : statusFilter === 'active',
-        limit: 100,
+        limit: pageSize,
+        page,
       }),
   });
 
@@ -88,11 +90,17 @@ export function MerchantDashboardProducts() {
   const singleProductOffers = offersSnapshot?.promotions ?? [];
   const singleProductOffersByProduct = buildSingleProductOfferMap(singleProductOffers);
   const managedCategories = categoriesData?.categories ?? [];
-  const activeProducts = products.filter((p) => p.isActive);
   const activeCategories = managedCategories.filter((c) => c.isActive);
-  const categoriesInUse = managedCategories.filter((c) => (c.productsCount ?? 0) > 0);
   const activeSingleProductOffers = singleProductOffers.filter((o) => o.status === 'active');
-  const productsWithSingleProductOffer = Array.from(singleProductOffersByProduct.keys()).length;
+  useEffect(() => {
+    if (adminProducts && page > Math.max(1, adminProducts.totalPages)) setPage(Math.max(1, adminProducts.totalPages));
+  }, [adminProducts, page]);
+  const changePage = (next: number) => {
+    setPage(next);
+    document.getElementById('product-list')?.scrollIntoView({ block: 'start', behavior: 'instant' });
+  };
+  const changeSearch = (value: string) => { setSearch(value); setPage(1); };
+  const changeStatus = (value: ProductStatusFilter) => { setStatusFilter(value); setPage(1); };
 
   const canCreateProduct = activeCategories.length > 0;
 
@@ -112,7 +120,7 @@ export function MerchantDashboardProducts() {
     navigate(`${ADMIN_BASE_PATH}/produtos/${product.id}/editar`);
   };
 
-  const openOfferDialog = (product: Product, _offer?: Promotion | null) => {
+  const openOfferDialog = (product: Product) => {
     if (!product.isActive) {
       toast({
         variant: 'destructive',
@@ -141,7 +149,7 @@ export function MerchantDashboardProducts() {
     <div className="space-y-6">
       {/* Page header */}
       <PageHeader
-        title="Gestão de produtos"
+        title="Produtos"
         description="Cadastre, edite e remova produtos, categorias e ofertas individuais."
         actions={
           <>
@@ -166,88 +174,31 @@ export function MerchantDashboardProducts() {
         }
       />
 
-      {/* KPIs */}
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          icon={<Boxes className="h-4 w-4" />}
-          label="Produtos cadastrados"
-          value={`${adminProducts?.total ?? 0}`}
-          tone="default"
-        />
-        <StatCard
-          icon={<Boxes className="h-4 w-4" />}
-          label="Produtos ativos"
-          value={`${activeProducts.length}`}
-          tone="green"
-          delta="Visíveis na vitrine"
-        />
-        <StatCard
-          icon={<Clock3 className="h-4 w-4" />}
-          label="Com oferta individual"
-          value={`${productsWithSingleProductOffer}`}
-          tone="blue"
-        />
-        <StatCard
-          icon={<Clock3 className="h-4 w-4" />}
-          label="Ofertas ativas agora"
-          value={`${activeSingleProductOffers.length}`}
-          tone={activeSingleProductOffers.length > 0 ? 'yellow' : 'default'}
-        />
-      </section>
-
-      {/* Categories — resumo compacto com acesso à página dedicada */}
-      <div className="rounded-xl border border-border/70 bg-card p-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-700">
-              <Tags className="h-5 w-5" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-foreground">Categorias</p>
-              <p className="text-xs text-muted-foreground">
-                {isLoadingCategories
-                  ? 'Carregando…'
-                  : `${managedCategories.length} cadastradas · ${activeCategories.length} ativas · ${categoriesInUse.length} em uso`}
-              </p>
-            </div>
-          </div>
-          <div className="flex shrink-0 gap-2">
-            <Button size="sm" variant="outline" onClick={openManageCategories} className="gap-1.5">
-              <Tags className="h-3.5 w-3.5" />
-              Gerenciar
-            </Button>
-            <Button size="sm" onClick={openCreateCategoryDialog} className="gap-1.5">
-              <Plus className="h-3.5 w-3.5" />
-              Nova
-            </Button>
-          </div>
-        </div>
-
-        {!canCreateProduct && !isLoadingCategories ? (
-          <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            Nenhuma categoria ativa. Cadastre uma categoria para liberar o cadastro de produtos.
-          </div>
-        ) : null}
+      <div className="dashboard-catalog-summary">
+        <span><strong>{adminProducts?.total ?? '—'}</strong> {search || statusFilter !== 'all' ? 'resultados' : 'produtos'}</span>
+        <span><strong>{activeSingleProductOffers.length}</strong> ofertas ativas</span>
+        <span><strong>{activeCategories.length}</strong> categorias ativas</span>
       </div>
+      {!canCreateProduct && !isLoadingCategories ? <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm">
+        Cadastre uma categoria ativa para adicionar produtos.
+        <Button variant="outline" size="sm" onClick={openCreateCategoryDialog} className="ml-2">Criar categoria</Button>
+      </div> : null}
 
       {/* Products */}
-      <DashboardPanel title="Produtos cadastrados" description="Gerencie seus produtos, preços e ofertas." accent="blue">
+      <DashboardPanel id="product-list" title="Catálogo" contentClassName="dashboard-catalog-content" action={<span className="text-xs text-muted-foreground">12 por página</span>}>
         {/* Filters */}
         <div className="mb-4 flex flex-col gap-3 sm:flex-row">
-          <DashboardSearch value={search} onChange={setSearch} placeholder="Buscar por nome, SKU ou descrição…" />
+          <DashboardSearch value={search} onChange={changeSearch} placeholder="Buscar por nome, SKU ou descrição…" />
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as ProductStatusFilter)}
+            aria-label="Status dos produtos" onChange={(e) => changeStatus(e.target.value as ProductStatusFilter)}
             className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm sm:w-44"
           >
             <option value="all">Todos os status</option>
             <option value="active">Somente ativos</option>
             <option value="inactive">Somente inativos</option>
           </select>
-          <Button onClick={openCreateDialog} size="sm" className="gap-1.5" disabled={!canCreateProduct}>
-            <Plus className="h-3.5 w-3.5" />
-            Cadastrar
-          </Button>
+
         </div>
 
         {isLoading ? (
@@ -255,127 +206,39 @@ export function MerchantDashboardProducts() {
         ) : isError ? (
           <DashboardError message="Não foi possível carregar produtos." onRetry={() => void refetch()} retrying={isFetching} />
         ) : products.length === 0 ? (
-          <DashboardEmpty title="Nenhum resultado encontrado" description="Nenhum produto encontrado para esse filtro." action={search || statusFilter !== 'all' ? <Button variant="outline" size="sm" onClick={() => { setSearch(''); setStatusFilter('all'); }}>Limpar filtros</Button> : <Button size="sm" onClick={openCreateDialog} disabled={!canCreateProduct}>Cadastrar produto</Button>} />
+          <DashboardEmpty title="Nenhum resultado encontrado" description="Nenhum produto encontrado para esse filtro." action={search || statusFilter !== 'all' ? <Button variant="outline" size="sm" onClick={() => { changeSearch(''); changeStatus('all'); }}>Limpar filtros</Button> : <Button size="sm" onClick={openCreateDialog} disabled={!canCreateProduct}>Cadastrar produto</Button>} />
         ) : (
-          <div className="grid gap-3 xl:grid-cols-2">
-            {products.map((product) => {
-              const primaryImage = getPrimaryImage(product);
-              const productSummary = product.shortDesc || product.description || 'Sem descrição.';
-              const productOffers = singleProductOffersByProduct.get(product.id) ?? [];
-              const primaryOffer = pickPrimaryPromotion(productOffers);
-
-              return (
-                <article
-                  key={product.id}
-                  className="overflow-hidden rounded-xl border border-border/70 bg-card transition-colors hover:border-border"
-                >
-                  <div className="flex gap-0">
-                    {/* Image */}
-                    <div className="relative w-28 shrink-0 bg-muted sm:w-36">
-                      {primaryImage ? (
-                        <img
-                          src={primaryImage.url}
-                          alt={primaryImage.alt || product.name}
-                          className="h-full w-full object-cover"
-                          style={{ minHeight: '9rem' }}
-                        />
-                      ) : (
-                        <div className="flex h-full min-h-36 w-full items-center justify-center text-xs text-muted-foreground">
-                          Sem imagem
-                        </div>
-                      )}
-                      <div className="absolute left-2 top-2 flex flex-col gap-1">
-                        <Badge
-                          className={product.isActive ? 'bg-emerald-600 text-white' : 'bg-muted-foreground text-white'}
-                        >
-                          {product.isActive ? 'Ativo' : 'Inativo'}
-                        </Badge>
-                      </div>
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex min-w-0 flex-1 flex-col gap-2.5 p-3.5">
-                      <div>
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          {product.isFeatured ? <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700 text-[10px]">Destaque</Badge> : null}
-                          {product.isOffer ? <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700 text-[10px]">Oferta</Badge> : null}
-                          {product.isNew ? <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 text-[10px]">Novo</Badge> : null}
-                        </div>
-                        <h3 className="mt-1 line-clamp-2 text-[15px] font-semibold leading-tight text-foreground">
-                          {product.name}
-                        </h3>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          {product.category?.name ?? 'Sem categoria'}
-                          {product.sku ? ` · SKU ${product.sku}` : ''}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <p className="text-lg font-semibold tabular-nums text-foreground">R$ {product.price.toFixed(2)}</p>
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <span className={`font-medium ${product.stock <= 0 ? 'text-red-600' : product.stock <= product.minStock ? 'text-amber-600' : 'text-foreground'}`}>
-                            Estoque: {product.stock}
-                          </span>
-                          <span>·</span>
-                          <span>Mín: {product.minStock}</span>
-                        </div>
-                      </div>
-
-                      {/* Offer section */}
-                      <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="text-[11px] font-medium text-foreground">Oferta individual</p>
-                            {primaryOffer ? (
-                              <div className="mt-0.5 flex items-center gap-1.5">
-                                <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium ${getPromotionStatusTone(primaryOffer.status)}`}>
-                                  {formatPromotionStatusLabel(primaryOffer.status)}
-                                </span>
-                                <PromotionCountdown expiresAt={primaryOffer.expiresAt} compact />
-                              </div>
-                            ) : (
-                              <p className="text-[11px] text-muted-foreground">Nenhuma oferta ativa</p>
-                            )}
-                          </div>
-                          <Button
-                            size="sm"
-                            variant={primaryOffer ? 'outline' : 'default'}
-                            onClick={() => openOfferDialog(product, primaryOffer)}
-                            disabled={!product.isActive}
-                            className="shrink-0 gap-1.5 text-xs"
-                          >
-                            <Clock3 className="h-3 w-3" />
-                            {primaryOffer ? 'Editar' : 'Criar'}
-                          </Button>
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex flex-wrap gap-2">
-                        <Button size="sm" variant="outline" onClick={() => openEditDialog(product)} className="gap-1.5">
-                          <Pencil className="h-3.5 w-3.5" />
-                          Editar
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => void handleDelete(product)}
-                          disabled={deleteMutation.isPending}
-                          className="gap-1.5 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          Excluir
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+          <>
+            <div className="dashboard-catalog-header" aria-hidden="true"><span>Produto</span><span>Preço</span><span>Estoque</span><span>Situação</span><span className="text-right">Ações</span></div>
+            <div aria-busy={isFetching}>
+              {products.map((product) => {
+                const image = getPrimaryImage(product);
+                const offer = pickPrimaryPromotion(singleProductOffersByProduct.get(product.id) ?? []);
+                return <DashboardCatalogRecord key={product.id}
+                  image={<DashboardThumbnail key={image?.url ?? product.id} src={image?.url} alt={product.name} />}
+                  title={<Link to={`${ADMIN_BASE_PATH}/produtos/${product.id}/editar`}>{product.name}</Link>}
+                  subtitle={<>{product.category?.name ?? 'Sem categoria'}{product.sku ? <span className="block">SKU {product.sku}</span> : null}</>}
+                  price={formatCurrency(product.price)}
+                  stock={<><strong className={product.stock <= 0 ? 'text-red-700' : product.stock <= product.minStock ? 'text-amber-700' : ''}>{product.stock} un.</strong><span className="text-muted-foreground">{product.stock <= 0 ? 'Sem estoque' : product.stock <= product.minStock ? 'Estoque baixo' : `Mínimo ${product.minStock}`}</span></>}
+                  status={<><Badge variant="outline" className={product.isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'bg-muted text-muted-foreground'}>{product.isActive ? 'Ativo' : 'Inativo'}</Badge>{offer ? <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700">{offer.status === 'active' ? 'Em oferta' : formatPromotionStatusLabel(offer.status)}</Badge> : product.isOffer ? <Badge variant="outline">Oferta</Badge> : null}</>}
+                  actions={<>
+                    <Button variant="outline" size="sm" onClick={() => openEditDialog(product)} aria-label={`Editar ${product.name}`}>Editar</Button>
+                    <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label={`Mais ações para ${product.name}`}><MoreHorizontal size={18} /></Button></DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onSelect={() => openEditDialog(product)}><Pencil size={15} className="mr-2" />Editar produto</DropdownMenuItem>
+                        <DropdownMenuItem disabled={!product.isActive} onSelect={() => openOfferDialog(product)}><Clock3 size={15} className="mr-2" />{offer ? 'Gerenciar oferta' : 'Criar oferta'}</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem disabled={deleteMutation.isPending} onSelect={() => void handleDelete(product)} className="text-red-700"><Trash2 size={15} className="mr-2" />Excluir produto</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </>}
+                />;
+              })}
+            </div>
+            <DashboardPagination page={page} total={adminProducts?.total ?? 0} pageSize={pageSize} onChange={changePage} busy={isFetching} />
+          </>
         )}
       </DashboardPanel>
-
     </div>
   );
 }

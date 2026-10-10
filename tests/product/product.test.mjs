@@ -289,11 +289,21 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
           }
         }
         await page.goto(`${baseURL}/painel-lojista/painel/produtos`);
+        await page.locator('.dashboard-catalog-record').first().waitFor();
+        assert.equal(await page.locator('.dashboard-catalog-record').count(), 12);
+        const firstProduct = await page.locator('.dashboard-catalog-record h3').first().innerText();
+        await page.getByRole('button', { name: 'Próxima página', exact: true }).click();
+        await page.getByText(/Página 2 de/).waitFor();
+        assert.notEqual(await page.locator('.dashboard-catalog-record h3').first().innerText(), firstProduct);
         await page.getByRole('searchbox').fill('zz-no-matching-record-ux');
         await page.getByRole('button', { name: 'Limpar filtros', exact: true }).waitFor();
         await page.getByRole('button', { name: 'Limpar filtros', exact: true }).click();
         assert.equal(await page.getByRole('searchbox').inputValue(), '');
         await page.locator('article').first().waitFor();
+        await page.getByText(/Página 1 de/).waitFor();
+        await page.getByRole('button', { name: /^Mais ações para / }).first().click();
+        await page.getByRole('menuitem', { name: 'Excluir produto', exact: true }).waitFor();
+        await page.keyboard.press('Escape');
         await page.route('**/api/products/admin/list*', (route) => route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ success: false, error: 'Integration test outage' }) }));
         await page.reload();
         await page.getByRole('alert').filter({ hasText: 'Não foi possível carregar produtos.' }).waitFor({ timeout: 30000 });
