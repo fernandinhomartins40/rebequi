@@ -893,7 +893,7 @@ function PromotionEditorForm({
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/png,image/jpeg,image/webp"
+                accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/bmp"
                 className="hidden"
                 onChange={(event) => void handleFileChange(event)}
               />
@@ -1097,7 +1097,7 @@ function PromotionEditorForm({
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/png,image/jpeg,image/webp"
+                accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/bmp"
                 className="hidden"
                 onChange={(event) => void handleFileChange(event)}
               />

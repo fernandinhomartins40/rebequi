@@ -15,12 +15,14 @@ const fileFilter: multer.Options['fileFilter'] = (_req, file, cb) => {
     'image/png',
     'image/gif',
     'image/webp',
+    'image/avif',
+    'image/tiff',
   ];
 
   if (allowedMimes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new AppError('Invalid file type. Only images are allowed.', 400));
+    cb(new AppError('Formato não suportado. Envie JPG, PNG, WebP, GIF ou AVIF.', 400));
   }
 };
 

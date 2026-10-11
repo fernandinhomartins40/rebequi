@@ -95,6 +95,7 @@ RUN --mount=type=cache,target=/root/.npm \
 COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
 COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
 COPY --from=builder /app/apps/backend/scripts ./apps/backend/scripts
+COPY --from=builder /app/apps/backend/assets ./apps/backend/assets
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 

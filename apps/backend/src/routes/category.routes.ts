@@ -9,10 +9,13 @@ import { CategoryController } from '../controllers/category.controller.js';
 import { validateBody } from '../middleware/validation.middleware.js';
 import { authenticate, authorize } from '../middleware/auth.middleware.js';
 import { createCategorySchema, updateCategorySchema } from '@rebequi/shared/schemas';
+import { upload } from '../config/multer.js';
+import { uploadLimiter } from '../middleware/rate-limit.middleware.js';
 
 const router: Router = Router();
 const categoryController = new CategoryController();
 const catalogRoles = getRolesForMerchantPermission('catalog:manage');
+router.post('/images/upload', authenticate, authorize(...catalogRoles), uploadLimiter, upload.single('image'), categoryController.uploadImage);
 
 // Public routes
 router.get('/', categoryController.getAll);

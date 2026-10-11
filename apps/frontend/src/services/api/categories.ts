@@ -48,6 +48,10 @@ export async function fetchCategoryBySlug(slug: string): Promise<Category> {
   const response = await apiFetch<ApiResponse<Category> | Category>(`/categories/slug/${slug}`);
   return unwrapData<Category>(response);
 }
+export async function uploadCategoryImage(file: File): Promise<{ url: string }> {
+  const body = new FormData(); body.append('image', file);
+  return unwrapData<{ url: string }>(await apiFetch('/categories/images/upload', { method: 'POST', body }));
+}
 
 export async function createCategory(payload: CreateCategoryDTO): Promise<Category> {
   const response = await apiFetch<ApiResponse<Category> | Category>('/categories', {

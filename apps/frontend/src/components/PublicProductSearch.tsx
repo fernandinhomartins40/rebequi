@@ -47,7 +47,7 @@ function getProductImage(product: Product) {
   return (
     product.images?.find((image) => image.isPrimary)?.url ||
     product.images?.[0]?.url ||
-    "https://via.placeholder.com/96x96?text=Produto"
+    "/placeholder.svg"
   );
 }
 

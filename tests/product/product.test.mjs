@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdir } from 'node:fs/promises';
 import { chromium, request } from 'playwright';
 import { validateCatalogLayout } from './catalog-layout.mjs';
+import { validateMediaTools } from './media-tools.mjs';
 
 // Mutating validation is confined to a disposable, GitHub-hosted runner.
 if (process.env.CI !== 'true' || process.env.GITHUB_ACTIONS !== 'true' || process.env.RUNNER_ENVIRONMENT !== 'github-hosted') {
@@ -56,6 +57,17 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
     } }), 201);
     order = account.order;
     assert.ok(account.provisionalCredentials.password.length >= 16);
+
+    await t.test('Demo images live in persistent local storage and installation is idempotent', async () => {
+      assert.ok(products.every(p => p.images.every(image => image.url.startsWith('/uploads/products/demo-v1/'))), 'All bootstrap product photos are local');
+      const photo = await anonymous.get(product.images[0].url);
+      assert.equal(photo.status(), 200); assert.ok(photo.headers()['content-type'].includes('image/webp'));
+      assert.ok(photo.headers()['cache-control'].includes('immutable'));
+      const bytes = await photo.body(); assert.equal(bytes.toString('ascii', 0, 4), 'RIFF');
+      assert.equal(bytes.toString('ascii', 8, 12), 'WEBP');
+      const result = JSON.parse(db('const {installDemoMedia}=await import("./apps/backend/dist/services/demo-media.service.js");console.log(JSON.stringify(await installDemoMedia()));').trim());
+      assert.deepEqual(result, { productImages: 0, promotionImages: 0, categoryImages: 0 });
+    });
 
     await t.test('Anonymous requests cannot claim existing customers or modify their orders', async () => {
       const guest = await client();
@@ -240,7 +252,7 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
         const draft=await data(await uploadResponse,201);
         assert.equal(await camera.count(), 0, 'Full-screen camera closes after confirmation');
         assert.notEqual(await page.evaluate(() => document.body.style.overflow), 'hidden');
-        assert.equal(uploads,1); assert.equal(draft.quote.documentMimeType,'image/jpeg');
+        assert.equal(uploads,1); assert.equal(draft.quote.documentMimeType,'image/webp');
         assert.equal(draft.quote.documentWidth,1800); assert.equal(draft.quote.documentHeight,900);
         assert.ok(draft.quote.documentSize<5*1024*1024);
         // The real HTTP job has no configured provider in CI. Wait before exercising the same service with mock transport.
@@ -501,6 +513,9 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
 
     await t.test('Catalog cards remain compact while images load or fail at responsive widths', async () => {
       await validateCatalogLayout(browser, baseURL);
+    });
+    await t.test('Category and document crops convert locally to bounded WebP before uploading', async () => {
+      await validateMediaTools(browser, baseURL);
     });
 
     await t.test('Shared dashboards group account settings and guide product editing in three steps', async () => {

@@ -1,0 +1,741 @@
+{
+  "products": [
+    {
+      "sku": "FER-DOB-021",
+      "name": "Dobradica 3 Pol Aco Cromado Par",
+      "file": "FER-DOB-021.webp",
+      "aliases": [
+        "FER-DOB-002"
+      ],
+      "width": 1200,
+      "height": 1200,
+      "size": 38262
+    },
+    {
+      "sku": "FER-FEC-020",
+      "name": "Fechadura Externa Cromada",
+      "file": "FER-FEC-020.webp",
+      "aliases": [
+        "FER-FEC-001"
+      ],
+      "width": 1200,
+      "height": 1200,
+      "size": 34906
+    },
+    {
+      "sku": "EPI-MAS-006",
+      "name": "Mascara PFF2 Sem Valvula",
+      "file": "EPI-MAS-006.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 101606
+    },
+    {
+      "sku": "EPI-BOT-005",
+      "name": "Bota de Seguranca Couro Bidensidade",
+      "file": "EPI-BOT-005.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 123150
+    },
+    {
+      "sku": "EPI-PRO-004",
+      "name": "Protetor Auricular Plug Silicone",
+      "file": "EPI-PRO-004.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 38848
+    },
+    {
+      "sku": "EPI-CAP-003",
+      "name": "Capacete de Seguranca Amarelo",
+      "file": "EPI-CAP-003.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 25960
+    },
+    {
+      "sku": "EPI-OCU-002",
+      "name": "Oculos de Protecao Incolor",
+      "file": "EPI-OCU-002.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 22652
+    },
+    {
+      "sku": "EPI-LUV-001",
+      "name": "Luva de Seguranca Nitrilica",
+      "file": "EPI-LUV-001.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 229412
+    },
+    {
+      "sku": "JAR-TIN-006",
+      "name": "Tinta Emborrachada Telhado 18L",
+      "file": "JAR-TIN-006.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 21534
+    },
+    {
+      "sku": "JAR-REF-005",
+      "name": "Refletor LED 50W IP65",
+      "file": "JAR-REF-005.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 50442
+    },
+    {
+      "sku": "JAR-VAS-004",
+      "name": "Vassoura Metalica Regulavel",
+      "file": "JAR-VAS-004.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 46384
+    },
+    {
+      "sku": "JAR-PUL-003",
+      "name": "Pulverizador Manual 5L",
+      "file": "JAR-PUL-003.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 35428
+    },
+    {
+      "sku": "JAR-DUC-002",
+      "name": "Ducha Jardim Multijato",
+      "file": "JAR-DUC-002.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 41396
+    },
+    {
+      "sku": "JAR-MAN-001",
+      "name": "Mangueira Jardim 1/2 20m",
+      "file": "JAR-MAN-001.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 200932
+    },
+    {
+      "sku": "MAD-COL-006",
+      "name": "Cola Madeira 500g",
+      "file": "MAD-COL-006.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 11262
+    },
+    {
+      "sku": "MAD-RIP-005",
+      "name": "Ripa de Eucalipto 2,5x5cm 3m",
+      "file": "MAD-RIP-005.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 33412
+    },
+    {
+      "sku": "MAD-TAB-004",
+      "name": "Tabua Pinus Aparelhada 30cm 3m",
+      "file": "MAD-TAB-004.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 34046
+    },
+    {
+      "sku": "MAD-SAR-003",
+      "name": "Sarrafo Pinus 5x5cm 3m",
+      "file": "MAD-SAR-003.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 38510
+    },
+    {
+      "sku": "MAD-COM-002",
+      "name": "Compensado Naval 10mm 220x160cm",
+      "file": "MAD-COM-002.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 39310
+    },
+    {
+      "sku": "MAD-MDF-001",
+      "name": "Chapa MDF Cru 15mm 275x185cm",
+      "file": "MAD-MDF-001.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 36624
+    },
+    {
+      "sku": "PIS-ESP-006",
+      "name": "Espacador Nivelador 1,5mm Pacote 100un",
+      "file": "PIS-ESP-006.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 46120
+    },
+    {
+      "sku": "PIS-ROD-005",
+      "name": "Rodape Poliestireno Branco 7cm",
+      "file": "PIS-ROD-005.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 17370
+    },
+    {
+      "sku": "PIS-VIN-004",
+      "name": "Piso Vinilico Carvalho m2",
+      "file": "PIS-VIN-004.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 104944
+    },
+    {
+      "sku": "PIS-REV-003",
+      "name": "Revestimento Branco 30x60 Caixa 2m2",
+      "file": "PIS-REV-003.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 39352
+    },
+    {
+      "sku": "PIS-CER-002",
+      "name": "Piso Ceramico Bege 60x60 Caixa 2,2m2",
+      "file": "PIS-CER-002.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 62534
+    },
+    {
+      "sku": "PIS-POR-001",
+      "name": "Porcelanato Acetinado 84x84 Caixa 2,8m2",
+      "file": "PIS-POR-001.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 45662
+    },
+    {
+      "sku": "HID-VED-006",
+      "name": "Veda Rosca 18mm x 50m",
+      "file": "HID-VED-006.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 27358
+    },
+    {
+      "sku": "HID-TOR-005",
+      "name": "Torneira Cozinha Parede Cromada",
+      "file": "HID-TOR-005.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 32746
+    },
+    {
+      "sku": "HID-CAI-004",
+      "name": "Caixa Sifonada 150mm",
+      "file": "HID-CAI-004.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 29084
+    },
+    {
+      "sku": "HID-REG-003",
+      "name": "Registro de Esfera 3/4",
+      "file": "HID-REG-003.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 87062
+    },
+    {
+      "sku": "HID-JOE-002",
+      "name": "Joelho PVC 90 Graus 25mm",
+      "file": "HID-JOE-002.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 26028
+    },
+    {
+      "sku": "HID-TUB-001",
+      "name": "Tubo PVC Soldavel 25mm 6m",
+      "file": "HID-TUB-001.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 14378
+    },
+    {
+      "sku": "ELE-LAM-015",
+      "name": "Lampada LED Bulbo 12W",
+      "file": "ELE-LAM-015.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 13656
+    },
+    {
+      "sku": "ELE-CON-014",
+      "name": "Conduite Corrugado 3/4 50m",
+      "file": "ELE-CON-014.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 99440
+    },
+    {
+      "sku": "ELE-QUA-013",
+      "name": "Quadro de Distribuicao 12 Disjuntores",
+      "file": "ELE-QUA-013.webp",
+      "aliases": [
+        "ELE-QUA-006"
+      ],
+      "width": 1200,
+      "height": 1200,
+      "size": 37412
+    },
+    {
+      "sku": "ELE-INT-012",
+      "name": "Interruptor Simples Branco",
+      "file": "ELE-INT-012.webp",
+      "aliases": [
+        "ELE-INT-005"
+      ],
+      "width": 1200,
+      "height": 1200,
+      "size": 9752
+    },
+    {
+      "sku": "ELE-TOM-011",
+      "name": "Tomada 2P+T 10A Branca",
+      "file": "ELE-TOM-011.webp",
+      "aliases": [
+        "ELE-TOM-004"
+      ],
+      "width": 1200,
+      "height": 1200,
+      "size": 9306
+    },
+    {
+      "sku": "ELE-CAB-010",
+      "name": "Cabo Flexivel 4mm 100m Vermelho",
+      "file": "ELE-CAB-010.webp",
+      "aliases": [
+        "ELE-CAB-002"
+      ],
+      "width": 1200,
+      "height": 1200,
+      "size": 75924
+    },
+    {
+      "sku": "CIM-IMP-015",
+      "name": "Impermeabilizante Balde 18kg",
+      "file": "CIM-IMP-015.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 17770
+    },
+    {
+      "sku": "CIM-BRI-014",
+      "name": "Brita Ensacada 20kg",
+      "file": "CIM-BRI-014.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 125864
+    },
+    {
+      "sku": "CIM-ARE-013",
+      "name": "Areia Media Ensacada 20kg",
+      "file": "CIM-ARE-013.webp",
+      "aliases": [
+        "CIM-ARE-006"
+      ],
+      "width": 1200,
+      "height": 1200,
+      "size": 150656
+    },
+    {
+      "sku": "CIM-CAL-012",
+      "name": "Cal Hidratada 20kg",
+      "file": "CIM-CAL-012.webp",
+      "aliases": [
+        "CIM-CAL-005"
+      ],
+      "width": 1200,
+      "height": 1200,
+      "size": 44434
+    },
+    {
+      "sku": "CIM-REJ-011",
+      "name": "Rejunte Flexivel Cinza 1kg",
+      "file": "CIM-REJ-011.webp",
+      "aliases": [
+        "CIM-REJ-004"
+      ],
+      "width": 1200,
+      "height": 1200,
+      "size": 119630
+    },
+    {
+      "sku": "CIM-ARG-010",
+      "name": "Argamassa Porcelanato AC III 20kg",
+      "file": "CIM-ARG-010.webp",
+      "aliases": [
+        "CIM-ARG-003"
+      ],
+      "width": 1200,
+      "height": 1200,
+      "size": 57552
+    },
+    {
+      "sku": "TIN-PIN-015",
+      "name": "Pincel Trincha 2 Pol",
+      "file": "TIN-PIN-015.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 41500
+    },
+    {
+      "sku": "TIN-ROL-014",
+      "name": "Rolo La Antigota 23cm",
+      "file": "TIN-ROL-014.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 34240
+    },
+    {
+      "sku": "TIN-SEL-013",
+      "name": "Selador Acrilico 18L",
+      "file": "TIN-SEL-013.webp",
+      "aliases": [
+        "TIN-SEL-006"
+      ],
+      "width": 1200,
+      "height": 1200,
+      "size": 27490
+    },
+    {
+      "sku": "TIN-MAS-012",
+      "name": "Massa Corrida PVA 25kg",
+      "file": "TIN-MAS-012.webp",
+      "aliases": [
+        "TIN-MAS-004"
+      ],
+      "width": 1200,
+      "height": 1200,
+      "size": 21972
+    },
+    {
+      "sku": "TIN-ESM-011",
+      "name": "Esmalte Sintetico Branco 3,6L",
+      "file": "TIN-ESM-011.webp",
+      "aliases": [
+        "TIN-ESM-003"
+      ],
+      "width": 1200,
+      "height": 1200,
+      "size": 24768
+    },
+    {
+      "sku": "TIN-ACR-010",
+      "name": "Tinta Acrilica Gelo Fosca 18L",
+      "file": "TIN-ACR-010.webp",
+      "aliases": [
+        "TIN-ACR-002"
+      ],
+      "width": 1200,
+      "height": 1200,
+      "size": 27744
+    },
+    {
+      "sku": "FER-ALI-014",
+      "name": "Alicate Universal 8 Pol",
+      "file": "FER-ALI-014.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 28170
+    },
+    {
+      "sku": "FER-MAR-013",
+      "name": "Martelo Unha 27mm Cabo Fibra",
+      "file": "FER-MAR-013.webp",
+      "aliases": [
+        "FER-MAR-006"
+      ],
+      "width": 1200,
+      "height": 1200,
+      "size": 26926
+    },
+    {
+      "sku": "FER-TRE-012",
+      "name": "Trena Emborrachada 5m",
+      "file": "FER-TRE-012.webp",
+      "aliases": [
+        "FER-TRE-005"
+      ],
+      "width": 1200,
+      "height": 1200,
+      "size": 42986
+    },
+    {
+      "sku": "FER-CHA-011",
+      "name": "Jogo de Chaves 12 Pecas",
+      "file": "FER-CHA-011.webp",
+      "aliases": [
+        "FER-CHA-004"
+      ],
+      "width": 1200,
+      "height": 1200,
+      "size": 50532
+    },
+    {
+      "sku": "FER-SER-010",
+      "name": "Serra Marmore 1300W",
+      "file": "FER-SER-010.webp",
+      "aliases": [
+        "FER-SER-003"
+      ],
+      "width": 1200,
+      "height": 1200,
+      "size": 92542
+    },
+    {
+      "sku": "FER-PAR-009",
+      "name": "Parafusadeira 12V com 2 Baterias",
+      "file": "FER-PAR-009.webp",
+      "aliases": [
+        "FER-PAR-002"
+      ],
+      "width": 1200,
+      "height": 1200,
+      "size": 63518
+    },
+    {
+      "sku": "ELE-DIS-002",
+      "name": "Disjuntor Monopolar 32A",
+      "file": "ELE-DIS-002.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 23262
+    },
+    {
+      "sku": "ELE-FIO-001",
+      "name": "Fio Eletrico Flexivel 2,5mm 100m",
+      "file": "ELE-FIO-001.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 96936
+    },
+    {
+      "sku": "CIM-ARG-002",
+      "name": "Argamassa Colante AC II 20kg",
+      "file": "CIM-ARG-002.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 62878
+    },
+    {
+      "sku": "CIM-CIM-001",
+      "name": "Cimento Portland CP II 50kg",
+      "file": "CIM-CIM-001.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 62722
+    },
+    {
+      "sku": "TIN-KIT-002",
+      "name": "Kit Pintura Profissional",
+      "file": "TIN-KIT-002.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 95588
+    },
+    {
+      "sku": "TIN-ACR-001",
+      "name": "Tinta Acrilica Branca 18L",
+      "file": "TIN-ACR-001.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 27744
+    },
+    {
+      "sku": "FER-CHA-002",
+      "name": "Jogo de Chaves 6 Pecas",
+      "file": "FER-CHA-002.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 60062
+    },
+    {
+      "sku": "FER-FUR-001",
+      "name": "Furadeira de Impacto 650W",
+      "file": "FER-FUR-001.webp",
+      "aliases": [],
+      "width": 1200,
+      "height": 1200,
+      "size": 59290
+    }
+  ],
+  "promotions": [
+    {
+      "slug": "semana-da-pintura",
+      "file": "semana-da-pintura.webp",
+      "width": 1600,
+      "height": 900,
+      "size": 97626
+    },
+    {
+      "slug": "oferta-tinta-acrilica-18l",
+      "file": "oferta-tinta-acrilica-18l.webp",
+      "width": 1600,
+      "height": 900,
+      "size": 97626
+    },
+    {
+      "slug": "eletrica-essencial",
+      "file": "eletrica-essencial.webp",
+      "width": 1600,
+      "height": 900,
+      "size": 96822
+    },
+    {
+      "slug": "combo-eletrica-essencial",
+      "file": "combo-eletrica-essencial.webp",
+      "width": 1600,
+      "height": 900,
+      "size": 96822
+    },
+    {
+      "slug": "base-da-obra",
+      "file": "base-da-obra.webp",
+      "width": 1600,
+      "height": 900,
+      "size": 138480
+    },
+    {
+      "slug": "oferta-furadeira-de-impacto",
+      "file": "oferta-furadeira-de-impacto.webp",
+      "width": 1600,
+      "height": 900,
+      "size": 101242
+    },
+    {
+      "slug": "leve-3-pague-2-epis-selecionados",
+      "file": "leve-3-pague-2-epis-selecionados.webp",
+      "width": 1600,
+      "height": 900,
+      "size": 82990
+    }
+  ],
+  "categories": [
+    {
+      "slug": "ferramentas",
+      "file": "category-ferramentas.webp",
+      "width": 800,
+      "height": 800,
+      "size": 27782
+    },
+    {
+      "slug": "tintas-acessorios",
+      "file": "category-tintas-acessorios.webp",
+      "width": 800,
+      "height": 800,
+      "size": 15410
+    },
+    {
+      "slug": "cimento-argamassa",
+      "file": "category-cimento-argamassa.webp",
+      "width": 800,
+      "height": 800,
+      "size": 23632
+    },
+    {
+      "slug": "materiais-eletricos",
+      "file": "category-materiais-eletricos.webp",
+      "width": 800,
+      "height": 800,
+      "size": 50326
+    },
+    {
+      "slug": "hidraulica",
+      "file": "category-hidraulica.webp",
+      "width": 800,
+      "height": 800,
+      "size": 18454
+    },
+    {
+      "slug": "pisos-revestimentos",
+      "file": "category-pisos-revestimentos.webp",
+      "width": 800,
+      "height": 800,
+      "size": 18296
+    },
+    {
+      "slug": "madeiras-chapas",
+      "file": "category-madeiras-chapas.webp",
+      "width": 800,
+      "height": 800,
+      "size": 14030
+    },
+    {
+      "slug": "jardim-area-externa",
+      "file": "category-jardim-area-externa.webp",
+      "width": 800,
+      "height": 800,
+      "size": 95294
+    },
+    {
+      "slug": "seguranca-epis",
+      "file": "category-seguranca-epis.webp",
+      "width": 800,
+      "height": 800,
+      "size": 14154
+    },
+    {
+      "slug": "portas-janelas-ferragens",
+      "file": "category-portas-janelas-ferragens.webp",
+      "width": 800,
+      "height": 800,
+      "size": 18602
+    }
+  ]
+}

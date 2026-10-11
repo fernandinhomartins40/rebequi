@@ -3,6 +3,8 @@ import Webcam from 'react-webcam';
 import { prepareQuotePhoto } from '@/lib/quote-photo';
 import { Camera, ImagePlus, Loader2, SwitchCamera, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ImageCropDialog } from '@/components/ui/image-crop-dialog';
+import { QUOTE_IMAGE_CONFIG, IMAGE_UPLOAD_ACCEPT } from '@/lib/image-tools';
 import { loadOpenCv } from '@/lib/opencv-loader';
 
 type CornerPoint = { x: number; y: number };
@@ -90,6 +92,7 @@ function measureFrameQuality(cv: any, src: any): { sharpness: number; brightness
 }
 
 export function LiveDocumentScanner({ onCapture, onCancel, onManualEntry, embedded = false, initialFile }: Props) {
+  const [cropOpen, setCropOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     if (embedded) return;
@@ -100,7 +103,7 @@ export function LiveDocumentScanner({ onCapture, onCancel, onManualEntry, embedd
     return () => { document.body.style.overflow = previousOverflow; previousFocus?.focus(); };
   }, [embedded]);
   useEffect(() => {
-    if (embedded) return;
+    if (embedded || cropOpen) return;
     const dismiss = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onCancel();
       if (event.key !== 'Tab') return;
@@ -114,7 +117,7 @@ export function LiveDocumentScanner({ onCapture, onCancel, onManualEntry, embedd
     };
     window.addEventListener('keydown', dismiss);
     return () => window.removeEventListener('keydown', dismiss);
-  }, [embedded, onCancel]);
+  }, [embedded, onCancel, cropOpen]);
   const webcamRef = useRef<Webcam | null>(null);
   const [preview, setPreview] = useState<ScannedDocument | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -496,8 +499,8 @@ export function LiveDocumentScanner({ onCapture, onCancel, onManualEntry, embedd
   })();
 
   return (
-    <div ref={containerRef} tabIndex={-1} role={embedded ? undefined : 'dialog'} aria-modal={embedded ? undefined : true} aria-label="Câmera da lista de orçamento"
-      className={embedded ? 'relative isolate h-[clamp(440px,calc(100dvh_-_300px),640px)] overflow-hidden rounded-2xl bg-black' : 'fixed inset-x-0 top-0 z-[100] h-[100dvh] overflow-hidden bg-black outline-none'}>
+    <div ref={containerRef} tabIndex={-1} role={embedded || cropOpen ? undefined : 'dialog'} aria-modal={embedded || cropOpen ? undefined : true} aria-label="Câmera da lista de orçamento"
+      className={embedded ? 'relative isolate h-[clamp(440px,calc(100dvh_-_300px),640px)] overflow-hidden rounded-2xl bg-black' : `fixed inset-x-0 top-0 ${cropOpen ? 'z-40' : 'z-[100]'} h-[100dvh] overflow-hidden bg-black outline-none`}>
       {/* Vídeo */}
       {!['error', 'preview', 'capturing'].includes(status) && <Webcam
         key={facingMode} ref={instance => { webcamRef.current = instance; videoRef.current = instance?.video ?? null; }}
@@ -589,6 +592,7 @@ export function LiveDocumentScanner({ onCapture, onCancel, onManualEntry, embedd
         <div className="min-h-0 flex-1 px-4">{previewUrl && <img src={previewUrl} alt="Prévia da lista fotografada" className="h-full w-full object-contain" />}</div>
         <div className="space-y-3 px-4 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]"><p className="text-center text-sm text-white/80">A lista está inteira e legível?</p>
           <Button className="h-12 w-full" onClick={() => onCapture(preview)}>Usar esta foto</Button>
+          <Button variant="outline" className="h-11 w-full bg-transparent text-white hover:bg-white/10" onClick={() => setCropOpen(true)}>Recortar foto</Button>
           <Button variant="outline" className="h-11 w-full bg-transparent text-white hover:bg-white/10" onClick={retake}>Tirar outra foto</Button>
         </div>
       </div>}
@@ -643,12 +647,13 @@ export function LiveDocumentScanner({ onCapture, onCancel, onManualEntry, embedd
         )}
       </div>}
 
-      <input ref={nativeInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFallbackFile} aria-label="Foto pela câmera do celular" />
+      <ImageCropDialog config={QUOTE_IMAGE_CONFIG} open={cropOpen} sourceUrl={previewUrl || undefined} fileName={preview?.file.name || 'lista'} onOpenChange={setCropOpen} onConfirm={async file => { showPreview({ ...await prepareQuotePhoto(file), autoCaptured: false }); }} />
+      <input ref={nativeInputRef} type="file" accept={IMAGE_UPLOAD_ACCEPT} capture="environment" className="hidden" onChange={handleFallbackFile} aria-label="Foto pela câmera do celular" />
       {/* Input fallback */}
       <input
         ref={fallbackInputRef}
         type="file"
-        accept="image/*"
+        accept={IMAGE_UPLOAD_ACCEPT}
         className="hidden"
         onChange={handleFallbackFile}
         aria-label="Escolher foto da galeria"

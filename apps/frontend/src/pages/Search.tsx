@@ -23,7 +23,7 @@ function getProductImage(product: Product) {
   return (
     product.images?.find((image) => image.isPrimary)?.url ||
     product.images?.[0]?.url ||
-    "https://via.placeholder.com/640x640?text=Produto"
+    "/placeholder.svg"
   );
 }
 

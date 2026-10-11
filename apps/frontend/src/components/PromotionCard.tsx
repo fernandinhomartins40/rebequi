@@ -7,7 +7,7 @@ import { getPromotionBadgeLabel, getPromotionHref } from '@/lib/promotion-ui';
 import { cn } from '@/lib/utils';
 
 const PROMOTION_IMAGE_FALLBACK =
-  'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=1400&q=80';
+  '/placeholder.svg';
 
 export function PromotionCard({
   className,

@@ -8,6 +8,7 @@ import { env } from './config/env.js';
 import { logger } from './utils/logger.util.js';
 import { prisma } from './lib/prisma.js';
 import { QuoteService } from './services/quote.service.js';
+import { installDemoMedia } from './services/demo-media.service.js';
 
 const PORT = env.PORT;
 const HOST = env.HOST;
@@ -36,6 +37,7 @@ async function startServer() {
     // Test database connection
     await prisma.$connect();
     logger.info('✅ Database connected successfully');
+    logger.info('Local demo media ready', await installDemoMedia());
 
     // O job de OCR vive em memória: um restart no meio do processamento deixa
     // orçamentos presos em PROCESSING para sempre. Limpa na subida.

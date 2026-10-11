@@ -26,6 +26,11 @@ export async function validateCatalogLayout(browser, baseURL) {
         await page.goto(`${baseURL}${path}`, { waitUntil: 'domcontentloaded' });
         const cards = page.locator('[data-ui="product-card"]');
         await cards.first().waitFor();
+        if (path.startsWith('/categorias/')) {
+          assert.equal(await page.getByText('Slug', { exact: true }).count(), 0);
+          const position = await cards.first().boundingBox();
+          assert.ok(position.y < 520, `Products appear near the top at ${width}px`);
+        }
         await cards.first().scrollIntoViewIfNeeded();
         assert.equal(await cards.count(), 4);
         const before = await cards.first().boundingBox();

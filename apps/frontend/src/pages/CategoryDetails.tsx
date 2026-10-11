@@ -1,40 +1,26 @@
 import { useQuery } from "@tanstack/react-query";
-import { AlertCircle, ArrowLeft, Boxes, Package } from "lucide-react";
+import { AlertCircle, ArrowLeft, Package } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import ProductCard from "@/components/ProductCard";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getCategoryColorClass, getCategoryIcon } from "@/lib/category-icons";
 import { fetchCategoryBySlug } from "@/services/api/categories";
 import { ApiError } from "@/services/api/client";
 import { fetchAllProductsByCategory } from "@/services/api/products";
 
-const PRODUCT_PLACEHOLDER = "https://via.placeholder.com/600x600?text=Produto";
+const PRODUCT_PLACEHOLDER = "/placeholder.svg";
 
 function CategoryDetailsSkeleton() {
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#fffef9_0%,#ffffff_28%,#f8f6ef_100%)]">
       <Header />
-      <div className="container mx-auto px-4 py-10">
+      <div className="container mx-auto px-4 py-4 sm:py-6">
         <Skeleton className="h-5 w-40" />
-        <div className="mt-8 grid gap-6 xl:grid-cols-[0.72fr_1.28fr] xl:gap-8">
-          <Skeleton className="h-72 rounded-[2rem]" />
-          <div className="space-y-4">
-            <Skeleton className="h-6 w-28" />
-            <Skeleton className="h-12 w-3/4" />
-            <Skeleton className="h-5 w-full max-w-2xl" />
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Skeleton className="h-24 rounded-[1.75rem]" />
-              <Skeleton className="h-24 rounded-[1.75rem]" />
-            </div>
-            <Skeleton className="h-10 w-48" />
-          </div>
-        </div>
-        <div className="mt-12 grid grid-cols-2 items-stretch gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+        <Skeleton className="mt-4 h-9 w-56" />
+        <div className="mt-6 grid grid-cols-2 items-stretch gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
           {Array.from({ length: 8 }).map((_, index) => (
             <Skeleton key={index} className="h-[24rem] rounded-[2rem]" />
           ))}
@@ -121,7 +107,7 @@ export default function CategoryDetailsPage() {
   }
 
   const products = productsResponse?.products ?? [];
-  const Icon = getCategoryIcon(category.icon, `${category.slug} ${category.name}`);
+
 
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#fffef9_0%,#ffffff_28%,#f8f6ef_100%)]">
@@ -135,64 +121,11 @@ export default function CategoryDetailsPage() {
           </Link>
         </Button>
 
-        <section className="mt-6 grid gap-6 xl:grid-cols-[0.72fr_1.28fr] xl:gap-8">
-          <div className="overflow-hidden rounded-[2rem] border border-[#e7dcc3] bg-[radial-gradient(circle_at_top,#fff8dc_0%,#fff2b5_38%,#f8f6ef_100%)] shadow-[0_35px_80px_-50px_rgba(15,23,42,0.35)]">
-            {category.image ? (
-              <img src={category.image} alt={category.name} className="h-full min-h-[18rem] w-full object-cover" />
-            ) : (
-              <div className="flex min-h-[18rem] items-center justify-center px-6 py-8">
-                <div className="flex flex-col items-center text-center">
-                  <div className="category-circle bg-white">
-                    <Icon className={`h-10 w-10 ${getCategoryColorClass(0)}`} />
-                  </div>
-                  <p className="mt-5 max-w-xs text-sm leading-6 text-muted-foreground">
-                    Visualize todos os produtos ativos vinculados a esta categoria em uma página dedicada.
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="rounded-[2rem] border border-[#e7dcc3] bg-white px-5 py-6 shadow-[0_35px_80px_-50px_rgba(15,23,42,0.35)] sm:px-7 sm:py-7">
-            <Badge className="border-none bg-accent text-accent-foreground">Categoria</Badge>
-            <h1 className="mt-4 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">{category.name}</h1>
-            <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
-              {category.description || "Confira todos os produtos desta categoria com navegação clara e foco total no catálogo disponível."}
-            </p>
-
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-[1.75rem] border border-black/5 bg-slate-50 px-5 py-4">
-                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-                  <Boxes className="h-4 w-4 text-primary" />
-                  Produtos ativos
-                </div>
-                <div className="mt-2 text-3xl font-bold text-foreground">{productsResponse?.total ?? products.length}</div>
-                <p className="mt-1 text-sm text-muted-foreground">Itens publicados nesta categoria</p>
-              </div>
-
-              <div className="rounded-[1.75rem] border border-black/5 bg-slate-50 px-5 py-4">
-                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-                  <Package className="h-4 w-4 text-primary" />
-                  Slug
-                </div>
-                <div className="mt-2 text-lg font-semibold text-foreground">{category.slug}</div>
-                <p className="mt-1 text-sm text-muted-foreground">Identificador usado na rota pública da categoria</p>
-              </div>
-            </div>
-          </div>
+        <section className="mt-4 mb-6 flex items-center justify-between gap-4 border-b border-slate-200 pb-4">
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{category.name}</h1>
+          <span className="shrink-0 text-sm text-muted-foreground">{productsResponse?.total ?? products.length} produtos</span>
         </section>
-
-        <section className="mt-12">
-          <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">Produtos da categoria</h2>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Todos os produtos ativos vinculados a {category.name.toLowerCase()}.
-              </p>
-            </div>
-            <div className="text-sm font-medium text-muted-foreground">{products.length} itens listados</div>
-          </div>
-
+        <section aria-label="Produtos da categoria">
           {isLoadingProducts ? (
             <div className="grid grid-cols-2 items-stretch gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
               {Array.from({ length: 8 }).map((_, index) => (

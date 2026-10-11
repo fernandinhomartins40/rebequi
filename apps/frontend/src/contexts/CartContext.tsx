@@ -9,7 +9,7 @@ import {
 import type { Product } from '@/types';
 
 const STORAGE_KEY = 'rebequi:cart:v1';
-const PRODUCT_PLACEHOLDER = 'https://via.placeholder.com/400x400?text=Produto';
+const PRODUCT_PLACEHOLDER = '/placeholder.svg';
 
 export type CartItem = {
   productId: string;

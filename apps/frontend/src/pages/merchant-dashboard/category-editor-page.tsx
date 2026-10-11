@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Save } from 'lucide-react';
@@ -8,7 +8,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
-import { createCategory, fetchCategories, updateCategory } from '@/services/api/categories';
+import { createCategory, fetchCategories, updateCategory, uploadCategoryImage } from '@/services/api/categories';
+import { ImageCropDialog } from './image-crop-dialog';
+import { CATEGORY_IMAGE_CONFIG, IMAGE_UPLOAD_ACCEPT, readFileAsDataUrl } from './image-tools';
 import { ADMIN_BASE_PATH } from './config';
 import { DashboardPanel, EditorBackLink, EditorError, EditorFooter, EditorLoading, PageHeader } from './components';
 
@@ -51,6 +53,14 @@ export function MerchantCategoryEditorPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const isEditing = Boolean(categoryId);
+  const [cropSource, setCropSource] = useState<{ url: string; name: string } | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!imageFile) { setPreviewUrl(null); return; }
+    const url = URL.createObjectURL(imageFile); setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [imageFile]);
 
   const categoriesQuery = useQuery({
     queryKey: ['merchant-dashboard', 'categories', 'all'],
@@ -84,6 +94,7 @@ export function MerchantCategoryEditorPage() {
   const saveMutation = useMutation({
     mutationFn: async (fields: CategoryFormFields) => {
       const payload = buildPayload(fields);
+      if (imageFile) payload.image = (await uploadCategoryImage(imageFile)).url;
 
       if (!payload.name) {
         throw new Error('Informe o nome da categoria.');
@@ -154,8 +165,14 @@ export function MerchantCategoryEditorPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="category-image">Imagem (URL)</Label>
-                <Input id="category-image" placeholder="https://..." {...register('image')} />
+                <Label htmlFor="category-image">Imagem da categoria</Label>
+                {(previewUrl || category?.image) && <img src={previewUrl || category?.image} alt="Prévia da categoria" className="h-24 w-24 rounded-lg object-contain" />}
+                <Input id="category-image" type="file" accept={IMAGE_UPLOAD_ACCEPT} onChange={async event => {
+                  const file = event.target.files?.[0]; event.target.value = ''; if (!file) return;
+                  try { setCropSource({ url: await readFileAsDataUrl(file), name: file.name }); }
+                  catch (error) { toast({ variant: 'destructive', title: 'Imagem inválida', description: error instanceof Error ? error.message : 'Escolha outra imagem.' }); }
+                }} />
+                <p className="text-xs text-muted-foreground">Recorte quadrado · 800 × 800 px · WebP</p>
               </div>
             </div>
 
@@ -186,6 +203,7 @@ export function MerchantCategoryEditorPage() {
           </Button>
         </EditorFooter>
       </form>
+      <ImageCropDialog config={CATEGORY_IMAGE_CONFIG} open={Boolean(cropSource)} sourceUrl={cropSource?.url} fileName={cropSource?.name || 'categoria'} onOpenChange={open => { if (!open) setCropSource(null); }} onConfirm={file => setImageFile(file)} />
     </div>
   );
 }

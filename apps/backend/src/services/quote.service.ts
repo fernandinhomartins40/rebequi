@@ -808,7 +808,7 @@ export class QuoteService {
     // Validate actual bytes before storing or scheduling a paid recognition request.
     try {
       const metadata = await sharp(params.file.buffer, { limitInputPixels: 40000000 }).metadata();
-      if (!metadata.width || !metadata.height || !['jpeg', 'png', 'webp', 'gif'].includes(metadata.format ?? '')) throw new Error('Unsupported image');
+      if (!metadata.width || !metadata.height || !['jpeg', 'png', 'webp', 'gif', 'heif', 'avif'].includes(metadata.format ?? '')) throw new Error('Unsupported image');
       return storeQuoteDocumentImage({ file: params.file, alt: params.alt, width: metadata.width, height: metadata.height });
     } catch { throw new ValidationError('Não foi possível abrir a foto. Envie uma imagem JPG, PNG ou WebP válida.'); }
   }

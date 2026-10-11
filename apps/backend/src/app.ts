@@ -59,7 +59,12 @@ app.use('/api', routes);
 
 // Serve static files (uploads)
 if (env.UPLOAD_DIR) {
-  app.use('/uploads', express.static(env.UPLOAD_DIR));
+  app.use('/uploads', express.static(env.UPLOAD_DIR, {
+    maxAge: '1y', immutable: true, dotfiles: 'deny',
+    setHeaders: (response, filePath) => {
+      if (filePath.replace(/\\/g, '/').includes('/quotes/')) response.setHeader('Cache-Control', 'private, no-store');
+    },
+  }));
 }
 
 // ============================================================================

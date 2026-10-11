@@ -1,15 +1,21 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import sharp from 'sharp';
 import { env } from '../config/env.js';
-import { ValidationError } from '../utils/errors.util.js';
+import { AppError, ValidationError } from '../utils/errors.util.js';
 
-const MIME_EXTENSION_MAP: Record<string, string> = {
-  'image/jpeg': '.jpg',
-  'image/jpg': '.jpg',
-  'image/png': '.png',
-  'image/webp': '.webp',
-};
+sharp.cache({ memory: 16, files: 0, items: 20 });
+sharp.concurrency(1);
+let processing = false;
+const waiting: Array<() => void> = [];
+async function acquireProcessingSlot() {
+  if (!processing) { processing = true; return; }
+  if (waiting.length >= 3) throw new AppError('Aguarde um instante e tente enviar a imagem novamente.', 429);
+  await new Promise<void>(resolve => waiting.push(resolve));
+}
+function releaseProcessingSlot() { const next = waiting.shift(); if (next) next(); else processing = false; }
+
 
 type StoredProductImage = {
   url: string;
@@ -32,23 +38,13 @@ function getSafeAbsolutePath(storageKey: string) {
   const uploadsRoot = getUploadsRoot();
   const absolutePath = path.resolve(uploadsRoot, storageKey);
 
-  if (!absolutePath.startsWith(uploadsRoot)) {
+  if (!absolutePath.startsWith(`${uploadsRoot}${path.sep}`)) {
     throw new ValidationError('Invalid storage key');
   }
 
   return absolutePath;
 }
 
-function getFileExtension(file: Express.Multer.File) {
-  const byMime = MIME_EXTENSION_MAP[file.mimetype];
-
-  if (byMime) {
-    return byMime;
-  }
-
-  const originalExt = path.extname(file.originalname || '').toLowerCase();
-  return originalExt || '.bin';
-}
 
 async function storeManagedImage(params: {
   file: Express.Multer.File;
@@ -59,14 +55,30 @@ async function storeManagedImage(params: {
   order?: number;
   isPrimary?: boolean;
 }): Promise<StoredProductImage> {
-  const { file, folder, alt, width, height, order, isPrimary } = params;
+  const { file, folder, alt, order, isPrimary } = params;
 
   if (!file?.buffer?.length) {
     throw new ValidationError('Image file is required');
   }
 
+  let buffer: Buffer;
+  let width: number;
+  let height: number;
+  await acquireProcessingSlot();
+  try {
+    const image = sharp(file.buffer, { limitInputPixels: 40000000, animated: false }).rotate();
+    const metadata = await image.metadata();
+    if (!metadata.width || !metadata.height || !['jpeg', 'png', 'webp', 'gif', 'avif', 'heif', 'tiff'].includes(metadata.format || '')) throw new Error('Invalid image');
+    const dimensions = folder === 'promotions' ? { width: 1600, height: 900 } : folder === 'quotes' ? { width: 1800, height: 1800 } : { width: folder === 'categories' ? 800 : 1200, height: folder === 'categories' ? 800 : 1200 };
+    const output = await image.resize({ ...dimensions, fit: folder === 'quotes' ? 'inside' : 'contain', background: '#ffffff', withoutEnlargement: folder === 'quotes' })
+      .webp({ quality: folder === 'quotes' ? 88 : 80, effort: 3 }).toBuffer({ resolveWithObject: true });
+    buffer = output.data; width = output.info.width; height = output.info.height;
+    const maximum = folder === 'quotes' ? 2 * 1024 * 1024 : 600 * 1024;
+    if (buffer.length > maximum) throw new Error('Image too large');
+  } catch { throw new ValidationError('Imagem inválida ou muito grande. Escolha JPG, PNG, WebP, GIF ou AVIF.'); }
+  finally { releaseProcessingSlot(); }
   const now = new Date();
-  const extension = getFileExtension(file);
+  const extension = '.webp';
   const filename = `${now.getTime()}-${crypto.randomBytes(6).toString('hex')}${extension}`;
   const storageKey = path.posix.join(
     folder,
@@ -77,7 +89,7 @@ async function storeManagedImage(params: {
 
   const absolutePath = getSafeAbsolutePath(storageKey);
   await fs.mkdir(path.dirname(absolutePath), { recursive: true });
-  await fs.writeFile(absolutePath, file.buffer);
+  await fs.writeFile(absolutePath, buffer, { flag: 'wx' });
 
   return {
     url: `/uploads/${storageKey}`,
@@ -86,8 +98,8 @@ async function storeManagedImage(params: {
     isPrimary,
     storageKey,
     filename,
-    mimeType: file.mimetype,
-    size: file.size,
+    mimeType: 'image/webp',
+    size: buffer.length,
     width,
     height,
   };
@@ -160,3 +172,5 @@ export async function deleteStoredPromotionImages(images: Array<{ storageKey?: s
 export async function deleteStoredQuoteDocuments(images: Array<{ storageKey?: string | null }>) {
   return deleteStoredImages(images);
 }
+
+export async function storeCategoryImage(params: { file: Express.Multer.File; alt?: string }) { return storeManagedImage({ ...params, folder: 'categories' }); }

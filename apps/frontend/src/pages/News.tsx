@@ -70,7 +70,7 @@ export default function NewsPage() {
   const primaryImage =
     featuredProduct?.images?.find((image) => image.isPrimary)?.url ||
     featuredProduct?.images?.[0]?.url ||
-    "https://via.placeholder.com/960x720?text=Novidades";
+    "/placeholder.svg";
 
   if (isLoading) {
     return <NewsPageSkeleton />;

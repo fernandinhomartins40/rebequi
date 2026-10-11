@@ -37,7 +37,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { fetchProductBySlug, fetchProductsByCategory } from "@/services/api/products";
 import { ApiError } from "@/services/api/client";
 
-const PRODUCT_PLACEHOLDER = "https://via.placeholder.com/1200x1200?text=Produto";
+const PRODUCT_PLACEHOLDER = "/placeholder.svg";
 
 function formatPrice(value: number) {
   return new Intl.NumberFormat("pt-BR", {

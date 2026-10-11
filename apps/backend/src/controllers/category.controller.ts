@@ -6,6 +6,8 @@ import { Request, Response, NextFunction } from 'express';
 import { CategoryService } from '../services/category.service.js';
 import { successResponse } from '../utils/response.util.js';
 import type { CreateCategoryInput, UpdateCategoryInput } from '@rebequi/shared/schemas';
+import { storeCategoryImage } from '../services/product-image-storage.service.js';
+import { ValidationError } from '../utils/errors.util.js';
 
 function getRouteParam(value: string | string[] | undefined): string {
   if (Array.isArray(value)) {
@@ -16,6 +18,12 @@ function getRouteParam(value: string | string[] | undefined): string {
 }
 
 export class CategoryController {
+  uploadImage = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.file) throw new ValidationError('Selecione uma imagem.');
+      successResponse(res, await storeCategoryImage({ file: req.file }), 201);
+    } catch (error) { next(error); }
+  };
   private categoryService: CategoryService;
 
   constructor() {

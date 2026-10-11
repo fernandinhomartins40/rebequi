@@ -113,7 +113,7 @@ curl -fsS --cookie "$TEST_DIR/cookies" -F "image=@$TEST_DIR/upload.png;type=imag
 uploaded_path=$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).data.url)' "$TEST_DIR/upload-response.json")
 [[ "$uploaded_path" == /uploads/* ]]
 curl -fsS "http://127.0.0.1:3190$uploaded_path" -o "$TEST_DIR/multipart.png"
-cmp "$TEST_DIR/upload.png" "$TEST_DIR/multipart.png"
+node -e 'const fs=require("fs");const image=JSON.parse(fs.readFileSync(process.argv[1],"utf8")).data;const bytes=fs.readFileSync(process.argv[2]);if(image.mimeType!=="image/webp"||image.width!==1200||image.height!==1200||image.size!==bytes.length||bytes.toString("ascii",0,4)!=="RIFF"||bytes.toString("ascii",8,12)!=="WEBP")throw new Error("Upload not normalized to bounded WebP");' "$TEST_DIR/upload-response.json" "$TEST_DIR/multipart.png"
 compose up -d --no-deps --no-build --force-recreate --wait --wait-timeout 180 api
 compose up -d --no-deps --no-build --force-recreate --wait --wait-timeout 120 web
 curl -fsS http://127.0.0.1:3190/uploads/persistence-smoke.png -o "$TEST_DIR/upload-after.png"

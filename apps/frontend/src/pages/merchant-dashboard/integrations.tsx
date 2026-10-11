@@ -9,6 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { DashboardHeading, DashboardSection } from '@/components/dashboard/DashboardElements';
 import { useToast } from '@/components/ui/use-toast';
+import { ImageCropDialog } from './image-crop-dialog';
+import { QUOTE_IMAGE_CONFIG, IMAGE_UPLOAD_ACCEPT, readFileAsDataUrl } from './image-tools';
 
 export function MerchantDashboardIntegrations() {
  const { toast } = useToast(); const client = useQueryClient();
@@ -17,6 +19,7 @@ export function MerchantDashboardIntegrations() {
  const [keys, setKeys] = useState({ deepseek: '', qwen: '' });
  const [remove, setRemove] = useState({ deepseek: false, qwen: false });
  const [file, setFile] = useState<File | null>(null);
+ const [cropSource, setCropSource] = useState<{ url: string; name: string } | null>(null);
  const [connections, setConnections] = useState<Partial<Record<QuoteAiProvider, AiTestResult>>>({});
  const [result, setResult] = useState<AiTestResult | null>(null);
  useEffect(() => { if (config.data) {
@@ -84,11 +87,13 @@ export function MerchantDashboardIntegrations() {
    {dirty && <p className="text-sm mb-3">Salve as alterações antes de testar.</p>}
    {!config.data?.enabled && <p className="text-sm mb-3">Ative a leitura automática após cadastrar uma chave.</p>}
    <p className="text-xs text-muted-foreground mb-3">Este teste consome tokens na conta do provedor.</p>
-   <div className="flex flex-wrap gap-3"><Input aria-label="Foto da lista para teste" type="file" accept="image/png,image/jpeg,image/webp" className="max-w-sm" onChange={e => setFile(e.target.files?.[0] ?? null)} /><Button disabled={busy || Boolean(dirty) || !file || !config.data?.enabled} onClick={() => file && recognition.mutate(file)}>{recognition.isPending ? 'Lendo…' : 'Testar leitura'}</Button></div>
+   <div className="flex flex-wrap gap-3"><Input aria-label="Foto da lista para teste" type="file" accept={IMAGE_UPLOAD_ACCEPT} className="max-w-sm" onChange={async e => { const selected = e.target.files?.[0]; e.target.value = ''; if (!selected) return; try { setCropSource({ url: await readFileAsDataUrl(selected), name: selected.name }); } catch (error) { toast({ variant: 'destructive', title: 'Imagem inválida', description: error instanceof Error ? error.message : 'Escolha outra imagem.' }); } }} /><Button disabled={busy || Boolean(dirty) || !file || !config.data?.enabled} onClick={() => file && recognition.mutate(file)}>{recognition.isPending ? 'Lendo…' : 'Testar leitura'}</Button></div>
+   {file && <p className="mt-2 text-xs text-muted-foreground">Imagem preparada · {Math.ceil(file.size / 1024)} KB · WebP</p>}
    {result && <div className="mt-4 space-y-2" role="status"><p className={result.ok ? 'text-green-700' : 'text-red-600'}>{result.message}</p>{result.modelId && <p className="text-xs text-muted-foreground">{result.engine} · {result.modelId} · entrada {result.promptTokens ?? '—'} / saída {result.completionTokens ?? '—'} tokens</p>}
     {result.items?.length ? <ul className="divide-y">{result.items.map((item, index) => <li key={index} className="py-2 text-sm">{item.quantity ?? 1} {item.unit} · {item.text}</li>)}</ul> : null}
    </div>}
    <div className="mt-4 text-xs text-muted-foreground flex gap-4"><a href="https://api-docs.deepseek.com/quick_start/pricing/" target="_blank" rel="noreferrer">Preços DeepSeek</a><a href="https://www.alibabacloud.com/help/en/model-studio/model-pricing" target="_blank" rel="noreferrer">Preços Qwen</a></div>
   </DashboardSection>
+ <ImageCropDialog config={QUOTE_IMAGE_CONFIG} open={Boolean(cropSource)} sourceUrl={cropSource?.url} fileName={cropSource?.name || 'lista'} onOpenChange={open => { if (!open) setCropSource(null); }} onConfirm={file => setFile(file)} />
  </div>;
 }

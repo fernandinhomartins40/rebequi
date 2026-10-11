@@ -20,8 +20,9 @@ export async function prepareQuotePhoto(blob: Blob): Promise<{ file: File; width
     if (!context) throw new Error('Não foi possível preparar a imagem neste navegador.');
     context.fillStyle = '#ffffff'; context.fillRect(0, 0, canvas.width, canvas.height);
     context.drawImage(image, 0, 0, canvas.width, canvas.height);
-    const jpeg = await new Promise<Blob>((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('Não foi possível preparar a foto.')), 'image/jpeg', 0.9));
-    if (jpeg.size > 5 * 1024 * 1024) throw new Error('A foto ficou grande demais. Tire outra foto mais próxima da lista.');
-    return { file: new File([jpeg], `lista-${Date.now()}.jpg`, { type: 'image/jpeg' }), width: canvas.width, height: canvas.height };
+    const webp = await new Promise<Blob>((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('Não foi possível preparar a foto.')), 'image/webp', 0.88));
+    if (webp.type !== 'image/webp') throw new Error('Atualize o navegador para preparar a imagem em WebP.');
+    if (webp.size > 2 * 1024 * 1024) throw new Error('A foto ficou grande demais. Tire outra foto mais próxima da lista.');
+    return { file: new File([webp], `lista-${Date.now()}.webp`, { type: 'image/webp' }), width: canvas.width, height: canvas.height };
   } finally { image.onload = null; image.onerror = null; image.src = ''; URL.revokeObjectURL(url); }
 }

@@ -79,7 +79,7 @@ const ProductSection = ({
             const primaryImage =
               promotion?.image?.url ||
               (product.images && product.images.length > 0 && product.images[0].url) ||
-              "https://via.placeholder.com/400x300?text=Produto";
+              "/placeholder.svg";
             const categoryName = product.category?.name || "Categoria";
             const pricing = getPromotionProductPricingData(promotion, product);
 
