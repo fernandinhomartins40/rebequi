@@ -573,6 +573,10 @@ enum ChannelType {
   MERCADO_LIVRE
   SHOPEE
   AMAZON
+  MAGALU
+  CASAS_BAHIA
+  AMERICANAS
+  SHEIN
   MANUAL // Canal genérico controlado à mão (ponto de partida sem integração)
 }
 
@@ -687,6 +691,18 @@ model IntegrationJob {
   @@index([leaseUntil])
   @@index([channelId, createdAt])
   @@map("integration_jobs")
+}
+
+model IntegrationAudit {
+  id        String   @id @default(cuid())
+  actorId   String
+  jobId     String
+  action    String
+  createdAt DateTime @default(now())
+
+  @@index([jobId, createdAt])
+  @@index([createdAt])
+  @@map("integration_audits")
 }
 
 model StockReservation {

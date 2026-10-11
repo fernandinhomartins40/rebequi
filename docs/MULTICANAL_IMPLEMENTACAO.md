@@ -29,4 +29,10 @@ Envio da venda usa UUID reaproveitado quando o formulário é reenviado sem alte
 
 Migrações aditivas preservam dados e acrescentam proteção de saldo reservado. Testes comerciais rodam exclusivamente em banco descartável do GitHub: reserva concorrente da última unidade, tentativa de venda sem a reserva, envio simultâneo idempotente, conflito de conteúdo, consumo, cancelamento e expiração repetida.
 
+## Operação e canais previstos
+
+Painel Canais apresenta contagens reais da fila local, data da tarefa mais antiga, falhas e reprocessamento. Reprocessar é uma transição atômica exclusiva de tarefas locais com falha; não duplica uma tarefa em execução e registra operador, tarefa e ação em auditoria persistente. Mensagens não devolvem corpos de provedores nem credenciais. Estados OAuth abandonados são removidos após 20 minutos, sem ler seus segredos.
+
+Magalu, Casas Bahia, Americanas e SHEIN passam a ser tipos próprios, além de Mercado Livre, Shopee, Amazon e manual. Cadastro desses tipos organiza a conta, sem simular conexão ou operações comerciais. Cadastro/consentimento Mercado Livre está disponível; os demais conectores permanecem explicitamente indisponíveis. Corrigido limite inválido de consulta de anúncios e aviso de desconexão que descrevia exclusão de histórico incorretamente.
+
 Ainda pendentes: reserva de kits/localizações, valores Decimal, inbox/webhooks, tarefas de escrita remota, conectores oficiais e suas validações, pedidos/logística/pós-venda externos e conciliação financeira. Estas entregas não concluem fases 0 e 1 nem o plano completo.

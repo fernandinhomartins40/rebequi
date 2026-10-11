@@ -48,7 +48,7 @@ export function MerchantChannelDetailPage() {
 
   const listingsQuery = useQuery({
     queryKey: ['merchant-dashboard', 'channels', 'listings', channelId],
-    queryFn: () => fetchChannelListings(channelId as string, { limit: 200, page: 1 }),
+    queryFn: () => fetchChannelListings(channelId as string, { limit: 100, page: 1 }),
     enabled: Boolean(channelId),
   });
 

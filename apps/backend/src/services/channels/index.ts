@@ -9,9 +9,8 @@ const mercadoLivreAdapter = new MercadoLivreAdapter();
 const unavailableAdapter = new UnavailableChannelAdapter();
 
 /**
- * Resolve o adaptador correto para um tipo de canal. Marketplaces sem adaptador
- * real ainda caem no manual, mantendo o vínculo/snapshot funcionando até a
- * integração automática ser conectada.
+ * Resolve o adaptador por capacidade. Somente MANUAL admite controle interno;
+ * marketplaces sem conector retornam indisponibilidade sem confirmar efeitos.
  */
 export function getChannelAdapter(type: ChannelType): ChannelAdapter {
   switch (type) {

@@ -18,6 +18,7 @@ export async function runIntegrationJobs() {
   running = true;
   try {
     await expireStockReservations();
+    await prisma.setting.deleteMany({ where: { key: { startsWith: 'channel.oauth.' }, createdAt: { lt: new Date(Date.now() - 20 * 60_000) } } });
     for (let index = 0; index < 20; index++) {
       const token = randomUUID();
       const jobs = await prisma.$queryRaw<ClaimedJob[]>`

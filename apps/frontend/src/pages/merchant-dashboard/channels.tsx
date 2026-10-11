@@ -37,11 +37,16 @@ import { ChannelType } from '@/types';
 import type { Channel } from '@/types';
 import { ADMIN_BASE_PATH } from './config';
 import { DashboardPanel, PageHeader, StatCard } from './components';
+import { IntegrationOperationsPanel } from './integration-operations';
 
 const CHANNEL_TYPE_OPTIONS = [
   { label: 'Mercado Livre', value: ChannelType.MERCADO_LIVRE },
   { label: 'Shopee', value: ChannelType.SHOPEE },
   { label: 'Amazon', value: ChannelType.AMAZON },
+  { label: 'Magalu', value: ChannelType.MAGALU },
+  { label: 'Casas Bahia', value: ChannelType.CASAS_BAHIA },
+  { label: 'Americanas', value: ChannelType.AMERICANAS },
+  { label: 'SHEIN', value: ChannelType.SHEIN },
   { label: 'Canal manual (sem integração automática)', value: ChannelType.MANUAL },
 ];
 
@@ -70,7 +75,7 @@ export function MerchantDashboardChannels() {
       setDialogOpen(false);
       setNewName('');
       setNewType(ChannelType.MANUAL);
-      toast({ title: 'Canal criado', description: 'Agora publique produtos e configure as credenciais se necessário.' });
+      toast({ title: 'Canal cadastrado', description: 'Abra o canal para conferir a configuração e os recursos disponíveis.' });
     },
     onError: (error) => {
       toast({ variant: 'destructive', title: 'Falha ao criar canal', description: error instanceof Error ? error.message : 'Erro inesperado.' });
@@ -110,7 +115,7 @@ export function MerchantDashboardChannels() {
   const outOfSync = channels.reduce((sum, c) => sum + c.listingCounts.outOfSync, 0);
 
   const handleDelete = (channel: Channel) => {
-    if (!window.confirm(`Remover o canal "${channel.name}"? Os anúncios vinculados também serão removidos do controle.`)) return;
+    if (!window.confirm(`Desconectar o canal "${channel.name}"? As credenciais serão apagadas; o histórico e os vínculos serão preservados.`)) return;
     deleteMutation.mutate(channel.id);
   };
 
@@ -134,6 +139,7 @@ export function MerchantDashboardChannels() {
         <StatCard icon={<RefreshCcw className="h-4 w-4" />} label="Defasados" value={`${outOfSync}`} tone={outOfSync > 0 ? 'yellow' : 'default'} delta={outOfSync > 0 ? 'Precisam sincronizar' : 'Tudo em dia'} />
       </section>
 
+      <IntegrationOperationsPanel />
       <DashboardPanel title="Seus canais" accent="blue">
         {channelsQuery.isLoading ? (
           <div className="space-y-2">

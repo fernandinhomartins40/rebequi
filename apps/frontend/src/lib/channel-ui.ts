@@ -4,6 +4,10 @@ export const CHANNEL_TYPE_LABELS: Record<ChannelType, string> = {
   [ChannelType.MERCADO_LIVRE]: 'Mercado Livre',
   [ChannelType.SHOPEE]: 'Shopee',
   [ChannelType.AMAZON]: 'Amazon',
+  [ChannelType.MAGALU]: 'Magalu',
+  [ChannelType.CASAS_BAHIA]: 'Casas Bahia',
+  [ChannelType.AMERICANAS]: 'Americanas',
+  [ChannelType.SHEIN]: 'SHEIN',
   [ChannelType.MANUAL]: 'Canal manual',
 };
 
@@ -11,7 +15,7 @@ export function getChannelTypeLabel(type: ChannelType | string) {
   return CHANNEL_TYPE_LABELS[type as ChannelType] ?? type;
 }
 
-/** Marketplaces com integração automática real; os demais operam no modo manual. */
+/** Only providers with validated commercial operations belong here. */
 export const AUTOMATED_CHANNEL_TYPES: ChannelType[] = [];
 
 export function isAutomatedChannel(type: ChannelType | string) {

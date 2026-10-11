@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const channelTypeSchema = z.enum(['MERCADO_LIVRE', 'SHOPEE', 'AMAZON', 'MANUAL']);
+export const channelTypeSchema = z.enum(['MERCADO_LIVRE', 'SHOPEE', 'AMAZON', 'MAGALU', 'CASAS_BAHIA', 'AMERICANAS', 'SHEIN', 'MANUAL']);
 
 export const channelStatusSchema = z.enum(['DISCONNECTED', 'CONNECTED', 'ERROR']);
 

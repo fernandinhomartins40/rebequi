@@ -12,6 +12,20 @@ import type {
 } from '@/types';
 import { apiFetch } from './client';
 
+export interface IntegrationOperations {
+  counts: Record<string, number>;
+  oldestPendingAt: string | null;
+  failed: Array<{ id: string; kind: string; productName: string; attempts: number; updatedAt: string; message: string }>;
+}
+
+export async function fetchIntegrationOperations() {
+  return unwrapData<IntegrationOperations>(await apiFetch('/channels/admin/operations'));
+}
+
+export async function retryIntegrationJob(id: string) {
+  return unwrapData<{ queued: boolean }>(await apiFetch(`/channels/admin/operations/${encodeURIComponent(id)}/retry`, { method: 'POST' }));
+}
+
 export async function authorizeMercadoLivre(id: string) {
   return unwrapData<{ url: string; callbackUrl: string }>(await apiFetch(`/channels/admin/${id}/authorize`, { method: 'POST' }));
 }

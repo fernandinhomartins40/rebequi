@@ -64,8 +64,19 @@ export function validateCommercialConsistency(db) {
       await reserveOrderStock(orders[2].id);
       await new OrderRepository().updateOrder(orders[2].id,{status:'CANCELED'});
       assert.equal((await prisma.product.findUniqueOrThrow({where:{id:p.id}})).reservedStock,0);
+      const {getIntegrationOperations,retryIntegrationJob}=await import('./apps/backend/dist/services/integration-operations.service.js');
+      const failedJob=await prisma.integrationJob.findFirstOrThrow({where:{productId:p.id,status:'PENDING'}});
+      await prisma.integrationJob.update({where:{id:failedJob.id},data:{status:'FAILED',attempts:5,lastError:'private-provider-body'}});
+      const operations=await getIntegrationOperations();
+      assert.ok(operations.failed.some(job=>job.id===failedJob.id));
+      assert.ok(!JSON.stringify(operations).includes('private-provider-body'));
+      await retryIntegrationJob(failedJob.id,customer.id);
+      await assert.rejects(()=>retryIntegrationJob(failedJob.id,customer.id));
+      assert.equal(await prisma.integrationAudit.count({where:{jobId:failedJob.id}}),1);
+      await runIntegrationJobs();
+      assert.equal((await prisma.integrationJob.findUniqueOrThrow({where:{id:failedJob.id}})).status,'COMPLETED');
       const {getChannelAdapter}=await import('./apps/backend/dist/services/channels/index.js');
-      for(const provider of ['SHOPEE','AMAZON']) assert.equal((await getChannelAdapter(provider).testConnection({})).ok,false);
+      for(const provider of ['SHOPEE','AMAZON','MAGALU','CASAS_BAHIA','AMERICANAS','SHEIN']) assert.equal((await getChannelAdapter(provider).testConnection({})).ok,false);
       const {ChannelService}=await import('./apps/backend/dist/services/channel.service.js');
       await new ChannelService().deleteChannel(channel.id);
       assert.equal((await prisma.channel.findUniqueOrThrow({where:{id:channel.id}})).isActive,false);
@@ -88,6 +99,8 @@ export function validateCommercialConsistency(db) {
       } finally {globalThis.fetch=oldFetch;}
       console.log('COMMERCIAL_CONSISTENCY_OK');
     } finally {
+      const jobs=await prisma.integrationJob.findMany({where:{productId:p.id},select:{id:true}});
+      await prisma.integrationAudit.deleteMany({where:{jobId:{in:jobs.map(job=>job.id)}}});
       await prisma.integrationJob.deleteMany({where:{productId:p.id}});
       const items=await prisma.saleItem.findMany({where:{productId:p.id},select:{saleId:true}});
       await prisma.stockMovement.deleteMany({where:{productId:p.id}});

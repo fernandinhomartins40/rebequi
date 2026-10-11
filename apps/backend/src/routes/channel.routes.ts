@@ -11,12 +11,22 @@ import { ChannelController } from '../controllers/channel.controller.js';
 import { authenticate, authorize } from '../middleware/auth.middleware.js';
 import { validateBody, validateQuery } from '../middleware/validation.middleware.js';
 import { beginMercadoLivreAuthorization, finishMercadoLivreAuthorization } from '../services/channels/mercado-livre-auth.service.js';
+import { getIntegrationOperations, retryIntegrationJob } from '../services/integration-operations.service.js';
 
 const router: Router = Router();
 const channelController = new ChannelController();
 const channelRoles = getRolesForMerchantPermission('channels:manage');
 
 const auth = [authenticate, authorize(...channelRoles)] as const;
+
+router.get('/admin/operations', ...auth, async (_req, res, next) => {
+  try { res.json({ success: true, data: await getIntegrationOperations() }); }
+  catch (error) { next(error); }
+});
+router.post('/admin/operations/:jobId/retry', ...auth, async (req, res, next) => {
+  try { res.json({ success: true, data: await retryIntegrationJob(req.params.jobId, req.user!.userId) }); }
+  catch (error) { next(error); }
+});
 
 router.post('/admin/:id/authorize', ...auth, async (req, res, next) => {
   try { res.json({ success: true, data: await beginMercadoLivreAuthorization(req.params.id, req.user!.userId) }); }
