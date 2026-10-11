@@ -29,6 +29,9 @@ export async function retryIntegrationJob(id: string) {
 export async function authorizeMercadoLivre(id: string) {
   return unwrapData<{ url: string; callbackUrl: string }>(await apiFetch(`/channels/admin/${id}/authorize`, { method: 'POST' }));
 }
+export async function authorizeMagalu(id: string) {
+  return unwrapData<{ url: string; callbackUrl: string }>(await apiFetch(`/channels/admin/${id}/authorize-magalu`, { method: 'POST' }));
+}
 
 type ApiResponse<T> = {
   success: boolean;

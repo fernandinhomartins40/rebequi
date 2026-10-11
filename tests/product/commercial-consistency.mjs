@@ -112,6 +112,22 @@ export function validateCommercialConsistency(db) {
         await assert.rejects(()=>finishMercadoLivreAuthorization(state,'integration-code','integration-user'));
         const connected=await prisma.channel.findUniqueOrThrow({where:{id:channel.id}});
         assert.equal(connected.status,'CONNECTED'); assert.ok(!connected.credentials.includes('integration-token'));
+        await prisma.channel.update({where:{id:channel.id},data:{type:'MAGALU',credentials:encryptSecret(JSON.stringify({clientId:'magalu-app',clientSecret:'magalu-secret',scopes:'open:portfolio:read'}))}});
+        const {beginMagaluAuthorization,finishMagaluAuthorization}=await import('./apps/backend/dist/services/channels/magalu-auth.service.js');
+        const magaluAuth=new URL((await beginMagaluAuthorization(channel.id,'integration-user')).url);
+        assert.equal(magaluAuth.hostname,'id.magalu.com'); assert.equal(magaluAuth.searchParams.get('choose_tenants'),'true');
+        const magaluState=magaluAuth.searchParams.get('state');
+        await assert.rejects(()=>finishMagaluAuthorization(magaluState,'code','wrong-user'));
+        await finishMagaluAuthorization(magaluState,'code','integration-user');
+        await assert.rejects(()=>finishMagaluAuthorization(magaluState,'code','integration-user'));
+        const authorized=await prisma.channel.findUniqueOrThrow({where:{id:channel.id}});
+        const old=JSON.parse(decryptSecret(authorized.credentials));
+        await prisma.channel.update({where:{id:channel.id},data:{credentials:encryptSecret(JSON.stringify({...old,expiresAt:'0'}))}});
+        let tokenCalls=0;
+        globalThis.fetch=async(url)=>{assert.equal(url,'https://id.magalu.com/oauth/token');tokenCalls++;return Response.json({access_token:'renewed-test-token',refresh_token:'renewed-test-refresh',expires_in:3600});};
+        const {getCloudCredentials}=await import('./apps/backend/dist/services/channels/cloud-credentials.service.js');
+        const renewed=await Promise.all([getCloudCredentials(channel.id,'MAGALU'),getCloudCredentials(channel.id,'MAGALU')]);
+        assert.equal(tokenCalls,1); assert.equal(renewed[0].accessToken,renewed[1].accessToken);
       } finally {globalThis.fetch=oldFetch;}
       console.log('COMMERCIAL_CONSISTENCY_OK');
     } finally {

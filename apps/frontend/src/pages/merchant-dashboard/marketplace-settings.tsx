@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { fetchMarketplaceSettings, saveMarketplaceSettings, type MarketplaceSettings } from '@/services/api/integrations';
-import { authorizeMercadoLivre, testChannel } from '@/services/api/channels';
+import { authorizeMagalu, authorizeMercadoLivre, testChannel } from '@/services/api/channels';
 import { DashboardSection } from '@/components/dashboard/DashboardElements';
 import { ADMIN_BASE_PATH } from './config';
 
@@ -41,7 +41,7 @@ function MarketplaceCredentialsForm({ provider }: { provider: MarketplaceSetting
   }, onError: error => toast({ variant: 'destructive', title: 'Não foi possível salvar', description: error.message }) });
   const test = useMutation({ mutationFn: () => testChannel(accountId), onSuccess: setResult,
     onError: error => setResult({ ok: false, message: error.message }) });
-  const authorize = useMutation({ mutationFn: () => authorizeMercadoLivre(accountId), onSuccess: data => window.location.assign(data.url),
+  const authorize = useMutation({ mutationFn: () => provider.type === 'MAGALU' ? authorizeMagalu(accountId) : authorizeMercadoLivre(accountId), onSuccess: data => window.location.assign(data.url),
     onError: error => setResult({ ok: false, message: error.message }) });
   const busy = save.isPending || test.isPending || authorize.isPending;
   const submit = (event: FormEvent) => { event.preventDefault(); save.mutate(); };
@@ -63,10 +63,11 @@ function MarketplaceCredentialsForm({ provider }: { provider: MarketplaceSetting
       </form>
     </DashboardSection>
     <DashboardSection title="3. Autorize e confira" description="Salvar credenciais não comprova conexão. O resultado do teste aparece abaixo.">
+      {provider.authorization === 'oauth' ? <p className="mb-3 break-all text-xs text-muted-foreground">URL de retorno: https://www.rebequi.com.br/api/channels/oauth/{provider.type === 'MAGALU' ? 'magalu' : 'mercado-livre'}/callback</p> : null}
       {requiresWww && provider.authorization === 'oauth' ? <p className="mb-3 text-sm"><a className="text-blue-600 underline" href={`https://www.rebequi.com.br${ADMIN_BASE_PATH}/integrações?tab=marketplaces`}>Abra o painel em www.rebequi.com.br</a> para concluir a autorização com sua sessão.</p> : null}
       {dirty ? <p className="mb-3 text-sm text-muted-foreground">Salve as alterações antes de testar.</p> : null}
       <div className="flex flex-wrap gap-2">
-        {provider.type === 'MERCADO_LIVRE' ? <Button disabled={busy || Boolean(dirty) || !account?.isActive || requiresWww} onClick={() => authorize.mutate()}>{authorize.isPending ? 'Abrindo autorização…' : 'Autorizar conta'}</Button> : null}
+        {provider.authorization === 'oauth' ? <Button disabled={busy || Boolean(dirty) || !account?.isActive || requiresWww} onClick={() => authorize.mutate()}>{authorize.isPending ? 'Abrindo autorização…' : 'Autorizar conta'}</Button> : null}
         <Button variant="outline" disabled={busy || Boolean(dirty) || !account?.isActive || !account.configuredFields.length} onClick={() => { setResult(null); test.mutate(); }}>{test.isPending ? 'Testando…' : 'Testar conexão'}</Button>
         {account ? <Button variant="outline" asChild><Link to={`${ADMIN_BASE_PATH}/canais/${account.id}`}>Abrir canal</Link></Button> : null}
       </div>

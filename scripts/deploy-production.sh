@@ -257,7 +257,7 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/$PRIMARY_DOMAIN/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
     client_max_body_size 55m;
-    location = /api/channels/oauth/mercado-livre/callback {
+    location ^~ /api/channels/oauth/ {
         access_log off;
         add_header Referrer-Policy "no-referrer" always;
         proxy_pass http://127.0.0.1:3190;

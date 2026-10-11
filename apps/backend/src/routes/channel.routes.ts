@@ -12,6 +12,7 @@ import { authenticate, authorize } from '../middleware/auth.middleware.js';
 import { validateBody, validateQuery } from '../middleware/validation.middleware.js';
 import { beginMercadoLivreAuthorization, finishMercadoLivreAuthorization } from '../services/channels/mercado-livre-auth.service.js';
 import { getIntegrationOperations, retryIntegrationJob } from '../services/integration-operations.service.js';
+import { beginMagaluAuthorization, finishMagaluAuthorization } from '../services/channels/magalu-auth.service.js';
 
 const router: Router = Router();
 const channelController = new ChannelController();
@@ -31,6 +32,17 @@ router.post('/admin/operations/:jobId/retry', ...auth, async (req, res, next) =>
 router.post('/admin/:id/authorize', ...auth, async (req, res, next) => {
   try { res.json({ success: true, data: await beginMercadoLivreAuthorization(req.params.id, req.user!.userId) }); }
   catch (error) { next(error); }
+});
+router.post('/admin/:id/authorize-magalu', ...auth, async (req, res, next) => {
+  try { res.json({ success: true, data: await beginMagaluAuthorization(req.params.id, req.user!.userId) }); }
+  catch (error) { next(error); }
+});
+router.get('/oauth/magalu/callback', ...auth, async (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store'); res.setHeader('Referrer-Policy', 'no-referrer');
+  try {
+    const id = await finishMagaluAuthorization(String(req.query.state ?? ''), String(req.query.code ?? ''), req.user!.userId);
+    res.redirect(`/painel-lojista/painel/canais/${encodeURIComponent(id)}?connected=1`);
+  } catch (error) { next(error); }
 });
 router.get('/oauth/mercado-livre/callback', ...auth, async (req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');

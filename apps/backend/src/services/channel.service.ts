@@ -12,6 +12,7 @@ import { NotFoundError, ValidationError } from '../utils/errors.util.js';
 import { logger } from '../utils/logger.util.js';
 import { getChannelAdapter, type ChannelCredentials, type ListingProductSnapshot } from './channels/index.js';
 import { getMercadoLivreCredentials } from './channels/mercado-livre-auth.service.js';
+import { getCloudCredentials } from './channels/cloud-credentials.service.js';
 
 type PersistedChannel = NonNullable<Awaited<ReturnType<ChannelRepository['findChannelById']>>>;
 type PersistedListing = NonNullable<Awaited<ReturnType<ChannelRepository['findListingById']>>>;
@@ -101,7 +102,8 @@ export class ChannelService {
     if (!channel) throw new NotFoundError('Canal nao encontrado');
 
     const adapter = getChannelAdapter(channel.type);
-    const credentials = channel.type === 'MERCADO_LIVRE' ? await getMercadoLivreCredentials(channel.id) : this.decryptCredentials(channel);
+    const credentials = channel.type === 'MERCADO_LIVRE' ? await getMercadoLivreCredentials(channel.id)
+      : channel.type === 'AMAZON' || channel.type === 'MAGALU' ? await getCloudCredentials(channel.id, channel.type) : this.decryptCredentials(channel);
     const result = await adapter.testConnection(credentials);
 
     await this.repository.updateChannel(id, {
