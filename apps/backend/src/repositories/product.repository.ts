@@ -5,6 +5,7 @@
 
 import { Product, Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
+import { enqueueCatalogChange } from '../services/integration-outbox.service.js';
 
 export class ProductRepository {
   /**
@@ -201,7 +202,8 @@ export class ProductRepository {
    * Update product
    */
   async update(id: string, data: Prisma.ProductUpdateInput) {
-    return prisma.product.update({
+    return prisma.$transaction(async tx => {
+    const product = await tx.product.update({
       where: { id },
       data,
       include: {
@@ -209,15 +211,22 @@ export class ProductRepository {
         images: true,
       },
     });
+    await enqueueCatalogChange(tx, id);
+    return product;
+    });
   }
 
   /**
    * Soft delete product
    */
   async softDelete(id: string): Promise<Product> {
-    return prisma.product.update({
+    return prisma.$transaction(async tx => {
+    const product = await tx.product.update({
       where: { id },
       data: { deletedAt: new Date() },
+    });
+    await enqueueCatalogChange(tx, id);
+    return product;
     });
   }
 

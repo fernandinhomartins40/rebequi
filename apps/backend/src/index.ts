@@ -9,6 +9,7 @@ import { logger } from './utils/logger.util.js';
 import { prisma } from './lib/prisma.js';
 import { QuoteService } from './services/quote.service.js';
 import { installDemoMedia } from './services/demo-media.service.js';
+import { runIntegrationJobs } from './services/integration-outbox.service.js';
 
 const PORT = env.PORT;
 const HOST = env.HOST;
@@ -43,6 +44,8 @@ async function startServer() {
     // orçamentos presos em PROCESSING para sempre. Limpa na subida.
     void runQuoteMaintenance();
     setInterval(() => void runQuoteMaintenance(), QUOTE_MAINTENANCE_INTERVAL_MS).unref();
+    void runIntegrationJobs();
+    setInterval(() => void runIntegrationJobs(), 30_000).unref();
 
     // Start listening
     app.listen(PORT, HOST, () => {

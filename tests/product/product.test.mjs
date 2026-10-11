@@ -5,6 +5,7 @@ import { mkdir } from 'node:fs/promises';
 import { chromium, request } from 'playwright';
 import { validateCatalogLayout } from './catalog-layout.mjs';
 import { validateMediaTools } from './media-tools.mjs';
+import { validateCommercialConsistency } from './commercial-consistency.mjs';
 
 // Mutating validation is confined to a disposable, GitHub-hosted runner.
 if (process.env.CI !== 'true' || process.env.GITHUB_ACTIONS !== 'true' || process.env.RUNNER_ENVIRONMENT !== 'github-hosted') {
@@ -56,6 +57,7 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
       name: 'Cliente Produto', whatsapp: '11987654321', items: [{ productId: product.id, quantity: 2 }],
     } }), 201);
     order = account.order;
+    await t.test('Concurrent sales, duplicate cancellation and persistent worker recovery', () => validateCommercialConsistency(db));
     assert.ok(account.provisionalCredentials.password.length >= 16);
 
     await t.test('Demo images live in persistent local storage and installation is idempotent', async () => {

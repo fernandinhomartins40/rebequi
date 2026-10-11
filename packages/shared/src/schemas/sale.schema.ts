@@ -25,7 +25,7 @@ export const createSaleSchema = z
     customerName: z.string().trim().max(255, 'Nome muito longo').optional(),
     customerWhatsapp: z.string().trim().max(20, 'WhatsApp invalido').optional(),
     paymentMethod: paymentMethodSchema,
-    status: saleStatusSchema.default('PAID'),
+    status: z.enum(['PAID', 'PENDING_PAYMENT']).default('PAID'),
     discount: z.coerce.number().nonnegative('Desconto invalido').max(9_999_999).default(0),
     notes: z.string().max(2000, 'Observacao muito longa').nullable().optional(),
     // Itens: obrigatorios quando nao ha orderId (os itens vem do pedido nesse caso).

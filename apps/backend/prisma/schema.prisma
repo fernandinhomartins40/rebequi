@@ -661,3 +661,25 @@ model Setting {
 
   @@map("settings")
 }
+
+// Persistent outbox: committed with catalog/stock changes, consumed with a lease.
+model IntegrationJob {
+  id            String   @id @default(cuid())
+  dedupeKey     String   @unique
+  kind          String
+  productId     String?
+  channelId     String?
+  status        String   @default("PENDING")
+  attempts      Int      @default(0)
+  nextAttemptAt DateTime @default(now())
+  leaseUntil    DateTime?
+  leaseToken    String?
+  lastError     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([status, nextAttemptAt])
+  @@index([leaseUntil])
+  @@index([channelId, createdAt])
+  @@map("integration_jobs")
+}

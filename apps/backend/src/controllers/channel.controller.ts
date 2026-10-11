@@ -104,6 +104,7 @@ export class ChannelController {
 
   syncListing = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+      await this.channelService.assertListingChannel(req.params.id, req.params.listingId);
       const result = await this.channelService.syncListing(req.params.listingId);
       successResponse(res, result, 200, result.message);
     } catch (error) {
@@ -113,6 +114,7 @@ export class ChannelController {
 
   removeListing = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+      await this.channelService.assertListingChannel(req.params.id, req.params.listingId);
       const result = await this.channelService.removeListing(req.params.listingId);
       successResponse(res, result, 200, 'Anuncio removido');
     } catch (error) {

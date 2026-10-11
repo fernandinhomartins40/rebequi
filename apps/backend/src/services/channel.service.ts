@@ -64,7 +64,7 @@ export class ChannelService {
       name: data.name.trim(),
       externalId: data.externalId?.trim() || null,
       credentials: data.credentials ? this.encryptCredentials(data.credentials) : null,
-      status: data.credentials ? 'CONNECTED' : 'DISCONNECTED',
+      status: 'DISCONNECTED',
     });
     return this.formatChannel(channel, []);
   }
@@ -79,7 +79,7 @@ export class ChannelService {
     if (data.isActive !== undefined) update.isActive = data.isActive;
     if (data.credentials !== undefined) {
       update.credentials = this.encryptCredentials(data.credentials);
-      update.status = 'CONNECTED';
+      update.status = 'DISCONNECTED';
     }
 
     const updated = await this.repository.updateChannel(id, update);
@@ -90,7 +90,8 @@ export class ChannelService {
   async deleteChannel(id: string) {
     const channel = await this.repository.findChannelById(id);
     if (!channel) throw new NotFoundError('Canal nao encontrado');
-    await this.repository.deleteChannel(id);
+    // Preserve bindings and commercial history; disconnect rather than cascade-delete.
+    await this.repository.updateChannel(id, { isActive: false, status: 'DISCONNECTED', credentials: null });
     return { deleted: true };
   }
 
@@ -151,6 +152,7 @@ export class ChannelService {
   async publishListing(channelId: string, productId: string) {
     const channel = await this.repository.findChannelById(channelId);
     if (!channel) throw new NotFoundError('Canal nao encontrado');
+    if (!channel.isActive) throw new ValidationError('Ative o canal antes de publicar.');
 
     const product = await this.productRepository.findById(productId);
     if (!product) throw new NotFoundError('Produto nao encontrado');
@@ -164,6 +166,7 @@ export class ChannelService {
     const snapshot = this.toSnapshot(product);
     const adapter = getChannelAdapter(channel.type);
     const result = await adapter.publishListing(this.decryptCredentials(channel), snapshot);
+    if (!result.ok) throw new ValidationError(result.message);
 
     const listing = await this.repository.createListing({
       channel: { connect: { id: channelId } },
@@ -186,6 +189,7 @@ export class ChannelService {
 
     const channel = await this.repository.findChannelById(listing.channelId);
     if (!channel) throw new NotFoundError('Canal nao encontrado');
+    if (!channel.isActive) throw new ValidationError('Canal desativado. Nenhuma alteração foi enviada.');
 
     const product = await this.productRepository.findById(listing.productId);
     if (!product) throw new NotFoundError('Produto nao encontrado');
@@ -203,6 +207,11 @@ export class ChannelService {
     });
 
     return { listing: this.formatListing(updated), message: result.message };
+  }
+
+  async assertListingChannel(channelId: string, listingId: string) {
+    const listing = await this.repository.findListingById(listingId);
+    if (!listing || listing.channelId !== channelId) throw new NotFoundError('Anúncio não encontrado neste canal');
   }
 
   /** Sincroniza todos os anúncios defasados de um canal de uma vez. */
@@ -245,7 +254,8 @@ export class ChannelService {
     const channel = await this.repository.findChannelById(listing.channelId);
     if (channel) {
       const adapter = getChannelAdapter(channel.type);
-      await adapter.removeListing(this.decryptCredentials(channel), listing.externalListingId);
+      const result = await adapter.removeListing(this.decryptCredentials(channel), listing.externalListingId);
+      if (!result.ok) throw new ValidationError(result.message);
     }
 
     await this.repository.deleteListing(listingId);

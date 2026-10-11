@@ -119,7 +119,7 @@ export function MerchantDashboardChannels() {
     <div className="space-y-6">
       <PageHeader
         title="Canais de venda"
-        description="Conecte marketplaces e publique seus produtos. Preço e estoque saem sempre da loja (fonte única) — quando algo muda aqui, os anúncios ficam marcados como defasados até você sincronizar."
+        description="Organize anúncios por canal. O controle manual funciona aqui; integrações externas só operam após autorização e validação real."
         actions={
           <Button size="sm" className="gap-1.5" onClick={() => setDialogOpen(true)}>
             <Plus className="h-3.5 w-3.5" />
@@ -216,7 +216,7 @@ export function MerchantDashboardChannels() {
           <DialogHeader>
             <DialogTitle>Conectar canal</DialogTitle>
             <DialogDescription>
-              Marketplaces com integração automática pedem credenciais depois; o canal manual funciona na hora.
+              O canal manual funciona na hora. Marketplaces aguardam autorização e validação da integração.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">

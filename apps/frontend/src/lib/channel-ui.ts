@@ -12,7 +12,7 @@ export function getChannelTypeLabel(type: ChannelType | string) {
 }
 
 /** Marketplaces com integração automática real; os demais operam no modo manual. */
-export const AUTOMATED_CHANNEL_TYPES: ChannelType[] = [ChannelType.MERCADO_LIVRE];
+export const AUTOMATED_CHANNEL_TYPES: ChannelType[] = [];
 
 export function isAutomatedChannel(type: ChannelType | string) {
   return AUTOMATED_CHANNEL_TYPES.includes(type as ChannelType);

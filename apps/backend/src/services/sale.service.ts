@@ -6,12 +6,10 @@ import type {
   UpdateSaleStatusInput,
 } from '@rebequi/shared/schemas';
 import { normalizeWhatsapp } from '@rebequi/shared/utils';
-import { prisma } from '../lib/prisma.js';
 import { OrderRepository } from '../repositories/order.repository.js';
 import { ProductRepository } from '../repositories/product.repository.js';
 import { SaleRepository } from '../repositories/sale.repository.js';
 import { CustomerService } from './customer.service.js';
-import { ChannelService } from './channel.service.js';
 import { ConflictError, NotFoundError, ValidationError } from '../utils/errors.util.js';
 
 type PersistedSale = NonNullable<Awaited<ReturnType<SaleRepository['findSaleById']>>>;
@@ -30,14 +28,12 @@ export class SaleService {
   private productRepository: ProductRepository;
   private orderRepository: OrderRepository;
   private customerService: CustomerService;
-  private channelService: ChannelService;
 
   constructor() {
     this.saleRepository = new SaleRepository();
     this.productRepository = new ProductRepository();
     this.orderRepository = new OrderRepository();
     this.customerService = new CustomerService();
-    this.channelService = new ChannelService();
   }
 
   async createSale(registeredById: string | undefined, data: CreateSaleInput) {
@@ -122,51 +118,16 @@ export class SaleService {
       })),
     });
 
-    // Se a venda originou de um pedido, marca o pedido como concluido.
-    if (orderId) {
-      await this.orderRepository.updateOrder(orderId, {
-        status: 'COMPLETED',
-        completedAt: new Date(),
-      });
-    }
-
     // CRM: uma venda paga promove o cliente no funil (cliente/recorrente).
     if (customerId) {
       await this.customerService.maybeAdvanceStage(customerId);
     }
 
-    // Estoque unificado: a venda mexeu no estoque, então os anúncios desses
-    // produtos ficam defasados nos canais externos (best-effort).
-    await Promise.all(resolvedItems.map((item) => this.channelService.markProductDirty(item.productId)));
-
     return this.formatSale(sale);
   }
 
   async updateSaleStatus(saleId: string, data: UpdateSaleStatusInput) {
-    const sale = await this.saleRepository.findSaleById(saleId);
-    if (!sale) {
-      throw new NotFoundError('Venda nao encontrada');
-    }
-
-    const nextStatus = data.status;
-
-    // Cancelar uma venda estorna o estoque dos itens (movimento RETURN).
-    if (nextStatus === 'CANCELED' && sale.status !== 'CANCELED') {
-      await this.restockCanceledSale(sale);
-      // O estorno mexeu no estoque: anúncios desses produtos ficam defasados.
-      await Promise.all(
-        sale.items
-          .filter((item): item is typeof item & { productId: string } => Boolean(item.productId))
-          .map((item) => this.channelService.markProductDirty(item.productId))
-      );
-    }
-
-    const updated = await this.saleRepository.updateSale(saleId, {
-      status: nextStatus,
-      notes: data.notes !== undefined ? data.notes : sale.notes,
-      paidAt: nextStatus === 'PAID' ? sale.paidAt ?? new Date() : sale.paidAt,
-      canceledAt: nextStatus === 'CANCELED' ? sale.canceledAt ?? new Date() : null,
-    });
+    const updated = await this.saleRepository.transitionStatus(saleId, data.status, data.notes);
 
     return this.formatSale(updated);
   }
@@ -289,30 +250,6 @@ export class SaleService {
         unitPrice: this.roundCurrency(line.unitPrice ?? product.price),
         stockBefore: product.stock,
       };
-    });
-  }
-
-  private async restockCanceledSale(sale: PersistedSale) {
-    await prisma.$transaction(async (tx) => {
-      for (const item of sale.items) {
-        if (!item.productId) continue;
-        const product = await tx.product.findUnique({ where: { id: item.productId } });
-        if (!product) continue;
-
-        const stockAfter = product.stock + item.quantity;
-        await tx.product.update({ where: { id: item.productId }, data: { stock: stockAfter } });
-        await tx.stockMovement.create({
-          data: {
-            productId: item.productId,
-            type: 'RETURN',
-            quantity: item.quantity,
-            stockBefore: product.stock,
-            stockAfter,
-            reason: `Estorno da venda ${sale.referenceCode}`,
-            saleId: sale.id,
-          },
-        });
-      }
     });
   }
 
