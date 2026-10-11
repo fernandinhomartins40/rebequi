@@ -23,6 +23,7 @@ export type StoredDraftItem = {
 
 export type StoredDraft = {
   token: string;
+  userId?: string;
   items: StoredDraftItem[];
   photoUrl?: string | null;
   savedAt: number;
@@ -31,12 +32,13 @@ export type StoredDraft = {
   whatsapp?: string;
 };
 
-export function saveDraftBackup(draft: { token: string; items: StoredDraftItem[]; photoUrl?: string | null; stage?: 'review' | 'contact'; name?: string; whatsapp?: string }) {
+export function saveDraftBackup(draft: { token: string; userId?: string; items: StoredDraftItem[]; photoUrl?: string | null; stage?: 'review' | 'contact'; name?: string; whatsapp?: string }) {
   if (typeof window === 'undefined') return;
 
   try {
     const payload: StoredDraft = {
       token: draft.token,
+      userId: draft.userId,
       items: draft.items,
       // Object URLs die with the document, so they are not worth persisting;
       // the draft still carries the server-side document URL.

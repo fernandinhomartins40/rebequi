@@ -114,20 +114,22 @@ export default function RequestQuotePage() {
     if (user?.role !== 'CUSTOMER') return;
     const backup = loadDraftBackup();
     if (!backup) return;
+    if (backup.userId && backup.userId !== user.id) return;
+    const trustedLocalDraft = backup.userId === user.id;
 
     setDraftToken(backup.token);
-    setItems(backup.items);
-    setPhotoUrl(backup.photoUrl ?? null);
-    setStep(backup.stage === 'contact' ? 'contact' : 'review');
-    if (backup.name) setNameInput(backup.name);
-    if (backup.whatsapp) setWhatsappInput(backup.whatsapp);
+    setItems(trustedLocalDraft ? backup.items : []);
+    setPhotoUrl(trustedLocalDraft ? backup.photoUrl ?? null : null);
+    setStep(trustedLocalDraft && backup.stage === 'contact' ? 'contact' : 'review');
+    if (trustedLocalDraft && backup.name) setNameInput(backup.name);
+    if (trustedLocalDraft && backup.whatsapp) setWhatsappInput(backup.whatsapp);
     setRestoring(true);
   }, [user?.id, user?.role]);
 
   useEffect(() => {
     if (!draftToken || (step !== 'review' && step !== 'contact')) return;
-    saveDraftBackup({ token: draftToken, items, photoUrl, stage: step, name: nameInput, whatsapp: whatsappInput });
-  }, [draftToken, items, photoUrl, step, nameInput, whatsappInput]);
+    saveDraftBackup({ userId: user?.id, token: draftToken, items, photoUrl, stage: step, name: nameInput, whatsapp: whatsappInput });
+  }, [draftToken, items, photoUrl, step, nameInput, whatsappInput, user?.id]);
 
   useEffect(() => {
     if (!draftToken || (step !== 'review' && step !== 'contact') || restoring || submitting.current) return;
@@ -283,7 +285,7 @@ export default function RequestQuotePage() {
         });
       }
     },
-    [documentMutation, toast]
+    [documentMutation, toast, user?.id]
   );
 
   const handleSend = async () => {
