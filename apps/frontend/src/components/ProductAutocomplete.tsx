@@ -68,6 +68,7 @@ export function ProductAutocomplete({
     <div ref={containerRef} className="relative min-w-0 flex-1">
       <input
         autoFocus
+        aria-label="Nome do produto"
         type="text"
         value={value}
         onChange={(event) => {
