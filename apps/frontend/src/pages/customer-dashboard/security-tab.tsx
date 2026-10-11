@@ -45,7 +45,7 @@ export function SecurityTab({
           <div className="space-y-3">
             {user?.mustChangePassword ? (
               <div className="rounded-lg border border-amber-200/60 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                Você está usando uma senha provisória. Troque-a ao lado.
+                Crie sua senha para os próximos acessos. Não precisa informar a senha provisória.
               </div>
             ) : (
               <div className="rounded-lg border border-emerald-200/60 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
@@ -76,7 +76,7 @@ export function SecurityTab({
         {/* Formulário */}
         <ContentPanel title="Trocar senha" description="Use uma senha forte com letras, números e símbolos.">
           <div className="grid gap-4 sm:grid-cols-2">
-            <div>
+            {!user?.mustChangePassword && <div>
               <Label htmlFor="cp">Senha atual</Label>
               <Input
                 id="cp"
@@ -85,7 +85,7 @@ export function SecurityTab({
                 onChange={(e) => setPasswordForm((s) => ({ ...s, currentPassword: e.target.value }))}
                 className="mt-1.5 rounded-lg border-slate-200 bg-white"
               />
-            </div>
+            </div>}
             <div>
               <Label htmlFor="np">Nova senha</Label>
               <Input

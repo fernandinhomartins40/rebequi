@@ -167,8 +167,8 @@ export class AuthService {
       throw new UnauthorizedError('Usuário não encontrado');
     }
 
-    const isPasswordValid = await comparePassword(data.currentPassword, user.password);
-    if (!isPasswordValid) {
+    const canSetInitialPassword = user.role === UserRole.CUSTOMER && user.isProvisional && user.mustChangePassword;
+    if (!canSetInitialPassword && (!data.currentPassword || !await comparePassword(data.currentPassword, user.password))) {
       throw new UnauthorizedError('Senha atual inválida');
     }
 

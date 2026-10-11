@@ -33,6 +33,7 @@ import {
   saveDraftBackup,
 } from '@/lib/quote-draft-storage';
 import {
+  startPublicLead,
   createAnonymousQuoteDraft,
   createManualQuoteDraft,
   fetchAnonymousQuoteDraft,
@@ -72,7 +73,7 @@ export default function RequestQuotePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { refreshSession, user } = useAuth();
+  const { refreshSession, user, isLoading } = useAuth();
 
   const [step, setStep] = useState<Step>('start');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -110,6 +111,7 @@ export default function RequestQuotePage() {
 
   // Restore an unsent list (refresh, incoming call, tab discarded).
   useEffect(() => {
+    if (user?.role !== 'CUSTOMER') return;
     const backup = loadDraftBackup();
     if (!backup) return;
 
@@ -120,7 +122,7 @@ export default function RequestQuotePage() {
     if (backup.name) setNameInput(backup.name);
     if (backup.whatsapp) setWhatsappInput(backup.whatsapp);
     setRestoring(true);
-  }, []);
+  }, [user?.id, user?.role]);
 
   useEffect(() => {
     if (!draftToken || (step !== 'review' && step !== 'contact')) return;
@@ -154,7 +156,7 @@ export default function RequestQuotePage() {
   const draftQuery = useQuery({
     queryKey: ['quote', 'anonymous', draftToken],
     queryFn: () => fetchAnonymousQuoteDraft(draftToken as string),
-    enabled: Boolean(draftToken) && (step === 'processing' || restoring),
+    enabled: user?.role === 'CUSTOMER' && Boolean(draftToken) && (step === 'processing' || restoring),
     retry: (count, error) => !(error instanceof ApiError && [403, 404].includes(error.status)) && count < 2,
     refetchInterval: (query) => {
       if (step !== 'processing') return false;
@@ -292,7 +294,8 @@ export default function RequestQuotePage() {
       return;
     }
 
-    const digits = whatsappInput.replace(/\D/g, '');
+    const customerWhatsapp = user?.whatsapp || whatsappInput;
+    const digits = customerWhatsapp.replace(/\D/g, '');
     if (digits.length < 10) {
       toast({
         variant: 'destructive',
@@ -314,8 +317,8 @@ export default function RequestQuotePage() {
       await pendingSave.current.catch(() => undefined);
       const result = await submitMutation.mutateAsync({
         token: draftToken,
-        name: nameInput.trim() || undefined,
-        whatsapp: normalizeWhatsapp(whatsappInput),
+        name: user?.name || nameInput.trim() || undefined,
+        whatsapp: normalizeWhatsapp(customerWhatsapp),
         items: cleaned.map((item) => ({
           productId: item.productId ?? null,
           name: item.name,
@@ -359,6 +362,12 @@ export default function RequestQuotePage() {
     setStep('start');
   };
 
+  if (isLoading) return <WizardLayout steps={WIZARD_STEPS} currentStep={0} title="Abrindo sua solicitação…"><Loader2 className="h-8 w-8 animate-spin text-primary" /></WizardLayout>;
+  if (!user) return <QuickAccessScreen onCreated={async () => { await refreshSession(); }} />;
+  if (user.role !== 'CUSTOMER') return <WizardLayout steps={WIZARD_STEPS} currentStep={0} title="Use seu acesso de cliente">
+    <p className="task-wizard-card">Entre com uma conta de cliente para solicitar seu orçamento.</p>
+    <Button asChild className="mt-4"><Link to="/">Voltar para a loja</Link></Button>
+  </WizardLayout>;
   switch (step) {
     case 'start':
       return <StartScreen onCamera={() => { setSelectedFile(null); setStep('scan'); }}
@@ -430,12 +439,46 @@ export default function RequestQuotePage() {
         saveStatus={restoring ? 'Recuperando rascunho…' : saveStatus === 'saving' ? 'Salvando rascunho…' : saveStatus === 'saved' ? 'Rascunho salvo' : 'Sem conexão para salvar. Sua lista está guardada neste aparelho.'} />;
     case 'contact':
       return <ContactScreen items={items} onBack={() => setStep('review')} onSend={handleSend}
-        sending={submitMutation.isPending || restoring} whatsappInput={whatsappInput} nameInput={nameInput}
+        sending={submitMutation.isPending || restoring} whatsappInput={formatWhatsapp(user.whatsapp || whatsappInput)} nameInput={user.name}
         onWhatsappChange={setWhatsappInput} onNameChange={setNameInput} />;
 
     case 'done':
       return <DoneScreen onSeeQuotes={() => navigate(`/painel-cliente?tab=quotes&quoteId=${quoteId}`)} />;
   }
+}
+
+function QuickAccessScreen({ onCreated }: { onCreated: () => Promise<void> }) {
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const access = useMutation({ mutationFn: startPublicLead });
+  const submit = async () => {
+    setError(null);
+    if (!name.trim() || ![10, 11].includes(phone.replace(/\D/g, '').length)) { setError('Informe seu nome e WhatsApp com DDD.'); return; }
+    try {
+      const result = await access.mutateAsync({ name: name.trim(), whatsapp: normalizeWhatsapp(phone) });
+      saveProvisionalCredentials(result.provisionalCredentials);
+      await onCreated();
+    } catch (failure) {
+      if (failure instanceof ApiError && failure.code === 'LOGIN_REQUIRED') {
+        navigate('/login', { state: { from: { pathname: '/pedido' }, prefillIdentifier: phone } });
+        return;
+      }
+      setError(failure instanceof Error ? failure.message : 'Não foi possível criar seu acesso.');
+    }
+  };
+  return <WizardLayout steps={WIZARD_STEPS} currentStep={0} title="Primeiro, seu cadastro rápido"
+    description="Só nome e WhatsApp para identificar seu pedido e receber os preços.">
+    <form className="task-wizard-card space-y-5" noValidate onSubmit={event => { event.preventDefault(); void submit(); }}>
+      <div><Label htmlFor="quote-access-name">Seu nome</Label><Input id="quote-access-name" autoComplete="name" value={name} disabled={access.isPending} onChange={event => setName(event.target.value)} className="mt-2 h-12" /></div>
+      <div><Label htmlFor="quote-access-phone">WhatsApp com DDD</Label><Input id="quote-access-phone" type="tel" autoComplete="tel-national" value={phone} disabled={access.isPending} onChange={event => setPhone(formatWhatsapp(event.target.value.replace(/\D/g, '').slice(0, 11)))} className="mt-2 h-12" /></div>
+      {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+      <Button type="submit" className="task-wizard-primary" disabled={access.isPending}>{access.isPending ? 'Criando acesso…' : 'Criar acesso e preparar lista'}<ArrowRight size={18} /></Button>
+      <p className="text-xs text-slate-500">Você entra automaticamente. Depois pode criar sua própria senha no painel.</p>
+      <Button asChild variant="ghost" className="w-full"><Link to="/login" state={{ from: { pathname: '/pedido' } }}>Já tenho cadastro: entrar</Link></Button>
+    </form>
+  </WizardLayout>;
 }
 
 function StartScreen({ onCamera, onGallery, onManual }: {
@@ -551,13 +594,13 @@ function ContactScreen({ items, onBack, onSend, sending, whatsappInput, nameInpu
     <form id="quote-contact" noValidate onSubmit={event => { event.preventDefault(); submit(); }} className="task-wizard-card">
       <div className="quote-form-fields">
         <div><Label htmlFor="whatsapp">Seu WhatsApp com DDD</Label><Input id="whatsapp" type="tel" autoComplete="tel-national" required
-          value={whatsappInput} placeholder="(11) 99999-0000" disabled={sending}
+          value={whatsappInput} placeholder="(11) 99999-0000" readOnly disabled={sending}
           aria-invalid={attempted && invalid} aria-describedby={attempted && invalid ? 'quote-phone-error' : undefined}
           onChange={event => onWhatsappChange(formatWhatsapp(event.target.value.replace(/\D/g, '').slice(0, 11)))} className="mt-2 h-12 text-base" />
           {attempted && invalid && <p id="quote-phone-error" role="alert" className="mt-2 text-sm text-red-600">Informe seu WhatsApp com DDD, incluindo 10 ou 11 números.</p>}
         </div>
         <div><Label htmlFor="name">Seu nome <span className="font-normal text-slate-500">(opcional)</span></Label>
-          <Input id="name" autoComplete="name" value={nameInput} disabled={sending} placeholder="Como podemos te chamar?"
+          <Input id="name" autoComplete="name" value={nameInput} readOnly disabled={sending} placeholder="Como podemos te chamar?"
             onChange={event => onNameChange(event.target.value)} className="mt-2 h-12 text-base" /></div>
       </div>
       <section className="quote-summary" aria-label="Resumo da solicitação"><div><strong className="text-sm">{validItems.length} {validItems.length === 1 ? 'produto na sua lista' : 'produtos na sua lista'}</strong>

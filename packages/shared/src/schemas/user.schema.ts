@@ -119,7 +119,7 @@ export const updateAdminCredentialsSchema = z.object({
 });
 
 export const changePasswordSchema = z.object({
-  currentPassword: z.string().min(3, 'Informe sua senha atual'),
+  currentPassword: z.string().optional(),
   newPassword: z.string().min(6, 'A nova senha deve ter no minimo 6 caracteres').max(100, 'Senha muito longa'),
 });
 

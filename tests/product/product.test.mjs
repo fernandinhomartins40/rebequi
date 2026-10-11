@@ -57,18 +57,22 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
     assert.ok(account.provisionalCredentials.password.length >= 16);
 
     await t.test('Anonymous requests cannot claim existing customers or modify their orders', async () => {
+      const guest = await client();
+      assert.equal((await guest.post('/api/quotes/public/anonymous-document')).status(), 401);
+      assert.equal((await guest.post('/api/quotes/public/manual', {data:{text:'2 cimento'}})).status(), 401);
+      await data(await anonymous.post('/api/quotes/public/start', {data:{name:'Cliente Lista',whatsapp:'11987654323'}}),201);
       const draft = await data(await anonymous.post('/api/quotes/public/manual', { data: { text: '5 sacos cimento\n10 tijolos' } }), 201);
       assert.equal(draft.quote.items[0].quantity, 5);
       assert.equal(draft.quote.items[1].quantity, 10);
       const denied = await anonymous.post('/api/quotes/public/anonymous/submit', { data: {
         token: draft.token, whatsapp: '11987654321', name: 'Intruso', items: [{ name: 'Cimento', quantity: 5 }],
       } });
-      assert.equal(denied.status(), 409);
-      assert.ok((await denied.text()).includes('LOGIN_REQUIRED'));
-      assert.equal((await anonymous.get('/api/auth/me')).status(), 401);
+      assert.equal(denied.status(), 403);
+      assert.equal(draft.quote.userId, (await data(await anonymous.get('/api/auth/me'))).id);
+      assert.equal((await guest.get('/api/auth/me')).status(), 401);
       assert.equal((await data(await anonymous.get(`/api/quotes/public/anonymous/${draft.token}`))).status, 'DRAFT');
-      assert.equal((await anonymous.post(`/api/orders/public/${order.id}/whatsapp-redirected`)).status(), 401);
-      assert.equal((await anonymous.post('/api/quotes/public/document')).status(), 401);
+      assert.equal((await guest.post(`/api/orders/public/${order.id}/whatsapp-redirected`)).status(), 401);
+      assert.equal((await guest.post('/api/quotes/public/document')).status(), 401);
       const stranger = await client();
       await data(await stranger.post('/api/orders/public/checkout', { data: {
         name: 'Outro Cliente', whatsapp: '11987654322', items: [{ productId: product.id, quantity: 1 }],
@@ -76,11 +80,43 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
       assert.equal((await stranger.post(`/api/orders/public/${order.id}/whatsapp-redirected`)).status(), 404);
       assert.equal((await stranger.post('/api/quotes/public/anonymous/submit', { data: {
         token: draft.token, whatsapp: '11987654321', items: [{ name: 'Cimento', quantity: 5 }],
-      } })).status(), 409);
+      } })).status(), 403);
+      assert.equal((await stranger.get(`/api/quotes/public/anonymous/${draft.token}`)).status(), 403);
+      assert.equal((await stranger.put('/api/quotes/public/anonymous', {data:{token:draft.token,items:[{name:'Intruso',quantity:99}]}})).status(), 403);
       db(`await prisma.customerOrder.update({where:{id:${JSON.stringify(order.id)}},data:{internalNotes:'Somente a equipe'}});`);
       const own = await data(await owner.get('/api/orders/me'));
       assert.equal(own[0].internalNotes, undefined);
       await data(await owner.post(`/api/orders/public/${order.id}/whatsapp-redirected`));
+    });
+
+    await t.test('Quick quote signup identifies the customer before reading and permits initial password setup', async () => {
+      const context = await browser.newContext({viewport:{width:390,height:844}});
+      try {
+        const page = await context.newPage();
+        let uploads = 0;
+        page.on('request', request => {if(request.method()==='POST' && request.url().endsWith('/api/quotes/public/anonymous-document')) uploads++;});
+        await page.goto(baseURL+'/pedido');
+        await page.getByRole('heading',{name:'Primeiro, seu cadastro rápido'}).waitFor();
+        assert.equal(await page.locator('video').count(),0);
+        await page.getByLabel('Seu nome',{exact:true}).fill('Cadastro Orçamento');
+        await page.getByLabel('WhatsApp com DDD',{exact:true}).fill('11987654324');
+        await page.getByRole('button',{name:'Criar acesso e preparar lista'}).click();
+        await page.getByRole('heading',{name:'Vamos preparar seu orçamento'}).waitFor();
+        assert.equal(uploads,0);
+        const customer = await data(await context.request.get('/api/auth/me'));
+        assert.equal(customer.isProvisional,true);
+        await page.goto(baseURL+'/painel-cliente?tab=security');
+        await page.getByLabel('Nova senha',{exact:true}).waitFor();
+        assert.equal(await page.getByLabel('Senha atual',{exact:true}).count(),0);
+        await page.getByLabel('Nova senha',{exact:true}).fill('customer-first-password-123');
+        await page.getByRole('button',{name:'Atualizar senha',exact:true}).click();
+        await page.getByLabel('Senha atual',{exact:true}).waitFor();
+        const updated = await data(await context.request.get('/api/auth/me'));
+        assert.equal(updated.mustChangePassword,false);assert.equal(updated.isProvisional,false);
+        assert.equal((await context.request.post('/api/auth/change-password',{data:{newPassword:'another-new-password'}})).status(),401);
+        const other = await client();
+        await data(await other.post('/api/auth/login',{data:{identifier:'11987654324',password:'customer-first-password-123'}}));
+      } finally {await context.close();}
     });
 
     await t.test('Current account status and permissions invalidate old sessions', async () => {
@@ -240,6 +276,7 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
       const context=await browser.newContext({viewport:{width:320,height:740}});
       try {
         await context.addInitScript(()=>{navigator.mediaDevices.getUserMedia=async()=>{throw new DOMException('Denied','NotAllowedError');};});
+        await context.addCookies((await owner.storageState()).cookies);
         const page=await context.newPage();await page.goto(baseURL+'/pedido');
         await page.getByRole('button',{name:'Tirar foto da lista',exact:true}).click();
         await page.getByRole('button',{name:'Usar câmera do celular',exact:true}).waitFor();
@@ -278,6 +315,7 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
       await t.test(`Manual list, database autosave and reload at ${width}px`, async () => {
         const context = await browser.newContext({ viewport: { width, height: 900 } });
         try {
+          await context.addCookies((await anonymous.storageState()).cookies);
           const page = await context.newPage();
           await page.goto(`${baseURL}/pedido`);
           await page.getByRole('button', { name: 'Digitar lista', exact: true }).click();
@@ -292,7 +330,7 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
             try { return JSON.parse(v); } catch { return null; }
           }).find((v) => v?.token && v?.items));
           assert.ok(backup?.token);
-          const persisted = await data(await anonymous.get(`/api/quotes/public/anonymous/${backup.token}`));
+          const persisted = await data(await context.request.get(`/api/quotes/public/anonymous/${backup.token}`));
           assert.equal(persisted.items[0].quantity, 6);
           await page.reload();
           await page.getByText('Rascunho salvo', { exact: true }).waitFor();
@@ -300,16 +338,13 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
           assert.equal(await page.getByRole('button', { name: 'Aumentar', exact: true }).first().locator('..').locator('input').inputValue(), '6');
           await page.screenshot({ path: new URL(`./artifacts/manual-${width}.png`, import.meta.url).pathname, fullPage: true });
           await page.getByRole('button', { name: 'Lista conferida, continuar' }).click();
-          await page.getByLabel('Seu WhatsApp com DDD').fill('11912345678');
-          await page.getByLabel('Seu nome').fill('Nome preservado');
+          assert.equal((await page.getByLabel('Seu WhatsApp com DDD').inputValue()).replace(/\D/g,''),'11987654323');
           await page.reload();
           await page.getByRole('heading', { name: 'Para onde enviamos o orçamento?' }).waitFor();
-          assert.equal(await page.getByLabel('Seu nome').inputValue(), 'Nome preservado');
-          assert.equal((await page.getByLabel('Seu WhatsApp com DDD').inputValue()).replace(/\D/g, ''), '11912345678');
+          assert.equal(await page.getByLabel('Seu nome').inputValue(), 'Cliente Lista');
+          assert.equal((await page.getByLabel('Seu WhatsApp com DDD').inputValue()).replace(/\D/g, ''), '11987654323');
           assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true, 'Contact step fits the viewport');
-          await page.getByLabel('Seu WhatsApp com DDD').fill('12');
-          await page.getByRole('button', { name: 'Enviar solicitação de orçamento' }).click();
-          await page.getByRole('alert').filter({ hasText: 'Informe seu WhatsApp' }).waitFor();
+          assert.equal(await page.getByLabel('Seu WhatsApp com DDD').getAttribute('readonly'), '');
           await page.getByRole('button', { name: 'Editar lista' }).click();
           await page.getByRole('heading', { name: 'Confira sua lista' }).waitFor();
           assert.equal(await page.getByRole('button', { name: 'Aumentar', exact: true }).first().locator('..').locator('input').inputValue(), '6');

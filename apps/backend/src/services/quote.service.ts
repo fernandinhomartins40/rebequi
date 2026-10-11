@@ -325,15 +325,9 @@ export class QuoteService {
     };
   }
 
-  /**
-   * Photo-first entry point: accepts the list image with no account and no
-   * phone number, returning a short-lived token that identifies the draft.
-   *
-   * Asking for a WhatsApp number before showing any value was the single
-   * biggest drop-off in the funnel — the customer now sees their list read
-   * back to them first, and identifies themselves only to send it.
-   */
+  /** Session-bound draft; the legacy path still returns a token for autosave. */
   async createAnonymousDraft(params: {
+    userId: string;
     file?: Express.Multer.File;
     width?: number;
     height?: number;
@@ -356,6 +350,7 @@ export class QuoteService {
       ocrStatus: 'PENDING',
       anonymousToken: token,
       anonymousExpiresAt: expiresAt,
+      user: { connect: { id: params.userId } },
       documentUrl: storedDocument.url,
       documentStorageKey: storedDocument.storageKey,
       documentFilename: storedDocument.filename,
@@ -377,7 +372,7 @@ export class QuoteService {
     };
   }
 
-  async createManualDraft(data: CreateManualQuoteDraftInput) {
+  async createManualDraft(data: CreateManualQuoteDraftInput, userId: string) {
     const lines = data.text.split(/\r?\n/).map((text) => text.trim()).filter(Boolean);
     if (lines.length > 100) throw new ValidationError('Use até 100 linhas por lista.');
     const parsed = await this.parseItemsFromRecognition(
@@ -386,7 +381,7 @@ export class QuoteService {
     );
     if (!parsed.items.length) throw new ValidationError('Adicione pelo menos um produto à lista.');
     if (data.token) {
-      const existing = await this.requireAnonymousDraft(data.token);
+      const existing = await this.requireAnonymousDraft(data.token, userId);
       const quote = await this.quoteRepository.replaceQuoteItems(existing.id, parsed.items.map((item) => ({
         ...item, quoteRequestId: existing.id,
       })), { anonymousToken: data.token, update: {
@@ -401,6 +396,7 @@ export class QuoteService {
     const expiresAt = new Date(Date.now() + ANONYMOUS_DRAFT_TTL_MS);
     const quote = await this.quoteRepository.createQuote({
       referenceCode: this.generateReferenceCode(),
+      user: { connect: { id: userId } },
       source: 'public_manual', status: 'DRAFT', ocrStatus: 'SKIPPED',
       anonymousToken: token, anonymousExpiresAt: expiresAt,
       title: buildDraftTitle(parsed.items, parsed.customerNote),
@@ -418,13 +414,13 @@ export class QuoteService {
   }
 
   /** Polling target for an anonymous draft while the OCR job runs. */
-  async getAnonymousDraft(token: string) {
-    const quote = await this.requireAnonymousDraft(token);
+  async getAnonymousDraft(token: string, userId: string) {
+    const quote = await this.requireAnonymousDraft(token, userId);
     return this.formatQuote(quote);
   }
 
-  async updateAnonymousDraft(data: UpdateAnonymousQuoteDraftInput) {
-    const quote = await this.requireAnonymousDraft(data.token);
+  async updateAnonymousDraft(data: UpdateAnonymousQuoteDraftInput, userId: string) {
+    const quote = await this.requireAnonymousDraft(data.token, userId);
     const normalizedItems = await this.normalizeManualItems(data.items);
 
     const updatedQuote = await this.quoteRepository.replaceQuoteItems(
@@ -454,8 +450,15 @@ export class QuoteService {
    * Final step of the photo-first flow: the customer identifies themselves and
    * the anonymous draft is attached to a real (possibly provisional) account.
    */
-  async submitAnonymousDraft(data: SubmitAnonymousQuoteInput, authenticatedUserId?: string) {
-    const quote = await this.requireAnonymousDraft(data.token);
+  async submitAnonymousDraft(data: SubmitAnonymousQuoteInput, authenticatedUserId: string) {
+    const quote = await this.requireAnonymousDraft(data.token, authenticatedUserId);
+    if (authenticatedUserId) {
+      const customer = await this.authService.getProfile(authenticatedUserId);
+      if (normalizeWhatsapp(data.whatsapp) !== normalizeWhatsapp(customer.whatsapp || customer.identifier)) {
+        throw new ForbiddenError('Use o WhatsApp vinculado ao seu acesso.');
+      }
+      data = { ...data, name: customer.name, whatsapp: customer.whatsapp || customer.identifier };
+    }
 
     const ensured = await this.authService.ensureCustomerForLead({
       name: data.name,
@@ -510,12 +513,14 @@ export class QuoteService {
     };
   }
 
-  private async requireAnonymousDraft(token: string) {
+  private async requireAnonymousDraft(token: string, userId: string) {
     const quote = await this.quoteRepository.findQuoteByAnonymousToken(token);
 
     if (!quote) {
       throw new NotFoundError('Orçamento não encontrado');
     }
+
+    if (quote.userId !== userId) throw new ForbiddenError('Este rascunho pertence a outro acesso.');
 
     if (quote.anonymousExpiresAt && quote.anonymousExpiresAt.getTime() < Date.now()) {
       throw new ForbiddenError('Este rascunho expirou. Tire uma nova foto da sua lista.');

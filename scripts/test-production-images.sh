@@ -90,11 +90,14 @@ docker exec rebequi-api node --input-type=module -e 'import sharp from "sharp"; 
 # No paid credentials in CI. Exercise cloud protocol with mocks in unit tests,
 # then prove HTTP upload persists the draft when no provider is configured.
 docker cp rebequi-api:/app/uploads/ocr-smoke.png "$TEST_DIR/ocr.png"
-curl -fsS -F "document=@$TEST_DIR/ocr.png;type=image/png" \
+curl -fsS --cookie-jar "$TEST_DIR/customer-cookies" -H 'Content-Type: application/json' \
+  --data '{"name":"Smoke Customer","whatsapp":"11987654325"}' \
+  http://127.0.0.1:3190/api/quotes/public/start >/dev/null
+curl -fsS --cookie "$TEST_DIR/customer-cookies" -F "document=@$TEST_DIR/ocr.png;type=image/png" \
   http://127.0.0.1:3190/api/quotes/public/anonymous-document >"$TEST_DIR/draft.json"
 draft_token=$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).data.token)' "$TEST_DIR/draft.json")
 for ((attempt=0; attempt<15; attempt++)); do
-  curl -fsS "http://127.0.0.1:3190/api/quotes/public/anonymous/$draft_token" >"$TEST_DIR/draft-status.json"
+  curl -fsS --cookie "$TEST_DIR/customer-cookies" "http://127.0.0.1:3190/api/quotes/public/anonymous/$draft_token" >"$TEST_DIR/draft-status.json"
   ocr_status=$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).data.ocrStatus)' "$TEST_DIR/draft-status.json")
   [[ "$ocr_status" == FAILED ]] && break
   sleep 1
