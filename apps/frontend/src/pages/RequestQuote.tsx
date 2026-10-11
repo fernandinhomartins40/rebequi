@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
-  ArrowLeft,
   ArrowRight,
   Camera,
   CheckCircle2,
@@ -14,7 +13,6 @@ import {
   Plus,
   RefreshCcw,
   Send,
-  Sparkles,
   X,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -22,6 +20,7 @@ import { formatWhatsapp, normalizeWhatsapp } from '@rebequi/shared/utils';
 import { LiveDocumentScanner, type ScannedDocument } from '@/components/LiveDocumentScanner';
 import { ProductAutocomplete } from '@/components/ProductAutocomplete';
 import { Button } from '@/components/ui/button';
+import { WizardLayout } from '@/components/ui/wizard-layout';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -56,11 +55,9 @@ type EditableItem = {
   sourceLine?: string | null;
 };
 
-/**
- * `scan` and `review` are the only screens the customer must pass through.
- * Identification happens inside `review`, after the value is visible.
- */
-type Step = 'scan' | 'processing' | 'review' | 'failed' | 'manual' | 'done';
+/** Three customer steps; camera and processing are substeps of the first. */
+type Step = 'start' | 'scan' | 'processing' | 'review' | 'contact' | 'failed' | 'manual' | 'done';
+const WIZARD_STEPS = ['Sua lista', 'Conferência', 'Envio'];
 
 /** Below this the item is flagged for the customer to confirm. */
 const REVIEW_THRESHOLD = 0.75;
@@ -77,7 +74,9 @@ export default function RequestQuotePage() {
   const { toast } = useToast();
   const { refreshSession, user } = useAuth();
 
-  const [step, setStep] = useState<Step>('scan');
+  const [step, setStep] = useState<Step>('start');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [manualText, setManualText] = useState('');
   const [draftToken, setDraftToken] = useState<string | null>(null);
   const [quoteId, setQuoteId] = useState<string | null>(null);
   const [items, setItems] = useState<EditableItem[]>([]);
@@ -117,17 +116,19 @@ export default function RequestQuotePage() {
     setDraftToken(backup.token);
     setItems(backup.items);
     setPhotoUrl(backup.photoUrl ?? null);
-    setStep('review');
+    setStep(backup.stage === 'contact' ? 'contact' : 'review');
+    if (backup.name) setNameInput(backup.name);
+    if (backup.whatsapp) setWhatsappInput(backup.whatsapp);
     setRestoring(true);
   }, []);
 
   useEffect(() => {
-    if (!draftToken || step !== 'review') return;
-    saveDraftBackup({ token: draftToken, items, photoUrl });
-  }, [draftToken, items, photoUrl, step]);
+    if (!draftToken || (step !== 'review' && step !== 'contact')) return;
+    saveDraftBackup({ token: draftToken, items, photoUrl, stage: step, name: nameInput, whatsapp: whatsappInput });
+  }, [draftToken, items, photoUrl, step, nameInput, whatsappInput]);
 
   useEffect(() => {
-    if (!draftToken || step !== 'review' || restoring || submitting.current) return;
+    if (!draftToken || (step !== 'review' && step !== 'contact') || restoring || submitting.current) return;
     const valid = items.filter((item) => item.name.trim());
     if (!valid.length) return;
     const version = ++saveVersion.current;
@@ -254,6 +255,9 @@ export default function RequestQuotePage() {
 
   const handleScanCapture = useCallback(
     async (doc: ScannedDocument) => {
+      setDraftToken(null);
+      setQuoteId(null);
+      setFailureReason(null);
       setStep('processing');
       pollStartedAt.current = Date.now();
       setPhotoUrl(URL.createObjectURL(doc.file));
@@ -330,7 +334,7 @@ export default function RequestQuotePage() {
       setStep('done');
     } catch (error) {
       if (error instanceof ApiError && error.code === 'LOGIN_REQUIRED') {
-        saveDraftBackup({ token: draftToken, items, photoUrl });
+        saveDraftBackup({ token: draftToken, items, photoUrl, stage: 'contact', name: nameInput, whatsapp: whatsappInput });
         toast({ title: 'Entre para enviar', description: 'Sua lista está salva. Depois do login, você volta para conferir e enviar.' });
         navigate('/login', { state: { from: { pathname: '/pedido' }, prefillIdentifier: whatsappInput } });
         return;
@@ -350,13 +354,21 @@ export default function RequestQuotePage() {
     setPhotoUrl(null);
     setFailureReason(null);
     setRestoring(false);
-    setStep('scan');
+    setSelectedFile(null);
+    setManualText('');
+    setStep('start');
   };
 
   switch (step) {
+    case 'start':
+      return <StartScreen onCamera={() => { setSelectedFile(null); setStep('scan'); }}
+        onGallery={file => { setSelectedFile(file); setStep('scan'); }} onManual={() => setStep('manual')} />;
     case 'scan':
-      return <LiveDocumentScanner onCapture={(doc) => void handleScanCapture(doc)} onCancel={() => navigate('/')}
-        onManualEntry={() => setStep('manual')} />;
+      return <WizardLayout steps={WIZARD_STEPS} currentStep={0} title="Foto da sua lista"
+        description="A lista precisa aparecer inteira e legível." onBack={() => setStep('start')}>
+        <LiveDocumentScanner embedded initialFile={selectedFile} onCapture={(doc) => void handleScanCapture(doc)}
+          onCancel={() => setStep('start')} onManualEntry={() => setStep('manual')} />
+      </WizardLayout>;
 
     case 'processing':
       return <ProcessingScreen uploading={documentMutation.isPending} />;
@@ -388,8 +400,10 @@ export default function RequestQuotePage() {
     case 'manual':
       return (
         <ManualEntryScreen
+          text={manualText}
+          onTextChange={setManualText}
           busy={manualMutation.isPending}
-          onBack={() => setStep(draftToken ? 'failed' : 'scan')}
+          onBack={() => setStep(draftToken ? 'failed' : 'start')}
           onConfirm={async (lines) => {
             try {
               const result = await manualMutation.mutateAsync({ text: lines.join('\n'), token: draftToken || undefined });
@@ -411,377 +425,147 @@ export default function RequestQuotePage() {
       );
 
     case 'review':
-      return (
-        <ReviewScreen
-          items={items}
-          photoUrl={photoUrl}
-          onItemsChange={setItems}
-          onRetake={restartScan}
-          onSend={handleSend}
-          sending={submitMutation.isPending || restoring}
-          saveStatus={restoring ? 'Recuperando rascunho…' : saveStatus === 'saving' ? 'Salvando rascunho…' : saveStatus === 'saved' ? 'Rascunho salvo' : 'Não foi possível salvar agora. Sua lista continua nesta tela.'}
-          whatsappInput={whatsappInput}
-          nameInput={nameInput}
-          onWhatsappChange={setWhatsappInput}
-          onNameChange={setNameInput}
-        />
-      );
+      return <ReviewScreen items={items} photoUrl={photoUrl} onItemsChange={setItems} onRetake={restartScan}
+        onContinue={() => setStep('contact')} busy={restoring}
+        saveStatus={restoring ? 'Recuperando rascunho…' : saveStatus === 'saving' ? 'Salvando rascunho…' : saveStatus === 'saved' ? 'Rascunho salvo' : 'Sem conexão para salvar. Sua lista está guardada neste aparelho.'} />;
+    case 'contact':
+      return <ContactScreen items={items} onBack={() => setStep('review')} onSend={handleSend}
+        sending={submitMutation.isPending || restoring} whatsappInput={whatsappInput} nameInput={nameInput}
+        onWhatsappChange={setWhatsappInput} onNameChange={setNameInput} />;
 
     case 'done':
       return <DoneScreen onSeeQuotes={() => navigate(`/painel-cliente?tab=quotes&quoteId=${quoteId}`)} />;
   }
 }
 
-// ─── Screen: processing ──────────────────────────────────────────────────────
+function StartScreen({ onCamera, onGallery, onManual }: {
+  onCamera: () => void; onGallery: (file: File) => void; onManual: () => void;
+}) {
+  const input = useRef<HTMLInputElement>(null);
+  return <WizardLayout steps={WIZARD_STEPS} currentStep={0} title="Vamos preparar seu orçamento"
+    description="Envie sua lista. Depois, confira os produtos e peça os preços.">
+    <section className="task-wizard-card quote-method-card">
+      <div className="quote-method-icon"><Camera size={34} aria-hidden="true" /></div>
+      <h2>Tem uma lista no papel?</h2>
+      <p>Fotografe os materiais. Nós organizamos a lista para você conferir.</p>
+      <Button className="task-wizard-primary" size="lg" onClick={onCamera}><Camera size={20} />Tirar foto da lista</Button>
+      <Button variant="outline" className="mt-3 w-full gap-2" onClick={() => input.current?.click()}><ImageIcon size={18} />Escolher foto da galeria</Button>
+      <Button variant="ghost" className="mt-3 w-full gap-2 text-slate-600" onClick={onManual}><Keyboard size={18} />Digitar lista</Button>
+      <input ref={input} type="file" accept="image/*" aria-label="Escolher foto da galeria" className="hidden"
+        onChange={event => { const file = event.target.files?.[0]; event.currentTarget.value = ''; if (file) onGallery(file); }} />
+    </section>
+  </WizardLayout>;
+}
 
 function ProcessingScreen({ uploading }: { uploading: boolean }) {
-  const messages = useMemo(
-    () => ['Lendo sua lista…', 'Identificando produtos…', 'Conferindo com o catálogo da loja…'],
-    []
-  );
-  const [index, setIndex] = useState(0);
-
-  useEffect(() => {
-    const id = window.setInterval(() => setIndex((value) => (value + 1) % messages.length), 1800);
-    return () => window.clearInterval(id);
-  }, [messages.length]);
-
-  return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-white px-5">
-      <div className="w-full max-w-sm text-center">
-        <div className="relative mx-auto mb-8 flex h-24 w-24 items-center justify-center">
-          <div className="absolute inset-0 animate-ping rounded-full bg-primary/20" />
-          <div className="absolute inset-2 animate-pulse rounded-full bg-primary/30" />
-          <Loader2 className="relative h-10 w-10 animate-spin text-primary" />
-        </div>
-        <h1 className="text-2xl font-extrabold tracking-tight text-foreground">{uploading ? 'Enviando sua foto…' : messages[index]}</h1>
-        <p className="mt-3 text-sm text-muted-foreground">
-          Isso costuma levar de 5 a 30 segundos. Não saia desta tela.
-        </p>
-        <div className="mt-8 space-y-3">
-          <SkeletonRow />
-          <SkeletonRow />
-          <SkeletonRow />
-        </div>
-      </div>
-    </main>
-  );
-}
-
-function SkeletonRow() {
-  return (
-    <div className="flex items-center gap-3 rounded-xl border border-slate-200/70 bg-white p-3 shadow-sm">
-      <div className="h-9 w-9 shrink-0 animate-pulse rounded-lg bg-slate-200" />
-      <div className="flex-1 space-y-1.5">
-        <div className="h-3 w-3/4 animate-pulse rounded bg-slate-200" />
-        <div className="h-2.5 w-1/2 animate-pulse rounded bg-slate-100" />
-      </div>
+  return <WizardLayout steps={WIZARD_STEPS} currentStep={0} title={uploading ? 'Enviando sua foto…' : 'Organizando sua lista…'}
+    description="Aguarde um instante. Você vai conferir tudo antes de enviar.">
+    <div className="task-wizard-card flex min-h-64 flex-col items-center justify-center gap-5 text-center" role="status" aria-live="polite">
+      <Loader2 className="h-10 w-10 animate-spin text-primary" aria-hidden="true" />
+      <p className="text-sm text-slate-600">{uploading ? 'Preparando a leitura da foto.' : 'Identificando os produtos e as quantidades.'}</p>
     </div>
-  );
+  </WizardLayout>;
 }
 
-// ─── Screen: failed ──────────────────────────────────────────────────────────
-
-/**
- * Reading can fail; the order must not. Three ways out, none of which is
- * "type fifteen items into separate fields on a phone".
- */
-function FailedScreen({
-  reason,
-  hasDraft,
-  onRetry,
-  onTypeManually,
-  onSendPhotoAnyway,
-}: {
-  reason: string | null;
-  hasDraft: boolean;
-  onRetry: () => void;
-  onTypeManually: () => void;
-  onSendPhotoAnyway: () => void;
+function FailedScreen({ reason, hasDraft, onRetry, onTypeManually, onSendPhotoAnyway }: {
+  reason: string | null; hasDraft: boolean; onRetry: () => void; onTypeManually: () => void; onSendPhotoAnyway: () => void;
 }) {
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-amber-50 to-white px-5 py-8">
-      <div className="w-full max-w-sm">
-        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
-          <AlertTriangle className="h-8 w-8 text-amber-600" />
-        </div>
-        <h1 className="text-center text-2xl font-extrabold tracking-tight text-foreground">
-          Não conseguimos ler dessa vez
-        </h1>
-        <p className="mt-3 text-center text-sm text-muted-foreground">
-          {reason ?? 'A foto pode estar escura ou tremida.'} Escolha como prefere continuar:
-        </p>
-
-        <div className="mt-8 space-y-2.5">
-          <Button onClick={onRetry} size="lg" className="h-14 w-full justify-start gap-3 text-base">
-            <Camera className="h-5 w-5" />
-            <span className="text-left">
-              Tirar outra foto
-              <span className="block text-xs font-normal opacity-80">Mais luz, mais perto, papel plano</span>
-            </span>
-          </Button>
-
-          <Button
-            onClick={onTypeManually}
-            variant="outline"
-            size="lg"
-            className="h-14 w-full justify-start gap-3 text-base"
-          >
-            <Keyboard className="h-5 w-5" />
-            <span className="text-left">
-              Digitar minha lista
-              <span className="block text-xs font-normal text-muted-foreground">Um item por linha</span>
-            </span>
-          </Button>
-
-          {hasDraft ? <Button
-            onClick={onSendPhotoAnyway}
-            variant="outline"
-            size="lg"
-            className="h-14 w-full justify-start gap-3 text-base"
-          >
-            <Send className="h-5 w-5" />
-            <span className="text-left">
-              Mandar a foto direto pra loja
-              <span className="block text-xs font-normal text-muted-foreground">A loja lê e te responde</span>
-            </span>
-          </Button> : null}
-        </div>
-
-        <div className="mt-6 text-center">
-          <Button asChild variant="ghost" size="sm" className="text-muted-foreground">
-            <Link to="/">Voltar para a loja</Link>
-          </Button>
-        </div>
-      </div>
-    </main>
-  );
+  return <WizardLayout steps={WIZARD_STEPS} currentStep={0} title="Não conseguimos ler dessa vez"
+    description="Você pode tentar outra foto ou continuar de outra forma." onBack={onRetry}>
+    <section className="task-wizard-card">
+      <p role="alert" className="mb-6 flex items-start gap-2 text-sm text-amber-800"><AlertTriangle className="h-5 w-5 shrink-0" />{reason ?? 'A foto pode estar escura ou tremida.'}</p>
+      <Button onClick={onRetry} className="task-wizard-primary"><Camera size={18} />Tirar outra foto</Button>
+      <Button onClick={onTypeManually} variant="outline" className="mt-3 h-12 w-full gap-2"><Keyboard size={18} />Digitar minha lista</Button>
+      {hasDraft && <Button onClick={onSendPhotoAnyway} variant="ghost" className="mt-3 h-auto min-h-12 w-full whitespace-normal">Pedir à loja para conferir a foto</Button>}
+    </section>
+  </WizardLayout>;
 }
 
-// ─── Screen: manual entry ────────────────────────────────────────────────────
-
-/** One textarea beats fifteen inputs when typing on a phone. */
-function ManualEntryScreen({
-  onBack,
-  onConfirm,
-  busy,
-}: {
-  onBack: () => void;
-  onConfirm: (lines: string[]) => void;
-  busy: boolean;
+function ManualEntryScreen({ text, onTextChange, onBack, onConfirm, busy }: {
+  text: string; onTextChange: (value: string) => void;
+  onBack: () => void; onConfirm: (lines: string[]) => void; busy: boolean;
 }) {
-  const [text, setText] = useState('');
-  const lines = text
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  return (
-    <main className="flex min-h-screen flex-col bg-gradient-to-br from-slate-50 to-white pb-32">
-      <header className="sticky top-0 z-10 border-b border-slate-200/70 bg-white/90 px-4 py-3 backdrop-blur">
-        <Button variant="ghost" size="sm" onClick={onBack} disabled={busy} className="gap-1.5 px-0">
-          <ArrowLeft className="h-4 w-4" />
-          Voltar
-        </Button>
-      </header>
-
-      <div className="mx-auto w-full max-w-2xl px-4 py-6">
-        <h1 className="text-2xl font-extrabold tracking-tight text-foreground">Digite sua lista</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Escreva um item por linha, do jeito que você falaria. Ex: <em>5 sacos de cimento</em>.
-        </p>
-
-        <Textarea
-          autoFocus
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          rows={12}
-          maxLength={10000}
-          aria-label="Lista de produtos, um por linha"
-          placeholder={'5 sacos de cimento\n2 caixas de porcelanato 60x60\n1 tinta acrílica 18L'}
-          className="mt-5 text-base leading-relaxed"
-        />
-        <p className="mt-2 text-xs text-muted-foreground">
-          {lines.length} {lines.length === 1 ? 'item' : 'itens'}
-        </p>
-      </div>
-
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200/70 bg-white/95 px-4 py-4 backdrop-blur">
-        <div className="mx-auto max-w-2xl">
-          <Button
-            onClick={() => onConfirm(lines)}
-            disabled={lines.length === 0 || lines.length > 100 || busy}
-            size="lg"
-            className="h-14 w-full gap-2 text-base font-bold"
-          >
-            <ArrowRight className="h-5 w-5" />
-            {busy ? 'Preparando lista…' : `Continuar com ${lines.length} ${lines.length === 1 ? 'item' : 'itens'}`}
-          </Button>
-        </div>
-      </div>
-    </main>
-  );
+  const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
+  return <WizardLayout steps={WIZARD_STEPS} currentStep={0} title="Digite sua lista"
+    description="Escreva a quantidade e o material, um por linha." onBack={onBack} busy={busy}
+    footer={<Button onClick={() => onConfirm(lines)} disabled={!lines.length || lines.length > 100 || busy} className="task-wizard-primary">
+      {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowRight size={18} />}
+      {busy ? 'Preparando lista…' : 'Continuar com ' + lines.length + (lines.length === 1 ? ' item' : ' itens')}
+    </Button>}>
+    <div className="task-wizard-card">
+      <Label htmlFor="quote-manual-list">Quais materiais você precisa?</Label>
+      <Textarea id="quote-manual-list" autoFocus value={text} onChange={event => onTextChange(event.target.value)}
+        rows={8} maxLength={10000} aria-label="Lista de produtos, um por linha"
+        placeholder={'5 sacos de cimento\n10 tijolos\n1 tinta acrílica 18L'} className="mt-3 text-base leading-relaxed" />
+      <p className="mt-3 text-xs text-slate-500">{lines.length} {lines.length === 1 ? 'item' : 'itens'}{lines.length > 100 ? ' — use até 100 itens por lista.' : ''}</p>
+    </div>
+  </WizardLayout>;
 }
 
-// ─── Screen: review ──────────────────────────────────────────────────────────
-
-function ReviewScreen({
-  items,
-  photoUrl,
-  onItemsChange,
-  onRetake,
-  onSend,
-  sending,
-  saveStatus,
-  whatsappInput,
-  nameInput,
-  onWhatsappChange,
-  onNameChange,
-}: {
-  items: EditableItem[];
-  photoUrl: string | null;
-  onItemsChange: (items: EditableItem[]) => void;
-  onRetake: () => void;
-  onSend: () => void;
-  sending: boolean;
-  saveStatus: string;
-  whatsappInput: string;
-  nameInput: string;
-  onWhatsappChange: (value: string) => void;
-  onNameChange: (value: string) => void;
+function ReviewScreen({ items, photoUrl, onItemsChange, onRetake, onContinue, busy, saveStatus }: {
+  items: EditableItem[]; photoUrl: string | null; onItemsChange: (items: EditableItem[]) => void;
+  onRetake: () => void; onContinue: () => void; busy: boolean; saveStatus: string;
 }) {
   const [photoOpen, setPhotoOpen] = useState(false);
-
-  const updateItem = (key: string, patch: Partial<EditableItem>) => {
-    onItemsChange(items.map((item) => (item.key === key ? { ...item, ...patch } : item)));
+  const [attempted, setAttempted] = useState(false);
+  const validItems = items.filter(item => item.name.trim());
+  const incomplete = validItems.length !== items.length;
+  const needsAttention = validItems.filter(item => (item.confidence ?? 1) < REVIEW_THRESHOLD).length;
+  const continueToContact = () => {
+    setAttempted(true);
+    if (incomplete || !validItems.length) return;
+    onContinue();
   };
-  const removeItem = (key: string) => onItemsChange(items.filter((item) => item.key !== key));
-  const addItem = () =>
-    onItemsChange([...items, { key: makeKey('item'), name: '', quantity: 1, unit: null }]);
+  return <WizardLayout steps={WIZARD_STEPS} currentStep={1} title="Confira sua lista"
+    description="Confira os nomes e as quantidades. Toque em Editar para corrigir."
+    footer={<><Button onClick={continueToContact} disabled={busy || !validItems.length} className="task-wizard-primary">Lista conferida, continuar<ArrowRight size={18} /></Button>
+      <p className="task-wizard-note" role="status">{saveStatus}</p></>}>
+    <div className="quote-review-toolbar"><strong>{validItems.length} {validItems.length === 1 ? 'produto' : 'produtos'}</strong>
+      {photoUrl && <Button variant="outline" size="sm" onClick={() => setPhotoOpen(true)} className="gap-2"><ImageIcon size={16} />Ver foto</Button>}
+    </div>
+    {needsAttention > 0 && <p className="mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">{needsAttention === 1 ? 'Confira com atenção o item marcado.' : `Confira com atenção os ${needsAttention} itens marcados.`}</p>}
+    {attempted && incomplete && <p role="alert" className="mb-4 text-sm text-red-600">Preencha o nome do item vazio ou remova-o para continuar.</p>}
+    <div className="space-y-3">{items.map(item => <ItemRow key={item.key} item={item}
+      onUpdate={(key, patch) => onItemsChange(items.map(current => current.key === key ? { ...current, ...patch } : current))}
+      onRemove={key => onItemsChange(items.filter(current => current.key !== key))} />)}</div>
+    <Button variant="outline" className="mt-4 h-12 w-full gap-2 border-dashed" onClick={() => onItemsChange([...items, { key: makeKey('item'), name: '', quantity: 1, unit: null }])}><Plus size={18} />Adicionar outro item</Button>
+    {photoOpen && photoUrl && <PhotoViewer url={photoUrl} onClose={() => setPhotoOpen(false)} onRetake={onRetake} />}
+  </WizardLayout>;
+}
 
-  const validItems = items.filter((item) => item.name.trim().length > 0);
-  const needsAttention = validItems.filter(
-    (item) => (item.confidence ?? 1) < REVIEW_THRESHOLD
-  ).length;
-
-  return (
-    <main className="flex min-h-screen flex-col bg-gradient-to-br from-slate-50 to-white pb-40">
-      <header className="sticky top-0 z-10 border-b border-slate-200/70 bg-white/90 px-4 py-3 backdrop-blur">
-        <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
-          {photoUrl ? (
-            <button
-              type="button"
-              onClick={() => setPhotoOpen(true)}
-              className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-medium text-muted-foreground transition hover:border-primary hover:text-primary"
-            >
-              <img src={photoUrl} alt="Sua foto" className="h-8 w-8 rounded object-cover" />
-              Ver foto
-            </button>
-          ) : (
-            <span />
-          )}
-          <p className="text-xs font-medium text-muted-foreground">
-            {validItems.length} {validItems.length === 1 ? 'item' : 'itens'}
-          </p>
+function ContactScreen({ items, onBack, onSend, sending, whatsappInput, nameInput, onWhatsappChange, onNameChange }: {
+  items: EditableItem[]; onBack: () => void; onSend: () => void; sending: boolean;
+  whatsappInput: string; nameInput: string; onWhatsappChange: (value: string) => void; onNameChange: (value: string) => void;
+}) {
+  const [attempted, setAttempted] = useState(false);
+  const digits = whatsappInput.replace(/\D/g, '');
+  const invalid = digits.length < 10 || digits.length > 11;
+  const validItems = items.filter(item => item.name.trim());
+  const submit = () => { setAttempted(true); if (!invalid) onSend(); };
+  return <WizardLayout steps={WIZARD_STEPS} currentStep={2} title="Para onde enviamos o orçamento?"
+    description="A loja vai responder com os preços pelo WhatsApp." onBack={onBack} busy={sending}
+    footer={<><Button type="submit" form="quote-contact" disabled={sending || !validItems.length} className="task-wizard-primary">
+      {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send size={18} />}
+      {sending ? 'Enviando…' : 'Enviar solicitação de orçamento'}
+    </Button><p className="task-wizard-note">Os preços e a disponibilidade serão confirmados pela loja.</p></>}>
+    <form id="quote-contact" noValidate onSubmit={event => { event.preventDefault(); submit(); }} className="task-wizard-card">
+      <div className="quote-form-fields">
+        <div><Label htmlFor="whatsapp">Seu WhatsApp com DDD</Label><Input id="whatsapp" type="tel" autoComplete="tel-national" required
+          value={whatsappInput} placeholder="(11) 99999-0000" disabled={sending}
+          aria-invalid={attempted && invalid} aria-describedby={attempted && invalid ? 'quote-phone-error' : undefined}
+          onChange={event => onWhatsappChange(formatWhatsapp(event.target.value.replace(/\D/g, '').slice(0, 11)))} className="mt-2 h-12 text-base" />
+          {attempted && invalid && <p id="quote-phone-error" role="alert" className="mt-2 text-sm text-red-600">Informe seu WhatsApp com DDD, incluindo 10 ou 11 números.</p>}
         </div>
-      </header>
-
-      <div className="mx-auto w-full max-w-2xl px-4 py-6">
-        <h1 className="text-2xl font-extrabold tracking-tight text-foreground">Confira sua lista</h1>
-        <p className="mt-2 text-xs text-muted-foreground" role="status">{saveStatus}</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {needsAttention > 0 ? (
-            <>
-              Lemos {validItems.length} {validItems.length === 1 ? 'item' : 'itens'}.{' '}
-              <strong className="text-amber-700">
-                {needsAttention} {needsAttention === 1 ? 'precisa' : 'precisam'} da sua conferência
-              </strong>{' '}
-              — estão marcados abaixo.
-            </>
-          ) : (
-            'Tudo certo com a leitura. Ajuste o que quiser antes de enviar.'
-          )}
-        </p>
-
-        <div className="mt-5 space-y-2.5">
-          {items.map((item) => (
-            <ItemRow key={item.key} item={item} onUpdate={updateItem} onRemove={removeItem} />
-          ))}
-        </div>
-
-        <button
-          type="button"
-          onClick={addItem}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 px-4 py-4 text-sm font-medium text-muted-foreground transition hover:border-primary hover:text-primary"
-        >
-          <Plus className="h-4 w-4" />
-          Adicionar outro item
-        </button>
-
-        {/* Identificação: só agora, com o valor já na tela. */}
-        <section className="mt-8 rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <h2 className="text-base font-semibold text-foreground">Para onde mandamos o orçamento?</h2>
-          </div>
-
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="whatsapp">Seu WhatsApp</Label>
-              <Input
-                id="whatsapp"
-                inputMode="tel"
-                placeholder="(11) 99999-0000"
-                value={whatsappInput}
-                onChange={(event) => {
-                  const digits = event.target.value.replace(/\D/g, '').slice(0, 11);
-                  onWhatsappChange(formatWhatsapp(digits));
-                }}
-                className="h-12 text-base"
-              />
-              <p className="text-xs text-muted-foreground">É por aqui que a loja vai te responder.</p>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="name" className="flex items-center gap-2">
-                Nome <span className="text-xs font-normal text-muted-foreground">(opcional)</span>
-              </Label>
-              <Input
-                id="name"
-                placeholder="Como podemos te chamar?"
-                value={nameInput}
-                onChange={(event) => onNameChange(event.target.value)}
-                className="h-12 text-base"
-              />
-            </div>
-          </div>
-        </section>
+        <div><Label htmlFor="name">Seu nome <span className="font-normal text-slate-500">(opcional)</span></Label>
+          <Input id="name" autoComplete="name" value={nameInput} disabled={sending} placeholder="Como podemos te chamar?"
+            onChange={event => onNameChange(event.target.value)} className="mt-2 h-12 text-base" /></div>
       </div>
-
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200/70 bg-white/95 px-4 py-4 backdrop-blur">
-        <div className="mx-auto max-w-2xl">
-          <Button
-            onClick={onSend}
-            disabled={sending || validItems.length === 0}
-            size="lg"
-            className="h-14 w-full gap-2 text-base font-bold"
-          >
-            {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle2 className="h-5 w-5" />}
-            {sending
-              ? 'Enviando…'
-              : `Enviar ${validItems.length} ${validItems.length === 1 ? 'item' : 'itens'} para a loja`}
-          </Button>
-          <p className="mt-2 text-center text-xs text-muted-foreground">
-            A loja vai responder no seu WhatsApp em breve.
-          </p>
-        </div>
-      </div>
-
-      {photoOpen && photoUrl ? (
-        <PhotoViewer url={photoUrl} onClose={() => setPhotoOpen(false)} onRetake={onRetake} />
-      ) : null}
-    </main>
-  );
+      <section className="quote-summary" aria-label="Resumo da solicitação"><div><strong className="text-sm">{validItems.length} {validItems.length === 1 ? 'produto na sua lista' : 'produtos na sua lista'}</strong>
+        <Button type="button" variant="ghost" size="sm" disabled={sending} onClick={onBack} className="gap-1 text-blue-600"><Pencil size={14} />Editar lista</Button></div>
+        <details><summary>Ver os produtos</summary><ul>{validItems.map(item => <li key={item.key}>{item.quantity} {displayUnit(item.unit, item.quantity)} · {item.name}</li>)}</ul></details>
+      </section>
+    </form>
+  </WizardLayout>;
 }
 
 /** Full-screen photo, with "retake" tucked safely inside it. */
@@ -853,132 +637,61 @@ function PhotoViewer({
   );
 }
 
-function ItemRow({
-  item,
-  onUpdate,
-  onRemove,
-}: {
-  item: EditableItem;
-  onUpdate: (key: string, patch: Partial<EditableItem>) => void;
-  onRemove: (key: string) => void;
+function ItemRow({ item, onUpdate, onRemove }: {
+  item: EditableItem; onUpdate: (key: string, patch: Partial<EditableItem>) => void; onRemove: (key: string) => void;
 }) {
   const [editingName, setEditingName] = useState(item.name === '');
-  const confidence = item.confidence ?? 1;
-  const needsAttention = confidence < REVIEW_THRESHOLD;
-  const showSourceLine =
-    needsAttention && item.sourceLine && item.sourceLine.toLowerCase() !== item.name.toLowerCase();
-
-  return (
-    <div
-      className={`rounded-xl border bg-white p-3 shadow-sm transition ${
-        needsAttention ? 'border-amber-300 bg-amber-50/40' : 'border-slate-200/70'
-      }`}
-    >
-      <div className="flex items-center gap-2">
-        <div className="flex items-center gap-1 rounded-lg bg-slate-100 p-1">
-          <button
-            type="button"
-            onClick={() => onUpdate(item.key, { quantity: Math.max(1, item.quantity - 1) })}
-            className="flex h-7 w-7 items-center justify-center rounded text-slate-600 transition hover:bg-white"
-            aria-label="Diminuir"
-          >
-            <Minus className="h-3.5 w-3.5" />
-          </button>
-          <span className="w-8 text-center text-sm font-bold tabular-nums">{item.quantity}</span>
-          <button
-            type="button"
-            onClick={() => onUpdate(item.key, { quantity: item.quantity + 1 })}
-            className="flex h-7 w-7 items-center justify-center rounded text-slate-600 transition hover:bg-white"
-            aria-label="Aumentar"
-          >
-            <Plus className="h-3.5 w-3.5" />
-          </button>
-        </div>
-
-        {item.unit ? (
-          <span className="rounded bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-slate-500">
-            {item.unit}
-          </span>
-        ) : null}
-
-        {editingName ? (
-          <ProductAutocomplete
-            value={item.name}
-            onChange={(name) => onUpdate(item.key, { name, productId: null, confidence: 1 })}
-            onSelectProduct={(product) => {
-              onUpdate(item.key, {
-                name: product.name,
-                productId: product.id,
-                // Picking from the catalogue resolves any doubt.
-                confidence: 1,
-              });
-              setEditingName(false);
-            }}
-            onBlur={() => item.name.trim() && setEditingName(false)}
-            placeholder="Ex: cimento, areia, tijolo…"
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => setEditingName(true)}
-            className="group flex min-w-0 flex-1 items-center gap-1 text-left text-sm font-medium text-foreground"
-          >
-            <span className="min-w-0 break-words">{item.name}</span>
-            <Pencil className="h-3 w-3 shrink-0 opacity-0 transition group-hover:opacity-50" />
-          </button>
-        )}
-
-        <button
-          type="button"
-          onClick={() => onRemove(item.key)}
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-slate-400 transition hover:bg-red-50 hover:text-red-500"
-          aria-label="Remover item"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-
-      {showSourceLine ? (
-        <p className="mt-2 pl-1 text-xs text-amber-700">
-          <ImageIcon className="mr-1 inline h-3 w-3" />
-          No papel estava: “{item.sourceLine}”
-        </p>
-      ) : null}
+  const [quantityText, setQuantityText] = useState(String(item.quantity));
+  useEffect(() => { setQuantityText(String(item.quantity)); }, [item.quantity]);
+  const needsAttention = (item.confidence ?? 1) < REVIEW_THRESHOLD;
+  return <div className="quote-item-row" data-attention={needsAttention}>
+    <div className="quote-item-name">
+      {editingName ? <ProductAutocomplete value={item.name}
+        onChange={name => onUpdate(item.key, { name, productId: null, confidence: 1 })}
+        onSelectProduct={product => { onUpdate(item.key, { name: product.name, productId: product.id, confidence: 1 }); setEditingName(false); }}
+        onBlur={() => { if (item.name.trim()) setEditingName(false); }} placeholder="Nome do material" />
+        : <button type="button" onClick={() => setEditingName(true)}><span>{item.name}</span><span className="quote-item-edit"><Pencil size={13} />Editar</span></button>}
     </div>
-  );
+    <div className="quote-item-controls"><div>
+      <div className="quote-quantity" role="group" aria-label={'Quantidade de ' + (item.name || 'novo item')}>
+        <button type="button" disabled={item.quantity <= 1} onClick={() => onUpdate(item.key, { quantity: Math.max(1, item.quantity - 1) })} aria-label="Diminuir" className="disabled:opacity-40"><Minus size={16} /></button>
+        <input type="text" inputMode="decimal" aria-label={'Quantidade de ' + (item.name || 'novo item')} value={quantityText}
+          onChange={event => {
+            const value = event.target.value;
+            setQuantityText(value);
+            const quantity = Number(value.replace(',', '.'));
+            if (Number.isFinite(quantity) && quantity > 0) onUpdate(item.key, { quantity });
+          }} onBlur={() => setQuantityText(String(item.quantity))} />
+        <button type="button" onClick={() => onUpdate(item.key, { quantity: item.quantity + 1 })} aria-label="Aumentar"><Plus size={16} /></button>
+    </div><span className="quote-unit">{displayUnit(item.unit, item.quantity)}</span>
+    </div><button type="button" onClick={() => onRemove(item.key)} className="quote-remove" aria-label="Remover item"><X size={15} />Remover</button></div>
+    {needsAttention && <p className="quote-attention">Confira este item{item.sourceLine ? ': “' + item.sourceLine + '”' : '.'}</p>}
+  </div>;
 }
 
-// ─── Screen: done ────────────────────────────────────────────────────────────
-
 function DoneScreen({ onSeeQuotes }: { onSeeQuotes: () => void }) {
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-emerald-50 to-white px-5 py-8">
-      <div className="w-full max-w-sm text-center">
-        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100">
-          <CheckCircle2 className="h-12 w-12 text-emerald-600" />
-        </div>
-        <h1 className="text-2xl font-extrabold tracking-tight text-foreground">Pronto, lista enviada!</h1>
-        <p className="mt-3 text-sm text-muted-foreground">
-          A loja recebeu seu pedido e vai te chamar no WhatsApp com os preços. Pode fechar essa tela.
-        </p>
-        <div className="mt-8 space-y-2">
-          <Button asChild size="lg" className="h-12 w-full gap-2">
-            <Link to="/">
-              Voltar para a loja
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
-          <Button onClick={onSeeQuotes} variant="outline" size="lg" className="h-12 w-full gap-2">
-            <Camera className="h-4 w-4" />
-            Ver meus pedidos
-          </Button>
-        </div>
-      </div>
-    </main>
-  );
+  return <WizardLayout steps={WIZARD_STEPS} currentStep={2} complete title="Pronto, lista enviada!"
+    description="A loja recebeu sua solicitação e vai responder pelo WhatsApp.">
+    <div className="task-wizard-card text-center">
+      <CheckCircle2 className="mx-auto mb-5 h-16 w-16 text-emerald-600" aria-hidden="true" />
+      <h2 className="mb-6 text-lg font-semibold">Agora é só aguardar o orçamento.</h2>
+      <Button onClick={onSeeQuotes} className="task-wizard-primary">Acompanhar solicitação<ArrowRight size={18} /></Button>
+      <Button asChild variant="ghost" className="mt-3 h-12 w-full"><Link to="/">Voltar para a loja</Link></Button>
+    </div>
+  </WizardLayout>;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
+
+function displayUnit(unit: string | null | undefined, quantity: number) {
+  const names: Record<string, [string, string]> = {
+    un: ['unidade', 'unidades'], und: ['unidade', 'unidades'], sc: ['saco', 'sacos'],
+    saco: ['saco', 'sacos'], sacos: ['saco', 'sacos'], cx: ['caixa', 'caixas'],
+    caixa: ['caixa', 'caixas'], caixas: ['caixa', 'caixas'], lata: ['lata', 'latas'], latas: ['lata', 'latas'],
+  };
+  const value = unit?.trim() || 'un';
+  return names[value.toLowerCase()]?.[quantity === 1 ? 0 : 1] ?? value;
+}
 
 function editableFromQuote(item: QuoteItem): EditableItem {
   return {

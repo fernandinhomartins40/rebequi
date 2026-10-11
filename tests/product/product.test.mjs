@@ -32,6 +32,14 @@ function db(code) {
   return execFileSync('docker', ['exec', 'rebequi-api', 'node', '--input-type=module', '-e',
     `import {prisma} from './apps/backend/dist/lib/prisma.js'; try { ${code} } finally { await prisma.$disconnect(); }`], { encoding: 'utf8' });
 }
+async function restartIsolatedApi() {
+  execFileSync('docker', ['restart', 'rebequi-api'], { stdio: 'pipe' });
+  for (let attempt = 0; attempt < 60; attempt++) {
+    try { if ((await anonymous.get('/api/health')).ok()) return; } catch { /* API is restarting. */ }
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  assert.fail('Isolated API must become healthy after restarting');
+}
 let account, order, product, owner, anonymous;
 
 test('Real accounts, ownership, drafts, database rollback and responsive customer flows', { timeout: 240000 }, async (t) => {
@@ -162,6 +170,8 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
         page.on('request', request => { if(request.url().includes('/vendor/opencv-')) detectorDownloads++; });
         page.on('request', request => { if (request.method() === 'POST' && request.url().endsWith('/api/quotes/public/anonymous-document')) uploads++; });
         await page.goto(baseURL + '/pedido');
+        assert.equal(await page.locator('video').count(), 0, 'Camera only starts after the customer chooses it');
+        await page.getByRole('button', {name:'Tirar foto da lista', exact:true}).click();
         await page.getByRole('button', {name:'Tirar foto', exact:true}).click();
         await page.getByRole('heading', {name:'Confira a foto'}).waitFor();
         assert.equal(uploads,0, 'Preview must not trigger a paid recognition');
@@ -211,7 +221,11 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
         await page.getByRole('button',{name:/Cimento Portland CP II/}).first().click();
         await page.getByLabel('Nome do produto',{exact:true}).fill('Material personalizado solicitado');
         await page.getByLabel('Nome do produto',{exact:true}).press('Enter');
-        await page.getByRole('button',{name:'Enviar 2 itens para a loja'}).click();
+        assert.equal(await page.getByLabel('Seu WhatsApp com DDD').count(), 0, 'Contact fields belong to the final step');
+        await page.getByRole('button',{name:'Lista conferida, continuar'}).click();
+        await page.getByRole('heading',{name:'Para onde enviamos o orçamento?'}).waitFor();
+        assert.ok((await page.locator('[aria-current="step"]').innerText()).includes('Envio'));
+        await page.getByRole('button',{name:'Enviar solicitação de orçamento'}).click();
         await page.getByRole('heading',{name:'Pronto, lista enviada!'}).waitFor();
         const merchant=await request.newContext({baseURL,storageState:{cookies:adminCookies,origins:[]}});contexts.push(merchant);
         const quotes=await data(await merchant.get('/api/quotes/admin/list?limit=100'));
@@ -227,6 +241,7 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
       try {
         await context.addInitScript(()=>{navigator.mediaDevices.getUserMedia=async()=>{throw new DOMException('Denied','NotAllowedError');};});
         const page=await context.newPage();await page.goto(baseURL+'/pedido');
+        await page.getByRole('button',{name:'Tirar foto da lista',exact:true}).click();
         await page.getByRole('button',{name:'Usar câmera do celular',exact:true}).waitFor();
         assert.equal(await page.getByLabel('Foto pela câmera do celular').getAttribute('capture'),'environment');
         assert.equal(await page.getByLabel('Escolher foto da galeria',{exact:true}).getAttribute('capture'),null);
@@ -257,6 +272,8 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
       } })).status(), 403);
     });
 
+    // Separate groups of independent customers from the shared runner IP window.
+    await restartIsolatedApi();
     for (const width of [320, 390, 768, 1024, 1440]) {
       await t.test(`Manual list, database autosave and reload at ${width}px`, async () => {
         const context = await browser.newContext({ viewport: { width, height: 900 } });
@@ -280,8 +297,35 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
           await page.reload();
           await page.getByText('Rascunho salvo', { exact: true }).waitFor();
           assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true, 'Horizontal overflow');
-          assert.equal(await page.getByRole('button', { name: 'Aumentar', exact: true }).first().locator('..').locator('span').innerText(), '6');
+          assert.equal(await page.getByRole('button', { name: 'Aumentar', exact: true }).first().locator('..').locator('input').inputValue(), '6');
           await page.screenshot({ path: new URL(`./artifacts/manual-${width}.png`, import.meta.url).pathname, fullPage: true });
+          await page.getByRole('button', { name: 'Lista conferida, continuar' }).click();
+          await page.getByLabel('Seu WhatsApp com DDD').fill('11912345678');
+          await page.getByLabel('Seu nome').fill('Nome preservado');
+          await page.reload();
+          await page.getByRole('heading', { name: 'Para onde enviamos o orçamento?' }).waitFor();
+          assert.equal(await page.getByLabel('Seu nome').inputValue(), 'Nome preservado');
+          assert.equal((await page.getByLabel('Seu WhatsApp com DDD').inputValue()).replace(/\D/g, ''), '11912345678');
+          assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true, 'Contact step fits the viewport');
+          await page.getByLabel('Seu WhatsApp com DDD').fill('12');
+          await page.getByRole('button', { name: 'Enviar solicitação de orçamento' }).click();
+          await page.getByRole('alert').filter({ hasText: 'Informe seu WhatsApp' }).waitFor();
+          await page.getByRole('button', { name: 'Editar lista' }).click();
+          await page.getByRole('heading', { name: 'Confira sua lista' }).waitFor();
+          assert.equal(await page.getByRole('button', { name: 'Aumentar', exact: true }).first().locator('..').locator('input').inputValue(), '6');
+          if (width === 390) {
+            await page.getByRole('button', { name: 'Adicionar outro item' }).click();
+            await page.getByRole('button', { name: 'Lista conferida, continuar' }).click();
+            await page.getByRole('alert').filter({ hasText: 'Preencha o nome' }).waitFor();
+            await page.getByRole('button', { name: 'Remover item' }).last().click();
+            const quantitySaved = page.waitForResponse(response => response.url().endsWith('/api/quotes/public/anonymous') && response.request().method() === 'PUT' && response.status() === 200 && response.request().postDataJSON()?.items?.[0]?.quantity === 25.5);
+            await page.getByRole('textbox', { name: /^Quantidade de/ }).first().fill('25,5');
+            await page.getByRole('textbox', { name: /^Quantidade de/ }).first().press('Tab');
+            await quantitySaved;
+            assert.equal(await page.getByRole('textbox', { name: /^Quantidade de/ }).first().inputValue(), '25.5');
+            const withTypedQuantity = await data(await anonymous.get(`/api/quotes/public/anonymous/${backup.token}`));
+            assert.equal(withTypedQuantity.items[0].quantity, 25.5);
+          }
         } finally { await context.close(); }
       });
     }
@@ -327,9 +371,10 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
         await page.getByLabel('Lista de produtos, um por linha').fill('2 cimento');
         await page.getByRole('button', { name: 'Continuar com 1 item' }).click();
         await page.getByText('Rascunho salvo', { exact: true }).waitFor();
-        assert.equal(await page.getByLabel('Nome', { exact: false }).inputValue(), 'Cliente Produto');
+        await page.getByRole('button', { name: 'Lista conferida, continuar' }).click();
+        assert.equal(await page.getByLabel('Seu nome').inputValue(), 'Cliente Produto');
         assert.ok((await page.getByLabel('Seu WhatsApp').inputValue()).replace(/\D/g, '').endsWith('11987654321'));
-        await page.getByRole('button', { name: 'Enviar 1 item para a loja' }).click();
+        await page.getByRole('button', { name: 'Enviar solicitação de orçamento' }).click();
         await page.getByRole('heading', { name: 'Pronto, lista enviada!' }).waitFor();
       } finally { await context.close(); }
     });
@@ -338,14 +383,7 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
       // Start a separate UI phase with a fresh in-memory request window. The
       // disposable CI API shares one IP across all customers and browsers.
       // Keep production limits intact and preserve the database and sessions.
-      execFileSync('docker', ['restart', 'rebequi-api'], { stdio: 'pipe' });
-      let ready = false;
-      for (let attempt = 0; attempt < 60; attempt++) {
-        try { ready = (await anonymous.get('/api/health')).ok(); } catch { /* API is restarting. */ }
-        if (ready) break;
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
-      assert.ok(ready, 'Isolated API must become healthy after restarting');
+      await restartIsolatedApi();
       const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
       try {
         const page = await context.newPage();

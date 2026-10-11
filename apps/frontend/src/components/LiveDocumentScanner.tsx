@@ -24,6 +24,8 @@ type Props = {
   onCapture: (doc: ScannedDocument) => void;
   onCancel: () => void;
   onManualEntry?: () => void;
+  embedded?: boolean;
+  initialFile?: File | null;
 };
 
 const STABLE_FRAMES_REQUIRED = 4;   // ~1 segundo a 4fps
@@ -87,7 +89,7 @@ function measureFrameQuality(cv: any, src: any): { sharpness: number; brightness
   }
 }
 
-export function LiveDocumentScanner({ onCapture, onCancel, onManualEntry }: Props) {
+export function LiveDocumentScanner({ onCapture, onCancel, onManualEntry, embedded = false, initialFile }: Props) {
   const webcamRef = useRef<Webcam | null>(null);
   const [preview, setPreview] = useState<ScannedDocument | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -105,7 +107,7 @@ export function LiveDocumentScanner({ onCapture, onCancel, onManualEntry }: Prop
   const capturedRef = useRef(false);
 
   const [status, setStatus] = useState<'loading' | 'ready' | 'detecting' | 'aligning' | 'countdown' | 'capturing' | 'preview' | 'error'>(
-    'loading'
+    initialFile ? 'capturing' : 'loading'
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -139,6 +141,21 @@ export function LiveDocumentScanner({ onCapture, onCancel, onManualEntry }: Prop
     streamRef.current?.getTracks().forEach(track => track.stop());
     setPreview(doc); setErrorMessage(null); setStatus('preview');
   }, [clearCountdown]);
+
+  useEffect(() => {
+    if (!initialFile) return;
+    let cancelled = false;
+    capturedRef.current = true;
+    void prepareQuotePhoto(initialFile).then(doc => {
+      if (!cancelled) showPreview({ ...doc, autoCaptured: false });
+    }, error => {
+      if (cancelled) return;
+      capturedRef.current = false;
+      setErrorMessage(error instanceof Error ? error.message : 'Escolha outra foto.');
+      setStatus('error');
+    });
+    return () => { cancelled = true; };
+  }, [initialFile, showPreview]);
 
   const captureCurrentFrame = useCallback(async (autoCaptured = false) => {
     if (capturedRef.current) return;
@@ -454,7 +471,7 @@ export function LiveDocumentScanner({ onCapture, onCancel, onManualEntry }: Prop
   })();
 
   return (
-    <div className="fixed inset-0 z-50 bg-black">
+    <div className={embedded ? 'relative isolate h-[clamp(440px,calc(100dvh_-_300px),640px)] overflow-hidden rounded-2xl bg-black' : 'fixed inset-0 z-50 bg-black'}>
       {/* Vídeo */}
       {!['error', 'preview', 'capturing'].includes(status) && <Webcam
         key={facingMode} ref={instance => { webcamRef.current = instance; videoRef.current = instance?.video ?? null; }}
@@ -476,7 +493,7 @@ export function LiveDocumentScanner({ onCapture, onCancel, onManualEntry }: Prop
 
       {/* Header */}
       <div className="absolute inset-x-0 top-0 z-30 flex items-center justify-between gap-2 px-4 py-4">
-        <button
+        {!embedded && <button
           type="button"
           onClick={() => {
             streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -486,7 +503,7 @@ export function LiveDocumentScanner({ onCapture, onCancel, onManualEntry }: Prop
           aria-label="Cancelar"
         >
           <X className="h-5 w-5" />
-        </button>
+        </button>}
         <p
           className={`min-w-0 flex-1 rounded-full px-2 py-1.5 text-center text-xs font-medium text-white backdrop-blur ${
             qualityIssue && (status === 'detecting' || status === 'aligning')
@@ -542,7 +559,7 @@ export function LiveDocumentScanner({ onCapture, onCancel, onManualEntry }: Prop
       ) : null}
 
       {status === 'preview' && preview && <div className="absolute inset-0 z-40 flex flex-col bg-slate-950 text-white">
-        <div className="flex items-center justify-between px-4 py-4"><h1 className="font-bold">Confira a foto</h1><button type="button" onClick={onCancel} aria-label="Cancelar"><X /></button></div>
+        <div className="flex items-center justify-between px-4 py-4"><h2 className="font-bold">Confira a foto</h2>{!embedded && <button type="button" onClick={onCancel} aria-label="Cancelar"><X /></button>}</div>
         <div className="min-h-0 flex-1 px-4">{previewUrl && <img src={previewUrl} alt="Prévia da lista fotografada" className="h-full w-full object-contain" />}</div>
         <div className="space-y-3 px-4 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]"><p className="text-center text-sm text-white/80">A lista está inteira e legível?</p>
           <Button className="h-12 w-full" onClick={() => onCapture(preview)}>Usar esta foto</Button>

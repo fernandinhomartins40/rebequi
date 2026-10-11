@@ -26,9 +26,12 @@ export type StoredDraft = {
   items: StoredDraftItem[];
   photoUrl?: string | null;
   savedAt: number;
+  stage?: 'review' | 'contact';
+  name?: string;
+  whatsapp?: string;
 };
 
-export function saveDraftBackup(draft: { token: string; items: StoredDraftItem[]; photoUrl?: string | null }) {
+export function saveDraftBackup(draft: { token: string; items: StoredDraftItem[]; photoUrl?: string | null; stage?: 'review' | 'contact'; name?: string; whatsapp?: string }) {
   if (typeof window === 'undefined') return;
 
   try {
@@ -39,6 +42,9 @@ export function saveDraftBackup(draft: { token: string; items: StoredDraftItem[]
       // the draft still carries the server-side document URL.
       photoUrl: draft.photoUrl?.startsWith('blob:') ? null : draft.photoUrl ?? null,
       savedAt: Date.now(),
+      stage: draft.stage,
+      name: draft.name,
+      whatsapp: draft.whatsapp,
     };
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
   } catch {
