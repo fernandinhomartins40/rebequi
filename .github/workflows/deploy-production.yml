@@ -205,6 +205,8 @@ jobs:
         run: bash scripts/test-production-images.sh
       - name: Product browser evidence
         if: always()
+        # Evidence storage is optional; test failures still block deployment.
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: product-browser-evidence
