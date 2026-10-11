@@ -204,12 +204,16 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
         );
         releasePolling();
         await page.getByText('Rascunho salvo',{exact:true}).waitFor();
+        await page.getByRole('button',{name:/Cimento Portland CP II/}).first().click();
+        await page.getByLabel('Nome do produto',{exact:true}).fill('Material personalizado solicitado');
+        await page.getByLabel('Nome do produto',{exact:true}).press('Enter');
         await page.getByRole('button',{name:'Enviar 2 itens para a loja'}).click();
         await page.getByRole('heading',{name:'Pronto, lista enviada!'}).waitFor();
         const merchant=await request.newContext({baseURL,storageState:{cookies:adminCookies,origins:[]}});contexts.push(merchant);
         const quotes=await data(await merchant.get('/api/quotes/admin/list?limit=100'));
         const received=quotes.find(quote=>quote.id===draft.quote.id);
         assert.equal(received.status,'SUBMITTED');assert.equal(received.items.length,2);
+        assert.equal(received.items[0].name,'Material personalizado solicitado');assert.equal(received.items[0].productId,null);
         await page.screenshot({path:'tests/product/artifacts/camera-to-quote.png',fullPage:true});
       } finally {releasePolling();await context.close();}
     });

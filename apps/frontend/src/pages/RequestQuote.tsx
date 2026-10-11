@@ -904,7 +904,7 @@ function ItemRow({
         {editingName ? (
           <ProductAutocomplete
             value={item.name}
-            onChange={(name) => onUpdate(item.key, { name })}
+            onChange={(name) => onUpdate(item.key, { name, productId: null, confidence: 1 })}
             onSelectProduct={(product) => {
               onUpdate(item.key, {
                 name: product.name,

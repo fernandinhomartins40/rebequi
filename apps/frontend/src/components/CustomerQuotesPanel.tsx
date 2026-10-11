@@ -398,7 +398,7 @@ export function CustomerQuotesPanel({
                                   items: state.items.map(
                                     (candidate, itemIndex) =>
                                       itemIndex === idx
-                                        ? { ...candidate, name: e.target.value }
+                                        ? { ...candidate, name: e.target.value, productId: null }
                                         : candidate,
                                   ),
                                 }))
