@@ -32,6 +32,7 @@ import { ADMIN_BASE_PATH } from './config';
 import { DashboardPanel, EditorBackLink, PageHeader } from './components';
 
 export function MerchantChannelDetailPage() {
+  const needsCanonicalHost = window.location.hostname === 'rebequi.com.br';
   const { channelId } = useParams<{ channelId: string }>();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -132,13 +133,14 @@ export function MerchantChannelDetailPage() {
 
       {channel?.capabilities?.accountAuthorization ? (
         <DashboardPanel title="Conectar Mercado Livre" description="1. Configure a aplicação · 2. Autorize a conta · 3. Confira a conexão">
+          {needsCanonicalHost ? <p className="mb-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Para concluir a autorização com sua sessão, <a className="font-semibold underline" href={`https://www.rebequi.com.br${window.location.pathname}`}>abra este painel em www.rebequi.com.br</a> e entre na sua conta.</p> : null}
           <p className="mb-3 break-all text-xs text-muted-foreground">URL de retorno: https://www.rebequi.com.br/api/channels/oauth/mercado-livre/callback</p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div><Label htmlFor="channel-client-id">ID da aplicação</Label><Input id="channel-client-id" value={clientId} onChange={e => setClientId(e.target.value)} autoComplete="off" placeholder={channel.hasCredentials ? 'Já configurado; deixe vazio para manter' : 'Client ID'} /></div>
             <div><Label htmlFor="channel-client-secret">Segredo da aplicação</Label><Input id="channel-client-secret" type="password" value={clientSecret} onChange={e => setClientSecret(e.target.value)} autoComplete="new-password" placeholder="Client secret" /></div>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Button disabled={connectMutation.isPending || !channel.isActive} onClick={() => connectMutation.mutate()}>Autorizar conta</Button>
+            <Button disabled={connectMutation.isPending || !channel.isActive || needsCanonicalHost} onClick={() => connectMutation.mutate()}>Autorizar conta</Button>
             <Button variant="outline" disabled={testMutation.isPending || !channel.hasCredentials || !channel.isActive} onClick={() => testMutation.mutate()}>Testar conexão</Button>
           </div>
         </DashboardPanel>
