@@ -27,6 +27,7 @@ import { fetchAdminProducts } from '@/services/api/products';
 import type { ChannelListing } from '@/types';
 import { ADMIN_BASE_PATH } from './config';
 import { DashboardPanel, EditorBackLink, PageHeader } from './components';
+import { RemoteOrdersPanel } from './remote-orders';
 
 export function MerchantChannelDetailPage() {
   const { channelId } = useParams<{ channelId: string }>();
@@ -122,6 +123,7 @@ export function MerchantChannelDetailPage() {
       {channel && channel.type !== 'MANUAL' ? <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Publicação, pedidos e estoque externos aguardam validação do conector. Nenhum anúncio será enviado nesta etapa.</p> : null}
 
       {/* Publicar produto */}
+      {channel?.type === 'MERCADO_LIVRE' && channel.isActive && channel.status === 'CONNECTED' ? <RemoteOrdersPanel channelId={channel.id} /> : null}
       {channel?.type === 'MANUAL' && channel.isActive ? <DashboardPanel title="Vincular produto" description="Controle interno. A publicação no canal é feita manualmente." accent="blue">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

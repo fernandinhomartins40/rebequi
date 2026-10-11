@@ -12,6 +12,15 @@ import type {
 } from '@/types';
 import { apiFetch } from './client';
 
+export interface RemoteOrders {
+  orders: Array<{ id: string; status: string; currency: string; total: number; createdAt: string | null;
+    items: Array<{ externalListingId: string; title: string; quantity: number; unitPrice: number }> }>;
+  page: number; limit: number; total: number; hasNext: boolean; checkedAt: string;
+}
+export async function fetchRemoteOrders(channelId: string, page: number) {
+  return unwrapData<RemoteOrders>(await apiFetch(`/channels/admin/${encodeURIComponent(channelId)}/remote-orders?page=${page}`));
+}
+
 export interface IntegrationOperations {
   counts: Record<string, number>;
   oldestPendingAt: string | null;

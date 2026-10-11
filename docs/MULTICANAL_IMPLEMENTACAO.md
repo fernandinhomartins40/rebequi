@@ -45,4 +45,10 @@ Fontes adicionais: [Magalu OAuth](https://developers.magalu.com/docs/first-steps
 
 Validação: 41 testes backend, compilação, lint dos componentes, navegador nos sete formulários em 320/390/1440 pixels, integração descartável de permissões, preservação/remoção de credenciais, concorrência de atualização e renovação. Os testes usam apenas credenciais sintéticas e transportes de teste; nenhum foi executado com chaves comerciais reais.
 
-Ainda pendentes: reserva de kits/localizações, valores Decimal, inbox/webhooks, tarefas de escrita remota, operações comerciais dos conectores e suas validações, pedidos/logística/pós-venda externos e conciliação financeira. Shopee possui formulário, mas contrato oficial dos endpoints ainda não foi acessível na pesquisa. Estas entregas não concluem fases 0 e 1 nem o plano completo.
+## Conferência de pedidos Mercado Livre
+
+Canais → conta Mercado Livre autorizada apresenta consulta sob demanda dos pedidos recentes, agrupando todos os itens por pedido, status, data e total. Paginação de 20 pedidos, limitada aos primeiros 1.000 resultados; não há sondagem automática. Endpoint oficial `/orders/search`, vendedor vinculado à conta, ordenação por data decrescente. Respostas limitadas e validadas; pedidos de outro vendedor, moeda diferente de BRL e itens inválidos são rejeitados. Dados do comprador e corpos de erro do provedor não chegam à interface. Consulta não importa vendas, não reserva nem altera estoque. Validação local: 43 testes backend, TypeScript, lint e textos UTF-8.
+
+Referência: [gerenciamento de vendas Mercado Livre](https://developers.mercadolivre.com.br/pt_br/imovel-consulta-de-usuarios/gerenciamento-de-vendas).
+
+Ainda pendentes: reserva de kits/localizações, valores Decimal, inbox/webhooks, tarefas de escrita remota, operações comerciais dos conectores e suas validações, importação de pedidos/logística/pós-venda externos e conciliação financeira. Shopee possui formulário, mas contrato oficial dos endpoints ainda não foi acessível na pesquisa. Estas entregas não concluem fases 0 e 1 nem o plano completo.

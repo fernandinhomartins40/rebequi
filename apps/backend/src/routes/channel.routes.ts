@@ -13,6 +13,8 @@ import { validateBody, validateQuery } from '../middleware/validation.middleware
 import { beginMercadoLivreAuthorization, finishMercadoLivreAuthorization } from '../services/channels/mercado-livre-auth.service.js';
 import { getIntegrationOperations, retryIntegrationJob } from '../services/integration-operations.service.js';
 import { beginMagaluAuthorization, finishMagaluAuthorization } from '../services/channels/magalu-auth.service.js';
+import { readMercadoLivreOrders } from '../services/channels/mercado-livre-orders.service.js';
+import { z } from 'zod';
 
 const router: Router = Router();
 const channelController = new ChannelController();
@@ -54,6 +56,11 @@ router.get('/oauth/mercado-livre/callback', ...auth, async (req, res, next) => {
 });
 
 // Channels
+router.get('/admin/:id/remote-orders', ...auth, validateQuery(z.object({ page: z.coerce.number().int().min(1).max(50).default(1) })), async (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store');
+  try { res.json({ success: true, data: await readMercadoLivreOrders(req.params.id, Number(req.query.page ?? 1)) }); }
+  catch (error) { next(error); }
+});
 router.get('/admin/list', ...auth, validateQuery(channelFiltersSchema), channelController.listChannels);
 router.post('/admin', ...auth, validateBody(createChannelSchema), channelController.createChannel);
 router.get('/admin/:id', ...auth, channelController.getChannel);
