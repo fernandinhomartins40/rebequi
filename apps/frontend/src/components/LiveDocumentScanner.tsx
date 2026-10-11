@@ -112,6 +112,7 @@ export function LiveDocumentScanner({ onCapture, onCancel, onManualEntry }: Prop
   const [qualityIssue, setQualityIssue] = useState<QualityIssue>(null);
   // Detecção de borda + captura automática dependem do OpenCV, que carrega
   // depois da câmera. Enquanto isso o scanner opera em modo manual.
+  const [autoScan, setAutoScan] = useState(false);
   const [detectionReady, setDetectionReady] = useState(false);
   const [detectionFailed, setDetectionFailed] = useState(false);
   const fallbackInputRef = useRef<HTMLInputElement | null>(null);
@@ -244,7 +245,7 @@ export function LiveDocumentScanner({ onCapture, onCancel, onManualEntry }: Prop
   // continua utilizável: perde-se a detecção de borda e a captura automática,
   // e o botão manual assume.
   useEffect(() => {
-    if (!cameraAvailable) return;
+    if (!cameraAvailable || !autoScan) return;
     let cancelled = false;
 
     (async () => {
@@ -266,11 +267,11 @@ export function LiveDocumentScanner({ onCapture, onCancel, onManualEntry }: Prop
     return () => {
       cancelled = true;
     };
-  }, [cameraAvailable]);
+  }, [cameraAvailable, autoScan]);
 
   // Frame loop — só faz sentido depois que o OpenCV terminou de carregar.
   useEffect(() => {
-    if (!detectionReady) return;
+    if (!autoScan || !detectionReady) return;
     if (status !== 'detecting' && status !== 'aligning' && status !== 'countdown') return;
 
     let lastFrameAt = 0;
@@ -404,7 +405,7 @@ export function LiveDocumentScanner({ onCapture, onCancel, onManualEntry }: Prop
     return () => {
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
-  }, [status, detectionReady, cornersAreStable, startCountdown, clearCountdown]);
+  }, [status, autoScan, detectionReady, cornersAreStable, startCountdown, clearCountdown]);
 
   const handleFallbackFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]; event.currentTarget.value = '';
@@ -434,6 +435,7 @@ export function LiveDocumentScanner({ onCapture, onCancel, onManualEntry }: Prop
       case 'loading':
         return 'Abrindo a câmera…';
       case 'detecting':
+        if (!autoScan) return 'Enquadre a lista e toque para fotografar';
         // Sem OpenCV não há detecção de borda; o usuário aperta o botão.
         if (detectionFailed) return 'Enquadre a lista e toque no botão';
         if (!detectionReady) return 'Enquadre sua lista — preparando captura automática';
@@ -501,6 +503,10 @@ export function LiveDocumentScanner({ onCapture, onCancel, onManualEntry }: Prop
           </button>
         ) : <div className="w-10" />}
       </div>
+
+      {cameraAvailable && <button type="button" aria-pressed={autoScan} onClick={() => { setAutoScan(value => !value); clearCountdown(); setStatus('detecting'); }} className="absolute left-1/2 top-20 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full bg-black/60 px-4 py-2 text-xs text-white">
+        {autoScan && !detectionReady && !detectionFailed ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}Captura automática
+      </button>}
 
       {/* Countdown gigante */}
       {countdown !== null ? (

@@ -10,7 +10,7 @@ if (process.env.CI !== 'true' || process.env.GITHUB_ACTIONS !== 'true' || proces
 }
 const baseURL = 'http://127.0.0.1:3190';
 await mkdir(new URL('./artifacts/', import.meta.url), { recursive: true });
-const browser = await chromium.launch({ args: ['--use-fake-device-for-media-stream'] });
+const browser = await chromium.launch({ args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] });
 const contexts = [];
 let adminCookies;
 async function authenticateAdminContext(context) {
@@ -158,12 +158,15 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
         await context.addCookies((await owner.storageState()).cookies);
         const page = await context.newPage();
         await page.route('**/vendor/opencv-*', route => route.abort());
-        let uploads = 0;
+        let uploads = 0; let detectorDownloads = 0;
+        page.on('request', request => { if(request.url().includes('/vendor/opencv-')) detectorDownloads++; });
         page.on('request', request => { if (request.method() === 'POST' && request.url().endsWith('/api/quotes/public/anonymous-document')) uploads++; });
         await page.goto(baseURL + '/pedido');
         await page.getByRole('button', {name:'Tirar foto', exact:true}).click();
         await page.getByRole('heading', {name:'Confira a foto'}).waitFor();
         assert.equal(uploads,0, 'Preview must not trigger a paid recognition');
+        assert.equal(detectorDownloads,0, 'Document detection is opt-in');
+        await page.screenshot({path:'tests/product/artifacts/camera-preview.png',fullPage:true});
         assert.equal(await page.locator('video').count(),0, 'Camera stops while reviewing');
         await page.getByRole('button', {name:'Tirar outra foto',exact:true}).click();
         await page.getByRole('button', {name:'Tirar foto',exact:true}).waitFor();
@@ -174,6 +177,7 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
         await page.getByLabel('Escolher foto da galeria', {exact:true}).setInputFiles({name:'lista.png',mimeType:'image/png',buffer:Buffer.from(encoded,'base64')});
         await page.getByRole('heading', {name:'Confira a foto'}).waitFor();
         await page.getByAltText('Prévia da lista fotografada').waitFor();
+        await page.waitForFunction(()=>document.querySelector('img[alt="Prévia da lista fotografada"]')?.naturalWidth===1800);
         assert.equal(await page.getByAltText('Prévia da lista fotografada').evaluate(img=>img.naturalWidth),1800);
         assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
         await page.route('**/api/quotes/public/anonymous/*', async route => {await recognitionReady; await route.continue();});

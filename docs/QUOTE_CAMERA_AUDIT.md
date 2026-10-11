@@ -14,7 +14,7 @@ Consulta somente de leitura em produção encontrou uma foto persistida com OCR 
 | --- | --- |
 | [react-webcam, MIT](https://github.com/mozmorris/react-webcam) | Escolhida para captura: eventos de stream/erro, constraints, integração React e liberação do stream ao desmontar, inclusive quando a permissão resolve tarde. Captura e prévia testadas em Chrome. |
 | [react-camera-pro, MIT](https://github.com/purple-technology/react-camera-pro) | Alternativa focada em mobile; captura com o aspecto da visualização. A aplicação precisa preservar a lista inteira, sem corte pela proporção da tela. |
-| [jscanify](https://github.com/puffinsoft/jscanify) + OpenCV | Mantidos como melhoria opcional para bordas, perspectiva e captura automática; não são OCR nem requisito para enviar uma imagem. |
+| [jscanify](https://github.com/puffinsoft/jscanify) + OpenCV | Mantidos como melhoria opcional ativada pelo cliente para bordas, perspectiva e captura automática; não são OCR nem requisito para enviar uma imagem. |
 
 Nenhuma biblioteca contorna as permissões/HTTPS do navegador. Há alternativas separadas pela câmera nativa, galeria e lista digitada. A escolha é adequada a esta aplicação, não uma afirmação de que existe uma biblioteca universalmente superior em todos os aparelhos.
 
@@ -23,7 +23,7 @@ Nenhuma biblioteca contorna as permissões/HTTPS do navegador. Há alternativas 
 1. P0: captura com react-webcam, timeout e liberação da câmera; galeria com tratamento de erro e timeout. Prévia e confirmação antes do upload. Repetir a captura não consome tokens.
 2. P0: validar bytes e dimensões no backend antes de guardar a imagem e iniciar leitura; separar feedback de envio e análise. Cliente converte formatos decodificáveis para JPEG e reduz o maior lado a 1800px, até 5MB. Formatos não decodificáveis apresentam erro, sem ficar presos.
 3. P0: preservar linhas repetidas, nomes curtos como cal/PVC e quantidades; evitar vincular automaticamente variantes do catálogo com pontuações muito próximas. Clientes continuam revisando e corrigindo todos os itens antes de enviar. Digitar outro nome limpa o ID anterior, tanto no pedido quanto no painel do cliente; selecionar uma sugestão associa o novo produto.
-4. P1: detecção de bordas limitada a 4fps e maior lado de 640px; captura final usa a resolução disponível. Retirar a distorção fixa A4 da extração automática; usar a proporção estimada do papel. Prévia permite repetir se a borda estiver errada.
+4. P1: detecção de bordas opcional, ativada pelo cliente, limitada a 4fps e maior lado de 640px; captura final usa a resolução disponível. Retirar a distorção fixa A4 da extração automática; usar a proporção estimada do papel. Prévia permite repetir se a borda estiver errada.
 5. P1: prompt compacto, JSON com chaves curtas, nenhum catálogo na chamada. O catálogo e os aliases continuam sendo usados uma vez no servidor para associação; preços são do catálogo, não da IA.
 6. P1: erros seguros específicos de chave, saldo, limite, timeout, lista vazia e saída truncada. Lista vazia ou truncada não dispara reserva, evitando uma segunda cobrança que não resolve o limite de saída. Não guardar listas parciais. Não registrar chave, foto, prompt ou corpo bruto do provedor nos logs.
 7. P1: teste de conexão DeepSeek consulta saldo sem gerar tokens. Reserva opcional e edição manual continuam protegidas contra resultados tardios e novas chamadas após edição.
@@ -41,6 +41,8 @@ Uma imagem por chamada. Mantido detail=high no DeepSeek: low reduz para 512px e 
 - Prompt base: 909 → 637 caracteres; JSON do mesmo item de exemplo: 129 → 69 caracteres. Catálogo retirado independentemente do tamanho. São medidas de caracteres, não tokens faturados.
 - Limite de amostragem: de vídeo inteiro a cada frame para no máximo 640px a 4fps. Isso reduz o trabalho de detecção; não foi medido como percentual de CPU em um telefone físico.
 - 35 testes do backend passaram localmente, incluindo JSON compacto, quantidades/medidas, duplicatas, associação ambígua, falhas de provedor, saldo e cancelamento da reserva.
-- Chrome local com câmera sintética: captura, prévia, stream encerrado, repetir foto e erro de galeria passaram.
+- Chrome e Chromium local com câmera sintética: captura, prévia, stream encerrado, repetir foto e erro de galeria passaram.
 - CI exercita upload JPEG real, arquivo persistido usado no transporte de IA simulado, extração/associação, revisão, envio e recebimento no admin. Também cobre câmera negada, formatos inválidos, autosave, propriedade, edição tardia e recuperação do banco. Nenhuma chave de produção é usada no CI.
 - Testes automatizados com transporte simulado não medem qualidade real da leitura de manuscritos. Validação paga do provedor exige aprovação, conforme AGENTS.md. Compatibilidade física com iOS/Android depende de teste nesses aparelhos.
+
+O primeiro CI bloqueou o deploy porque a versão do Chromium exige também --use-fake-ui-for-media-stream para usar o dispositivo sintético. A falha foi reproduzida localmente com o mesmo Playwright e corrigida nos parâmetros do teste; o teste local passou sem substituir getUserMedia. Esses parâmetros pertencem somente ao teste, não à aplicação do cliente.
