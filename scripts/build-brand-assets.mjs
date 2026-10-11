@@ -18,9 +18,20 @@ for (let y = 0; y < info.height; y++) for (let x = 0; x < info.width; x++) {
 const full = await sharp(original).extract({ left, top, width: right - left + 1, height: bottom - top + 1 }).png().toBuffer();
 await fs.writeFile(path.join(root, 'rebequi-logo.png'), full);
 await sharp(full).webp({ lossless: true, effort: 6 }).toFile(path.join(root, 'rebequi-logo.webp'));
+const whiteLogo = await sharp(full).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+// Reverse variant: keep red accents, slogan and original transparency.
+for (let i = 0; i < whiteLogo.data.length; i += 4) {
+  if (whiteLogo.data[i + 2] > whiteLogo.data[i] && whiteLogo.data[i + 2] > whiteLogo.data[i + 1]) {
+    whiteLogo.data[i] = whiteLogo.data[i + 1] = whiteLogo.data[i + 2] = 255;
+  }
+}
+const white = await sharp(whiteLogo.data, { raw: { width: whiteLogo.info.width, height: whiteLogo.info.height, channels: 4 } }).png().toBuffer();
+await fs.writeFile(path.join(root, 'rebequi-logo-white.png'), white);
+await sharp(white).webp({ lossless: true, effort: 6 }).toFile(path.join(root, 'rebequi-logo-white.webp'));
 for (const width of [350, 700, 1400]) {
   await sharp(full).resize({ width }).png().toFile(path.join(root, `rebequi-logo-${width}.png`));
   await sharp(full).resize({ width }).webp({ lossless: true, effort: 6 }).toFile(path.join(root, `rebequi-logo-${width}.webp`));
+  await sharp(white).resize({ width }).webp({ lossless: true, effort: 6 }).toFile(path.join(root, `rebequi-logo-white-${width}.webp`));
 }
 
 // Isolate the existing R emblem, excluding the adjacent word and slogan.

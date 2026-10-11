@@ -652,7 +652,7 @@ export function LandingFooter({
       <footer className="landing-footer">
         <div className="landing-width landing-footer-grid">
           <div>
-            <BrandLogo loading="lazy" />
+            <BrandLogo loading="lazy" variant="white" />
             <p>
               Tudo para sua obra, do início ao acabamento.
               <br />
