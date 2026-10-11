@@ -366,7 +366,9 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
         const refreshed = page.waitForResponse((r) => r.url().endsWith('/api/quotes/me') && r.status() === 200, { timeout: 45000 });
         await refreshed; // Actual 30-second polling request, no intercepted API.
         assert.equal(await page.getByLabel('Título', { exact: true }).inputValue(), 'Minha edição preservada');
-        await page.goto(`${baseURL}/pedido`);
+        await page.getByRole('link', { name: 'Começar orçamento', exact: true }).click();
+        await page.waitForURL('**/pedido');
+        await page.getByRole('heading', { name: 'Vamos preparar seu orçamento' }).waitFor();
         await page.getByRole('button', { name: 'Digitar lista', exact: true }).click();
         await page.getByLabel('Lista de produtos, um por linha').fill('2 cimento');
         await page.getByRole('button', { name: 'Continuar com 1 item' }).click();

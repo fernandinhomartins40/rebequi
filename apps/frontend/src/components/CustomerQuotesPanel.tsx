@@ -6,14 +6,12 @@ import {
   DashboardHelp,
 } from "@/components/dashboard/DashboardElements";
 import {
-  useState,
   type Dispatch,
   type MutableRefObject,
   type SetStateAction,
 } from "react";
 import { ArrowRight, Camera, FileText, Plus, Trash2 } from "lucide-react";
 import {
-  LiveDocumentScanner,
   type ScannedDocument,
 } from "@/components/LiveDocumentScanner";
 import { QuoteStatusBadge } from "@/components/QuoteStatusBadge";
@@ -52,10 +50,8 @@ export function CustomerQuotesPanel({
   editorState,
   setEditorState,
   editorCardRef,
-  createDraftPending,
   saveDraftPending,
   submitPending,
-  onCaptureDocument,
   onSelectQuote,
   onSaveDraft,
   onSaveAndSend,
@@ -77,20 +73,6 @@ export function CustomerQuotesPanel({
   const editableItemCount = editorState.items.filter((item) =>
     item.name.trim(),
   ).length;
-  const [scannerOpen, setScannerOpen] = useState(false);
-
-  if (scannerOpen) {
-    return (
-      <LiveDocumentScanner
-        onCapture={(doc) => {
-          setScannerOpen(false);
-          void onCaptureDocument(doc);
-        }}
-        onCancel={() => setScannerOpen(false)}
-      />
-    );
-  }
-
   return (
     <div className="animate-fade-in-up space-y-5">
       <DashboardHeading
@@ -137,27 +119,16 @@ export function CustomerQuotesPanel({
                 Novo orçamento
               </p>
               <h3 className="mt-1 text-base font-semibold text-foreground">
-                Tire uma foto da sua lista
+                Crie sua lista passo a passo
               </h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Fotografe ou escolha uma imagem — montamos o rascunho para você
-                revisar.
+                Envie sua lista, confira os produtos e solicite o orçamento.
               </p>
             </div>
 
-            <Button
-              type="button"
-              size="lg"
-              className="h-14 w-full gap-2 text-base font-semibold"
-              onClick={() => setScannerOpen(true)}
-              disabled={createDraftPending}
-            >
-              <Camera className="h-5 w-5" />
-              {createDraftPending ? "Enviando…" : "Fotografar minha lista"}
+            <Button asChild size="lg" className="h-12 w-full gap-2 text-base font-semibold">
+              <Link to="/pedido"><ArrowRight className="h-5 w-5" />Começar orçamento</Link>
             </Button>
-            <p className="mt-2 text-center text-xs text-muted-foreground">
-              A câmera captura sozinha quando a lista estiver enquadrada.
-            </p>
           </section>
 
           {/* Lista de orçamentos */}
@@ -184,7 +155,7 @@ export function CustomerQuotesPanel({
               <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-10 text-center">
                 <Camera className="mx-auto h-6 w-6 text-muted-foreground/40" />
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Nenhum orçamento ainda. Capture o primeiro documento acima.
+                  Nenhum orçamento ainda. Comece sua primeira lista.
                 </p>
               </div>
             ) : (
