@@ -375,11 +375,8 @@ export default function RequestQuotePage() {
       return <StartScreen onCamera={() => { setSelectedFile(null); setStep('scan'); }}
         onGallery={file => { setSelectedFile(file); setStep('scan'); }} onManual={() => setStep('manual')} />;
     case 'scan':
-      return <WizardLayout steps={WIZARD_STEPS} currentStep={0} title="Foto da sua lista"
-        description="A lista precisa aparecer inteira e legível." onBack={() => setStep('start')}>
-        <LiveDocumentScanner embedded initialFile={selectedFile} onCapture={(doc) => void handleScanCapture(doc)}
-          onCancel={() => setStep('start')} onManualEntry={() => setStep('manual')} />
-      </WizardLayout>;
+      return <LiveDocumentScanner initialFile={selectedFile} onCapture={(doc) => void handleScanCapture(doc)}
+        onCancel={() => setStep('start')} onManualEntry={() => setStep('manual')} />;
 
     case 'processing':
       return <ProcessingScreen uploading={documentMutation.isPending} />;

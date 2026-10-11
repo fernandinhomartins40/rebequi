@@ -90,6 +90,31 @@ function measureFrameQuality(cv: any, src: any): { sharpness: number; brightness
 }
 
 export function LiveDocumentScanner({ onCapture, onCancel, onManualEntry, embedded = false, initialFile }: Props) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (embedded) return;
+    const previousOverflow = document.body.style.overflow;
+    const previousFocus = document.activeElement as HTMLElement | null;
+    document.body.style.overflow = 'hidden';
+    containerRef.current?.focus();
+    return () => { document.body.style.overflow = previousOverflow; previousFocus?.focus(); };
+  }, [embedded]);
+  useEffect(() => {
+    if (embedded) return;
+    const dismiss = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onCancel();
+      if (event.key !== 'Tab') return;
+      const controls = Array.from(containerRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not([type="hidden"]), [tabindex="0"]') || [])
+        .filter(element => element.getClientRects().length > 0);
+      const target = event.shiftKey ? controls[controls.length - 1] : controls[0];
+      const edge = event.shiftKey ? controls[0] : controls[controls.length - 1];
+      if (document.activeElement === edge || !controls.includes(document.activeElement as HTMLElement)) {
+        event.preventDefault(); target?.focus();
+      }
+    };
+    window.addEventListener('keydown', dismiss);
+    return () => window.removeEventListener('keydown', dismiss);
+  }, [embedded, onCancel]);
   const webcamRef = useRef<Webcam | null>(null);
   const [preview, setPreview] = useState<ScannedDocument | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -471,7 +496,8 @@ export function LiveDocumentScanner({ onCapture, onCancel, onManualEntry, embedd
   })();
 
   return (
-    <div className={embedded ? 'relative isolate h-[clamp(440px,calc(100dvh_-_300px),640px)] overflow-hidden rounded-2xl bg-black' : 'fixed inset-0 z-50 bg-black'}>
+    <div ref={containerRef} tabIndex={-1} role={embedded ? undefined : 'dialog'} aria-modal={embedded ? undefined : true} aria-label="Câmera da lista de orçamento"
+      className={embedded ? 'relative isolate h-[clamp(440px,calc(100dvh_-_300px),640px)] overflow-hidden rounded-2xl bg-black' : 'fixed inset-x-0 top-0 z-[100] h-[100dvh] overflow-hidden bg-black outline-none'}>
       {/* Vídeo */}
       {!['error', 'preview', 'capturing'].includes(status) && <Webcam
         key={facingMode} ref={instance => { webcamRef.current = instance; videoRef.current = instance?.video ?? null; }}
@@ -492,7 +518,7 @@ export function LiveDocumentScanner({ onCapture, onCancel, onManualEntry, embedd
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_55%,_rgba(0,0,0,0.55)_100%)]" />
 
       {/* Header */}
-      <div className="absolute inset-x-0 top-0 z-30 flex items-center justify-between gap-2 px-4 py-4">
+      {status !== 'preview' && <div className="absolute inset-x-0 top-0 z-30 flex items-center justify-between gap-2 px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))]">
         {!embedded && <button
           type="button"
           onClick={() => {
@@ -519,7 +545,7 @@ export function LiveDocumentScanner({ onCapture, onCancel, onManualEntry, embedd
             Digitar lista
           </button>
         ) : <div className="w-10" />}
-      </div>
+      </div>}
 
       {cameraAvailable && <button type="button" aria-pressed={autoScan} onClick={() => { setAutoScan(value => !value); clearCountdown(); setStatus('detecting'); }} className="absolute left-1/2 top-20 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full bg-black/60 px-4 py-2 text-xs text-white">
         {autoScan && !detectionReady && !detectionFailed ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}Captura automática
@@ -559,7 +585,7 @@ export function LiveDocumentScanner({ onCapture, onCancel, onManualEntry, embedd
       ) : null}
 
       {status === 'preview' && preview && <div className="absolute inset-0 z-40 flex flex-col bg-slate-950 text-white">
-        <div className="flex items-center justify-between px-4 py-4"><h2 className="font-bold">Confira a foto</h2>{!embedded && <button type="button" onClick={onCancel} aria-label="Cancelar"><X /></button>}</div>
+        <div className="flex items-center justify-between px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))]"><h2 className="font-bold">Confira a foto</h2>{!embedded && <button type="button" onClick={onCancel} aria-label="Cancelar" className="flex h-11 w-11 items-center justify-center"><X /></button>}</div>
         <div className="min-h-0 flex-1 px-4">{previewUrl && <img src={previewUrl} alt="Prévia da lista fotografada" className="h-full w-full object-contain" />}</div>
         <div className="space-y-3 px-4 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]"><p className="text-center text-sm text-white/80">A lista está inteira e legível?</p>
           <Button className="h-12 w-full" onClick={() => onCapture(preview)}>Usar esta foto</Button>
@@ -568,7 +594,7 @@ export function LiveDocumentScanner({ onCapture, onCancel, onManualEntry, embedd
       </div>}
 
       {/* Footer: galeria sempre disponível + disparo manual */}
-      <div className="absolute inset-x-0 bottom-0 z-30 flex items-center justify-center gap-3 px-4 pb-8 pt-6">
+      {status !== 'preview' && <div className="absolute inset-x-0 bottom-0 z-30 flex items-center justify-center gap-3 bg-gradient-to-t from-black/80 to-transparent px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-6">
         {status === 'error' ? (<div className="flex w-full max-w-sm flex-col gap-3">
           <p role="alert" className="rounded-xl bg-black/80 p-3 text-sm text-white">{errorMessage}</p>
           <Button size="lg" onClick={() => nativeInputRef.current?.click()}><Camera className="mr-2 h-5 w-5" />Usar câmera do celular</Button>
@@ -615,7 +641,7 @@ export function LiveDocumentScanner({ onCapture, onCancel, onManualEntry, embedd
             ) : null}
           </>
         )}
-      </div>
+      </div>}
 
       <input ref={nativeInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFallbackFile} aria-label="Foto pela câmera do celular" />
       {/* Input fallback */}

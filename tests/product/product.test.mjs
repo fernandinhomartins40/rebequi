@@ -208,6 +208,13 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
         await page.goto(baseURL + '/pedido');
         assert.equal(await page.locator('video').count(), 0, 'Camera only starts after the customer chooses it');
         await page.getByRole('button', {name:'Tirar foto da lista', exact:true}).click();
+        const camera = page.getByRole('dialog', { name: 'Câmera da lista de orçamento' });
+        await camera.waitFor();
+        assert.equal(await camera.evaluate(element => {
+          const bounds = element.getBoundingClientRect();
+          return bounds.x === 0 && bounds.y === 0 && Math.abs(bounds.width - innerWidth) < 2 && Math.abs(bounds.height - innerHeight) < 2;
+        }), true, 'Camera fills the viewport');
+        assert.equal(await page.evaluate(() => document.body.style.overflow), 'hidden');
         await page.getByRole('button', {name:'Tirar foto', exact:true}).click();
         await page.getByRole('heading', {name:'Confira a foto'}).waitFor();
         assert.equal(uploads,0, 'Preview must not trigger a paid recognition');
@@ -230,6 +237,8 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
         const uploadResponse=page.waitForResponse(response=>response.url().endsWith('/api/quotes/public/anonymous-document')&&response.status()===201);
         await page.getByRole('button', {name:'Usar esta foto',exact:true}).click();
         const draft=await data(await uploadResponse,201);
+        assert.equal(await camera.count(), 0, 'Full-screen camera closes after confirmation');
+        assert.notEqual(await page.evaluate(() => document.body.style.overflow), 'hidden');
         assert.equal(uploads,1); assert.equal(draft.quote.documentMimeType,'image/jpeg');
         assert.equal(draft.quote.documentWidth,1800); assert.equal(draft.quote.documentHeight,900);
         assert.ok(draft.quote.documentSize<5*1024*1024);
