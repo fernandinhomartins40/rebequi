@@ -3,7 +3,7 @@ import { apiFetch } from './client';
 import type { MarketplaceDefinition, MarketplaceType } from '@rebequi/shared/constants';
 export type MarketplaceSettings = MarketplaceDefinition & { accounts: Array<{ id: string; name: string; isActive: boolean; status: string; configuredFields: string[] }> };
 export const fetchMarketplaceSettings = () => call<MarketplaceSettings[]>('/integrations/marketplaces');
-export const saveMarketplaceSettings = (type: MarketplaceType, body: { channelId?: string; credentials: Record<string, string | null> }) =>
+export const saveMarketplaceSettings = (type: MarketplaceType, body: { channelId?: string; isActive?: boolean; credentials: Record<string, string | null> }) =>
  call<{ channelId: string; configuredFields: string[] }>(`/integrations/marketplaces/${type}`, { method: 'PUT', body: JSON.stringify(body) });
 export type QuoteAiConfig = {
  enabled: boolean; primaryProvider: QuoteAiProvider; fallbackEnabled: boolean;

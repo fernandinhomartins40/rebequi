@@ -12,7 +12,7 @@ export async function getMarketplaceSettings() {
   }) }));
 }
 
-export async function saveMarketplaceSettings(type: MarketplaceType, actorId: string, body: { channelId?: string; credentials: Record<string, string | null> }) {
+export async function saveMarketplaceSettings(type: MarketplaceType, actorId: string, body: { channelId?: string; isActive?: boolean; credentials: Record<string, string | null> }) {
   const definition = MARKETPLACES.find(provider => provider.type === type);
   if (!definition) throw new ValidationError('Marketplace inválido');
   const allowed = new Set(definition.fields.map(field => field.key));
@@ -37,7 +37,8 @@ export async function saveMarketplaceSettings(type: MarketplaceType, actorId: st
     }
     if (changed && definition.authorization === 'oauth') for (const key of ['accessToken', 'refreshToken', 'expiresAt']) delete credentials[key];
     const data = { credentials: Object.keys(credentials).length ? encryptSecret(JSON.stringify(credentials)) : null,
-      ...(changed ? { status: 'DISCONNECTED' as const, lastError: null } : {}) };
+      ...(body.isActive !== undefined ? { isActive: body.isActive } : {}),
+      ...(changed || (channel && body.isActive !== undefined && body.isActive !== channel.isActive) ? { status: 'DISCONNECTED' as const, lastError: null } : {}) };
     if (channel) channel = await tx.channel.update({ where: { id }, data });
     else channel = await tx.channel.create({ data: { id, type, name: definition.name, ...data } });
     await tx.integrationAudit.create({ data: { actorId, jobId: `channel:${channel.id}`, action: 'CREDENTIALS_UPDATED' } });

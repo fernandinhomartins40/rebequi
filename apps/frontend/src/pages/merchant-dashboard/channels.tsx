@@ -183,7 +183,7 @@ export function MerchantDashboardChannels() {
                   <Button size="sm" onClick={() => navigate(`${ADMIN_BASE_PATH}/canais/${channel.id}`)} className="gap-1.5">
                     <Settings2 className="h-3.5 w-3.5" /> Anúncios
                   </Button>
-                  {channel.capabilities?.accountAuthorization ? (
+                  {channel.capabilities?.accountValidation ? (
                     <Button size="sm" variant="outline" disabled={testMutation.isPending} onClick={() => testMutation.mutate(channel.id)} className="gap-1.5">
                       {testMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
                       Testar conexão

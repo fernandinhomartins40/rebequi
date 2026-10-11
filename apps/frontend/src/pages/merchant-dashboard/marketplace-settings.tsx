@@ -1,10 +1,11 @@
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { MARKETPLACES, type MarketplaceType } from '@rebequi/shared/constants';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/components/ui/use-toast';
 import { fetchMarketplaceSettings, saveMarketplaceSettings, type MarketplaceSettings } from '@/services/api/integrations';
 import { authorizeMagalu, authorizeMercadoLivre, testChannel } from '@/services/api/channels';
@@ -12,7 +13,9 @@ import { DashboardSection } from '@/components/dashboard/DashboardElements';
 import { ADMIN_BASE_PATH } from './config';
 
 export function MarketplaceSettingsPanel() {
-  const [selected, setSelected] = useState<MarketplaceType>('MERCADO_LIVRE');
+  const [params] = useSearchParams();
+  const initial = MARKETPLACES.find(provider => provider.type === params.get('provider'))?.type ?? 'MERCADO_LIVRE';
+  const [selected, setSelected] = useState<MarketplaceType>(initial);
   const query = useQuery({ queryKey: ['marketplace-settings'], queryFn: fetchMarketplaceSettings });
   return <div className="space-y-5">
     <DashboardSection title="1. Escolha o marketplace">
@@ -23,16 +26,19 @@ export function MarketplaceSettingsPanel() {
 }
 
 function MarketplaceCredentialsForm({ provider }: { provider: MarketplaceSettings }) {
+  const [params] = useSearchParams();
   const client = useQueryClient();
   const { toast } = useToast();
-  const [accountId, setAccountId] = useState(provider.accounts.find(account => account.isActive)?.id ?? provider.accounts[0]?.id ?? '');
+  const [accountId, setAccountId] = useState(provider.accounts.find(account => account.id === params.get('account'))?.id ?? provider.accounts.find(account => account.isActive)?.id ?? provider.accounts[0]?.id ?? '');
   const [values, setValues] = useState<Record<string, string>>({});
+  const [isActive, setIsActive] = useState(provider.accounts.find(account => account.id === accountId)?.isActive ?? true);
   const [removed, setRemoved] = useState<string[]>([]);
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
   const account = provider.accounts.find(account => account.id === accountId);
-  const dirty = removed.length > 0 || Object.values(values).some(value => value.trim());
+  const dirty = removed.length > 0 || Object.values(values).some(value => value.trim()) || (account && isActive !== account.isActive);
   const save = useMutation({ mutationFn: () => saveMarketplaceSettings(provider.type, {
     channelId: accountId || undefined,
+    isActive,
     credentials: { ...Object.fromEntries(Object.entries(values).filter(([, value]) => value.trim())), ...Object.fromEntries(removed.map(key => [key, null])) },
   }), onSuccess: async data => {
     setAccountId(data.channelId); setValues({}); setRemoved([]); setResult(null);
@@ -48,8 +54,9 @@ function MarketplaceCredentialsForm({ provider }: { provider: MarketplaceSetting
   const requiresWww = window.location.hostname === 'rebequi.com.br';
   return <div className="space-y-5">
     <DashboardSection title={`2. Configure ${provider.name}`} description="Preencha apenas o que deseja cadastrar ou substituir. Campos vazios preservam os valores salvos.">
-      {provider.accounts.length > 1 ? <div className="mb-4 space-y-2"><Label htmlFor="marketplace-account">Conta</Label><select id="marketplace-account" className="h-10 w-full rounded-md border bg-background px-3" value={accountId} onChange={event => { setAccountId(event.target.value); setValues({}); setRemoved([]); setResult(null); }}>{provider.accounts.map(account => <option key={account.id} value={account.id}>{account.name}</option>)}</select></div> : null}
+      {provider.accounts.length > 1 ? <div className="mb-4 space-y-2"><Label htmlFor="marketplace-account">Conta</Label><select id="marketplace-account" className="h-10 w-full rounded-md border bg-background px-3" value={accountId} onChange={event => { setAccountId(event.target.value); setIsActive(provider.accounts.find(account => account.id === event.target.value)?.isActive ?? true); setValues({}); setRemoved([]); setResult(null); }}>{provider.accounts.map(account => <option key={account.id} value={account.id}>{account.name}</option>)}</select></div> : null}
       <form onSubmit={submit} className="space-y-4">
+        <div className="flex items-center justify-between gap-3"><Label htmlFor="marketplace-enabled">Conta ativa</Label><Switch id="marketplace-enabled" checked={isActive} disabled={busy} onCheckedChange={setIsActive} /></div>
         <div className="grid gap-4 sm:grid-cols-2">{provider.fields.map(field => {
           const configured = account?.configuredFields.includes(field.key);
           const isRemoved = removed.includes(field.key);

@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ExternalLink, Loader2, Plus, RefreshCcw, Search, Trash2 } from 'lucide-react';
-import { Label } from '@/components/ui/label';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -22,9 +21,7 @@ import {
   publishListing,
   removeListing,
   syncListing,
-  updateChannel,
   testChannel,
-  authorizeMercadoLivre,
 } from '@/services/api/channels';
 import { fetchAdminProducts } from '@/services/api/products';
 import type { ChannelListing } from '@/types';
@@ -32,13 +29,10 @@ import { ADMIN_BASE_PATH } from './config';
 import { DashboardPanel, EditorBackLink, PageHeader } from './components';
 
 export function MerchantChannelDetailPage() {
-  const needsCanonicalHost = window.location.hostname === 'rebequi.com.br';
   const { channelId } = useParams<{ channelId: string }>();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [productSearch, setProductSearch] = useState('');
-  const [clientId, setClientId] = useState('');
-  const [clientSecret, setClientSecret] = useState('');
   const debouncedProductSearch = useDebouncedValue(productSearch, 300);
 
   const channelQuery = useQuery({
@@ -96,17 +90,6 @@ export function MerchantChannelDetailPage() {
   });
 
   const channel = channelQuery.data;
-  const connectMutation = useMutation({
-    mutationFn: async () => {
-      if (clientId.trim() || clientSecret.trim()) {
-        if (!clientId.trim() || !clientSecret.trim()) throw new Error('Informe o ID e o segredo da aplicação.');
-        await updateChannel(channelId as string, { credentials: { clientId: clientId.trim(), clientSecret: clientSecret.trim() } });
-      }
-      return authorizeMercadoLivre(channelId as string);
-    },
-    onSuccess: result => { setClientSecret(''); window.location.assign(result.url); },
-    onError: error => toast({ variant: 'destructive', title: 'Não foi possível conectar', description: error instanceof Error ? error.message : 'Tente novamente.' }),
-  });
   const testMutation = useMutation({
     mutationFn: () => testChannel(channelId as string),
     onSuccess: async result => { await invalidate(); toast({ title: result.ok ? 'Conta verificada' : 'Revise a conexão', description: result.message, variant: result.ok ? 'default' : 'destructive' }); },
@@ -131,20 +114,11 @@ export function MerchantChannelDetailPage() {
         }
       />
 
-      {channel?.capabilities?.accountAuthorization ? (
-        <DashboardPanel title="Conectar Mercado Livre" description="1. Configure a aplicação · 2. Autorize a conta · 3. Confira a conexão">
-          {needsCanonicalHost ? <p className="mb-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Para concluir a autorização com sua sessão, <a className="font-semibold underline" href={`https://www.rebequi.com.br${window.location.pathname}`}>abra este painel em www.rebequi.com.br</a> e entre na sua conta.</p> : null}
-          <p className="mb-3 break-all text-xs text-muted-foreground">URL de retorno: https://www.rebequi.com.br/api/channels/oauth/mercado-livre/callback</p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div><Label htmlFor="channel-client-id">ID da aplicação</Label><Input id="channel-client-id" value={clientId} onChange={e => setClientId(e.target.value)} autoComplete="off" placeholder={channel.hasCredentials ? 'Já configurado; deixe vazio para manter' : 'Client ID'} /></div>
-            <div><Label htmlFor="channel-client-secret">Segredo da aplicação</Label><Input id="channel-client-secret" type="password" value={clientSecret} onChange={e => setClientSecret(e.target.value)} autoComplete="new-password" placeholder="Client secret" /></div>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Button disabled={connectMutation.isPending || !channel.isActive || needsCanonicalHost} onClick={() => connectMutation.mutate()}>Autorizar conta</Button>
-            <Button variant="outline" disabled={testMutation.isPending || !channel.hasCredentials || !channel.isActive} onClick={() => testMutation.mutate()}>Testar conexão</Button>
-          </div>
-        </DashboardPanel>
-      ) : null}
+      {channel && channel.type !== 'MANUAL' ? <DashboardPanel title="Conexão da conta" description="Configure as chaves, autorize a conta e confira o acesso em Configurações.">
+        <div className="flex flex-wrap gap-2"><Button asChild><Link to={{ pathname: `${ADMIN_BASE_PATH}/integrações`, search: new URLSearchParams({ tab: 'marketplaces', provider: channel.type, account: channel.id }).toString() }}>Configurar integração</Link></Button>
+          {channel.capabilities?.accountValidation ? <Button variant="outline" disabled={testMutation.isPending || !channel.hasCredentials || !channel.isActive} onClick={() => testMutation.mutate()}>Testar conexão</Button> : null}
+        </div>
+      </DashboardPanel> : null}
       {channel && channel.type !== 'MANUAL' ? <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Publicação, pedidos e estoque externos aguardam validação do conector. Nenhum anúncio será enviado nesta etapa.</p> : null}
 
       {/* Publicar produto */}

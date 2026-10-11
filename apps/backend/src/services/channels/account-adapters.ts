@@ -1,6 +1,7 @@
 import type { ChannelCredentials, ConnectionResult } from './channel-adapter.js';
 import { UnavailableChannelAdapter } from './unavailable-channel.adapter.js';
 import { providerJson } from './provider-http.js';
+import { sheinSignature } from './shein-signature.js';
 
 export class MagaluAdapter extends UnavailableChannelAdapter {
   async testConnection(credentials: ChannelCredentials = {}): Promise<ConnectionResult> {
@@ -33,5 +34,32 @@ export class AmazonAdapter extends UnavailableChannelAdapter {
       if (!brazil?.participation?.isParticipating) return { ok: false, message: 'Esta autorização não confirmou participação no marketplace brasileiro informado.' };
       return { ok: true, message: 'Participação na Amazon Brasil verificada. Publicação e estoque aguardam configuração comercial.' };
     } catch { return { ok: false, message: 'Não foi possível consultar a Amazon. Confira as credenciais, as roles aprovadas e o limite de consultas.' }; }
+  }
+}
+
+export class CasasBahiaAdapter extends UnavailableChannelAdapter {
+  async testConnection(credentials: ChannelCredentials = {}): Promise<ConnectionResult> {
+    if (!credentials.clientId || !credentials.accessToken || !['homologation', 'production'].includes(credentials.environment)) return { ok: false, message: 'Cadastre Client ID, token do lojista e ambiente de homologação ou produção.' };
+    try {
+      const host = credentials.environment === 'production' ? 'https://api-mktplace.viavarejo.com.br' : 'https://api-mktplace-hlg.viavarejo.com.br';
+      const data = await providerJson<{ valido?: boolean; conteudo?: { itens?: unknown[] } } | null>(`${host}/api/v4/api-front-products-v4/jersey/product/?pagina=1&itensPorPagina=1`, { headers: { Accept: 'application/json', client_id: credentials.clientId, access_token: credentials.accessToken } });
+      if (data !== null && (data.valido !== true || !Array.isArray(data.conteudo?.itens))) return { ok: false, message: 'Casas Bahia não confirmou a consulta do catálogo.' };
+      return { ok: true, message: `Acesso à Casas Bahia verificado em ${credentials.environment === 'production' ? 'produção' : 'homologação'}. Nenhuma oferta foi alterada.` };
+    } catch { return { ok: false, message: 'Não foi possível consultar Casas Bahia. Confira token, integradora e ambiente liberado.' }; }
+  }
+}
+
+export class SheinAdapter extends UnavailableChannelAdapter {
+  async testConnection(credentials: ChannelCredentials = {}): Promise<ConnectionResult> {
+    if (!credentials.openKeyId || !credentials.secretKey) return { ok: false, message: 'Cadastre Open Key ID e Secret Key decifrada da loja autorizada.' };
+    try {
+      const path = '/open-api/openapi-business-backend/query-store-info'; const timestamp = String(Date.now());
+      const data = await providerJson<{ code?: string; info?: { storeInfo?: { supplierId?: string | number; storeStatus?: number | null } } }>(`https://openapi.sheincorp.com${path}`, { method: 'POST', body: '{}',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json;charset=UTF-8', 'x-lt-openKeyId': credentials.openKeyId, 'x-lt-timestamp': timestamp, 'x-lt-signature': sheinSignature(credentials.openKeyId, credentials.secretKey, path, timestamp) } });
+      const store = data.info?.storeInfo;
+      if (data.code !== '0' || !store?.supplierId) return { ok: false, message: 'SHEIN não confirmou a loja. Confira autorização, Secret Key decifrada e IP da VPS na lista permitida.' };
+      if (store.storeStatus === 0) return { ok: false, message: 'A loja SHEIN está desativada.' };
+      return { ok: true, externalId: String(store.supplierId), message: 'Loja verificada na SHEIN. As operações disponíveis dependem da modalidade autorizada.' };
+    } catch { return { ok: false, message: 'Não foi possível consultar a SHEIN. Confira as chaves, a assinatura e as permissões da aplicação.' }; }
   }
 }

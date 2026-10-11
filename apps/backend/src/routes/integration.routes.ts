@@ -20,7 +20,7 @@ router.get('/marketplaces', authenticate, authorize(...allowedRoles), async (_re
   catch (error) { next(error); }
 });
 router.put('/marketplaces/:type', authenticate, authorize(...allowedRoles),
-  validateBody(z.object({ channelId: z.string().min(1).max(128).optional(), credentials: z.record(z.string().max(64), z.string().max(4096).nullable()) }).strict()),
+  validateBody(z.object({ channelId: z.string().min(1).max(128).optional(), isActive: z.boolean().optional(), credentials: z.record(z.string().max(64), z.string().max(4096).nullable()) }).strict()),
   async (req, res, next) => {
     res.setHeader('Cache-Control', 'no-store');
     try { res.json({ success: true, data: await saveMarketplaceSettings(req.params.type as MarketplaceType, req.user!.userId, req.body) }); }

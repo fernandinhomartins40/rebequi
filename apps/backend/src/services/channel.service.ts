@@ -331,9 +331,10 @@ export class ChannelService {
       isActive: channel.isActive,
       hasCredentials: Boolean(channel.credentials),
       capabilities: {
-        accountAuthorization: channel.type === 'MERCADO_LIVRE',
+        accountAuthorization: channel.type === 'MERCADO_LIVRE' || channel.type === 'MAGALU',
+        accountValidation: channel.type !== 'MANUAL' && channel.type !== 'SHOPEE',
         publish: channel.type === 'MANUAL', sync: channel.type === 'MANUAL',
-        mode: channel.type === 'MANUAL' ? 'manual' : channel.type === 'MERCADO_LIVRE' ? 'account-only' : 'pending',
+        mode: channel.type === 'MANUAL' ? 'manual' : channel.type === 'SHOPEE' ? 'pending' : 'account-only',
       },
       lastSyncedAt: channel.lastSyncedAt,
       lastError: channel.lastError,

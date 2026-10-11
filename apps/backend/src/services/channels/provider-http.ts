@@ -6,6 +6,7 @@ export class ProviderHttpError extends Error {
 export async function providerJson<T>(url: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(url, { ...options, redirect: 'error', signal: AbortSignal.timeout(12_000) });
   if (!response.ok) { await response.body?.cancel(); throw new ProviderHttpError(response.status); }
+  if (response.status === 204) return null as T;
   if (!response.body) throw new ProviderHttpError(502);
   const reader = response.body.getReader(); const chunks: Uint8Array[] = []; let size = 0;
   try {
