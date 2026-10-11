@@ -1,4 +1,5 @@
 import type { HTMLAttributes, ReactNode } from "react";
+import { BrandLogo } from "@/components/BrandLogo";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -94,10 +95,7 @@ export function DashboardSection({
 export function DashboardBrand({ label }: { label: string }) {
   return (
     <Link to="/" className="dashboard-brand">
-      <img
-        src="/lovable-uploads/73f13341-b66a-4a9f-aa28-4bd40213b85f.png"
-        alt="Rebequi"
-      />
+      <BrandLogo />
       <span>{label}</span>
     </Link>
   );

@@ -1,4 +1,5 @@
 import { useState, type CSSProperties } from "react";
+import { BrandLogo } from "@/components/BrandLogo";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import {
@@ -46,7 +47,6 @@ import { fetchPromotions } from "@/services/api/promotions";
 import { brands } from "@/lib/store-brands";
 import "./landing.css";
 
-const logo = "/lovable-uploads/73f13341-b66a-4a9f-aa28-4bd40213b85f.png";
 // SVG viewports reuse the photographic regions of the supplied artwork.
 // All copy, links, controls and catalog information are live HTML.
 function Artwork({
@@ -129,7 +129,7 @@ export function LandingHeader() {
           <Menu />
         </button>
         <Link to="/" className="landing-logo">
-          <img src={logo} alt="Rebequi" />
+          <BrandLogo />
         </Link>
         <button
           className="landing-category-menu"
@@ -652,7 +652,7 @@ export function LandingFooter({
       <footer className="landing-footer">
         <div className="landing-width landing-footer-grid">
           <div>
-            <img src={logo} alt="Rebequi" />
+            <BrandLogo loading="lazy" />
             <p>
               Tudo para sua obra, do início ao acabamento.
               <br />

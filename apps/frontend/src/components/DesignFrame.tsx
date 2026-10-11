@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { BrandLogo } from "@/components/BrandLogo";
 import { Link, useLocation } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import "@/styles/application-design.css";
@@ -24,10 +25,7 @@ export function DesignFrame({ children }: { children: ReactNode }) {
       {auth ? (
         <header className="design-auth-header">
           <Link to="/" aria-label="Rebequi, página inicial">
-            <img
-              src="/lovable-uploads/73f13341-b66a-4a9f-aa28-4bd40213b85f.png"
-              alt="Rebequi"
-            />
+            <BrandLogo />
           </Link>
           <Link to="/">
             <ArrowLeft size={16} />

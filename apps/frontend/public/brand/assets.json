@@ -1,0 +1,144 @@
+[
+  {
+    "file": "apple-touch-icon.png",
+    "width": 180,
+    "height": 180,
+    "bytes": 5896
+  },
+  {
+    "file": "favicon.ico",
+    "bytes": 4256
+  },
+  {
+    "file": "rebequi-icon-16.png",
+    "width": 16,
+    "height": 16,
+    "bytes": 623
+  },
+  {
+    "file": "rebequi-icon-180.png",
+    "width": 180,
+    "height": 180,
+    "bytes": 6236
+  },
+  {
+    "file": "rebequi-icon-192.png",
+    "width": 192,
+    "height": 192,
+    "bytes": 6575
+  },
+  {
+    "file": "rebequi-icon-32.png",
+    "width": 32,
+    "height": 32,
+    "bytes": 1434
+  },
+  {
+    "file": "rebequi-icon-48.png",
+    "width": 48,
+    "height": 48,
+    "bytes": 2145
+  },
+  {
+    "file": "rebequi-icon-512.png",
+    "width": 512,
+    "height": 512,
+    "bytes": 30684
+  },
+  {
+    "file": "rebequi-logo-1400.png",
+    "width": 1400,
+    "height": 458,
+    "bytes": 197360
+  },
+  {
+    "file": "rebequi-logo-1400.webp",
+    "width": 1400,
+    "height": 458,
+    "bytes": 118166
+  },
+  {
+    "file": "rebequi-logo-350.png",
+    "width": 350,
+    "height": 115,
+    "bytes": 15748
+  },
+  {
+    "file": "rebequi-logo-350.webp",
+    "width": 350,
+    "height": 115,
+    "bytes": 11290
+  },
+  {
+    "file": "rebequi-logo-700.png",
+    "width": 700,
+    "height": 229,
+    "bytes": 55515
+  },
+  {
+    "file": "rebequi-logo-700.webp",
+    "width": 700,
+    "height": 229,
+    "bytes": 39300
+  },
+  {
+    "file": "rebequi-logo-on-white.png",
+    "width": 342,
+    "height": 112,
+    "bytes": 8023
+  },
+  {
+    "file": "rebequi-logo-on-yellow.png",
+    "width": 342,
+    "height": 112,
+    "bytes": 8069
+  },
+  {
+    "file": "rebequi-logo.png",
+    "width": 342,
+    "height": 112,
+    "bytes": 7127
+  },
+  {
+    "file": "rebequi-logo.webp",
+    "width": 342,
+    "height": 112,
+    "bytes": 4544
+  },
+  {
+    "file": "rebequi-maskable-192.png",
+    "width": 192,
+    "height": 192,
+    "bytes": 6102
+  },
+  {
+    "file": "rebequi-maskable-512.png",
+    "width": 512,
+    "height": 512,
+    "bytes": 29137
+  },
+  {
+    "file": "rebequi-original.png",
+    "width": 350,
+    "height": 150,
+    "bytes": 9755
+  },
+  {
+    "file": "rebequi-social-1200x630.png",
+    "width": 1200,
+    "height": 630,
+    "bytes": 95280
+  },
+  {
+    "file": "rebequi-symbol.png",
+    "width": 134,
+    "height": 112,
+    "bytes": 2219
+  },
+  {
+    "file": "rebequi-symbol.webp",
+    "width": 134,
+    "height": 112,
+    "bytes": 1248
+  }
+]

@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
+import { BrandLogo } from '@/components/BrandLogo';
 import { ArrowLeft, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from './button';
@@ -28,7 +29,7 @@ export function WizardLayout({ steps, currentStep, title, description, children,
     <main className={`task-wizard${footer ? ' task-wizard-with-footer' : ''}`}>
       <header className="task-wizard-brand">
         <div>
-          <Link to="/" aria-label="Voltar à loja Rebequi"><img src="/lovable-uploads/73f13341-b66a-4a9f-aa28-4bd40213b85f.png" alt="Rebequi" /></Link>
+          <Link to="/" aria-label="Voltar à loja Rebequi"><BrandLogo /></Link>
           <span>Solicitar orçamento</span>
         </div>
       </header>
