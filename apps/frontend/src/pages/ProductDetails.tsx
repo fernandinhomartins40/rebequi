@@ -162,7 +162,7 @@ export default function ProductDetails() {
       : [{ url: PRODUCT_PLACEHOLDER, alt: product.name, order: 0, isPrimary: true }];
   const selectedImage = images[selectedImageIndex] || images[0];
   const relatedProducts = (relatedProductsResponse?.products || []).filter((item) => item.id !== product.id);
-  const hasStock = product.stock > 0;
+  const hasStock = (product.availableStock ?? product.stock) > 0;
   const inCartQuantity = getItemQuantity(product.id);
 
   const detailItems = [
@@ -190,7 +190,7 @@ export default function ProductDetails() {
     {
       icon: Package,
       label: "Estoque",
-      value: hasStock ? `${product.stock} unidades disponíveis` : "Sem estoque no momento",
+      value: hasStock ? `${(product.availableStock ?? product.stock)} unidades disponíveis` : "Sem estoque no momento",
     },
   ].filter(Boolean) as Array<{
     icon: typeof Tag;
@@ -354,7 +354,7 @@ export default function ProductDetails() {
                       variant="ghost"
                       size="icon"
                       className="rounded-l-none"
-                      onClick={() => setQuantity((current) => Math.min(product.stock, current + 1))}
+                      onClick={() => setQuantity((current) => Math.min((product.availableStock ?? product.stock), current + 1))}
                       disabled={!hasStock}
                     >
                       <Plus className="h-4 w-4" />

@@ -285,6 +285,7 @@ export class ChannelService {
     sku: string | null;
     price: number;
     stock: number;
+    reservedStock?: number;
     description: string | null;
   }): ListingProductSnapshot {
     return {
@@ -292,7 +293,7 @@ export class ChannelService {
       name: product.name,
       sku: product.sku,
       price: product.price,
-      stock: product.stock,
+      stock: Math.max(0, product.stock - (product.reservedStock ?? 0)),
       description: product.description,
     };
   }
@@ -357,7 +358,7 @@ export class ChannelService {
             name: listing.product.name,
             sku: listing.product.sku,
             price: listing.product.price,
-            stock: listing.product.stock,
+            stock: Math.max(0, listing.product.stock - listing.product.reservedStock),
             isActive: listing.product.isActive,
             imageUrl: listing.product.images?.[0]?.url ?? null,
           }

@@ -6,6 +6,7 @@
 import { Product, Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
 import { enqueueCatalogChange } from '../services/integration-outbox.service.js';
+import { ValidationError } from '../utils/errors.util.js';
 
 export class ProductRepository {
   /**
@@ -203,6 +204,9 @@ export class ProductRepository {
    */
   async update(id: string, data: Prisma.ProductUpdateInput) {
     return prisma.$transaction(async tx => {
+    await tx.$queryRaw`SELECT id FROM products WHERE id = ${id} FOR UPDATE`;
+    const current = await tx.product.findUniqueOrThrow({ where: { id } });
+    if (typeof data.stock === 'number' && data.stock < current.reservedStock) throw new ValidationError('O estoque físico não pode ficar abaixo das reservas ativas.');
     const product = await tx.product.update({
       where: { id },
       data,

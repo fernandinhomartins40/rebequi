@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Save, Search, Trash2 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -54,6 +54,7 @@ export function MerchantSaleEditorPage() {
   const [status, setStatus] = useState<SaleStatus>(SaleStatus.PAID);
   const [discount, setDiscount] = useState('0');
   const [notes, setNotes] = useState('');
+  const lastSubmission = useRef<{ signature: string; key: string }>();
   const [customerName, setCustomerName] = useState('');
   const [customerWhatsapp, setCustomerWhatsapp] = useState('');
 
@@ -146,6 +147,9 @@ export function MerchantSaleEditorPage() {
       if (customerWhatsapp.trim()) payload.customerWhatsapp = customerWhatsapp.trim();
     }
 
+    const signature = JSON.stringify(payload);
+    if (lastSubmission.current?.signature !== signature) lastSubmission.current = { signature, key: crypto.randomUUID() };
+    payload.idempotencyKey = lastSubmission.current.key;
     createMutation.mutate(payload);
   };
 

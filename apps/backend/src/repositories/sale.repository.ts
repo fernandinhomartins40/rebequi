@@ -18,6 +18,9 @@ const saleInclude = {
 } satisfies Prisma.SaleInclude;
 
 export class SaleRepository {
+  async findByIdempotencyKey(idempotencyKey: string) {
+    return prisma.sale.findUnique({ where: { idempotencyKey }, include: saleInclude });
+  }
   /**
    * Creates a sale, its items and the corresponding stock movements, and
    * decrements product stock — all inside a single transaction so estoque e
@@ -28,18 +31,27 @@ export class SaleRepository {
     stockDecrements: Array<{ productId: string; quantity: number; stockBefore: number; reason: string }>;
   }) {
     return prisma.$transaction(async (tx) => {
+      const orderId = params.sale.order?.connect?.id;
+      if (orderId) {
+        await tx.$queryRaw`SELECT id FROM customer_orders WHERE id = ${orderId} FOR UPDATE`;
+        const order = await tx.customerOrder.findUnique({ where: { id: orderId } });
+        if (!order || order.status === 'CANCELED') throw new ConflictError('Pedido indisponível para venda');
+      }
       const sale = await tx.sale.create({
         data: params.sale,
         include: saleInclude,
       });
 
       for (const movement of [...params.stockDecrements].sort((a, b) => a.productId.localeCompare(b.productId))) {
-        const changed = await tx.product.updateMany({
-          where: { id: movement.productId, isActive: true, deletedAt: null, stock: { gte: movement.quantity } },
-          data: { stock: { decrement: movement.quantity } },
-        });
-        if (changed.count !== 1) throw new ConflictError('Estoque insuficiente. Atualize os itens da venda.');
-        const product = await tx.product.findUniqueOrThrow({ where: { id: movement.productId } });
+        await tx.$queryRaw`SELECT id FROM products WHERE id = ${movement.productId} FOR UPDATE`;
+        const current = await tx.product.findUniqueOrThrow({ where: { id: movement.productId } });
+        const reservation = orderId ? await tx.stockReservation.findUnique({ where: { orderId_productId: { orderId, productId: movement.productId } } }) : null;
+        const reserved = reservation?.status === 'ACTIVE' ? reservation.quantity : 0;
+        if (!current.isActive || current.deletedAt || current.stock - current.reservedStock + reserved < movement.quantity) throw new ConflictError('Estoque insuficiente. Atualize os itens da venda.');
+        const product = await tx.product.update({ where: { id: movement.productId }, data: {
+          stock: { decrement: movement.quantity }, reservedStock: { decrement: reserved },
+        } });
+        if (reservation && reserved) await tx.stockReservation.update({ where: { id: reservation.id }, data: { status: 'CONSUMED' } });
         const stockAfter = product.stock;
         await tx.stockMovement.create({
           data: {

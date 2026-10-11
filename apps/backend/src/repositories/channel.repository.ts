@@ -9,6 +9,7 @@ const listingInclude = {
       sku: true,
       price: true,
       stock: true,
+      reservedStock: true,
       isActive: true,
       images: { where: { isPrimary: true }, take: 1, select: { url: true } },
     },

@@ -72,9 +72,9 @@ function toCartItem(product: Product, quantity: number, promotionId?: string): C
     price: product.price,
     productId: product.id,
     promotionId,
-    quantity: clampQuantity(quantity, product.stock),
+    quantity: clampQuantity(quantity, (product.availableStock ?? product.stock)),
     slug: product.slug,
-    stock: product.stock,
+    stock: (product.availableStock ?? product.stock),
   };
 }
 
@@ -109,7 +109,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     return {
       addItem: (product, quantity = 1, promotionId) => {
-        if (product.stock <= 0) {
+        if ((product.availableStock ?? product.stock) <= 0) {
           return;
         }
 
@@ -128,8 +128,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
                   originalPrice: product.originalPrice,
                   price: product.price,
                   promotionId: promotionId ?? item.promotionId,
-                  quantity: clampQuantity(item.quantity + quantity, product.stock),
-                  stock: product.stock,
+                  quantity: clampQuantity(item.quantity + quantity, (product.availableStock ?? product.stock)),
+                  stock: (product.availableStock ?? product.stock),
                 }
               : item
           );

@@ -1,4 +1,6 @@
 import { Prisma } from '@prisma/client';
+import { createHash } from 'node:crypto';
+import { logger } from '../utils/logger.util.js';
 import type {
   CreateSaleInput,
   RevenueSummaryQueryInput,
@@ -37,6 +39,38 @@ export class SaleService {
   }
 
   async createSale(registeredById: string | undefined, data: CreateSaleInput) {
+    try { return await this.createSaleOnce(registeredById, data); }
+    catch (error) {
+      if (data.idempotencyKey) {
+        const key = createHash('sha256').update(`${registeredById ?? ''}:${data.idempotencyKey}`).digest('hex');
+        const existing = await this.saleRepository.findByIdempotencyKey(key);
+        if (existing) {
+          if (existing.requestFingerprint !== this.requestFingerprint(data)) throw new ConflictError('Este envio já foi utilizado para outra venda.');
+          return this.formatSale(existing);
+        }
+      }
+      throw error;
+    }
+  }
+
+  private requestFingerprint(data: CreateSaleInput) {
+    return createHash('sha256').update(JSON.stringify({
+      orderId: data.orderId ?? null, customerId: data.customerId ?? null, customerName: data.customerName ?? null,
+      customerWhatsapp: data.customerWhatsapp ?? null, paymentMethod: data.paymentMethod, status: data.status ?? 'PAID',
+      discount: data.discount ?? 0, notes: data.notes ?? null, items: data.items ?? null,
+    })).digest('hex');
+  }
+
+  private async createSaleOnce(registeredById: string | undefined, data: CreateSaleInput) {
+    const requestKey = data.idempotencyKey ? createHash('sha256').update(`${registeredById ?? ''}:${data.idempotencyKey}`).digest('hex') : undefined;
+    const fingerprint = this.requestFingerprint(data);
+    if (requestKey) {
+      const existing = await this.saleRepository.findByIdempotencyKey(requestKey);
+      if (existing) {
+        if (existing.requestFingerprint !== fingerprint) throw new ConflictError('Este envio já foi utilizado para outra venda.');
+        return this.formatSale(existing);
+      }
+    }
     let orderId: string | undefined;
     let customerId = data.customerId;
     let customerName = data.customerName?.trim() || null;
@@ -88,6 +122,8 @@ export class SaleService {
     const sale = await this.saleRepository.createSaleWithStock({
       sale: {
         referenceCode: this.generateReferenceCode(),
+        idempotencyKey: requestKey ?? null,
+        requestFingerprint: requestKey ? fingerprint : null,
         status,
         paymentMethod: data.paymentMethod,
         subtotal: this.roundCurrency(subtotal),
@@ -116,11 +152,18 @@ export class SaleService {
         stockBefore: item.stockBefore,
         reason: `Venda ${item.productNameSnapshot}`,
       })),
+    }).catch(async error => {
+      if (requestKey && error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        const existing = await this.saleRepository.findByIdempotencyKey(requestKey);
+        if (existing?.requestFingerprint === fingerprint) return existing;
+      }
+      throw error;
     });
 
     // CRM: uma venda paga promove o cliente no funil (cliente/recorrente).
     if (customerId) {
-      await this.customerService.maybeAdvanceStage(customerId);
+      try { await this.customerService.maybeAdvanceStage(customerId); }
+      catch { logger.warn('CRM refresh deferred after committed sale', { saleId: sale.id }); }
     }
 
     return this.formatSale(sale);

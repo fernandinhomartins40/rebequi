@@ -65,7 +65,7 @@ export default function NewsPage() {
   const featuredProduct = products[0];
   const remainingProducts = featuredProduct ? products.slice(1) : [];
   const categoriesCount = new Set(products.map((product) => product.category?.slug || product.categoryId)).size;
-  const productsInStock = products.filter((product) => product.stock > 0).length;
+  const productsInStock = products.filter((product) => (product.availableStock ?? product.stock) > 0).length;
   const latestRefresh = featuredProduct ? formatUpdatedAt(featuredProduct.updatedAt || featuredProduct.createdAt) : "agora";
   const primaryImage =
     featuredProduct?.images?.find((image) => image.isPrimary)?.url ||

@@ -380,6 +380,8 @@ export class ProductService {
       isFeatured: product.isFeatured,
       discount: product.discount,
       stock: product.stock,
+      reservedStock: product.reservedStock,
+      availableStock: Math.max(0, product.stock - product.reservedStock),
       minStock: product.minStock,
       weight: product.weight,
       dimensions: product.dimensions,

@@ -164,7 +164,7 @@ export default function CategoryDetailsPage() {
                     originalPrice={product.originalPrice}
                     image={primaryImage}
                     category={category.name}
-                    stock={product.stock}
+                    stock={product.availableStock ?? product.stock}
                     isNew={product.isNew}
                     isOffer={product.isOffer}
                     discount={product.discount}

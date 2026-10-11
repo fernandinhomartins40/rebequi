@@ -9,6 +9,7 @@ import {
 import { OrderController } from '../controllers/order.controller.js';
 import { authenticate, authorize } from '../middleware/auth.middleware.js';
 import { validateBody, validateQuery } from '../middleware/validation.middleware.js';
+import { reserveOrderStock } from '../services/stock-reservation.service.js';
 
 const router: Router = Router();
 const orderController = new OrderController();
@@ -22,6 +23,10 @@ router.post('/checkout', authenticate, authorize('CUSTOMER'), validateBody(authe
 
 router.get('/admin/list', authenticate, authorize(...orderRoles), validateQuery(orderFiltersSchema), orderController.listAdminOrders);
 router.get('/admin/:id', authenticate, authorize(...orderRoles), orderController.getAdminOrder);
+router.post('/admin/:id/reserve', authenticate, authorize(...orderRoles), async (req, res, next) => {
+  try { res.json({ success: true, data: await reserveOrderStock(req.params.id) }); }
+  catch (error) { next(error); }
+});
 router.post(
   '/admin/:id/status',
   authenticate,

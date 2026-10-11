@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
 import { logger } from '../utils/logger.util.js';
+import { expireStockReservations } from './stock-reservation.service.js';
 
 export async function enqueueCatalogChange(tx: Prisma.TransactionClient, productId: string) {
   await tx.channelListing.updateMany({ where: { productId, syncStatus: 'SYNCED' }, data: { syncStatus: 'OUT_OF_SYNC' } });
@@ -16,6 +17,7 @@ export async function runIntegrationJobs() {
   if (running) return;
   running = true;
   try {
+    await expireStockReservations();
     for (let index = 0; index < 20; index++) {
       const token = randomUUID();
       const jobs = await prisma.$queryRaw<ClaimedJob[]>`

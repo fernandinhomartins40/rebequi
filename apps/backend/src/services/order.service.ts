@@ -312,8 +312,8 @@ export class OrderService {
         throw new ValidationError(`O produto ${product.name} esta sem estoque no momento`);
       }
 
-      if (item.quantity > product.stock) {
-        throw new ValidationError(`O produto ${product.name} possui apenas ${product.stock} unidade(s) disponivel(is)`);
+      if (item.quantity > product.stock - product.reservedStock) {
+        throw new ValidationError(`O produto ${product.name} possui apenas ${Math.max(0, product.stock - product.reservedStock)} unidade(s) disponivel(is)`);
       }
 
       if (item.promotionId) {
@@ -458,6 +458,7 @@ export class OrderService {
         product: item.product
           ? {
               ...item.product,
+              availableStock: Math.max(0, item.product.stock - item.product.reservedStock),
             }
           : undefined,
         productId: item.productId,
@@ -471,6 +472,10 @@ export class OrderService {
       recoveryStartedAt: order.recoveryStartedAt,
       referenceCode: order.referenceCode,
       source: order.source,
+      stockReservation: {
+        active: order.reservations.some(reservation => reservation.status === 'ACTIVE' && reservation.expiresAt > new Date()),
+        expiresAt: order.reservations.find(reservation => reservation.status === 'ACTIVE')?.expiresAt ?? null,
+      },
       status: order.status,
       subtotal,
       updatedAt: order.updatedAt,

@@ -70,6 +70,7 @@ export interface CreateSaleItemDTO {
 }
 
 export interface CreateSaleDTO {
+  idempotencyKey?: string;
   orderId?: string;
   customerId?: string;
   customerName?: string;

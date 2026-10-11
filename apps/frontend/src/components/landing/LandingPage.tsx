@@ -373,9 +373,9 @@ function CompactProduct({
             <span aria-live="polite">{quantity}</span>
             <button
               aria-label={`Aumentar quantidade de ${product.name}`}
-              disabled={quantity >= Math.min(99, product.stock)}
+              disabled={quantity >= Math.min(99, (product.availableStock ?? product.stock))}
               onClick={() =>
-                setQuantity(Math.min(99, product.stock, quantity + 1))
+                setQuantity(Math.min(99, (product.availableStock ?? product.stock), quantity + 1))
               }
             >
               <Plus size={12} />
@@ -383,7 +383,7 @@ function CompactProduct({
           </div>
           <button
             className="landing-add"
-            disabled={product.stock <= 0}
+            disabled={(product.availableStock ?? product.stock) <= 0}
             onClick={() => {
               addItem(
                 {
@@ -401,7 +401,7 @@ function CompactProduct({
             }}
           >
             <ShoppingCart size={14} />
-            {product.stock > 0 ? "Adicionar" : "Indisponível"}
+            {(product.availableStock ?? product.stock) > 0 ? "Adicionar" : "Indisponível"}
           </button>
         </div>
         <a

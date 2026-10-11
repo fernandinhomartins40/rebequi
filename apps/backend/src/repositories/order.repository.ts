@@ -1,7 +1,10 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
+import { releaseOrderReservations } from '../services/stock-reservation.service.js';
+import { ConflictError } from '../utils/errors.util.js';
 
 const orderInclude = {
+  reservations: true,
   user: true,
   items: {
     orderBy: { createdAt: 'asc' as const },
@@ -35,10 +38,14 @@ export class OrderRepository {
   }
 
   async updateOrder(id: string, data: Prisma.CustomerOrderUpdateInput) {
-    return prisma.customerOrder.update({
-      where: { id },
-      data,
-      include: orderInclude,
+    return prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT id FROM customer_orders WHERE id = ${id} FOR UPDATE`;
+      if (data.status === 'CANCELED') {
+        const sale = await tx.sale.findUnique({ where: { orderId: id } });
+        if (sale && sale.status !== 'CANCELED') throw new ConflictError('Cancele a venda vinculada antes de cancelar este pedido.');
+      }
+      if (data.status === 'CANCELED' || data.status === 'COMPLETED') await releaseOrderReservations(tx, id);
+      return tx.customerOrder.update({ where: { id }, data, include: orderInclude });
     });
   }
 

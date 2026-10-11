@@ -25,6 +25,7 @@ export interface CustomerOrderItem {
 }
 
 export interface CustomerOrder {
+  stockReservation?: { active: boolean; expiresAt: string | Date | null };
   id: string;
   referenceCode: string;
   userId: string;

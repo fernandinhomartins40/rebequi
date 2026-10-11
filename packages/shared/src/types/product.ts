@@ -31,6 +31,8 @@ export interface Product {
   isFeatured: boolean;
   discount?: number;
   stock: number;
+  reservedStock?: number;
+  availableStock?: number;
   minStock: number;
   weight?: number;
   dimensions?: string;

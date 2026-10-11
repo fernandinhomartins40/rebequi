@@ -18,6 +18,7 @@ export const createSaleItemSchema = z.object({
 
 export const createSaleSchema = z
   .object({
+    idempotencyKey: z.string().uuid().optional(),
     // Origem opcional: registra a venda a partir de um pedido do checkout WhatsApp.
     orderId: z.string().min(1).optional(),
     // Cliente cadastrado (opcional) — para venda de balcao pode ficar em branco.

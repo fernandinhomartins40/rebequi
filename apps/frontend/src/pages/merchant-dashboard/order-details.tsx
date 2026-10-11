@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { buildCustomerWhatsappUrl } from '@/lib/order-ui';
-import { fetchAdminOrderById, updateAdminOrderStatus } from '@/services/api/orders';
+import { fetchAdminOrderById, updateAdminOrderStatus, reserveAdminOrderStock } from '@/services/api/orders';
 import type { OrderStatus } from '@/types';
 import { DashboardPanel, InfoRow, SectionLeadCard } from './components';
 import { ADMIN_BASE_PATH } from './config';
@@ -80,6 +80,15 @@ export function MerchantDashboardOrderDetails() {
     },
   });
 
+  const reserveMutation = useMutation({
+    mutationFn: () => reserveAdminOrderStock(orderId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['merchant-dashboard', 'orders'] });
+      toast({ title: 'Itens reservados por 30 minutos' });
+    },
+    onError: error => toast({ variant: 'destructive', title: 'Não foi possível reservar', description: error instanceof Error ? error.message : 'Confira o estoque.' }),
+  });
+
   useEffect(() => {
     if (!orderQuery.data) {
       return;
@@ -121,6 +130,14 @@ export function MerchantDashboardOrderDetails() {
 
   return (
     <div className="space-y-6">
+      {order.status !== OrderStatusValue.COMPLETED && order.status !== OrderStatusValue.CANCELED ? (
+        <DashboardPanel title="Reserva de estoque">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">{order.stockReservation?.active ? `Reservado até ${formatDateTime(order.stockReservation.expiresAt as string)}` : 'Reserve ao confirmar a intenção de compra. Liberação automática em 30 minutos.'}</p>
+            <Button disabled={reserveMutation.isPending || order.stockReservation?.active} onClick={() => reserveMutation.mutate()}>Reservar itens</Button>
+          </div>
+        </DashboardPanel>
+      ) : null}
       <Button asChild variant="ghost" className="px-0 text-muted-foreground hover:bg-transparent hover:text-foreground">
         <Link to={`${ADMIN_BASE_PATH}/pedidos`}>
           <ArrowLeft className="mr-2 h-4 w-4" />

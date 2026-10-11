@@ -198,7 +198,7 @@ export default function SearchResultsPage() {
                     originalPrice={product.originalPrice}
                     image={getProductImage(product)}
                     category={product.category?.name || "Catálogo"}
-                    stock={product.stock}
+                    stock={(product.availableStock ?? product.stock)}
                     isNew={product.isNew}
                     isOffer={product.isOffer}
                     discount={product.discount}

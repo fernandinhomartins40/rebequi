@@ -21,4 +21,12 @@ Fluxo de consentimento com state cifrado, curto, vinculado ao administrador e de
 
 Contrato baseado nas fontes oficiais de [autenticação](https://developers.mercadolivre.com.br/autenticacao-e-autorizacao) e [consulta de conta](https://developers.mercadolivre.com.br/pt_br/usuarios-e-aplicativos). Testes de transporte validam sucesso/recusa, conta não brasileira e erro sem vazamento; integração descartável valida state, proprietário, replay e cifragem com transporte de teste. A autorização real depende do administrador cadastrar o app e autorizar a conta. As contas informadas pelo usuário ainda não estão vinculadas: consulta agregada de produção encontrou zero canais, sem ler segredos.
 
-Ainda pendentes: reserva por pedido/kit, valores Decimal, inbox/webhooks, tarefas de escrita remota, conectores oficiais e suas validações, pedidos/logística/pós-venda externos e conciliação financeira. Esta entrega não conclui fases 0 e 1 nem o plano completo.
+## Reserva de pedidos e idempotência de vendas
+
+Reserva explícita por pedido por 30 minutos, sob bloqueio de pedido e produtos em ordem determinística. Estoque físico permanece separado do reservado; catálogo, carrinho e snapshots de canais usam o saldo disponível. A venda consome a própria reserva na mesma transação da baixa. Cancelamento/conclusão do pedido e vencimento liberam reservas uma única vez; o worker recupera vencimentos após reinício. Orçamentos não reservam automaticamente. Pedido com venda ativa exige cancelamento da venda para manter o estorno consistente.
+
+Envio da venda usa UUID reaproveitado quando o formulário é reenviado sem alterações. Backend vincula a chave ao operador e ao conteúdo: repetição retorna a venda registrada; reutilização para outro conteúdo é recusada. Falha de atualização de CRM após confirmação não informa falsamente que a venda falhou.
+
+Migrações aditivas preservam dados e acrescentam proteção de saldo reservado. Testes comerciais rodam exclusivamente em banco descartável do GitHub: reserva concorrente da última unidade, tentativa de venda sem a reserva, envio simultâneo idempotente, conflito de conteúdo, consumo, cancelamento e expiração repetida.
+
+Ainda pendentes: reserva de kits/localizações, valores Decimal, inbox/webhooks, tarefas de escrita remota, conectores oficiais e suas validações, pedidos/logística/pós-venda externos e conciliação financeira. Estas entregas não concluem fases 0 e 1 nem o plano completo.

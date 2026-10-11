@@ -124,6 +124,8 @@ model Product {
   isFeatured    Boolean        @default(false) // Featured on homepage
   discount      Int?           // Discount percentage (0-100)
   stock         Int            @default(0) // Current stock quantity
+  reservedStock Int            @default(0)
+  reservations  StockReservation[]
   minStock      Int            @default(0) // Alert when stock is low
   weight        Float?         // Weight in kg
   dimensions    String?        // Dimensions (e.g., "10x20x30 cm")
@@ -450,6 +452,7 @@ model CustomerOrder {
   completedAt          DateTime?
   canceledAt           DateTime?
   items                CustomerOrderItem[]
+  reservations         StockReservation[]
   sale                 Sale?
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
@@ -481,6 +484,8 @@ enum SaleStatus {
 model Sale {
   id                   String        @id @default(cuid())
   referenceCode        String        @unique
+  idempotencyKey       String?       @unique
+  requestFingerprint   String?
   status               SaleStatus    @default(PAID)
   paymentMethod        PaymentMethod
   // Vínculos opcionais: cliente cadastrado e pedido de origem (checkout WhatsApp)
@@ -682,4 +687,21 @@ model IntegrationJob {
   @@index([leaseUntil])
   @@index([channelId, createdAt])
   @@map("integration_jobs")
+}
+
+model StockReservation {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     CustomerOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int
+  status    String   @default("ACTIVE")
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([orderId, productId])
+  @@index([status, expiresAt])
+  @@map("stock_reservations")
 }

@@ -9,6 +9,11 @@ import type {
 } from '@/types';
 import { apiFetch } from './client';
 
+export async function reserveAdminOrderStock(id: string) {
+  const result = await apiFetch<{ success: boolean; data: { reserved: boolean; expiresAt: string } }>(`/orders/admin/${id}/reserve`, { method: 'POST' });
+  return result.data;
+}
+
 type ApiResponse<T> = {
   success: boolean;
   data?: T;

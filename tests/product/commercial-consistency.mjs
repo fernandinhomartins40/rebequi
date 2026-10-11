@@ -10,6 +10,7 @@ export function validateCommercialConsistency(db) {
     const key = randomUUID();
     const p = await prisma.product.create({data:{name:'Concurrency validation',slug:key,price:10,stock:1,categoryId:category.id}});
     const repo = new SaleRepository();
+    const orders = [];
     let channel;
     try {
       channel = await prisma.channel.create({data:{type:'MANUAL',name:'Integration validation '+key}});
@@ -34,6 +35,35 @@ export function validateCommercialConsistency(db) {
       assert.equal(await prisma.integrationJob.count({where:{productId:p.id,status:'COMPLETED'}}),2);
       await runIntegrationJobs();
       assert.equal((await prisma.product.findUniqueOrThrow({where:{id:p.id}})).stock,1);
+      const {reserveOrderStock,expireStockReservations}=await import('./apps/backend/dist/services/stock-reservation.service.js');
+      const {SaleService}=await import('./apps/backend/dist/services/sale.service.js');
+      const {OrderRepository}=await import('./apps/backend/dist/repositories/order.repository.js');
+      const customer=await prisma.user.findFirstOrThrow({where:{role:'CUSTOMER'}});
+      for(let i=0;i<3;i++) orders.push(await prisma.customerOrder.create({data:{referenceCode:randomUUID(),userId:customer.id,customerNameSnapshot:'Reservation validation',customerWhatsapp:'11900000000',items:{create:{productId:p.id,productNameSnapshot:p.name,productSlugSnapshot:p.slug,quantity:1,unitPrice:10}}}}));
+      const reservations=await Promise.allSettled(orders.slice(0,2).map(o=>reserveOrderStock(o.id)));
+      assert.equal(reservations.filter(r=>r.status==='fulfilled').length,1);
+      const reservedOrder=orders[reservations.findIndex(r=>r.status==='fulfilled')];
+      assert.equal((await prisma.product.findUniqueOrThrow({where:{id:p.id}})).reservedStock,1);
+      assert.equal((await prisma.product.findUniqueOrThrow({where:{id:p.id}})).stock,1);
+      await reserveOrderStock(reservedOrder.id);
+      await assert.rejects(create);
+      const service=new SaleService();
+      const input={orderId:reservedOrder.id,paymentMethod:'PIX',status:'PAID',idempotencyKey:randomUUID()};
+      const repeated=await Promise.all([service.createSale(undefined,input),service.createSale(undefined,input)]);
+      assert.equal(repeated[0].id,repeated[1].id);
+      await assert.rejects(()=>service.createSale(undefined,{...input,discount:1}));
+      assert.equal((await prisma.product.findUniqueOrThrow({where:{id:p.id}})).reservedStock,0);
+      assert.equal((await prisma.product.findUniqueOrThrow({where:{id:p.id}})).stock,0);
+      await assert.rejects(()=>new OrderRepository().updateOrder(reservedOrder.id,{status:'CANCELED'}));
+      await repo.transitionStatus(repeated[0].id,'CANCELED');
+      await reserveOrderStock(orders[2].id);
+      await prisma.stockReservation.updateMany({where:{orderId:orders[2].id},data:{expiresAt:new Date(0)}});
+      await expireStockReservations(); await expireStockReservations();
+      assert.equal((await prisma.product.findUniqueOrThrow({where:{id:p.id}})).reservedStock,0);
+      assert.equal((await prisma.product.findUniqueOrThrow({where:{id:p.id}})).stock,1);
+      await reserveOrderStock(orders[2].id);
+      await new OrderRepository().updateOrder(orders[2].id,{status:'CANCELED'});
+      assert.equal((await prisma.product.findUniqueOrThrow({where:{id:p.id}})).reservedStock,0);
       const {getChannelAdapter}=await import('./apps/backend/dist/services/channels/index.js');
       for(const provider of ['SHOPEE','AMAZON']) assert.equal((await getChannelAdapter(provider).testConnection({})).ok,false);
       const {ChannelService}=await import('./apps/backend/dist/services/channel.service.js');
@@ -62,6 +92,7 @@ export function validateCommercialConsistency(db) {
       const items=await prisma.saleItem.findMany({where:{productId:p.id},select:{saleId:true}});
       await prisma.stockMovement.deleteMany({where:{productId:p.id}});
       await prisma.sale.deleteMany({where:{id:{in:items.map(i=>i.saleId)}}});
+      await prisma.customerOrder.deleteMany({where:{id:{in:orders.map(o=>o.id)}}});
       if(channel) await prisma.channel.delete({where:{id:channel.id}});
       await prisma.product.delete({where:{id:p.id}});
     }
