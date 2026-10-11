@@ -40,6 +40,22 @@ export function validateCommercialConsistency(db) {
       await new ChannelService().deleteChannel(channel.id);
       assert.equal((await prisma.channel.findUniqueOrThrow({where:{id:channel.id}})).isActive,false);
       assert.equal(await prisma.channelListing.count({where:{channelId:channel.id}}),1);
+      const {encryptSecret}=await import('./apps/backend/dist/utils/crypto.util.js');
+      await prisma.channel.update({where:{id:channel.id},data:{type:'MERCADO_LIVRE',isActive:true,credentials:encryptSecret(JSON.stringify({clientId:'integration-app',clientSecret:'integration-secret'}))}});
+      const {beginMercadoLivreAuthorization,finishMercadoLivreAuthorization}=await import('./apps/backend/dist/services/channels/mercado-livre-auth.service.js');
+      const started=await beginMercadoLivreAuthorization(channel.id,'integration-user');
+      const authUrl=new URL(started.url); assert.equal(authUrl.hostname,'auth.mercadolivre.com.br');
+      assert.ok(authUrl.searchParams.get('code_challenge')); assert.ok(!started.url.includes('integration-secret'));
+      const state=authUrl.searchParams.get('state');
+      await assert.rejects(()=>finishMercadoLivreAuthorization(state,'integration-code','different-user'));
+      const oldFetch=globalThis.fetch;
+      globalThis.fetch=async(url)=>url.endsWith('/oauth/token')?new Response(JSON.stringify({access_token:'integration-token',refresh_token:'integration-refresh',expires_in:3600,user_id:1234,scope:'read'})):new Response(JSON.stringify({id:1234,site_id:'MLB'}));
+      try {
+        assert.equal(await finishMercadoLivreAuthorization(state,'integration-code','integration-user'),channel.id);
+        await assert.rejects(()=>finishMercadoLivreAuthorization(state,'integration-code','integration-user'));
+        const connected=await prisma.channel.findUniqueOrThrow({where:{id:channel.id}});
+        assert.equal(connected.status,'CONNECTED'); assert.ok(!connected.credentials.includes('integration-token'));
+      } finally {globalThis.fetch=oldFetch;}
       console.log('COMMERCIAL_CONSISTENCY_OK');
     } finally {
       await prisma.integrationJob.deleteMany({where:{productId:p.id}});

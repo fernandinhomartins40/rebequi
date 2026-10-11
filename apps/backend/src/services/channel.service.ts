@@ -11,6 +11,7 @@ import { decryptSecret, encryptSecret } from '../utils/crypto.util.js';
 import { NotFoundError, ValidationError } from '../utils/errors.util.js';
 import { logger } from '../utils/logger.util.js';
 import { getChannelAdapter, type ChannelCredentials, type ListingProductSnapshot } from './channels/index.js';
+import { getMercadoLivreCredentials } from './channels/mercado-livre-auth.service.js';
 
 type PersistedChannel = NonNullable<Awaited<ReturnType<ChannelRepository['findChannelById']>>>;
 type PersistedListing = NonNullable<Awaited<ReturnType<ChannelRepository['findListingById']>>>;
@@ -100,7 +101,8 @@ export class ChannelService {
     if (!channel) throw new NotFoundError('Canal nao encontrado');
 
     const adapter = getChannelAdapter(channel.type);
-    const result = await adapter.testConnection(this.decryptCredentials(channel));
+    const credentials = channel.type === 'MERCADO_LIVRE' ? await getMercadoLivreCredentials(channel.id) : this.decryptCredentials(channel);
+    const result = await adapter.testConnection(credentials);
 
     await this.repository.updateChannel(id, {
       status: result.ok ? 'CONNECTED' : 'ERROR',
@@ -325,6 +327,11 @@ export class ChannelService {
       externalId: channel.externalId,
       isActive: channel.isActive,
       hasCredentials: Boolean(channel.credentials),
+      capabilities: {
+        accountAuthorization: channel.type === 'MERCADO_LIVRE',
+        publish: channel.type === 'MANUAL', sync: channel.type === 'MANUAL',
+        mode: channel.type === 'MANUAL' ? 'manual' : channel.type === 'MERCADO_LIVRE' ? 'account-only' : 'pending',
+      },
       lastSyncedAt: channel.lastSyncedAt,
       lastError: channel.lastError,
       listingCounts: {

@@ -37,11 +37,16 @@ export class MercadoLivreAdapter implements ChannelAdapter {
     if (!this.hasToken(credentials)) {
       return { ok: false, message: this.requiresSetup() };
     }
-    // TODO: GET https://api.mercadolibre.com/users/me com Bearer accessToken.
-    return {
-      ok: false,
-      message: 'Credenciais recebidas, mas a chamada real ao Mercado Livre ainda não foi implementada.',
-    };
+    try {
+      const response = await fetch('https://api.mercadolibre.com/users/me', {
+        headers: { Authorization: `Bearer ${credentials.accessToken}`, Accept: 'application/json' },
+        signal: AbortSignal.timeout(10_000), redirect: 'error',
+      });
+      if (!response.ok) return { ok: false, message: 'O Mercado Livre recusou a consulta. Reconecte a conta e confira as permissões.' };
+      const account = await response.json() as { id?: number; site_id?: string };
+      if (!account.id || account.site_id !== 'MLB') return { ok: false, message: 'Conecte uma conta de vendedor do Brasil.' };
+      return { ok: true, externalId: String(account.id), message: 'Conta verificada no Mercado Livre. Publicação e sincronização aguardam validação própria.' };
+    } catch { return { ok: false, message: 'Não foi possível consultar o Mercado Livre agora. Tente novamente.' }; }
   }
 
   async publishListing(credentials: ChannelCredentials, _product: ListingProductSnapshot): Promise<PublishResult> {

@@ -257,6 +257,15 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/$PRIMARY_DOMAIN/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
     client_max_body_size 55m;
+    location = /api/channels/oauth/mercado-livre/callback {
+        access_log off;
+        add_header Referrer-Policy "no-referrer" always;
+        proxy_pass http://127.0.0.1:3190;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
     location / {
         proxy_pass http://127.0.0.1:3190;
         proxy_set_header Host \$host;

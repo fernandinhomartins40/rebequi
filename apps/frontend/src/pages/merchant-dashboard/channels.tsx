@@ -25,7 +25,6 @@ import {
   getChannelStatusLabel,
   getChannelStatusTone,
   getChannelTypeLabel,
-  isAutomatedChannel,
 } from '@/lib/channel-ui';
 import {
   createChannel,
@@ -158,7 +157,7 @@ export function MerchantDashboardChannels() {
                     </div>
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       {getChannelTypeLabel(channel.type)}
-                      {!isAutomatedChannel(channel.type) ? ' · modo manual' : ''}
+                      {channel.type === ChannelType.MANUAL ? ' · controle manual' : ' · integração em preparação'}
                     </p>
                   </div>
                 </div>
@@ -178,7 +177,7 @@ export function MerchantDashboardChannels() {
                   <Button size="sm" onClick={() => navigate(`${ADMIN_BASE_PATH}/canais/${channel.id}`)} className="gap-1.5">
                     <Settings2 className="h-3.5 w-3.5" /> Anúncios
                   </Button>
-                  {isAutomatedChannel(channel.type) ? (
+                  {channel.capabilities?.accountAuthorization ? (
                     <Button size="sm" variant="outline" disabled={testMutation.isPending} onClick={() => testMutation.mutate(channel.id)} className="gap-1.5">
                       {testMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
                       Testar conexão
@@ -187,7 +186,7 @@ export function MerchantDashboardChannels() {
                   <Button
                     size="sm"
                     variant="outline"
-                    disabled={syncMutation.isPending || channel.listingCounts.total === 0}
+                    disabled={syncMutation.isPending || channel.listingCounts.total === 0 || channel.type !== ChannelType.MANUAL || !channel.isActive}
                     onClick={() => syncMutation.mutate(channel.id)}
                     className="gap-1.5"
                   >

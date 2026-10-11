@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ExternalLink, Loader2, Plus, RefreshCcw, Search, Trash2 } from 'lucide-react';
+import { Label } from '@/components/ui/label';
 import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +22,9 @@ import {
   publishListing,
   removeListing,
   syncListing,
+  updateChannel,
+  testChannel,
+  authorizeMercadoLivre,
 } from '@/services/api/channels';
 import { fetchAdminProducts } from '@/services/api/products';
 import type { ChannelListing } from '@/types';
@@ -32,6 +36,8 @@ export function MerchantChannelDetailPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [productSearch, setProductSearch] = useState('');
+  const [clientId, setClientId] = useState('');
+  const [clientSecret, setClientSecret] = useState('');
   const debouncedProductSearch = useDebouncedValue(productSearch, 300);
 
   const channelQuery = useQuery({
@@ -89,6 +95,22 @@ export function MerchantChannelDetailPage() {
   });
 
   const channel = channelQuery.data;
+  const connectMutation = useMutation({
+    mutationFn: async () => {
+      if (clientId.trim() || clientSecret.trim()) {
+        if (!clientId.trim() || !clientSecret.trim()) throw new Error('Informe o ID e o segredo da aplicação.');
+        await updateChannel(channelId as string, { credentials: { clientId: clientId.trim(), clientSecret: clientSecret.trim() } });
+      }
+      return authorizeMercadoLivre(channelId as string);
+    },
+    onSuccess: result => { setClientSecret(''); window.location.assign(result.url); },
+    onError: error => toast({ variant: 'destructive', title: 'Não foi possível conectar', description: error instanceof Error ? error.message : 'Tente novamente.' }),
+  });
+  const testMutation = useMutation({
+    mutationFn: () => testChannel(channelId as string),
+    onSuccess: async result => { await invalidate(); toast({ title: result.ok ? 'Conta verificada' : 'Revise a conexão', description: result.message, variant: result.ok ? 'default' : 'destructive' }); },
+    onError: error => toast({ variant: 'destructive', title: 'Falha na conexão', description: error instanceof Error ? error.message : 'Tente novamente.' }),
+  });
   const listings = listingsQuery.data?.listings ?? [];
   const listedProductIds = new Set(listings.map((l) => l.productId));
   const searchResults = (productsQuery.data?.products ?? []).filter((p) => !listedProductIds.has(p.id));
@@ -108,8 +130,23 @@ export function MerchantChannelDetailPage() {
         }
       />
 
+      {channel?.capabilities?.accountAuthorization ? (
+        <DashboardPanel title="Conectar Mercado Livre" description="1. Configure a aplicação · 2. Autorize a conta · 3. Confira a conexão">
+          <p className="mb-3 break-all text-xs text-muted-foreground">URL de retorno: https://www.rebequi.com.br/api/channels/oauth/mercado-livre/callback</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div><Label htmlFor="channel-client-id">ID da aplicação</Label><Input id="channel-client-id" value={clientId} onChange={e => setClientId(e.target.value)} autoComplete="off" placeholder={channel.hasCredentials ? 'Já configurado; deixe vazio para manter' : 'Client ID'} /></div>
+            <div><Label htmlFor="channel-client-secret">Segredo da aplicação</Label><Input id="channel-client-secret" type="password" value={clientSecret} onChange={e => setClientSecret(e.target.value)} autoComplete="new-password" placeholder="Client secret" /></div>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button disabled={connectMutation.isPending || !channel.isActive} onClick={() => connectMutation.mutate()}>Autorizar conta</Button>
+            <Button variant="outline" disabled={testMutation.isPending || !channel.hasCredentials || !channel.isActive} onClick={() => testMutation.mutate()}>Testar conexão</Button>
+          </div>
+        </DashboardPanel>
+      ) : null}
+      {channel && channel.type !== 'MANUAL' ? <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Publicação, pedidos e estoque externos aguardam validação do conector. Nenhum anúncio será enviado nesta etapa.</p> : null}
+
       {/* Publicar produto */}
-      <DashboardPanel title="Publicar produto" description="Busque um produto ativo para criar um anúncio neste canal." accent="blue">
+      {channel?.type === 'MANUAL' && channel.isActive ? <DashboardPanel title="Vincular produto" description="Controle interno. A publicação no canal é feita manualmente." accent="blue">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -138,7 +175,7 @@ export function MerchantChannelDetailPage() {
             </div>
           ) : null}
         </div>
-      </DashboardPanel>
+      </DashboardPanel> : null}
 
       {/* Anúncios */}
       <DashboardPanel title="Anúncios neste canal" description="Preço e estoque vêm da loja. 'Defasado' significa que a loja mudou desde a última sincronização." accent="red">
@@ -168,8 +205,8 @@ export function MerchantChannelDetailPage() {
                   <ListingRow
                     key={listing.id}
                     listing={listing}
-                    isSyncing={syncMutation.isPending}
-                    isRemoving={removeMutation.isPending}
+                    isSyncing={syncMutation.isPending || channel?.type !== 'MANUAL' || !channel?.isActive}
+                    isRemoving={removeMutation.isPending || channel?.type !== 'MANUAL' || !channel?.isActive}
                     onSync={() => syncMutation.mutate(listing.id)}
                     onRemove={() => {
                       if (window.confirm('Remover este anúncio do canal?')) removeMutation.mutate(listing.id);

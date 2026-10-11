@@ -12,6 +12,10 @@ import type {
 } from '@/types';
 import { apiFetch } from './client';
 
+export async function authorizeMercadoLivre(id: string) {
+  return unwrapData<{ url: string; callbackUrl: string }>(await apiFetch(`/channels/admin/${id}/authorize`, { method: 'POST' }));
+}
+
 type ApiResponse<T> = {
   success: boolean;
   data?: T;

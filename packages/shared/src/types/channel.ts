@@ -26,6 +26,7 @@ export interface Channel {
   externalId?: string | null;
   isActive: boolean;
   hasCredentials: boolean;
+  capabilities?: { accountAuthorization: boolean; publish: boolean; sync: boolean; mode: 'manual' | 'pending' | 'account-only' };
   lastSyncedAt?: Date | string | null;
   lastError?: string | null;
   listingCounts: {
