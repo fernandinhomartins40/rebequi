@@ -362,9 +362,15 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
         db(`await prisma.quoteRequest.update({where:{id:${JSON.stringify(draft.quote.id)}},data:{userId:${JSON.stringify(account.user.id)},anonymousToken:null,anonymousExpiresAt:null}});`);
         const page = await context.newPage();
         await page.goto(`${baseURL}/painel-cliente?tab=quotes&quoteId=${draft.quote.id}`);
+        await page.getByText('Título e observações (opcional)', { exact: true }).click();
         await page.getByLabel('Título', { exact: true }).fill('Minha edição preservada');
         const refreshed = page.waitForResponse((r) => r.url().endsWith('/api/quotes/me') && r.status() === 200, { timeout: 45000 });
         await refreshed; // Actual 30-second polling request, no intercepted API.
+        assert.equal(await page.getByLabel('Título', { exact: true }).inputValue(), 'Minha edição preservada');
+        await page.getByRole('button', { name: 'Lista conferida, continuar', exact: true }).click();
+        await page.getByRole('heading', { name: 'Enviar solicitação', exact: true }).waitFor();
+        assert.equal(await page.getByLabel('Título', { exact: true }).count(), 0, 'Sending and editing are separate panel steps');
+        await page.getByRole('button', { name: 'Editar lista', exact: true }).click();
         assert.equal(await page.getByLabel('Título', { exact: true }).inputValue(), 'Minha edição preservada');
         await page.getByRole('link', { name: 'Começar orçamento', exact: true }).click();
         await page.waitForURL('**/pedido');

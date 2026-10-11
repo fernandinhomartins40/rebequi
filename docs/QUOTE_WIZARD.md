@@ -11,3 +11,5 @@ O fluxo em `/pedido` separa a captura, a conferência dos produtos e o envio par
 O rascunho mantém itens, etapa e dados de contato no mesmo armazenamento local com validade de 24 horas. Atualizar a página recupera a etapa; rascunhos antigos continuam compatíveis. Voltar entre conferência e envio ou editar dados não chama a IA. A lógica de leitura, autenticação, persistência e envio do servidor é preservada.
 
 Validação local em Chromium, com transporte simulado e câmera sintética: 320, 390, 768 e 1440 pixels; início sem câmera, prévia antes de upload, galeria sem solicitar câmera, edição, item vazio, WhatsApp incompleto, restauração da etapa/dados, retorno à lista e envio único. Evidências visuais revisadas. Os testes de produto do CI exercitam o mesmo assistente com as APIs e o banco isolados reais, sem usar chaves de produção.
+
+O painel do cliente também foi reorganizado: histórico recolhido, revisão dos rascunhos separada do resumo de envio e detalhes opcionais recolhidos. Validado em 320, 390, 768 e 1440 pixels, com preservação da edição ao voltar e entrada de novos pedidos pelo assistente compartilhado.

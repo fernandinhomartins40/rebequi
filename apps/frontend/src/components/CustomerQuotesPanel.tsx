@@ -1,583 +1,117 @@
-import { DashboardInfo } from '@/components/dashboard/DashboardList';
-import { Link } from "react-router-dom";
-import {
-  DashboardHeading,
-  DashboardSteps,
-  DashboardHelp,
-} from "@/components/dashboard/DashboardElements";
-import {
-  type Dispatch,
-  type MutableRefObject,
-  type SetStateAction,
-} from "react";
-import { ArrowRight, Camera, FileText, Plus, Trash2 } from "lucide-react";
-import {
-  type ScannedDocument,
-} from "@/components/LiveDocumentScanner";
-import { QuoteStatusBadge } from "@/components/QuoteStatusBadge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  buildQuoteDisplayTitle,
-  buildQuoteSourceLabel,
-  formatQuoteTimestamp,
-  getQuoteOcrStatusDescription,
-  getQuoteOcrStatusLabel,
-  getQuoteStatusDescription,
-} from "@/lib/quote-ui";
-import type { QuoteItemInputDTO, QuoteRequest } from "@/types";
+import { useEffect, useState, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowLeft, ArrowRight, FileText, Plus, Trash2 } from 'lucide-react';
+import { DashboardHeading, DashboardSteps } from '@/components/dashboard/DashboardElements';
+import { QuoteStatusBadge } from '@/components/QuoteStatusBadge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { ProductAutocomplete } from '@/components/ProductAutocomplete';
+import { buildQuoteDisplayTitle, formatQuoteTimestamp, getQuoteStatusDescription } from '@/lib/quote-ui';
+import type { ScannedDocument } from '@/components/LiveDocumentScanner';
+import type { QuoteItemInputDTO, QuoteRequest } from '@/types';
+import '@/components/ui/wizard-layout.css';
 
 type EditableQuoteItem = QuoteItemInputDTO & { id?: string };
-type DraftEditorState = {
-  title: string;
-  customerNote: string;
-  items: EditableQuoteItem[];
-};
-
-const EMPTY_ITEM: EditableQuoteItem = {
-  name: "",
-  quantity: 1,
-  unit: "",
-  notes: "",
-};
-
-export function CustomerQuotesPanel({
-  quotes,
-  quotesLoading,
-  selectedQuote,
-  editorState,
-  setEditorState,
-  editorCardRef,
-  saveDraftPending,
-  submitPending,
-  onSelectQuote,
-  onSaveDraft,
-  onSaveAndSend,
-}: {
-  quotes: QuoteRequest[];
-  quotesLoading: boolean;
-  selectedQuote: QuoteRequest | null;
-  editorState: DraftEditorState;
-  setEditorState: Dispatch<SetStateAction<DraftEditorState>>;
-  editorCardRef: MutableRefObject<HTMLDivElement | null>;
-  createDraftPending: boolean;
-  saveDraftPending: boolean;
-  submitPending: boolean;
+type DraftEditorState = { title: string; customerNote: string; items: EditableQuoteItem[] };
+type Props = {
+  quotes: QuoteRequest[]; quotesLoading: boolean; selectedQuote: QuoteRequest | null;
+  editorState: DraftEditorState; setEditorState: Dispatch<SetStateAction<DraftEditorState>>;
+  editorCardRef: MutableRefObject<HTMLDivElement | null>; createDraftPending: boolean;
+  saveDraftPending: boolean; submitPending: boolean;
   onCaptureDocument: (selection: ScannedDocument) => Promise<void>;
-  onSelectQuote: (id: string) => void;
-  onSaveDraft: () => Promise<unknown>;
-  onSaveAndSend: () => Promise<unknown>;
-}) {
-  const editableItemCount = editorState.items.filter((item) =>
-    item.name.trim(),
-  ).length;
-  return (
-    <div className="animate-fade-in-up space-y-5">
-      <DashboardHeading
-        title="Seus orçamentos"
-        actions={
-          <Button asChild>
-            <Link to="/pedido">Nova lista</Link>
-          </Button>
-        }
-      />
-      <DashboardSteps
-        activeStep={
-          selectedQuote ? (selectedQuote.status === "DRAFT" ? 1 : 2) : 0
-        }
-        steps={[
-          { title: "Criar lista", href: "/pedido" },
-          {
-            title: "Conferir itens",
-            href: !selectedQuote ? "/pedido" : undefined,
-            onClick: () =>
-              editorCardRef.current?.scrollIntoView({
-                block: "start",
-                behavior: "smooth",
-              }),
-          },
-          {
-            title: "Enviar à loja",
-            href: !selectedQuote ? "/pedido" : undefined,
-            onClick: () =>
-              editorCardRef.current?.scrollIntoView({
-                block: "start",
-                behavior: "smooth",
-              }),
-          },
-        ]}
-      />
-      <div className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
-        {/* Coluna esquerda: captura + lista */}
-        <div className="space-y-5">
-          {/* Captura */}
-          <section className="rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm">
-            <div className="mb-4">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Novo orçamento
-              </p>
-              <h3 className="mt-1 text-base font-semibold text-foreground">
-                Crie sua lista passo a passo
-              </h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Envie sua lista, confira os produtos e solicite o orçamento.
-              </p>
-            </div>
+  onSelectQuote: (id: string) => void; onSaveDraft: () => Promise<unknown>; onSaveAndSend: () => Promise<unknown>;
+};
+const EMPTY_ITEM: EditableQuoteItem = { name: '', quantity: 1, unit: '', notes: '' };
 
-            <Button asChild size="lg" className="h-12 w-full gap-2 text-base font-semibold">
-              <Link to="/pedido"><ArrowRight className="h-5 w-5" />Começar orçamento</Link>
-            </Button>
+export function CustomerQuotesPanel({ quotes, quotesLoading, selectedQuote, editorState, setEditorState,
+  editorCardRef, saveDraftPending, submitPending, onSelectQuote, onSaveDraft, onSaveAndSend }: Props) {
+  const [stage, setStage] = useState<'review' | 'send'>('review');
+  const [attempted, setAttempted] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const busy = saveDraftPending || submitPending;
+  const validItems = editorState.items.filter(item => item.name.trim());
+  const ready = validItems.length > 0 && validItems.length === editorState.items.length &&
+    validItems.every(item => Number.isFinite(Number(item.quantity)) && Number(item.quantity) > 0);
+  const draft = selectedQuote?.status === 'DRAFT';
+  useEffect(() => { setStage('review'); setAttempted(false); }, [selectedQuote?.id]);
+  const advance = () => { setAttempted(true); if (ready) setStage('send'); };
+  const update = (index: number, patch: Partial<EditableQuoteItem>) => setEditorState(state => ({
+    ...state, items: state.items.map((item, i) => i === index ? { ...item, ...patch } : item),
+  }));
+  const send = async () => { if (!ready || busy) return; try { await onSaveAndSend(); } catch { /* Mutation displays the error and retains the draft. */ } };
+  const save = async () => { if (!ready || busy) return; try { await onSaveDraft(); } catch { /* Mutation displays the error. */ } };
+
+  return <div className="space-y-5">
+    <DashboardHeading title="Seus orçamentos" actions={<Button asChild><Link to="/pedido">Começar orçamento<ArrowRight size={16} className="ml-2" /></Link></Button>} />
+    {quotesLoading && <p role="status" className="text-sm text-slate-500">Carregando seus pedidos…</p>}
+    {quotes.length > 0 && <details open={historyOpen} onToggle={event => setHistoryOpen(event.currentTarget.open)} className="rounded-xl border border-slate-200 bg-white p-4">
+      <summary className="cursor-pointer text-sm font-semibold">Meus pedidos ({quotes.length})</summary>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">{quotes.map(quote => <button type="button" key={quote.id}
+        aria-pressed={quote.id === selectedQuote?.id} disabled={busy}
+        onClick={() => { onSelectQuote(quote.id); setHistoryOpen(false); }}
+        className={`flex min-w-0 items-center justify-between gap-3 rounded-xl border p-4 text-left ${quote.id === selectedQuote?.id ? 'border-blue-300 bg-blue-50' : 'border-slate-200'}`}>
+        <span className="min-w-0"><strong className="block truncate text-sm">{buildQuoteDisplayTitle(quote)}</strong><span className="mt-1 block text-xs text-slate-500">{quote.itemCount} produtos · {formatQuoteTimestamp(quote.updatedAt || quote.createdAt)}</span></span>
+        <QuoteStatusBadge status={quote.status} />
+      </button>)}</div>
+    </details>}
+    {!selectedQuote && !quotesLoading && <section className="task-wizard-card py-10 text-center">
+      <FileText className="mx-auto mb-4 h-12 w-12 text-slate-300" />
+      <h3 className="text-xl font-bold">Seu primeiro orçamento em 3 passos</h3>
+      <p className="mx-auto mb-6 mt-2 max-w-sm text-sm text-slate-500">Envie a lista, confira os produtos e peça os preços.</p>
+      <Button asChild className="h-12"><Link to="/pedido">Preparar minha lista<ArrowRight size={18} className="ml-2" /></Link></Button>
+    </section>}
+    {selectedQuote && <div ref={editorCardRef} className="mx-auto w-full max-w-3xl space-y-5">
+      {draft && <DashboardSteps activeStep={stage === 'review' ? 1 : 2} steps={[
+        { title: 'Sua lista', href: '/pedido' },
+        { title: 'Conferência', onClick: () => { if (!busy) setStage('review'); } },
+        { title: 'Envio', onClick: () => { if (!busy) advance(); } },
+      ]} />}
+      <div className="flex items-center justify-between gap-3"><span className="text-xs font-medium text-slate-500">{selectedQuote.referenceCode}</span><QuoteStatusBadge status={selectedQuote.status} /></div>
+      {draft ? <>
+        {stage === 'review' ? <>
+          <div><h3 className="text-2xl font-bold">Confira os produtos</h3><p className="mt-2 text-sm text-slate-500">Ajuste os nomes e as quantidades antes de continuar.</p></div>
+          {['PENDING', 'PROCESSING'].includes(selectedQuote.ocrStatus) && <p role="status" className="rounded-xl bg-blue-50 p-4 text-sm text-blue-800">Estamos lendo sua foto. Aguarde ou preencha os produtos abaixo.</p>}
+          {selectedQuote.ocrStatus === 'FAILED' && <p role="alert" className="rounded-xl bg-amber-50 p-4 text-sm text-amber-800">Não foi possível ler a foto. Você pode preencher os produtos ou começar outra lista.</p>}
+          {selectedQuote.documentUrl && <details className="rounded-xl border bg-white p-4 text-sm"><summary className="cursor-pointer font-medium">Conferir foto original</summary><img src={selectedQuote.documentUrl} alt="Lista fotografada" className="mt-4 max-h-96 w-full object-contain" /></details>}
+          {attempted && !ready && <p role="alert" className="text-sm text-red-600">Preencha os nomes e quantidades ou remova os itens vazios.</p>}
+          <div className="space-y-3">{editorState.items.map((item, index) => <DraftItem key={`${selectedQuote.id}-${item.id || 'new'}-${index}`} item={item} index={index} busy={busy}
+            onUpdate={patch => update(index, patch)} onRemove={() => setEditorState(state => ({ ...state, items: state.items.filter((_, i) => i !== index) }))} />)}</div>
+          <Button variant="outline" disabled={busy} className="h-12 w-full gap-2 border-dashed" onClick={() => setEditorState(state => ({ ...state, items: [...state.items, { ...EMPTY_ITEM }] }))}><Plus size={18} />Adicionar produto</Button>
+          <details className="task-wizard-card text-sm"><summary className="cursor-pointer font-medium">Título e observações (opcional)</summary>
+            <div className="mt-4 space-y-4"><div><Label htmlFor="qt">Título</Label><Input id="qt" value={editorState.title} disabled={busy} onChange={event => setEditorState(state => ({ ...state, title: event.target.value }))} className="mt-2" /></div>
+            <div><Label htmlFor="qn">Observações para a loja</Label><Textarea id="qn" value={editorState.customerNote} disabled={busy} onChange={event => setEditorState(state => ({ ...state, customerNote: event.target.value }))} className="mt-2" /></div></div>
+          </details>
+          <div className="rounded-xl border bg-white p-4"><Button className="task-wizard-primary" disabled={busy || !validItems.length} onClick={advance}>Lista conferida, continuar<ArrowRight size={18} /></Button>
+            <Button variant="ghost" className="mt-2 w-full" disabled={busy || !ready} onClick={() => void save()}>{saveDraftPending ? 'Salvando…' : 'Salvar e continuar depois'}</Button></div>
+        </> : <>
+          <Button variant="ghost" className="gap-2 px-0" disabled={busy} onClick={() => setStage('review')}><ArrowLeft size={16} />Voltar à conferência</Button>
+          <div><h3 className="text-2xl font-bold">Enviar solicitação</h3><p className="mt-2 text-sm text-slate-500">A loja vai responder pelo WhatsApp cadastrado na sua conta.</p></div>
+          <section className="task-wizard-card"><strong>{validItems.length} produtos na sua lista</strong><ul className="mt-4 space-y-3">{validItems.map((item, index) => <li key={item.id || index} className="flex items-start justify-between gap-4 border-b border-slate-100 pb-3 text-sm"><span className="min-w-0 break-words">{item.name}</span><strong className="shrink-0">{item.quantity} {item.unit || 'un'}</strong></li>)}</ul>
+            {editorState.customerNote && <p className="mt-4 whitespace-pre-wrap text-sm text-slate-500">{editorState.customerNote}</p>}
+            <Button variant="ghost" disabled={busy} onClick={() => setStage('review')} className="mt-4 text-blue-600">Editar lista</Button>
           </section>
-
-          {/* Lista de orçamentos */}
-          <section className="rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Histórico
-                </p>
-                <h3 className="mt-1 text-lg font-semibold text-foreground">
-                  Todos os orçamentos
-                </h3>
-              </div>
-              <div className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                {quotes.length} total
-              </div>
-            </div>
-
-            {quotesLoading ? (
-              <p className="text-sm text-muted-foreground">
-                Carregando orçamentos...
-              </p>
-            ) : quotes.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-10 text-center">
-                <Camera className="mx-auto h-6 w-6 text-muted-foreground/40" />
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Nenhum orçamento ainda. Comece sua primeira lista.
-                </p>
-              </div>
-            ) : (
-              <div className="max-h-[560px] space-y-2 overflow-y-auto pr-1">
-                {quotes.map((quote) => (
-                  <button
-                    key={quote.id}
-                    type="button"
-                    aria-pressed={selectedQuote?.id === quote.id}
-                    onClick={() => onSelectQuote(quote.id)}
-                    className={`w-full rounded-xl border px-4 py-3 text-left transition-all ${
-                      selectedQuote?.id === quote.id
-                        ? "border-primary/30 bg-blue-50/60 shadow-sm"
-                        : "border-slate-200/70 bg-white hover:border-slate-300 hover:bg-slate-50"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-foreground">
-                          {buildQuoteDisplayTitle(quote)}
-                        </p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {quote.itemCount} item(ns) ·{" "}
-                          {getQuoteOcrStatusLabel(quote.ocrStatus)}
-                        </p>
-                      </div>
-                      <QuoteStatusBadge status={quote.status} />
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
-
-        {/* Coluna direita: detalhe / editor */}
-        <div className="space-y-5">
-          {!selectedQuote ? (
-            <section className="rounded-xl border border-dashed border-slate-200 bg-white px-5 py-16 text-center shadow-sm">
-              <FileText className="mx-auto h-8 w-8 text-muted-foreground/40" />
-              <h3 className="mt-4 text-lg font-semibold text-foreground">
-                Selecione um orçamento
-              </h3>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Capture um novo documento ou escolha um item da lista para
-                continuar.
-              </p>
-            </section>
-          ) : (
-            <>
-              {/* Cabeçalho do orçamento selecionado */}
-              <section
-                ref={editorCardRef}
-                className="rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm"
-              >
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="min-w-0 space-y-1">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      {selectedQuote.referenceCode}
-                    </p>
-                    <h3 className="truncate text-xl font-semibold tracking-tight text-foreground">
-                      {buildQuoteDisplayTitle(selectedQuote)}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {getQuoteStatusDescription(selectedQuote.status)}
-                    </p>
-                  </div>
-                  <QuoteStatusBadge status={selectedQuote.status} />
-                </div>
-
-                <div className="mt-4 grid gap-3 md:grid-cols-3">
-                  <InfoPanel
-                    label="Origem"
-                    value={buildQuoteSourceLabel(selectedQuote.source)}
-                  />
-                  <InfoPanel
-                    label="Leitura"
-                    value={getQuoteOcrStatusLabel(selectedQuote.ocrStatus)}
-                  />
-                  <InfoPanel
-                    label="Atualização"
-                    value={formatQuoteTimestamp(
-                      selectedQuote.updatedAt || selectedQuote.createdAt,
-                    )}
-                  />
-                </div>
-
-                {selectedQuote.status === "DRAFT" ? (
-                  <div
-                    className={`mt-4 rounded-xl border p-4 ${
-                      selectedQuote.ocrStatus === "FAILED"
-                        ? "border-amber-200 bg-amber-50/80"
-                        : selectedQuote.ocrStatus === "COMPLETED"
-                          ? "border-emerald-200 bg-emerald-50/80"
-                          : "border-sky-200 bg-sky-50/80"
-                    }`}
-                  >
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      {getQuoteOcrStatusLabel(selectedQuote.ocrStatus)}
-                    </p>
-                    <p className="mt-2 text-sm text-foreground">
-                      {getQuoteOcrStatusDescription(selectedQuote.ocrStatus)}
-                    </p>
-                    {selectedQuote.ocrError ? (
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        {selectedQuote.ocrError}
-                      </p>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                {selectedQuote.customerNote ? (
-                  <div className="mt-4 rounded-xl border border-slate-200/70 bg-slate-50/80 p-4">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Observação
-                    </p>
-                    <p className="mt-2 text-sm text-foreground">
-                      {selectedQuote.customerNote}
-                    </p>
-                  </div>
-                ) : null}
-              </section>
-
-              {selectedQuote.status === "DRAFT" ? (
-                <>
-                  {/* Editor do rascunho */}
-                  <section className="rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm">
-                    <div className="mb-4 flex items-start justify-between gap-4">
-                      <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Edição
-                        </p>
-                        <h3 className="mt-1 text-lg font-semibold text-foreground">
-                          Revisar rascunho
-                        </h3>
-                        <p className="mt-1.5 text-sm text-muted-foreground">
-                          Confira os itens e corrija o que for necessário antes
-                          de enviar.
-                        </p>
-                      </div>
-                      <div className="hidden rounded-xl bg-slate-100 p-3 text-slate-600 sm:flex">
-                        <FileText className="h-5 w-5" />
-                      </div>
-                    </div>
-
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <div>
-                        <Label htmlFor="qt">Título</Label>
-                        <Input
-                          id="qt"
-                          value={editorState.title}
-                          onChange={(e) =>
-                            setEditorState((state) => ({
-                              ...state,
-                              title: e.target.value,
-                            }))
-                          }
-                          placeholder="Ex.: Materiais para reforma"
-                          className="mt-1.5 rounded-lg border-slate-200/80 bg-white"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="qref">Referência</Label>
-                        <Input
-                          id="qref"
-                          value={selectedQuote.referenceCode}
-                          disabled
-                          className="mt-1.5 rounded-lg border-slate-200/80 bg-slate-50"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="mt-4">
-                      <Label htmlFor="qn">Observações</Label>
-                      <Textarea
-                        id="qn"
-                        rows={3}
-                        value={editorState.customerNote}
-                        onChange={(e) =>
-                          setEditorState((state) => ({
-                            ...state,
-                            customerNote: e.target.value,
-                          }))
-                        }
-                        placeholder="Entrega, urgência, marcas ou qualquer detalhe extra."
-                        className="mt-1.5 rounded-lg border-slate-200/80 bg-white"
-                      />
-                    </div>
-
-                    <div className="mt-4 space-y-2">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Itens
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {editableItemCount} item(ns) preenchido(s)
-                        </p>
-                      </div>
-
-                      {editorState.items.map((item, idx) => (
-                        <div
-                          key={`${item.id || "n"}-${idx}`}
-                          className="rounded-lg border border-slate-200/70 bg-slate-50/80 p-3"
-                        >
-                          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_88px_88px_auto]">
-                            <Input
-                              value={item.name}
-                              onChange={(e) =>
-                                setEditorState((state) => ({
-                                  ...state,
-                                  items: state.items.map(
-                                    (candidate, itemIndex) =>
-                                      itemIndex === idx
-                                        ? { ...candidate, name: e.target.value, productId: null }
-                                        : candidate,
-                                  ),
-                                }))
-                              }
-                              placeholder="Item"
-                              className="rounded-lg border-slate-200/80 bg-white"
-                            />
-                            <Input
-                              inputMode="decimal"
-                              value={item.quantity}
-                              onChange={(e) =>
-                                setEditorState((state) => ({
-                                  ...state,
-                                  items: state.items.map(
-                                    (candidate, itemIndex) =>
-                                      itemIndex === idx
-                                        ? {
-                                            ...candidate,
-                                            quantity:
-                                              Number(
-                                                e.target.value.replace(
-                                                  ",",
-                                                  ".",
-                                                ),
-                                              ) || 1,
-                                          }
-                                        : candidate,
-                                  ),
-                                }))
-                              }
-                              placeholder="Qtd"
-                              className="rounded-lg border-slate-200/80 bg-white"
-                            />
-                            <Input
-                              value={item.unit || ""}
-                              onChange={(e) =>
-                                setEditorState((state) => ({
-                                  ...state,
-                                  items: state.items.map(
-                                    (candidate, itemIndex) =>
-                                      itemIndex === idx
-                                        ? { ...candidate, unit: e.target.value }
-                                        : candidate,
-                                  ),
-                                }))
-                              }
-                              placeholder="un"
-                              className="rounded-lg border-slate-200/80 bg-white"
-                            />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="rounded-lg text-red-500 hover:bg-red-50 hover:text-red-600"
-                              onClick={() =>
-                                setEditorState((state) => ({
-                                  ...state,
-                                  items:
-                                    state.items.length === 1
-                                      ? [{ ...EMPTY_ITEM }]
-                                      : state.items.filter(
-                                          (_, itemIndex) => itemIndex !== idx,
-                                        ),
-                                }))
-                              }
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="mt-4 flex flex-wrap items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="gap-1.5 border-slate-200/80 bg-white"
-                        onClick={() =>
-                          setEditorState((state) => ({
-                            ...state,
-                            items: [...state.items, { ...EMPTY_ITEM }],
-                          }))
-                        }
-                      >
-                        <Plus className="h-3.5 w-3.5" /> Adicionar item
-                      </Button>
-                      <p className="text-xs text-muted-foreground">
-                        Itens vazios não entram no envio.
-                      </p>
-                    </div>
-
-                    {selectedQuote.ocrText ? (
-                      <div className="mt-4 rounded-lg border border-slate-200/70 bg-slate-50/80 p-4">
-                        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Texto do documento original
-                        </p>
-                        <p className="mt-2 max-h-36 overflow-y-auto whitespace-pre-wrap text-sm text-muted-foreground">
-                          {selectedQuote.ocrText}
-                        </p>
-                      </div>
-                    ) : null}
-                  </section>
-
-                  {/* Ação de envio */}
-                  <section className="rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm">
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                      <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Envio
-                        </p>
-                        <h3 className="mt-1 text-lg font-semibold text-foreground">
-                          Salvar ou enviar para a loja
-                        </h3>
-                        <p className="mt-1.5 text-sm text-muted-foreground">
-                          Quando o rascunho estiver correto, envie para que a
-                          loja processe o seu pedido.
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          size="sm"
-                          disabled={saveDraftPending || editableItemCount === 0}
-                          onClick={() => void onSaveDraft()}
-                        >
-                          {saveDraftPending ? "Salvando..." : "Salvar rascunho"}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="gap-1.5 border-slate-200/80 bg-white"
-                          disabled={
-                            saveDraftPending ||
-                            submitPending ||
-                            editableItemCount === 0
-                          }
-                          onClick={() => void onSaveAndSend()}
-                        >
-                          {submitPending ? "Enviando..." : "Enviar para a loja"}
-                          <ArrowRight className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                  </section>
-                </>
-              ) : (
-                /* Orçamento enviado — somente leitura */
-                <section className="rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm">
-                  <div className="mb-4">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Detalhes
-                    </p>
-                    <h3 className="mt-1 text-lg font-semibold text-foreground">
-                      Orçamento enviado
-                    </h3>
-                    <p className="mt-1.5 text-sm text-muted-foreground">
-                      Este orçamento já foi enviado e está aguardando resposta
-                      da loja.
-                    </p>
-                  </div>
-
-                  <div className="space-y-3">
-                    {selectedQuote.items.map((item) => (
-                      <div
-                        key={item.id}
-                        className="rounded-lg border border-slate-200/70 bg-slate-50/80 px-4 py-3"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold text-foreground">
-                              {item.name}
-                            </p>
-                            {item.notes ? (
-                              <p className="mt-1 text-sm text-muted-foreground">
-                                {item.notes}
-                              </p>
-                            ) : null}
-                          </div>
-                          <div className="shrink-0 text-sm font-medium text-muted-foreground">
-                            {item.quantity} {item.unit || "un"}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {selectedQuote.ocrText ? (
-                    <div className="mt-4 rounded-lg border border-slate-200/70 bg-slate-50/80 p-4">
-                      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        Texto do documento original
-                      </p>
-                      <p className="mt-2 max-h-40 overflow-y-auto whitespace-pre-wrap text-sm text-muted-foreground">
-                        {selectedQuote.ocrText}
-                      </p>
-                    </div>
-                  ) : null}
-                </section>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+          <Button className="task-wizard-primary" disabled={busy || !ready} onClick={() => void send()}>{busy ? 'Enviando…' : 'Enviar solicitação de orçamento'}<ArrowRight size={18} /></Button>
+          <p className="text-center text-xs text-slate-500">Preços e disponibilidade serão confirmados pela loja.</p>
+        </>}
+      </> : <section className="task-wizard-card">
+        <h3 className="text-xl font-bold">{buildQuoteDisplayTitle(selectedQuote)}</h3><p className="mt-2 text-sm text-slate-500">{getQuoteStatusDescription(selectedQuote.status)}</p>
+        <ul className="mt-6 space-y-3">{selectedQuote.items.map(item => <li key={item.id} className="flex items-start justify-between gap-4 border-b border-slate-100 pb-3 text-sm"><span className="min-w-0 break-words">{item.name}{item.notes && <span className="mt-1 block text-xs text-slate-500">{item.notes}</span>}</span><strong className="shrink-0">{item.quantity} {item.unit || 'un'}</strong></li>)}</ul>
+        {selectedQuote.customerNote && <p className="mt-5 whitespace-pre-wrap text-sm text-slate-500">{selectedQuote.customerNote}</p>}
+      </section>}
+    </div>}
+  </div>;
 }
 
-function InfoPanel({ label, value }: { label: string; value: string }) {
-  return <DashboardInfo label={label} value={value} />;
+function DraftItem({ item, index, busy, onUpdate, onRemove }: { item: EditableQuoteItem; index: number; busy: boolean; onUpdate: (patch: Partial<EditableQuoteItem>) => void; onRemove: () => void }) {
+  const [editing, setEditing] = useState(!item.name);
+  return <div className="quote-item-row">
+    <div className="quote-item-name">{editing && !busy ? <ProductAutocomplete value={item.name} onChange={name => onUpdate({ name, productId: null })}
+      onSelectProduct={product => { onUpdate({ name: product.name, productId: product.id }); setEditing(false); }} onBlur={() => { if (item.name.trim()) setEditing(false); }} placeholder="Nome do material" />
+      : <button type="button" disabled={busy} onClick={() => setEditing(true)}><span>{item.name}</span><span className="quote-item-edit">Editar</span></button>}</div>
+    <div className="mt-3 flex flex-wrap items-end justify-between gap-3"><div className="flex gap-3"><div><Label htmlFor={`quote-quantity-${index}`} className="text-xs text-slate-500">Quantidade</Label><Input id={`quote-quantity-${index}`} type="number" min="0.001" step="any" inputMode="decimal" disabled={busy} value={item.quantity ?? ''} onChange={event => onUpdate({ quantity: event.target.value === '' ? undefined : Number(event.target.value) })} className="mt-1 h-11 w-24" /></div>
+      <div><Label htmlFor={`quote-unit-${index}`} className="text-xs text-slate-500">Unidade</Label><Input id={`quote-unit-${index}`} disabled={busy} value={item.unit || ''} onChange={event => onUpdate({ unit: event.target.value })} placeholder="un, sc, m²" className="mt-1 h-11 w-24" /></div></div>
+      <Button variant="ghost" disabled={busy} aria-label="Remover produto" className="h-11 gap-1 text-slate-500" onClick={onRemove}><Trash2 size={15} />Remover</Button></div>
+  </div>;
 }
-
