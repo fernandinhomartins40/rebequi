@@ -6,10 +6,26 @@ import { IntegrationController } from '../controllers/integration.controller.js'
 import { authenticate, authorize } from '../middleware/auth.middleware.js';
 import { uploadLimiter } from '../middleware/rate-limit.middleware.js';
 import { validateBody } from '../middleware/validation.middleware.js';
+import { z } from 'zod';
+import { getMarketplaceSettings, saveMarketplaceSettings } from '../services/marketplace-settings.service.js';
+import type { MarketplaceType } from '@rebequi/shared/constants';
 
 const router: Router = Router();
 const controller = new IntegrationController();
 const allowedRoles = getRolesForMerchantPermission('integrations:manage');
+
+router.get('/marketplaces', authenticate, authorize(...allowedRoles), async (_req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store');
+  try { res.json({ success: true, data: await getMarketplaceSettings() }); }
+  catch (error) { next(error); }
+});
+router.put('/marketplaces/:type', authenticate, authorize(...allowedRoles),
+  validateBody(z.object({ channelId: z.string().min(1).max(128).optional(), credentials: z.record(z.string().max(64), z.string().max(4096).nullable()) }).strict()),
+  async (req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store');
+    try { res.json({ success: true, data: await saveMarketplaceSettings(req.params.type as MarketplaceType, req.user!.userId, req.body) }); }
+    catch (error) { next(error); }
+  });
 
 router.get(
   '/ai',

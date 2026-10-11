@@ -164,11 +164,11 @@ export const NAV_SECTIONS: Omit<MerchantNavItem, 'badge'>[] = [
     group: 'ajustes',
     href: `${ADMIN_BASE_PATH}/integrações`,
     label: 'Integrações',
-    description: 'IA de orçamentos',
+    description: 'Marketplaces e IA',
     icon: Plug,
     eyebrow: 'Integrações',
     title: 'Integrações externas',
-    intro: 'Conecte DeepSeek e Qwen, defina os limites e teste a leitura de uma lista.',
+    intro: 'Configure os marketplaces e a IA de orçamentos, com credenciais protegidas.',
     requiredPermission: 'integrations:manage',
   },
   {

@@ -83,6 +83,22 @@ export function validateCommercialConsistency(db) {
       assert.equal(await prisma.channelListing.count({where:{channelId:channel.id}}),1);
       const {encryptSecret}=await import('./apps/backend/dist/utils/crypto.util.js');
       await prisma.channel.update({where:{id:channel.id},data:{type:'MERCADO_LIVRE',isActive:true,credentials:encryptSecret(JSON.stringify({clientId:'integration-app',clientSecret:'integration-secret'}))}});
+      const {getMarketplaceSettings,saveMarketplaceSettings}=await import('./apps/backend/dist/services/marketplace-settings.service.js');
+      const {decryptSecret}=await import('./apps/backend/dist/utils/crypto.util.js');
+      const settings=await getMarketplaceSettings();
+      assert.equal(settings.length,7); assert.ok(!JSON.stringify(settings).includes('integration-secret'));
+      await Promise.all([
+        saveMarketplaceSettings('MERCADO_LIVRE',customer.id,{channelId:channel.id,credentials:{clientId:'integration-app-updated'}}),
+        saveMarketplaceSettings('MERCADO_LIVRE',customer.id,{channelId:channel.id,credentials:{clientSecret:'integration-secret-updated'}}),
+      ]);
+      await saveMarketplaceSettings('MERCADO_LIVRE',customer.id,{channelId:channel.id,credentials:{clientSecret:''}});
+      const config=JSON.parse(decryptSecret((await prisma.channel.findUniqueOrThrow({where:{id:channel.id}})).credentials));
+      assert.equal(config.clientId,'integration-app-updated'); assert.equal(config.clientSecret,'integration-secret-updated');
+      await assert.rejects(()=>saveMarketplaceSettings('AMAZON',customer.id,{channelId:channel.id,credentials:{clientId:'wrong-owner'}}));
+      await assert.rejects(()=>saveMarketplaceSettings('MERCADO_LIVRE',customer.id,{channelId:channel.id,credentials:{endpoint:'http://arbitrary.invalid'}}));
+      const removed=await saveMarketplaceSettings('MERCADO_LIVRE',customer.id,{channelId:channel.id,credentials:{clientSecret:null}});
+      assert.ok(!removed.configuredFields.includes('clientSecret'));
+      await saveMarketplaceSettings('MERCADO_LIVRE',customer.id,{channelId:channel.id,credentials:{clientSecret:'integration-secret-updated'}});
       const {beginMercadoLivreAuthorization,finishMercadoLivreAuthorization}=await import('./apps/backend/dist/services/channels/mercado-livre-auth.service.js');
       const started=await beginMercadoLivreAuthorization(channel.id,'integration-user');
       const authUrl=new URL(started.url); assert.equal(authUrl.hostname,'auth.mercadolivre.com.br');
@@ -107,6 +123,7 @@ export function validateCommercialConsistency(db) {
       await prisma.sale.deleteMany({where:{id:{in:items.map(i=>i.saleId)}}});
       await prisma.customerOrder.deleteMany({where:{id:{in:orders.map(o=>o.id)}}});
       if(channel) await prisma.channel.delete({where:{id:channel.id}});
+      if(channel) await prisma.integrationAudit.deleteMany({where:{jobId:'channel:'+channel.id}});
       await prisma.product.delete({where:{id:p.id}});
     }
   `);

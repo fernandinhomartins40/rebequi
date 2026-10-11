@@ -149,6 +149,10 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
       await data(await admin.post('/api/auth/login', { data: { identifier: 'integration@example.invalid', password: 'integration-only-admin-password' } }));
       adminCookies = (await admin.storageState()).cookies;
       assert.equal((await owner.get('/api/integrations/ai')).status(), 403);
+      assert.equal((await owner.get('/api/integrations/marketplaces')).status(), 403);
+      const marketplaceConfig = await data(await admin.get('/api/integrations/marketplaces'));
+      assert.equal(marketplaceConfig.length, 7);
+      assert.ok(marketplaceConfig.every(provider => provider.accounts.every(account => !Object.hasOwn(account, 'credentials'))));
       const secret = 'integration-only-fake-provider-key';
       const configured = await data(await admin.put('/api/integrations/ai', { data: { enabled: false, primaryProvider: 'qwen', qwenApiKey: secret, maxTokens: 2500 } }));
       assert.equal(configured.hasQwenApiKey, true);
@@ -163,7 +167,7 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
       const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
       try {
         await authenticateAdminContext(context);
-        const page = await context.newPage(); await page.goto(baseURL + '/painel-lojista/painel/integrações');
+        const page = await context.newPage(); await page.goto(baseURL + '/painel-lojista/painel/integrações?tab=ia');
         await page.getByRole('heading', { name: '1. Conectar os provedores' }).waitFor();
         await page.getByRole('heading', { name: '3. Testar uma lista real' }).waitFor();
         assert.equal(await page.locator('#key-deepseek').getAttribute('type'), 'password');

@@ -11,8 +11,23 @@ import { DashboardHeading, DashboardSection } from '@/components/dashboard/Dashb
 import { useToast } from '@/components/ui/use-toast';
 import { ImageCropDialog } from './image-crop-dialog';
 import { QUOTE_IMAGE_CONFIG, IMAGE_UPLOAD_ACCEPT, readFileAsDataUrl } from './image-tools';
+import { useSearchParams } from 'react-router-dom';
+import { MarketplaceSettingsPanel } from './marketplace-settings';
 
 export function MerchantDashboardIntegrations() {
+ const [params, setParams] = useSearchParams();
+ const isAi = params.get('tab') === 'ia';
+ return <div className="space-y-5">
+  <DashboardHeading title="Configurações de integrações" description="Conecte suas contas e confira cada integração em três passos." />
+  <div className="flex flex-wrap gap-2" role="tablist" aria-label="Tipo de integração">
+   <Button role="tab" aria-selected={!isAi} variant={!isAi ? 'default' : 'outline'} onClick={() => setParams({ tab: 'marketplaces' })}>Marketplaces</Button>
+   <Button role="tab" aria-selected={isAi} variant={isAi ? 'default' : 'outline'} onClick={() => setParams({ tab: 'ia' })}>IA de orçamentos</Button>
+  </div>
+  {isAi ? <QuoteAiSettings /> : <MarketplaceSettingsPanel />}
+ </div>;
+}
+
+function QuoteAiSettings() {
  const { toast } = useToast(); const client = useQueryClient();
  const config = useQuery({ queryKey: ['quote-ai'], queryFn: fetchQuoteAiConfig });
  const [form, setForm] = useState<QuoteAiUpdateBody>({ enabled: false, primaryProvider: 'deepseek', fallbackEnabled: true, qwenModel: 'qwen3-vl-flash', timeoutMs: 30000, maxTokens: 2500 });
