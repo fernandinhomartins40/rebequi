@@ -31,3 +31,9 @@ test('matching preserves repeated lines and separates quantity from product size
   assert.equal(result.items[1].quantity, 2);
   assert.equal(result.items[1].position, 1);
 });
+
+
+test('short structured product names such as cal and PVC are not silently discarded', async () => {
+ const result = await parser([])([{text:'Cal',quantity:3,confidence:90},{text:'PVC',quantity:2,confidence:80}], 'deepseek');
+ assert.equal(result.items.length,2);assert.equal(result.items[0].name,'Cal');assert.equal(result.items[1].name,'PVC');
+});

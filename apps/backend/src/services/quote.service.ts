@@ -937,7 +937,8 @@ export class QuoteService {
     lines.forEach((line) => {
       const text = applyOcrCorrections(line.text.trim(), engine);
 
-      if (engine !== 'manual' && !isRelevantFreeformLine(text)) {
+      const hasStructuredQuantity = typeof line.quantity === 'number' && line.quantity > 0;
+      if (engine !== 'manual' && !hasStructuredQuantity && !isRelevantFreeformLine(text)) {
         return;
       }
 
@@ -950,7 +951,6 @@ export class QuoteService {
 
       // The model already separated quantity from the product name; regex
       // reparsing is only needed for engines that return a raw line.
-      const hasStructuredQuantity = typeof line.quantity === 'number' && line.quantity > 0;
       const quantityData = hasStructuredQuantity
         ? { quantity: line.quantity as number, unit: canonicalUnit(line.unit ?? null) }
         : extractQuantity(text, engine);
