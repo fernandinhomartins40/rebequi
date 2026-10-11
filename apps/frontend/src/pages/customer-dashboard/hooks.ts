@@ -152,15 +152,15 @@ export function useCustomerDashboard() {
   const quotes = useMemo(() => {
     const list = quotesQuery.data ?? [];
     return [...list].sort((a, b) => {
-      const aTime = new Date((a.updatedAt || a.createdAt || 0) as string | number | Date).getTime();
-      const bTime = new Date((b.updatedAt || b.createdAt || 0) as string | number | Date).getTime();
+      const aTime = new Date((a.createdAt || 0) as string | number | Date).getTime();
+      const bTime = new Date((b.createdAt || 0) as string | number | Date).getTime();
       return bTime - aTime;
     });
   }, [quotesQuery.data]);
 
   const selectedQuote = useMemo(() => {
     if (selectedQuoteId) return quotes.find((q) => q.id === selectedQuoteId) || null;
-    return quotes.find((q) => q.status === 'DRAFT') || quotes[0] || null;
+    return null;
   }, [quotes, selectedQuoteId]);
 
   const draftQuotes = quotes.filter((q) => q.status === 'DRAFT');
@@ -182,7 +182,7 @@ export function useCustomerDashboard() {
   useEffect(() => {
     setActiveTab(getActiveTab(searchParams.get('tab')));
     const id = searchParams.get('quoteId');
-    if (id) setSelectedQuoteId(id);
+    setSelectedQuoteId(id);
   }, [searchParams]);
 
   useEffect(() => {
@@ -196,9 +196,9 @@ export function useCustomerDashboard() {
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleLogout = async () => { await logout(); navigate('/'); };
 
-  const handleSelectQuote = (id: string) => {
+  const handleSelectQuote = (id: string | null) => {
     setSelectedQuoteId(id);
-    setSearchParams({ quoteId: id, tab: 'quotes' });
+    setSearchParams(id ? { quoteId: id, tab: 'quotes' } : { tab: 'quotes' });
     setActiveTab('quotes');
   };
 

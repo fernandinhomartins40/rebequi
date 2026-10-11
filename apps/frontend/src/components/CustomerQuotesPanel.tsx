@@ -21,7 +21,7 @@ type Props = {
   editorCardRef: MutableRefObject<HTMLDivElement | null>; createDraftPending: boolean;
   saveDraftPending: boolean; submitPending: boolean;
   onCaptureDocument: (selection: ScannedDocument) => Promise<void>;
-  onSelectQuote: (id: string) => void; onSaveDraft: () => Promise<unknown>; onSaveAndSend: () => Promise<unknown>;
+  onSelectQuote: (id: string | null) => void; onSaveDraft: () => Promise<unknown>; onSaveAndSend: () => Promise<unknown>;
 };
 const EMPTY_ITEM: EditableQuoteItem = { name: '', quantity: 1, unit: '', notes: '' };
 
@@ -29,7 +29,6 @@ export function CustomerQuotesPanel({ quotes, quotesLoading, selectedQuote, edit
   editorCardRef, saveDraftPending, submitPending, onSelectQuote, onSaveDraft, onSaveAndSend }: Props) {
   const [stage, setStage] = useState<'review' | 'send'>('review');
   const [attempted, setAttempted] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(false);
   const busy = saveDraftPending || submitPending;
   const validItems = editorState.items.filter(item => item.name.trim());
   const ready = validItems.length > 0 && validItems.length === editorState.items.length &&
@@ -46,23 +45,36 @@ export function CustomerQuotesPanel({ quotes, quotesLoading, selectedQuote, edit
   return <div className="space-y-5">
     <DashboardHeading title="Seus orçamentos" actions={<Button asChild><Link to="/pedido">Começar orçamento<ArrowRight size={16} className="ml-2" /></Link></Button>} />
     {quotesLoading && <p role="status" className="text-sm text-slate-500">Carregando seus pedidos…</p>}
-    {quotes.length > 0 && <details open={historyOpen} onToggle={event => setHistoryOpen(event.currentTarget.open)} className="rounded-xl border border-slate-200 bg-white p-4">
-      <summary className="cursor-pointer text-sm font-semibold">Meus pedidos ({quotes.length})</summary>
-      <div className="mt-3 grid gap-2 sm:grid-cols-2">{quotes.map(quote => <button type="button" key={quote.id}
-        aria-pressed={quote.id === selectedQuote?.id} disabled={busy}
-        onClick={() => { onSelectQuote(quote.id); setHistoryOpen(false); }}
-        className={`flex min-w-0 items-center justify-between gap-3 rounded-xl border p-4 text-left ${quote.id === selectedQuote?.id ? 'border-blue-300 bg-blue-50' : 'border-slate-200'}`}>
-        <span className="min-w-0"><strong className="block truncate text-sm">{buildQuoteDisplayTitle(quote)}</strong><span className="mt-1 block text-xs text-slate-500">{quote.itemCount} produtos · {formatQuoteTimestamp(quote.updatedAt || quote.createdAt)}</span></span>
-        <QuoteStatusBadge status={quote.status} />
-      </button>)}</div>
-    </details>}
-    {!selectedQuote && !quotesLoading && <section className="task-wizard-card py-10 text-center">
+    {!selectedQuote && quotes.length > 0 && <section aria-label="Lista de orçamentos" className="grid gap-4 lg:grid-cols-2">
+      {quotes.map(quote => <article key={quote.id} data-quote-id={quote.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <header className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 bg-slate-50 p-4">
+          <div className="min-w-0"><h3 className="font-bold">Orçamento {quote.referenceCode}</h3>
+            <p className="mt-1 text-xs text-slate-500">Criado em {formatQuoteTimestamp(quote.createdAt)}</p></div>
+          <QuoteStatusBadge status={quote.status} />
+        </header>
+        <div className="p-4">
+          {quote.title && <p className="mb-3 break-words text-sm font-medium">{quote.title}</p>}
+          <p className="mb-3 text-xs font-semibold text-slate-500">{quote.items.length} {quote.items.length === 1 ? 'produto neste orçamento' : 'produtos neste orçamento'}</p>
+          <ul className="space-y-2">{quote.items.slice(0, 3).map(item => <li key={item.id} className="flex justify-between gap-4 text-sm">
+            <span className="min-w-0 break-words">{item.name}</span><span className="shrink-0 font-medium">{item.quantity} {item.unit || 'un'}</span>
+          </li>)}</ul>
+          {quote.items.length > 3 && <p className="mt-2 text-xs text-slate-500">Mais {quote.items.length - 3} produtos</p>}
+          {!quote.items.length && <p className="text-sm text-slate-500">Lista em preparação</p>}
+          <Button variant="outline" disabled={busy} className="mt-4 w-full gap-2" onClick={() => onSelectQuote(quote.id)} aria-label={`Abrir orçamento ${quote.referenceCode}`}>
+            {quote.status === 'DRAFT' ? 'Continuar este orçamento' : 'Ver orçamento completo'}<ArrowRight size={16} />
+          </Button>
+        </div>
+      </article>)}
+    </section>}
+    {!selectedQuote && !quotesLoading && quotes.length === 0 && <section className="task-wizard-card py-10 text-center">
       <FileText className="mx-auto mb-4 h-12 w-12 text-slate-300" />
       <h3 className="text-xl font-bold">Seu primeiro orçamento em 3 passos</h3>
       <p className="mx-auto mb-6 mt-2 max-w-sm text-sm text-slate-500">Envie a lista, confira os produtos e peça os preços.</p>
       <Button asChild className="h-12"><Link to="/pedido">Preparar minha lista<ArrowRight size={18} className="ml-2" /></Link></Button>
     </section>}
     {selectedQuote && <div ref={editorCardRef} className="mx-auto w-full max-w-3xl space-y-5">
+      <Button variant="ghost" disabled={busy} className="gap-2 px-0" onClick={() => onSelectQuote(null)}><ArrowLeft size={16} />Todos os orçamentos</Button>
+      <div className="rounded-xl border border-slate-200 bg-white p-4"><h2 className="text-lg font-bold">Orçamento {selectedQuote.referenceCode}</h2><p className="mt-1 text-xs text-slate-500">Criado em {formatQuoteTimestamp(selectedQuote.createdAt)} · {selectedQuote.items.length} produtos</p></div>
       {draft && <DashboardSteps activeStep={stage === 'review' ? 1 : 2} steps={[
         { title: 'Sua lista', href: '/pedido' },
         { title: 'Conferência', onClick: () => { if (!busy) setStage('review'); } },

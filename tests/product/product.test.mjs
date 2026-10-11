@@ -394,8 +394,23 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
           identifier: '11987654321', password: account.provisionalCredentials.password,
         } }));
         const draft = await data(await context.request.post(`${baseURL}/api/quotes/public/manual`, { data: { text: '3 cimento' } }), 201);
+        const anotherDraft = await data(await context.request.post(`${baseURL}/api/quotes/public/manual`, { data: { text: '5 tijolos\n2 tintas' } }), 201);
         db(`await prisma.quoteRequest.update({where:{id:${JSON.stringify(draft.quote.id)}},data:{userId:${JSON.stringify(account.user.id)},anonymousToken:null,anonymousExpiresAt:null}});`);
         const page = await context.newPage();
+        await page.goto(`${baseURL}/painel-cliente?tab=quotes`);
+        const firstCard = page.locator(`[data-quote-id="${draft.quote.id}"]`);
+        const secondCard = page.locator(`[data-quote-id="${anotherDraft.quote.id}"]`);
+        await firstCard.waitFor();
+        await secondCard.waitFor();
+        assert.equal(await secondCard.locator('li').count(), 2, 'Products stay inside a single quote card');
+        assert.equal(await firstCard.locator('li').count(), 1, 'Separate quotes retain separate item lists');
+        assert.equal(await page.getByRole('heading', { name: 'Confira os produtos', exact: true }).count(), 0);
+        await page.getByRole('button', { name: `Abrir orçamento ${anotherDraft.quote.referenceCode}`, exact: true }).click();
+        await page.getByRole('heading', { name: 'Confira os produtos', exact: true }).waitFor();
+        assert.equal(await page.getByLabel('Quantidade', { exact: true }).count(), 2);
+        await page.getByRole('button', { name: 'Todos os orçamentos', exact: true }).click();
+        await firstCard.waitFor();
+        await secondCard.waitFor();
         await page.goto(`${baseURL}/painel-cliente?tab=quotes&quoteId=${draft.quote.id}`);
         await page.getByText('Título e observações (opcional)', { exact: true }).click();
         await page.getByLabel('Título', { exact: true }).fill('Minha edição preservada');
