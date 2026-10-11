@@ -90,7 +90,7 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
     });
 
     await t.test('Quick quote signup identifies the customer before reading and permits initial password setup', async () => {
-      const context = await browser.newContext({viewport:{width:390,height:844}});
+      const context = await browser.newContext({baseURL, viewport:{width:390,height:844}});
       try {
         const page = await context.newPage();
         let uploads = 0;
@@ -313,7 +313,7 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
     await restartIsolatedApi();
     for (const width of [320, 390, 768, 1024, 1440]) {
       await t.test(`Manual list, database autosave and reload at ${width}px`, async () => {
-        const context = await browser.newContext({ viewport: { width, height: 900 } });
+        const context = await browser.newContext({ baseURL, viewport: { width, height: 900 } });
         try {
           await context.addCookies((await anonymous.storageState()).cookies);
           const page = await context.newPage();
