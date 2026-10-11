@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import sharp from 'sharp';
 import type { LeadStatus, QuoteStatus } from '@prisma/client';
 import type {
   LeadFiltersInput,
@@ -14,7 +15,7 @@ import type {
 import { normalizeWhatsapp } from '@rebequi/shared/utils';
 import { AuthService } from './auth.service.js';
 import { CustomerService } from './customer.service.js';
-import { QuoteOcrService, type CatalogHint, type RecognizedQuoteLine } from './quote-ocr.service.js';
+import { QuoteOcrService, type RecognizedQuoteLine } from './quote-ocr.service.js';
 import {
   applyOcrCorrections,
   buildTrigrams,
@@ -799,12 +800,12 @@ export class QuoteService {
       throw new ValidationError('Envie uma imagem do documento para continuar');
     }
 
-    return storeQuoteDocumentImage({
-      file: params.file,
-      alt: params.alt,
-      width: params.width,
-      height: params.height,
-    });
+    // Validate actual bytes before storing or scheduling a paid recognition request.
+    try {
+      const metadata = await sharp(params.file.buffer, { limitInputPixels: 40000000 }).metadata();
+      if (!metadata.width || !metadata.height || !['jpeg', 'png', 'webp', 'gif'].includes(metadata.format ?? '')) throw new Error('Unsupported image');
+      return storeQuoteDocumentImage({ file: params.file, alt: params.alt, width: metadata.width, height: metadata.height });
+    } catch { throw new ValidationError('Não foi possível abrir a foto. Envie uma imagem JPG, PNG ou WebP válida.'); }
   }
 
   private scheduleOcrJob(params: OcrJobParams) {
@@ -820,15 +821,9 @@ export class QuoteService {
       const started = await this.quoteRepository.startOcr(params.quoteId);
       if (!started.count) return;
 
-      // Build the index first: it feeds the model as context AND is reused for
-      // matching afterwards, so it is only computed once per quote.
+      // Build the index once for local matching; no catalog is sent to the provider.
       const index = await this.buildCatalogIndex();
-      const catalogHints: CatalogHint[] = index.products.map((entry) => ({
-        id: entry.product.id,
-        name: entry.product.name,
-      }));
-
-      const recognized = await this.ocrService.recognizeDocument(params.imageBuffer, catalogHints, async () => {
+      const recognized = await this.ocrService.recognizeDocument(params.imageBuffer, [], async () => {
         const current = await this.quoteRepository.findQuoteById(params.quoteId);
         return current?.ocrStatus === 'PROCESSING';
       });
@@ -1011,21 +1006,11 @@ export class QuoteService {
       });
     });
 
-    const deduped = parsedItems.filter((item, index, collection) => {
-      const signature = `${item.productId ?? 'manual'}:${normalizeText(item.name)}:${item.quantity}:${item.unit ?? ''}`;
-      return (
-        collection.findIndex((candidate) => {
-          const candidateSignature = `${candidate.productId ?? 'manual'}:${normalizeText(candidate.name)}:${candidate.quantity}:${candidate.unit ?? ''}`;
-          return candidateSignature === signature;
-        }) === index
-      );
-    });
-
     const customerNote = customerNoteParts.length > 0 ? customerNoteParts.join('\n') : null;
 
-    if (deduped.length > 0) {
+    if (parsedItems.length > 0) {
       return {
-        items: deduped,
+        items: parsedItems,
         customerNote,
       };
     }
@@ -1120,6 +1105,7 @@ export class QuoteService {
     const candidates = this.collectCandidates(index, lineTokenSet);
 
     let bestMatch: { product: CatalogProduct; score: number } | null = null;
+    let runnerUpScore = 0;
 
     for (const indexed of candidates) {
       let score = 0;
@@ -1169,10 +1155,13 @@ export class QuoteService {
       if (score < MATCH_THRESHOLD) continue;
 
       if (!bestMatch || score > bestMatch.score) {
+        runnerUpScore = bestMatch?.score ?? 0;
         bestMatch = { product: indexed.product, score: Math.min(1, score) };
-      }
+      } else { runnerUpScore = Math.max(runnerUpScore, Math.min(1, score)); }
     }
 
+    // Keep the transcription when several catalog variants are equally plausible.
+    if (bestMatch && bestMatch.score < 0.97 && bestMatch.score - runnerUpScore < 0.08) return null;
     return bestMatch;
   }
 

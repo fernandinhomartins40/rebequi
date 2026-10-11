@@ -359,7 +359,7 @@ export default function RequestQuotePage() {
         onManualEntry={() => setStep('manual')} />;
 
     case 'processing':
-      return <ProcessingScreen />;
+      return <ProcessingScreen uploading={documentMutation.isPending} />;
 
     case 'failed':
       return (
@@ -434,7 +434,7 @@ export default function RequestQuotePage() {
 
 // ─── Screen: processing ──────────────────────────────────────────────────────
 
-function ProcessingScreen() {
+function ProcessingScreen({ uploading }: { uploading: boolean }) {
   const messages = useMemo(
     () => ['Lendo sua lista…', 'Identificando produtos…', 'Conferindo com o catálogo da loja…'],
     []
@@ -454,7 +454,7 @@ function ProcessingScreen() {
           <div className="absolute inset-2 animate-pulse rounded-full bg-primary/30" />
           <Loader2 className="relative h-10 w-10 animate-spin text-primary" />
         </div>
-        <h1 className="text-2xl font-extrabold tracking-tight text-foreground">{messages[index]}</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight text-foreground">{uploading ? 'Enviando sua foto…' : messages[index]}</h1>
         <p className="mt-3 text-sm text-muted-foreground">
           Isso costuma levar de 5 a 30 segundos. Não saia desta tela.
         </p>

@@ -10,7 +10,7 @@ if (process.env.CI !== 'true' || process.env.GITHUB_ACTIONS !== 'true' || proces
 }
 const baseURL = 'http://127.0.0.1:3190';
 await mkdir(new URL('./artifacts/', import.meta.url), { recursive: true });
-const browser = await chromium.launch();
+const browser = await chromium.launch({ args: ['--use-fake-device-for-media-stream'] });
 const contexts = [];
 let adminCookies;
 async function authenticateAdminContext(context) {
@@ -148,6 +148,84 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
         if(run.engine!=='deepseek' || run.promptTokens!==600) throw new Error('Cloud telemetry was not persisted');`);
       const saved = await data(await anonymous.get('/api/quotes/public/anonymous/' + draft.token));
       assert.equal(saved.ocrStatus, 'COMPLETED'); assert.equal(saved.items[0].quantity, 2);
+    });
+
+    await t.test('Camera and gallery confirm a real JPEG upload, cloud extraction, review and merchant receipt', async () => {
+      const context = await browser.newContext({ viewport: { width: 390, height: 844 }, permissions: ['camera'] });
+      let releasePolling;
+      const recognitionReady = new Promise(resolve => { releasePolling = resolve; });
+      try {
+        await context.addCookies((await owner.storageState()).cookies);
+        const page = await context.newPage();
+        await page.route('**/vendor/opencv-*', route => route.abort());
+        let uploads = 0;
+        page.on('request', request => { if (request.method() === 'POST' && request.url().endsWith('/api/quotes/public/anonymous-document')) uploads++; });
+        await page.goto(baseURL + '/pedido');
+        await page.getByRole('button', {name:'Tirar foto', exact:true}).click();
+        await page.getByRole('heading', {name:'Confira a foto'}).waitFor();
+        assert.equal(uploads,0, 'Preview must not trigger a paid recognition');
+        assert.equal(await page.locator('video').count(),0, 'Camera stops while reviewing');
+        await page.getByRole('button', {name:'Tirar outra foto',exact:true}).click();
+        await page.getByRole('button', {name:'Tirar foto',exact:true}).waitFor();
+        await page.getByLabel('Escolher foto da galeria', {exact:true}).setInputFiles({name:'invalid.png',mimeType:'image/png',buffer:Buffer.from('not-an-image')});
+        await page.getByRole('alert').filter({hasText:'Formato não suportado'}).waitFor();
+        assert.equal(uploads,0);
+        const encoded=await page.evaluate(() => {const canvas=document.createElement('canvas');canvas.width=2400;canvas.height=1200;const ctx=canvas.getContext('2d');ctx.fillStyle='white';ctx.fillRect(0,0,2400,1200);ctx.fillStyle='black';ctx.font='80px sans-serif';ctx.fillText('2 sc cimento',80,200);return canvas.toDataURL('image/png').split(',')[1];});
+        await page.getByLabel('Escolher foto da galeria', {exact:true}).setInputFiles({name:'lista.png',mimeType:'image/png',buffer:Buffer.from(encoded,'base64')});
+        await page.getByRole('heading', {name:'Confira a foto'}).waitFor();
+        await page.getByAltText('Prévia da lista fotografada').waitFor();
+        assert.equal(await page.getByAltText('Prévia da lista fotografada').evaluate(img=>img.naturalWidth),1800);
+        assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+        await page.route('**/api/quotes/public/anonymous/*', async route => {await recognitionReady; await route.continue();});
+        const uploadResponse=page.waitForResponse(response=>response.url().endsWith('/api/quotes/public/anonymous-document')&&response.status()===201);
+        await page.getByRole('button', {name:'Usar esta foto',exact:true}).click();
+        const draft=await data(await uploadResponse,201);
+        assert.equal(uploads,1); assert.equal(draft.quote.documentMimeType,'image/jpeg');
+        assert.equal(draft.quote.documentWidth,1800); assert.equal(draft.quote.documentHeight,900);
+        assert.ok(draft.quote.documentSize<5*1024*1024);
+        // The real HTTP job has no configured provider in CI. Wait before exercising the same service with mock transport.
+        for(let attempt=0;attempt<30;attempt++) {
+          const status=db('console.log((await prisma.quoteRequest.findUnique({where:{id:'+JSON.stringify(draft.quote.id)+'}})).ocrStatus);').trim();
+          if(status==='FAILED') break;
+          if(attempt===29) throw new Error('Unconfigured recognition did not finish');
+          await new Promise(resolve=>setTimeout(resolve,100));
+        }
+        db(
+          'const {QuoteService}=await import("./apps/backend/dist/services/quote.service.js");'+
+          'const {QuoteOcrService}=await import("./apps/backend/dist/services/quote-ocr.service.js");'+
+          'const fs=await import("node:fs/promises");const path=await import("node:path");'+
+          'const id='+JSON.stringify(draft.quote.id)+';'+
+          'const saved=await prisma.quoteRequest.update({where:{id},data:{ocrStatus:"PENDING"}});'+
+          'const buffer=await fs.readFile(path.resolve(process.env.UPLOAD_DIR||"./uploads",saved.documentStorageKey));'+
+          'const service=new QuoteService();let calls=0;'+
+          'service.ocrService=new QuoteOcrService({settings:{getAiRuntime:async()=>({enabled:true,primaryProvider:"deepseek",fallbackEnabled:false,deepseekModel:"deepseek-flash",qwenModel:"qwen3-vl-flash",deepseekApiKey:"mock-only",qwenApiKey:null,timeoutMs:10000,maxTokens:2500})},fetch:async(_url,options)=>{calls++;const body=JSON.parse(options.body);if(!body.messages[0].content[1].image_url.url.startsWith("data:image/jpeg;base64,"))throw new Error("Image missing from provider request");return Response.json({choices:[{finish_reason:"stop",message:{content:JSON.stringify({t:"impresso",i:[{p:"Cimento Portland CP II 50kg",q:2,u:"sc",c:0.9,s:"2 sc cimento"},{p:"Cimento Portland CP II 50kg",q:2,u:"sc",c:0.9,s:"2 sc cimento"}]})}}],usage:{prompt_tokens:1100,completion_tokens:100}});}});'+
+          'await service.runOcrJob({quoteId:id,imageBuffer:buffer});if(calls!==1)throw new Error("Duplicate provider request");'+
+          'const quote=await prisma.quoteRequest.findUnique({where:{id},include:{items:true}});if(quote.items.length!==2||quote.ocrStatus!=="COMPLETED")throw new Error("Repeated lines lost");'
+        );
+        releasePolling();
+        await page.getByText('Rascunho salvo',{exact:true}).waitFor();
+        await page.getByRole('button',{name:'Enviar 2 itens para a loja'}).click();
+        await page.getByRole('heading',{name:'Pronto, lista enviada!'}).waitFor();
+        const merchant=await request.newContext({baseURL,storageState:{cookies:adminCookies,origins:[]}});contexts.push(merchant);
+        const quotes=await data(await merchant.get('/api/quotes/admin/list?limit=100'));
+        const received=quotes.find(quote=>quote.id===draft.quote.id);
+        assert.equal(received.status,'SUBMITTED');assert.equal(received.items.length,2);
+        await page.screenshot({path:'tests/product/artifacts/camera-to-quote.png',fullPage:true});
+      } finally {releasePolling();await context.close();}
+    });
+
+    await t.test('Denied camera permission keeps native camera, gallery and manual entry available', async () => {
+      const context=await browser.newContext({viewport:{width:320,height:740}});
+      try {
+        await context.addInitScript(()=>{navigator.mediaDevices.getUserMedia=async()=>{throw new DOMException('Denied','NotAllowedError');};});
+        const page=await context.newPage();await page.goto(baseURL+'/pedido');
+        await page.getByRole('button',{name:'Usar câmera do celular',exact:true}).waitFor();
+        assert.equal(await page.getByLabel('Foto pela câmera do celular').getAttribute('capture'),'environment');
+        assert.equal(await page.getByLabel('Escolher foto da galeria',{exact:true}).getAttribute('capture'),null);
+        assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+        await page.getByRole('button',{name:'Digitar lista',exact:true}).click();
+        await page.getByLabel('Lista de produtos, um por linha').waitFor();
+      } finally {await context.close();}
     });
 
     await t.test('Failed item replacement rolls back without deleting the saved draft', async () => {

@@ -14,6 +14,8 @@ export type QuoteAiRuntimeConfig = {
 };
 export class IntegrationSettingsService {
  private repository = new SettingRepository();
+ private transport: typeof fetch;
+ constructor(dependencies: { fetch?: typeof fetch } = {}) { this.transport = dependencies.fetch ?? fetch; }
  async getAiRuntime(): Promise<QuoteAiRuntimeConfig> {
   const fields = ['enabled', 'primaryProvider', 'fallbackEnabled', 'deepseekModel', 'qwenModel', 'deepseekApiKey', 'qwenApiKey', 'timeoutMs', 'maxTokens'];
   const rows = await this.repository.findManyByKeys(fields.map(field => `quoteAi.${field}`));
@@ -49,8 +51,14 @@ export class IntegrationSettingsService {
   const key = provider === 'deepseek' ? config.deepseekApiKey : config.qwenApiKey;
   if (!key) return { ok: false, message: 'Cadastre e salve a chave deste provedor.' };
   try {
-   const response = await fetch(`${AI_ENDPOINTS[provider]}/${provider === 'deepseek' ? 'models' : 'files'}`, { headers: { Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(10000), redirect: 'error' });
-   if (!response.ok) return { ok: false, message: `Provedor respondeu HTTP ${response.status}. Confira a chave e a região da conta.` };
+   const response = await this.transport(`${AI_ENDPOINTS[provider]}/${provider === 'deepseek' ? 'user/balance' : 'files'}`, { headers: { Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(10000), redirect: 'error' });
+   if (!response.ok) { await response.body?.cancel(); return { ok: false, message: `Provedor respondeu HTTP ${response.status}. Confira a chave e a região da conta.` }; }
+   if (provider === 'deepseek') {
+    const balance = await response.json() as { is_available?: boolean };
+    if (balance.is_available !== true) return { ok: false, message: 'Chave validada, mas a conta está sem saldo disponível. Adicione saldo no DeepSeek para ler imagens.' };
+    return { ok: true, message: 'Chave e saldo disponíveis. Teste uma foto para confirmar a leitura.' };
+   }
+   await response.body?.cancel();
    return { ok: true, message: 'Conexão validada. Teste uma foto para confirmar a leitura e o saldo.' };
   } catch { return { ok: false, message: 'Não foi possível conectar ao provedor. Tente novamente.' }; }
  }

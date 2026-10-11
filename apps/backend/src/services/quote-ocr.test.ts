@@ -23,7 +23,9 @@ test('direct DeepSeek vision payload, token budget, quantities and telemetry', a
   assert.equal(body.response_format.type, 'json_object'); assert.equal(options?.redirect, 'error');
   assert.equal(body.thinking.type, 'disabled');
   assert.match(body.messages[0].content[1].image_url.url, /^data:image\/jpeg;base64,/);
-  assert.match(body.messages[0].content[0].text, /catalog-1/);
+  assert.doesNotMatch(body.messages[0].content[0].text, /catalog-1/);
+  assert.equal(body.messages[0].content[1].image_url.detail, 'high');
+  assert.ok(body.messages[0].content[0].text.length < 850);
   return response();
  }).recognizeDocument(await image(), [{ id: 'catalog-1', name: 'Cimento 50 kg' }]);
  assert.equal(calls, 1); assert.equal(result.engine, 'deepseek');
@@ -86,4 +88,45 @@ test('manual editing cancels the reserve before another paid request', async () 
  const instance = service(async () => { calls++; edited = true; return new Response('', { status: 500 }); });
  await assert.rejects(instance.recognizeDocument(await image(), [], async () => !edited), /cancelada após edição/);
  assert.equal(calls, 1);
+});
+
+
+test('compact JSON preserves quantities, measurements, original lines and duplicates', async () => {
+ const compact = {p: 'Tinta 18L', q: 2, u: 'un', c: 0.9, s: '2 un tinta 18L'};
+ const result = await service(async () => Response.json({choices: [{finish_reason: 'stop', message: {content: JSON.stringify({t: 'impresso', i: [compact, compact]})}}]})).recognizeDocument(await image());
+ assert.equal(result.lines.length, 2); assert.equal(result.lines[0].text, 'Tinta 18L');
+ assert.equal(result.lines[0].quantity, 2); assert.equal(result.lines[0].recognitionSourceLine, '2 un tinta 18L');
+ assert.equal(result.source, 'printed');
+});
+
+test('empty or truncated lists do not consume a second provider request', async () => {
+ for (const result of [response([], 'stop'), response([item], 'length')]) {
+  let calls=0;
+  await assert.rejects(service(async () => {calls++; return result;}).recognizeDocument(await image()), /nenhum produto|limite de saída/);
+  assert.equal(calls, 1);
+ }
+});
+
+test('provider failures report useful sanitized diagnostics and never expose bodies', async () => {
+ let calls=0;
+ await assert.rejects(service(async () => {calls++; return new Response('sensitive-provider-content', {status:402});}, {fallbackEnabled:false}).recognizeDocument(await image()), error => {
+  assert.match(String(error), /DeepSeek: saldo insuficiente/); assert.doesNotMatch(String(error), /sensitive-provider-content/); return true;
+ });
+ assert.equal(calls,1);
+ await assert.rejects(service(async () => {throw new DOMException('private transport details', 'TimeoutError');}, {fallbackEnabled:false}).recognizeDocument(await image()), /demorou além do limite/);
+});
+
+test('connection test checks DeepSeek balance without generating tokens', async () => {
+ const {IntegrationSettingsService} = await import('./integration-settings.service.js');
+ for (const available of [true,false]) {
+  let calls=0;
+  const settings = new IntegrationSettingsService({fetch: async (url, options) => {
+   calls++; assert.equal(url, 'https://api.deepseek.com/user/balance'); assert.equal(options?.method, undefined);
+   return Response.json({is_available:available});
+  }});
+  settings.getAiRuntime = async () => config;
+  const result=await settings.testProvider('deepseek');
+  assert.equal(result.ok,available); assert.equal(calls,1);
+  assert.match(result.message,available ? /saldo disponíveis/ : /sem saldo/);
+ }
 });

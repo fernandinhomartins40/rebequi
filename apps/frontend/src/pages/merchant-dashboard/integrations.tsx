@@ -1,3 +1,4 @@
+import { prepareQuotePhoto } from '@/lib/quote-photo';
 import { useEffect, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { QuoteAiUpdateBody, QuoteAiProvider } from '@rebequi/shared/schemas';
@@ -36,7 +37,7 @@ export function MerchantDashboardIntegrations() {
   onSuccess: (data, provider) => showConnectionResult(provider, data),
   onError: (error, provider) => showConnectionResult(provider, { ok: false, message: error.message }),
  });
- const recognition = useMutation({ mutationFn: testAiRecognition, onSuccess: setResult, onError: error => setResult({ ok: false, message: error.message }) });
+ const recognition = useMutation({ mutationFn: async (file: File) => testAiRecognition((await prepareQuotePhoto(file)).file), onSuccess: setResult, onError: error => setResult({ ok: false, message: error.message }) });
  const submit = (event: FormEvent) => {
   event.preventDefault(); save.mutate({ ...form,
    deepseekApiKey: remove.deepseek ? null : keys.deepseek.trim() || undefined,
