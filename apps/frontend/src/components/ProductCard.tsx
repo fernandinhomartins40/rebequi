@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Heart, Eye, ShoppingCart, Zap } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Heart, Eye, ShoppingCart, Package } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { Product } from "@/types";
 import { useCart } from "@/contexts/CartContext";
@@ -49,6 +49,8 @@ const ProductCard = ({
 }: ProductCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
+  useEffect(() => { setIsImageLoaded(false); setImageFailed(false); }, [image]);
   const { addItem } = useCart();
   const { toast } = useToast();
   const productHref = href || `/produto/${slug}`;
@@ -96,23 +98,26 @@ const ProductCard = ({
   return (
     <div
       data-ui="product-card"
-      className="group flex flex-col overflow-hidden rounded-lg border border-border/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+      className="group flex min-w-0 flex-col overflow-hidden rounded-xl border border-border/40 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
       data-product-id={id}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Image Container */}
-      <div className="relative overflow-hidden bg-muted">
-        <Link to={productHref} aria-label={`Ver detalhes de ${name}`}>
-          {!isImageLoaded && (
-            <div className="aspect-square w-full animate-pulse bg-muted" />
+      <div data-ui="product-image" className="relative h-36 shrink-0 overflow-hidden bg-slate-50 sm:h-44">
+        <Link to={productHref} aria-label={`Ver detalhes de ${name}`} className="absolute inset-0 block">
+          {!isImageLoaded && !imageFailed && (
+            <div className="absolute inset-0 animate-pulse bg-muted" aria-hidden="true" />
           )}
-          <img
+          {imageFailed ? <div className="flex h-full items-center justify-center" role="img" aria-label={`Imagem indisponível: ${name}`}><Package className="h-12 w-12 text-slate-300" /></div> : <img
             src={image}
             alt={name}
-            className={`aspect-square w-full object-contain p-2 transition-all duration-500 group-hover:scale-105 ${isImageLoaded ? 'opacity-100' : 'opacity-0'}`}
+            loading="lazy"
+            decoding="async"
+            className={`h-full w-full object-contain p-3 transition-all duration-500 group-hover:scale-105 ${isImageLoaded ? 'opacity-100' : 'opacity-0'}`}
             onLoad={() => setIsImageLoaded(true)}
-          />
+            onError={() => setImageFailed(true)}
+          />}
         </Link>
 
         {/* Badges */}
@@ -161,19 +166,19 @@ const ProductCard = ({
       </div>
 
       {/* Content */}
-      <div className="flex flex-1 flex-col p-4">
-        <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+      <div className="flex min-w-0 flex-1 flex-col p-3">
+        <p className="mb-1 line-clamp-1 text-[11px] font-medium text-muted-foreground">
           {category}
         </p>
         <Link to={productHref} className="block flex-1">
-          <h3 className="mb-2 line-clamp-2 text-sm font-semibold leading-snug text-foreground transition-colors hover:text-primary">
+          <h3 className="mb-2 min-h-10 break-words line-clamp-2 text-sm font-semibold leading-5 text-foreground transition-colors hover:text-primary">
             {name}
           </h3>
         </Link>
 
         {/* Pricing */}
-        <div className="mb-2 flex items-baseline gap-2">
-          <span className="text-lg font-extrabold text-primary">{formatPrice(price)}</span>
+        <div className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          <span className="text-base font-extrabold text-primary sm:text-lg">{formatPrice(price)}</span>
           {originalPrice ? (
             <span className="text-xs text-muted-foreground line-through">{formatPrice(originalPrice)}</span>
           ) : null}
@@ -184,16 +189,16 @@ const ProductCard = ({
         ) : null}
 
         {countdownTo ? (
-          <PromotionCountdown expiresAt={countdownTo} label={countdownLabel || 'Termina em'} className="mb-3" />
+          <PromotionCountdown compact expiresAt={countdownTo} label={countdownLabel || 'Termina em'} className="mb-3 flex-wrap" />
         ) : null}
 
         {/* Actions */}
-        <div className="mt-auto grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto]">
+        <div className="mt-auto grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
           <Button
             size="sm"
             onClick={handleAddToCart}
             disabled={!canAddToCart}
-            className="h-9 rounded-xl text-xs font-semibold transition-all duration-200 hover:-translate-y-0.5"
+            className="h-10 min-w-0 rounded-lg px-2 text-xs font-semibold transition-all duration-200 hover:-translate-y-0.5"
           >
             <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
             {canAddToCart ? "Adicionar" : "Sem estoque"}
@@ -202,11 +207,10 @@ const ProductCard = ({
             asChild
             size="sm"
             variant="outline"
-            className="hidden h-9 rounded-xl sm:inline-flex"
+            className="hidden h-10 w-10 rounded-lg p-0 sm:inline-flex"
           >
-            <Link to={productHref}>
-              <Zap className="mr-1.5 h-3.5 w-3.5" />
-              Ver
+            <Link to={productHref} aria-label={`Ver ${name}`}>
+              <Eye className="h-4 w-4" />
             </Link>
           </Button>
         </div>

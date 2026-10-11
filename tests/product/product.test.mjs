@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { mkdir } from 'node:fs/promises';
 import { chromium, request } from 'playwright';
+import { validateCatalogLayout } from './catalog-layout.mjs';
 
 // Mutating validation is confined to a disposable, GitHub-hosted runner.
 if (process.env.CI !== 'true' || process.env.GITHUB_ACTIONS !== 'true' || process.env.RUNNER_ENVIRONMENT !== 'github-hosted') {
@@ -496,6 +497,10 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
           if (['/carrinho', '/checkout'].includes(route)) assert.equal(await page.locator('.landing-mobile-cart').count(), 0);
         }
       } finally { await context.close(); }
+    });
+
+    await t.test('Catalog cards remain compact while images load or fail at responsive widths', async () => {
+      await validateCatalogLayout(browser, baseURL);
     });
 
     await t.test('Shared dashboards group account settings and guide product editing in three steps', async () => {

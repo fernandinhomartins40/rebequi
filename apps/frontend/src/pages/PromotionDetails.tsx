@@ -191,7 +191,7 @@ const PromotionDetailsPage = () => {
               </p>
             </div>
 
-            <div className={`grid grid-cols-1 gap-6 ${isSingleProductPromotion ? 'max-w-sm' : 'sm:grid-cols-2 xl:grid-cols-4'}`}>
+            <div className={`grid items-stretch gap-3 sm:gap-4 ${isSingleProductPromotion ? 'grid-cols-1 max-w-sm' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
               {(isSingleProductPromotion ? (primaryProduct ? [primaryProduct] : []) : promotion.products ?? []).map((product) => {
                 const primaryImage =
                   (product.images && product.images.length > 0 && product.images[0].url) ||

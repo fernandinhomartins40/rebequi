@@ -34,7 +34,7 @@ function CategoryDetailsSkeleton() {
             <Skeleton className="h-10 w-48" />
           </div>
         </div>
-        <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-12 grid grid-cols-2 items-stretch gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
           {Array.from({ length: 8 }).map((_, index) => (
             <Skeleton key={index} className="h-[24rem] rounded-[2rem]" />
           ))}
@@ -194,7 +194,7 @@ export default function CategoryDetailsPage() {
           </div>
 
           {isLoadingProducts ? (
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-2 items-stretch gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
               {Array.from({ length: 8 }).map((_, index) => (
                 <Skeleton key={index} className="h-[24rem] rounded-[2rem]" />
               ))}
@@ -216,7 +216,7 @@ export default function CategoryDetailsPage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-2 items-stretch gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
               {products.map((product) => {
                 const primaryImage =
                   (product.images && product.images.length > 0 && product.images[0].url) || PRODUCT_PLACEHOLDER;
