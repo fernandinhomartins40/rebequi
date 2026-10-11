@@ -335,6 +335,17 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
     });
 
     await t.test('Reference landing remains responsive and adds real products to the cart', async () => {
+      // Start a separate UI phase with a fresh in-memory request window. The
+      // disposable CI API shares one IP across all customers and browsers.
+      // Keep production limits intact and preserve the database and sessions.
+      execFileSync('docker', ['restart', 'rebequi-api'], { stdio: 'pipe' });
+      let ready = false;
+      for (let attempt = 0; attempt < 60; attempt++) {
+        try { ready = (await anonymous.get('/api/health')).ok(); } catch { /* API is restarting. */ }
+        if (ready) break;
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      assert.ok(ready, 'Isolated API must become healthy after restarting');
       const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
       try {
         const page = await context.newPage();
@@ -385,7 +396,7 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
     await t.test('Shared dashboards group account settings and guide product editing in three steps', async () => {
       const context = await browser.newContext();
       try {
-        await data(await context.request.post(`${baseURL}/api/auth/login`, { data: { identifier: '11987654321', password: account.provisionalCredentials.password } }));
+        await context.addCookies((await owner.storageState()).cookies);
         const page = await context.newPage();
         await page.goto(`${baseURL}/painel-cliente`);
         await page.locator('.dashboard-heading').waitFor();

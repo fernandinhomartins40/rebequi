@@ -46,3 +46,7 @@ Uma imagem por chamada. Mantido detail=high no DeepSeek: low reduz para 512px e 
 - Testes automatizados com transporte simulado não medem qualidade real da leitura de manuscritos. Validação paga do provedor exige aprovação, conforme AGENTS.md. Compatibilidade física com iOS/Android depende de teste nesses aparelhos.
 
 O primeiro CI bloqueou o deploy porque a versão do Chromium exige também --use-fake-ui-for-media-stream para usar o dispositivo sintético. A falha foi reproduzida localmente com o mesmo Playwright e corrigida nos parâmetros do teste; o teste local passou sem substituir getUserMedia. Esses parâmetros pertencem somente ao teste, não à aplicação do cliente.
+
+Teste real autorizado: uma única chamada DeepSeek Flash com imagem sintética impressa, sem dados pessoais, sem reserva, pensamento desativado e limite de 512 tokens de saída. HTTP 200 em 1795 ms, finish_reason=stop, 652 tokens de entrada (sem cache) e 116 de saída. Os três produtos, quantidades 2/3/10 e unidades sc/un/un foram reconhecidos corretamente. Custo estimado pelos preços publicados: US$0,0001674–0,0003348; não é extrato de faturamento. Não houve segunda chamada nem benchmark de manuscritos.
+
+No CI seguinte, o fluxo completo de câmera/orçamento passou. Outro cenário excedeu a janela de 100 requisições por IP, pois todos os navegadores do runner compartilham o mesmo IP. A fase de UI reinicia apenas a API descartável do CI, preserva banco e sessões e aguarda saúde; os limites de produção permanecem intactos. O painel do cliente reutiliza a sessão já autenticada.
