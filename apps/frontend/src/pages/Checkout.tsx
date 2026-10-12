@@ -117,8 +117,16 @@ export default function CheckoutPage() {
     });
   };
 
+  const checkReferralExpiry = () => {
+    if (referralCode && referralConfirmed && readReferralIntent() !== referralCode) {
+      clearReferralIntent(); setReferralCode(null); setReferralConfirmed(false);
+      throw new Error('A indicação expirou. Abra novamente o link do profissional ou confira o pedido sem indicação.');
+    }
+  };
+
   const handlePublicSubmit = handleSubmit(async (values) => {
     try {
+      checkReferralExpiry();
       const result = await publicCheckoutMutation.mutateAsync({
         ...(referralCode && referralConfirmed ? { referral: { code: referralCode, confirmed: true as const } } : {}),
         customerNote: values.customerNote?.trim() || undefined,
@@ -159,6 +167,7 @@ export default function CheckoutPage() {
 
   const handleAuthenticatedCheckout = async () => {
     try {
+      checkReferralExpiry();
       const result = await authenticatedCheckoutMutation.mutateAsync({
         ...(referralCode && referralConfirmed ? { referral: { code: referralCode, confirmed: true as const } } : {}),
         customerNote: customerNote.trim() || undefined,

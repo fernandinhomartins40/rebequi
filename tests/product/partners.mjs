@@ -65,6 +65,13 @@ export async function validatePartners({ owner, guest, admin, browser, baseURL, 
     await context.setOffline(true); await page.reload();
     await page.getByRole('heading', { name: 'Você está sem conexão' }).waitFor();
     assert.equal(await page.getByText('Cadastro aprovado', { exact: true }).count(), 0);
+    await page.getByRole('button', { name: 'Conferir área sem conexão', exact: true }).click();
+    await page.getByLabel('Área total (m²)', { exact: true }).fill('12,5');
+    await page.getByLabel('Portas e janelas (m²)', { exact: true }).fill('2,5');
+    await page.getByText('Área líquida: 10 m²', { exact: true }).waitFor();
+    await page.getByLabel('Portas e janelas (m²)', { exact: true }).fill('20');
+    await page.getByText('Área líquida: Confira as medidas; a área total precisa ser maior que as aberturas.', { exact: true }).waitFor();
+    await page.getByRole('button', { name: 'Início', exact: true }).click();
     await context.setOffline(false);
     await page.waitForFunction(() => navigator.onLine);
     await page.getByText('Cadastro aprovado', { exact: true }).waitFor();

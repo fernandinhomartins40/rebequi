@@ -87,3 +87,9 @@ Migrações aditivas 20261012030000_partner_finance e 20261012031000_partner_fin
 Medição pontual anterior a este incremento: API 69,38 MiB, web 5,18 MiB, PostgreSQL 54,49 MiB, aproximadamente 129 MiB ao todo, CPU sem atividade relevante na consulta. Não é benchmark de carga ou comparação controlada. Não há novo contêiner, Redis, IA local ou processo permanente adicional.
 
 Cadastro, obras/ambientes, fichas técnicas, cálculo, mão de obra, propostas comerciais, portfólio privado, IA técnica, indicação por pedido, regras/extrato financeiro e PWA implementados. Ainda faltam recompensas/resgates/níveis/campanhas/expiração de pontos, indicações em outros canais e compras próprias, compartilhamento de documentos/portfólio, conteúdo/oportunidades/push e piloto físico. Não há conclusão integral do plano. Câmera física, instalação/push Android/iOS e testes pagos dependem de validação posterior.
+
+### Revisão da jornada — 12/10/2026
+
+A calculadora offline valida área/aberturas pelo mesmo contrato das medidas online, sem transformar campo vazio ou resultado inválido em zero. O proprietário pode remover fotos mesmo com perfil suspenso; upload continua condicionado à situação do cadastro e a equipe administrativa não recebe controles de remoção. Checkout revalida o prazo da intenção de indicação imediatamente antes do envio e solicita revisão caso tenha expirado, em vez de manter um vínculo vencido. TypeScript, lint e build frontend passaram; teste de navegador adiciona área válida e aberturas maiores que o total em modo offline. O shell permanece com 25 assets públicos, cerca de 750 KB, sem API ou mídia privada em cache.
+
+Corrigidas expectativas HTTP do teste financeiro para 201 na criação de pedidos autenticados. A publicação permanece condicionada ao workflow completo; não considerar teste local como validação financeira em produção.
