@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { getRolesForMerchantPermission } from '@rebequi/shared/constants';
 import { partnerFiltersSchema, partnerProfileSchema, reviewPartnerSchema, type PartnerFiltersInput } from '@rebequi/shared/schemas';
 import { authenticate, authorize } from '../middleware/auth.middleware.js';
 import { validateBody, validateQuery } from '../middleware/validation.middleware.js';
@@ -20,6 +21,7 @@ import { partnerProgramRuleSchema, acceptPartnerProgramSchema, partnerPayoutSche
 import { currentPartnerRule, savePartnerRule, getOwnPartnerProgram, acceptPartnerRule, ownPartnerWallet, readPartnerWallet, recordPartnerPayout, ownPartnerRuleHistory } from '../services/partner-program.service.js';
 
 const router: Router = Router();
+const financeRoles = getRolesForMerchantPermission('partners:finance');
 router.use(authenticate, (_req, res, next) => { res.setHeader('Cache-Control', 'private, no-store'); next(); });
 // Cookie mutations require an allowed browser origin. SameSite is not the only control.
 router.use(requireTrustedOrigin);
@@ -29,12 +31,12 @@ router.get('/program/history', authorize('CUSTOMER'), validateQuery(pageQuery), 
 router.get('/program', authorize('CUSTOMER'), async (req, res, next) => { try { successResponse(res, await getOwnPartnerProgram(req.user!.userId)); } catch (error) { next(error); } });
 router.post('/program/accept', authorize('CUSTOMER'), validateBody(acceptPartnerProgramSchema), async (req, res, next) => { try { successResponse(res, await acceptPartnerRule(req.user!.userId, req.body.ruleId)); } catch (error) { next(error); } });
 router.get('/wallet', authorize('CUSTOMER'), validateQuery(pageQuery), async (req, res, next) => { try { successResponse(res, await ownPartnerWallet(req.user!.userId, Number(req.query.page))); } catch (error) { next(error); } });
-router.get('/admin/program', authorize('ADMIN', 'MANAGER'), async (_req, res, next) => { try { successResponse(res, await currentPartnerRule()); } catch (error) { next(error); } });
-router.post('/admin/program', authorize('ADMIN', 'MANAGER'), validateBody(partnerProgramRuleSchema), async (req, res, next) => { try { successResponse(res, await savePartnerRule(req.user!.userId, req.body)); } catch (error) { next(error); } });
-router.get('/admin/:id/wallet', authorize('ADMIN', 'MANAGER'), validateQuery(pageQuery), async (req, res, next) => {
+router.get('/admin/program', authorize(...financeRoles), async (_req, res, next) => { try { successResponse(res, await currentPartnerRule()); } catch (error) { next(error); } });
+router.post('/admin/program', authorize(...financeRoles), validateBody(partnerProgramRuleSchema), async (req, res, next) => { try { successResponse(res, await savePartnerRule(req.user!.userId, req.body)); } catch (error) { next(error); } });
+router.get('/admin/:id/wallet', authorize(...financeRoles), validateQuery(pageQuery), async (req, res, next) => {
   try { if (!await prisma.partnerProfile.findUnique({ where: { id: req.params.id }, select: { id: true } })) throw new NotFoundError('Cadastro não encontrado'); successResponse(res, await readPartnerWallet(req.params.id, Number(req.query.page))); } catch (error) { next(error); }
 });
-router.post('/admin/:id/payouts', authorize('ADMIN', 'MANAGER'), validateBody(partnerPayoutSchema), async (req, res, next) => { try { successResponse(res, await recordPartnerPayout(req.params.id, req.user!.userId, req.body), 201); } catch (error) { next(error); } });
+router.post('/admin/:id/payouts', authorize(...financeRoles), validateBody(partnerPayoutSchema), async (req, res, next) => { try { successResponse(res, await recordPartnerPayout(req.params.id, req.user!.userId, req.body), 201); } catch (error) { next(error); } });
 router.get('/referrals', authorize('CUSTOMER'), validateQuery(z.object({ page: z.coerce.number().int().min(1).max(100000).default(1) })), async (req, res, next) => {
   try { successResponse(res, await listOwnReferrals(req.user!.userId, Number(req.query.page))); } catch (error) { next(error); }
 });

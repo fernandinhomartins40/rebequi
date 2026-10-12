@@ -50,4 +50,9 @@ export async function validatePartnerRewards({ owner, guest, admin, browser, bas
   const immutable = db(`let blocked=false;try{await prisma.partnerRedemption.update({where:{id:${JSON.stringify(pending.id)}},data:{points:1}});}catch{blocked=true;}console.log(JSON.stringify({blocked}));`).trim().split('\n').at(-1);
   assert.deepEqual(JSON.parse(immutable), { blocked: true });
   await data(await admin.post('/api/partners/admin/program', { headers, data: { ...config, expectedVersion: rule.version, enabled: false } }));
+  const salesLogin = { identifier: 'isolated-sales-permission@example.invalid', password: 'Isolated-Sales-Only-2026!' };
+  await data(await admin.post('/api/users', { headers, data: { email: salesLogin.identifier, password: salesLogin.password, name: 'Vendedor do runner', role: 'SALES', mustChangePassword: false } }), 201);
+  await data(await guest.post('/api/auth/login', { data: salesLogin }));
+  assert.equal((await guest.get('/api/sales/admin/revenue')).status(), 200);
+  for (const path of ['/api/partners/admin/program', '/api/partners/admin/rewards', '/api/partners/admin/redemptions', `/api/partners/admin/${profile.id}/wallet`]) assert.equal((await guest.get(path)).status(), 403, 'Sales permission must not grant partner financial access');
 }
