@@ -7,6 +7,7 @@ import { allocateDiscountedLines, cumulativeReturnCents } from './partner-financ
 import { reversePartnerSale } from './partner-program.service.js';
 import { enqueueCatalogChange } from './integration-outbox.service.js';
 import { requireCommercialAccess, type CommercialActor } from './commercial-access.service.js';
+import { reviseFulfillmentAfterReturn } from './fulfillment.service.js';
 
 const serialize = <T extends { refundCents: bigint; items: { refundCents: bigint }[] }>(row: T) => ({ ...row, refundCents: String(row.refundCents), items: row.items.map(item => ({ ...item, refundCents: String(item.refundCents) })) });
 export async function listSaleReturns(saleId: string, page: number, actor?: CommercialActor) {
@@ -77,6 +78,7 @@ export async function createSaleReturn(saleId: string, actorId: string, raw: Sal
     await reversePartnerSale(tx, saleId, refunds._sum.refundCents ?? 0n, `sale-return:${result.id}`, actorId);
     await tx.integrationAudit.create({ data: { actorId, jobId: result.id, action: 'SALE_RETURN_RECORDED' } });
     await tx.sale.update({ where: { id: saleId }, data: { returnVersion: { increment: 1 } } });
+    await reviseFulfillmentAfterReturn(tx, saleId, result.id, actorId);
     return serialize(result);
   });
 }

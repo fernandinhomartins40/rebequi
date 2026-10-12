@@ -134,10 +134,9 @@ export function validateCommercialConsistency(db) {
       const jobs=await prisma.integrationJob.findMany({where:{productId:p.id},select:{id:true}});
       await prisma.integrationAudit.deleteMany({where:{jobId:{in:jobs.map(job=>job.id)}}});
       await prisma.integrationJob.deleteMany({where:{productId:p.id}});
-      const items=await prisma.saleItem.findMany({where:{productId:p.id},select:{saleId:true}});
       await prisma.stockMovement.deleteMany({where:{productId:p.id}});
-      await prisma.sale.deleteMany({where:{id:{in:items.map(i=>i.saleId)}}});
-      await prisma.customerOrder.deleteMany({where:{id:{in:orders.map(o=>o.id)}}});
+      // Keep sale/order snapshots: warehouse history is immutable, even in the
+      // disposable suite. The entire runner database is discarded after tests.
       if(channel) await prisma.channel.delete({where:{id:channel.id}});
       if(channel) await prisma.integrationAudit.deleteMany({where:{jobId:'channel:'+channel.id}});
       await prisma.product.delete({where:{id:p.id}});

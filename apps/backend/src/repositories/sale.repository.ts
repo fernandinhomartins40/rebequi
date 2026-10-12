@@ -4,6 +4,7 @@ import { ConflictError, NotFoundError, ValidationError } from '../utils/errors.u
 import { enqueueCatalogChange } from '../services/integration-outbox.service.js';
 import { earnPartnerSale, holdPartnerPayment, reversePartnerSale } from '../services/partner-program.service.js';
 import { requireCommercialAccess, type CommercialActor } from '../services/commercial-access.service.js';
+import { ensureSaleFulfillment, cancelSaleFulfillment } from '../services/fulfillment.service.js';
 
 const saleInclude = {
   customer: {
@@ -81,6 +82,7 @@ export class SaleRepository {
         await tx.customerOrder.update({ where: { id: params.sale.order.connect.id }, data: { status: 'COMPLETED', completedAt: new Date() } });
       }
       await earnPartnerSale(tx, sale.id);
+      await ensureSaleFulfillment(tx, sale.id, params.actor?.userId);
       return sale;
     });
   }
@@ -96,6 +98,7 @@ export class SaleRepository {
         throw new ValidationError('Venda cancelada não pode ser reaberta. Registre uma nova venda.');
       }
       if (status === 'CANCELED' && sale.status !== 'CANCELED') {
+        await cancelSaleFulfillment(tx, id, actorId);
         const returns = await tx.saleReturnItem.groupBy({ by: ['saleItemId'], where: { return: { saleId: id } }, _sum: { quantity: true } });
         const returned = new Map(returns.map(row => [row.saleItemId, row._sum.quantity ?? 0]));
         for (const item of [...sale.items].sort((a, b) => (a.productId ?? '').localeCompare(b.productId ?? ''))) {
@@ -124,6 +127,7 @@ export class SaleRepository {
         canceledAt: status === 'CANCELED' ? sale.canceledAt ?? new Date() : null,
       }, include: saleInclude });
       if (status === 'PAID' && sale.status !== status) { await earnPartnerSale(tx, id, actorId); await holdPartnerPayment(tx, id, updated.statusVersion, true, actorId); }
+      if (status === 'PAID' && sale.status !== status) await ensureSaleFulfillment(tx, id, actorId);
       if (actorId && sale.status !== status) await tx.integrationAudit.create({ data: { actorId, jobId: id, action: `SALE_STATUS_${status}` } });
       return updated;
     });

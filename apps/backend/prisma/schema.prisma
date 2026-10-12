@@ -513,6 +513,7 @@ enum SaleStatus {
 }
 
 model Sale {
+  fulfillment Fulfillment?
   assignedSellerId String?
   assignedSeller User? @relation("SaleSeller", fields: [assignedSellerId], references: [id], onDelete: SetNull)
   assignmentVersion Int @default(0)
@@ -574,7 +575,59 @@ model CommercialAssignmentAudit {
   @@map("commercial_assignment_audits")
 }
 
+model Fulfillment {
+  id String @id @default(cuid())
+  saleId String @unique
+  sale Sale @relation(fields: [saleId], references: [id], onDelete: Restrict)
+  mode String @default("UNDEFINED")
+  status String @default("AWAITING_DETAILS")
+  version Int @default(1)
+  address String?
+  region String?
+  scheduledAt DateTime?
+  notes String?
+  items FulfillmentItem[]
+  events FulfillmentEvent[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([status, createdAt])
+  @@map("fulfillments")
+}
+
+model FulfillmentItem {
+  id String @id @default(cuid())
+  fulfillmentId String
+  fulfillment Fulfillment @relation(fields: [fulfillmentId], references: [id], onDelete: Restrict)
+  saleItemId String
+  saleItem SaleItem @relation(fields: [saleItemId], references: [id], onDelete: Restrict)
+  nameSnapshot String
+  quantity Int
+  picked Int @default(0)
+  checked Int @default(0)
+  delivered Int @default(0)
+  location String?
+  @@unique([fulfillmentId, saleItemId])
+  @@map("fulfillment_items")
+}
+
+model FulfillmentEvent {
+  id String @id @default(cuid())
+  fulfillmentId String
+  fulfillment Fulfillment @relation(fields: [fulfillmentId], references: [id], onDelete: Restrict)
+  requestKey String @unique
+  fingerprint String
+  version Int
+  kind String
+  actorId String
+  details Json
+  createdAt DateTime @default(now())
+  @@unique([fulfillmentId, version])
+  @@index([fulfillmentId, createdAt])
+  @@map("fulfillment_events")
+}
+
 model SaleItem {
+  fulfillmentItems FulfillmentItem[]
   returnItems SaleReturnItem[]
   id                  String   @id @default(cuid())
   saleId              String
