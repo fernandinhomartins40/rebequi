@@ -20,7 +20,7 @@ export async function validateDrivers({ admin, guest, browser, baseURL, data, db
     assert.equal((await admin.put(`/api/fulfillments/${id}/driver`, { data: assignment })).status(), 403);
     assert.equal((await guest.put(`/api/fulfillments/${id}/driver`, { headers, data: assignment })).status(), 403);
     const saved = await data(await admin.put(`/api/fulfillments/${id}/driver`, { headers, data: assignment }));
-    const oldImageGuard = JSON.parse(db(`let blocked=false;try{await prisma.fulfillment.update({where:{id:${JSON.stringify(id)}},data:{mode:'PICKUP'}});}catch{blocked=true;}console.log(JSON.stringify({blocked}));`).trim());
+    const oldImageGuard = JSON.parse(db(`let blocked=false;try{await prisma.fulfillment.update({where:{id:${JSON.stringify(id)}},data:{mode:'PICKUP'}});}catch{blocked=true;}console.log(JSON.stringify({blocked}));`).trim().split('\n').at(-1));
     assert.equal(oldImageGuard.blocked, true, 'Older images cannot silently convert an assigned delivery into pickup');
     assert.deepEqual(await data(await admin.put(`/api/fulfillments/${id}/driver`, { headers, data: assignment })), saved);
     assert.equal((await admin.put(`/api/fulfillments/${id}/details`, { headers, data: { requestKey: randomUUID(), expectedVersion: saved.version, confirmed: true, mode: 'PICKUP', address: null, region: null, scheduledAt: null, notes: null } })).status(), 409);

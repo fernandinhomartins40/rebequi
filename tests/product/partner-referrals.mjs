@@ -30,6 +30,23 @@ export async function validatePartnerReferrals({ owner, guest, admin, browser, b
     await page.waitForFunction(() => { const canvas = document.querySelector('canvas'); return canvas?.width === 220 && canvas?.getContext('2d')?.getImageData(0, 0, 220, 220).data.some((value, index) => index % 4 < 3 && value === 0); });
     assert.equal(await page.getByText(checkout.order.referenceCode, { exact: true }).count(), 1);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    // Force the public query to be in flight when the initial session resolves.
+    // Both responses still come from the actual isolated API and database.
+    let signalLookup; let signalAuth;
+    const lookupStarted = new Promise(resolve => { signalLookup = resolve; });
+    const authDelivered = new Promise(resolve => { signalAuth = resolve; });
+    await page.route('**/api/auth/me', async route => {
+      await lookupStarted;
+      const response = await route.fetch();
+      assert.equal(response.status(), 200);
+      await route.fulfill({ response }); signalAuth();
+    });
+    await page.route(`**/api/orders/referral/${profile.referralCode}`, async route => {
+      const response = await route.fetch(); signalLookup();
+      await authDelivered;
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      await route.fulfill({ response });
+    });
     const publicLookup = page.waitForResponse(response => new URL(response.url()).pathname === `/api/orders/referral/${profile.referralCode}`);
     await page.goto(`${baseURL}/indicacao/${profile.referralCode}`);
     const publicResponse = await publicLookup;

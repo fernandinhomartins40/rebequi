@@ -138,6 +138,12 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Correção da sessão inicial e gate de frota — 12/10/2026
+
+Reproduzida localmente a indicação travada: consulta pública iniciada, resposta da sessão autenticada recebida primeiro, resposta pública 200 recebida depois; antes, botão ausente e “Carregando…” permanente. AuthContext limpava QueryClient na primeira resolução de sessão, cancelando consultas em voo e desconectando seus observers. Agora a primeira verificação conserva o cache novo em memória; após uma sessão resolvida, troca de identidade continua limpando o cache para proteger dados privados. Não existe persistência de QueryClient entre carregamentos de página. A mesma reprodução local após build mostrou o botão disponível. Teste integrado força a ordem de respostas com interceptação temporal, mas usa dados/respostas reais da API isolada.
+
+Workflow 38320249189 falhou em navegação Chromium ERR_NETWORK_CHANGED e no parse do resultado de uma proteção de auditoria. O banco corretamente registrou a rejeição, mas logs Prisma antecediam o JSON esperado no stdout; teste agora lê a última linha JSON, mantendo a asserção de bloqueio, como os testes financeiros já fazem. Mesma correção aplicada à guarda de conversão de entrega atribuída. Não altera constraints nem permissões para aprovar o teste. A navegação não foi flexibilizada; o próximo gate verificará novamente. Tipos/frontend build e texto passaram; lint sem erro, com aviso já existente de Fast Refresh em AuthContext. Validação integrada/publicação dos incrementos atuais continuam pendentes.
+
 ### Motorista e tarefas atribuídas — 12/10/2026
 
 Perfil DRIVER na matriz compartilhada e cadastro de equipe, com apenas logistics:drive. Tela Minhas entregas carregada sob demanda: paginação, etapa real, endereço/agendamento e quantidades conferidas/recebidas; não mostra financeiro, preços, notas/localização do depósito ou outras tarefas. Backend filtra por motorista autenticado, entrega paga não cancelada; consulta por ID também exige vínculo. Conta desativada ou papel alterado é revalidado pelo middleware existente a cada chamada. A atribuição ADMIN/MANAGER fica na tarefa do Depósito em três passos, motivo obrigatório, versão esperada, intenção idempotente e evento imutável; exige motorista ativo, modo DELIVERY e preparação/pronto. Troca para retirada exige primeiro remover o motorista. Não atribui históricos automaticamente, não cria contas reais, não registra entrega realizada nem simula romaneio.

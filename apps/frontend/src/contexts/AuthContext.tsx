@@ -40,10 +40,15 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const sessionUserId = useRef<string | null>(null);
+  const sessionResolved = useRef(false);
   const [user, setUser] = useState<User | null>(null);
   const [status, setStatus] = useState<AuthStatus>('loading');
   const setSessionUser = useCallback((nextUser: User | null) => {
-    if (sessionUserId.current !== (nextUser?.id ?? null)) queryClient.clear();
+    // The first probe starts with an empty, non-persisted client. Clearing it here
+    // cancels public queries mounted during bootstrap and strands their observers.
+    // Once a session has been resolved, account changes must still clear private data.
+    if (sessionResolved.current && sessionUserId.current !== (nextUser?.id ?? null)) queryClient.clear();
+    sessionResolved.current = true;
     sessionUserId.current = nextUser?.id ?? null;
     setUser(nextUser);
   }, [queryClient]);
