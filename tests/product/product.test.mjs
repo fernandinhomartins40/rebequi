@@ -16,6 +16,7 @@ import { validatePartnerReferrals } from './partner-referrals.mjs';
 import { validatePartnerFinance } from './partner-finance.mjs';
 import { validateCommercialAccess } from './commercial-access.mjs';
 import { validateFulfillment } from './fulfillment.mjs';
+import { validateExternalApi } from './external-api.mjs';
 import { validatePartnerRewards } from './partner-rewards.mjs';
 
 // Mutating validation is confined to a disposable, GitHub-hosted runner.
@@ -110,6 +111,12 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
       const admin = await client(); const guest = await client();
       await data(await admin.post('/api/auth/login', { data: { identifier: 'integration@example.invalid', password: 'integration-only-admin-password' } }));
       await validateFulfillment({ owner, guest, admin, browser, baseURL, data, db, product });
+    });
+    await restartIsolatedApi();
+    await t.test('External API credentials are scoped, hash-only, revocable and read real data without writes', async () => {
+      const admin = await client(); const guest = await client();
+      await data(await admin.post('/api/auth/login', { data: { identifier: 'integration@example.invalid', password: 'integration-only-admin-password' } }));
+      await validateExternalApi({ owner, admin, guest, browser, baseURL, data, db });
     });
     await restartIsolatedApi();
     await t.test('Private projects, verified calculations and grouped quote requests', async () => {

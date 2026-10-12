@@ -626,6 +626,20 @@ model FulfillmentEvent {
   @@map("fulfillment_events")
 }
 
+model ExternalApiClient {
+  requestKey String @unique
+  id String @id @default(cuid())
+  name String
+  tokenHash String @unique
+  scopes String[]
+  expiresAt DateTime
+  revokedAt DateTime?
+  actorId String
+  createdAt DateTime @default(now())
+  @@index([createdAt])
+  @@map("external_api_clients")
+}
+
 model SaleItem {
   fulfillmentItems FulfillmentItem[]
   returnItems SaleReturnItem[]

@@ -21,3 +21,4 @@ export * from './partner-program.schema.js';
 export * from './partner-reward.schema.js';
 export * from './commercial.schema.js';
 export * from './fulfillment.schema.js';
+export * from './external-api.schema.js';

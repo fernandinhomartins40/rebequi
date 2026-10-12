@@ -14,17 +14,20 @@ import { QUOTE_IMAGE_CONFIG, IMAGE_UPLOAD_ACCEPT, readFileAsDataUrl } from './im
 import { useSearchParams } from 'react-router-dom';
 import { MarketplaceSettingsPanel } from './marketplace-settings';
 import { PartnerAiSettingsPanel } from './partner-ai-settings';
+import { ExternalApiSettings } from './external-api-settings';
 
 export function MerchantDashboardIntegrations() {
  const [params, setParams] = useSearchParams();
  const isAi = params.get('tab') === 'ia';
+ const isExternal = params.get('tab') === 'erp';
  return <div className="space-y-5">
   <DashboardHeading title="Configurações de integrações" description="Conecte suas contas e confira cada integração em três passos." />
   <div className="flex flex-wrap gap-2" role="tablist" aria-label="Tipo de integração">
-   <Button role="tab" aria-selected={!isAi} variant={!isAi ? 'default' : 'outline'} onClick={() => setParams({ tab: 'marketplaces' })}>Marketplaces</Button>
+   <Button role="tab" aria-selected={!isAi && !isExternal} variant={!isAi && !isExternal ? 'default' : 'outline'} onClick={() => setParams({ tab: 'marketplaces' })}>Marketplaces</Button>
    <Button role="tab" aria-selected={isAi} variant={isAi ? 'default' : 'outline'} onClick={() => setParams({ tab: 'ia' })}>IA de orçamentos</Button>
+   <Button role="tab" aria-selected={isExternal} variant={isExternal ? 'default' : 'outline'} onClick={() => setParams({ tab: 'erp' })}>ERP/PDV e API</Button>
   </div>
-  {isAi ? <><QuoteAiSettings /><PartnerAiSettingsPanel /></> : <MarketplaceSettingsPanel />}
+  {isExternal ? <ExternalApiSettings /> : isAi ? <><QuoteAiSettings /><PartnerAiSettingsPanel /></> : <MarketplaceSettingsPanel />}
  </div>;
 }
 
