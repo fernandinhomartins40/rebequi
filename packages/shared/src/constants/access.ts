@@ -5,6 +5,7 @@ export type MerchantPermission =
   | 'catalog:manage'
   | 'catalog:read'
   | 'commercial:assign'
+  | 'commercial:work'
   | 'promotions:manage'
   | 'orders:manage'
   | 'sales:manage'
@@ -38,6 +39,7 @@ export const INTERNAL_USER_ROLES: InternalUserRole[] = [
 ];
 
 export const MERCHANT_PERMISSION_PROFILES: Record<MerchantPermission, PermissionProfile> = {
+  'commercial:work': { label: 'Meus atendimentos', description: 'Consulta suas pendências e registros comerciais atribuídos.' },
   'catalog:read': { label: 'Consulta de catálogo', description: 'Consulta produtos, preços e disponibilidade sem editar o catálogo.' },
   'commercial:assign': { label: 'Distribuição comercial', description: 'Atribui e redistribui clientes, atendimentos, pedidos e vendas entre colaboradores.' },
   'partners:finance': { label: 'Financeiro de parceiros', description: 'Publica regras, confere extratos, registra pagamentos e gerencia recompensas e resgates.' },
@@ -89,7 +91,7 @@ export const MERCHANT_ROLE_PROFILES: Record<InternalUserRole, RoleProfile> = {
     label: 'Administrador',
     description: 'Controle total do painel, incluindo acesso e configuracao da equipe.',
     permissions: [
-      'catalog:read', 'commercial:assign',
+      'catalog:read', 'commercial:assign', 'commercial:work',
       'partners:finance',
       'partners:manage',
       'dashboard:view',
@@ -108,7 +110,7 @@ export const MERCHANT_ROLE_PROFILES: Record<InternalUserRole, RoleProfile> = {
     label: 'Gerente operacional',
     description: 'Opera o painel quase por completo, sem gerenciar usuarios internos.',
     permissions: [
-      'catalog:read', 'commercial:assign',
+      'catalog:read', 'commercial:assign', 'commercial:work',
       'partners:finance',
       'partners:manage',
       'dashboard:view',
@@ -135,7 +137,7 @@ export const MERCHANT_ROLE_PROFILES: Record<InternalUserRole, RoleProfile> = {
   [UserRole.SALES]: {
     label: 'Operador comercial',
     description: 'Atende solicitacoes, pedidos, recuperacao de vendas e acompanha o fluxo comercial.',
-    permissions: ['catalog:read', 'orders:manage', 'sales:manage', 'customers:manage', 'quotes:manage'],
+    permissions: ['commercial:work', 'catalog:read', 'orders:manage', 'sales:manage', 'customers:manage', 'quotes:manage'],
   },
 };
 

@@ -59,6 +59,7 @@ const MerchantUserEditorPage = merchant('MerchantUserEditorPage');
 const PartnersPage = lazy(() => import('./pages/partners'));
 const PartnerReferralPage = lazy(() => import('./pages/PartnerReferral'));
 const MerchantPartnersPage = lazy(() => import('./pages/merchant-dashboard/partners'));
+const CommercialWorkbenchPage = lazy(() => import('./pages/merchant-dashboard/commercial-workbench'));
 
 const queryClient = new QueryClient();
 
@@ -213,6 +214,9 @@ const App = () => (
                         path="pedidos/:orderId"
                         element={<MerchantDashboardOrderDetails />}
                       />
+                    </Route>
+                    <Route element={<MerchantPermissionRoute permission="commercial:work" />}>
+                      <Route path="atendimentos" element={<CommercialWorkbenchPage />} />
                     </Route>
                     <Route
                       element={

@@ -19,6 +19,9 @@ export async function validateCommercialAccess({ owner, admin, sellerA, sellerB,
   assert.equal((await sellerA.put(`/api/products/${product.id}`, { headers, data: { name: 'Não autorizado' } })).status(), 403);
   await assign('customer', customer.id, profiles[0].id);
   await assign('order', order.id, profiles[0].id);
+  const workA = await data(await sellerA.get('/api/commercial/workbench')); const workB = await data(await sellerB.get('/api/commercial/workbench'));
+  assert.equal(workA.orders.some(item => item.id === order.id), true);
+  assert.equal(workB.orders.some(item => item.id === order.id), false);
   assert.equal((await sellerA.get(`/api/orders/admin/${order.id}`)).status(), 200);
   assert.equal((await sellerB.get(`/api/orders/admin/${order.id}`)).status(), 404);
   assert.equal((await sellerB.post(`/api/orders/admin/${order.id}/reserve`, { headers })).status(), 404);
@@ -63,6 +66,15 @@ export async function validateCommercialAccess({ owner, admin, sellerA, sellerB,
     await page.getByRole('button', { name: 'Confirmar distribuição', exact: true }).click(); await page.getByText('Responsável atualizado.', { exact: true }).waitFor();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   } finally { await context.close(); }
+  const sellerContext = await browser.newContext();
+  try {
+    await sellerContext.addCookies((await sellerA.storageState()).cookies); const page = await sellerContext.newPage(); await page.setViewportSize({ width: 320, height: 844 });
+    await page.goto(`${baseURL}/painel-lojista/painel/atendimentos`); await page.getByRole('heading', { name: 'Meus atendimentos', exact: true }).waitFor();
+    await page.getByLabel('Digite o nome ou SKU', { exact: true }).fill(product.sku);
+    await page.getByText(product.name, { exact: true }).waitFor();
+    assert.equal(await page.getByRole('button', { name: 'Distribuir atendimento', exact: true }).count(), 0);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  } finally { await sellerContext.close(); }
   const history = await data(await admin.get(`/api/commercial/assignments/order/${order.id}/history`)); assert.equal(history.total, 3);
   await data(await admin.post(`/api/sales/admin/${sale.id}/status`, { headers, data: { status: 'CANCELED' } }));
 }

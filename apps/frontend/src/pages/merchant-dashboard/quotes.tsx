@@ -1,6 +1,7 @@
 import { DashboardInfo, DashboardEmpty, DashboardLoading, DashboardError, DashboardSelection } from "@/components/dashboard/DashboardList";
 import { QuoteStatus, LeadStatus } from '@rebequi/shared/types';
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Clock3, FileText, MessageCircle, Send, UserRound } from 'lucide-react';
 import { formatDateTime, formatWhatsapp } from '@rebequi/shared/utils';
@@ -26,9 +27,10 @@ import {
 type BoardTab = 'quotes' | 'leads';
 
 export function MerchantDashboardQuotes() {
+  const [params] = useSearchParams();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<BoardTab>('quotes');
-  const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(null);
+  const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(params.get('quoteId'));
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
 
   const quotesQuery = useQuery({

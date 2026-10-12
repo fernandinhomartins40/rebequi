@@ -20,6 +20,7 @@ export const SIDEBAR_THEME = {
 } as const;
 
 export type MerchantSection =
+  | 'atendimentos'
   | 'visão-geral'
   | 'produtos'
   | 'promoções'
@@ -64,6 +65,7 @@ export type MerchantNavItem = {
 };
 
 export const NAV_SECTIONS: Omit<MerchantNavItem, 'badge'>[] = [
+  { id: 'atendimentos', group: 'vender', href: `${ADMIN_BASE_PATH}/atendimentos`, label: 'Meus atendimentos', description: 'Pendências atribuídas e consulta de produtos', icon: Users, eyebrow: 'Comercial', title: 'Meus atendimentos', intro: 'Confira seus atendimentos e pendências.', requiredPermission: 'commercial:work' },
   {
     id: 'visão-geral',
     group: 'resumo',
@@ -208,6 +210,7 @@ export function groupMerchantNavItems(items: MerchantNavItem[]) {
 }
 
 export function getDefaultMerchantDashboardHref(role?: UserRole | string | null) {
+  if (role === 'SALES') return `${ADMIN_BASE_PATH}/atendimentos`;
   const firstAvailableItem = getMerchantNavItemsForRole(role)[0];
   return firstAvailableItem?.href ?? ADMIN_BASE_PATH;
 }
