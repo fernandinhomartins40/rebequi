@@ -138,6 +138,10 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Validação da retomada
+
+O incremento anterior a2fd288 acrescentou o perfil WAREHOUSE e testes de acesso operacional sem financeiro. A execução 38319186948 foi consultada nesta retomada e ainda estava em andamento; sua publicação não está confirmada. O próximo incremento deve concluir esse gate antes de ampliar o fluxo de expedição. Acrescentada guarda explícita de etapa na liberação READY para impedir que futuras etapas de carga/entrega voltem à expedição por essa ação.
+
 12/10/2026: pedido lido, rotas/modelos/serviços auditados e fontes oficiais pesquisadas. Nenhuma conexão ERP ativada. Fundação comercial priorizada por exposição transversal de SALES. Etapas acima ainda não concluídas.
 
 Ao retomar: ler este GOAL, AGENTS.md, git status/log e último resultado do workflow; preservar arquivos do usuário e trabalhar na main. Executar a primeira tarefa incompleta tecnicamente viável; registrar decisões/testes/commit/publicação. Não repetir autorização para mudanças seguras neste escopo. Diante de bloqueio externo, registrar e continuar tarefas independentes. Nunca confundir build/teste sintético com integração externa operacional.

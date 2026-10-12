@@ -80,6 +80,7 @@ async function mutateFulfillment(id: string, actorId: string, input: Fulfillment
         }
         nextStatus = 'CHECKING';
       } else if (operation.action === 'READY') {
+        if (!['PICKING', 'CHECKING', 'READY'].includes(row.status)) throw new ConflictError('Esta etapa não permite liberar materiais para expedição.');
         const items = await tx.fulfillmentItem.findMany({ where: { fulfillmentId: id } });
         if (!items.length || items.some(item => item.checked !== item.quantity - (refunds.get(item.saleItemId) ?? 0))) throw new ConflictError('Confira todo o saldo dos materiais antes de liberar para expedição.');
         if (items.every(item => item.quantity - (refunds.get(item.saleItemId) ?? 0) === 0)) throw new ConflictError('Não há materiais pendentes após as devoluções.');
