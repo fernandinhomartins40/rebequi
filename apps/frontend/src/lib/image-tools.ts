@@ -12,6 +12,7 @@ export type ImageCropConfig = {
 };
 
 export const IMAGE_UPLOAD_ACCEPT = 'image/jpeg,image/png,image/webp,image/gif,image/avif,image/bmp';
+export const PARTNER_PORTFOLIO_CONFIG: ImageCropConfig = { width: 1000, height: 750, quality: 0.8, maxSizeMB: 0.24, initialCropWidthPercent: 95, fallbackBaseName: 'portfolio' };
 export const CATEGORY_IMAGE_CONFIG: ImageCropConfig = { width: 800, height: 800, quality: 0.8, maxSizeMB: 0.25, initialCropWidthPercent: 100, fallbackBaseName: 'categoria' };
 export const QUOTE_IMAGE_CONFIG: ImageCropConfig = { width: 1800, height: 1800, quality: 0.88, maxSizeMB: 2, initialCropWidthPercent: 100, fallbackBaseName: 'lista', preserveCropAspect: true };
 

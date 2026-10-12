@@ -69,11 +69,12 @@ async function storeManagedImage(params: {
     const image = sharp(file.buffer, { limitInputPixels: 40000000, animated: false }).rotate();
     const metadata = await image.metadata();
     if (!metadata.width || !metadata.height || !['jpeg', 'png', 'webp', 'gif', 'avif', 'heif', 'tiff'].includes(metadata.format || '')) throw new Error('Invalid image');
-    const dimensions = folder === 'promotions' ? { width: 1600, height: 900 } : folder === 'quotes' ? { width: 1800, height: 1800 } : { width: folder === 'categories' ? 800 : 1200, height: folder === 'categories' ? 800 : 1200 };
-    const output = await image.resize({ ...dimensions, fit: folder === 'quotes' ? 'inside' : 'contain', background: '#ffffff', withoutEnlargement: folder === 'quotes' })
-      .webp({ quality: folder === 'quotes' ? 88 : 80, effort: 3 }).toBuffer({ resolveWithObject: true });
+    const dimensions = folder === 'partners' ? { width: 1000, height: 750 } : folder === 'promotions' ? { width: 1600, height: 900 } : folder === 'quotes' ? { width: 1800, height: 1800 } : { width: folder === 'categories' ? 800 : 1200, height: folder === 'categories' ? 800 : 1200 };
+    let output = await image.resize({ ...dimensions, fit: folder === 'quotes' ? 'inside' : 'contain', background: '#ffffff', withoutEnlargement: folder === 'quotes' })
+      .webp({ quality: folder === 'partners' ? 72 : folder === 'quotes' ? 88 : 80, effort: 3 }).toBuffer({ resolveWithObject: true });
+    if (folder === 'partners' && output.data.length > 250 * 1024) output = await image.webp({ quality: 55, effort: 3 }).toBuffer({ resolveWithObject: true });
     buffer = output.data; width = output.info.width; height = output.info.height;
-    const maximum = folder === 'quotes' ? 2 * 1024 * 1024 : 600 * 1024;
+    const maximum = folder === 'partners' ? 250 * 1024 : folder === 'quotes' ? 2 * 1024 * 1024 : 600 * 1024;
     if (buffer.length > maximum) throw new Error('Image too large');
   } catch { throw new ValidationError('Imagem inválida ou muito grande. Escolha JPG, PNG, WebP, GIF ou AVIF.'); }
   finally { releaseProcessingSlot(); }
@@ -141,6 +142,10 @@ export async function storeQuoteDocumentImage(params: {
     ...params,
     folder: 'quotes',
   });
+}
+
+export async function storePartnerPortfolioImage(file: Express.Multer.File) {
+  return storeManagedImage({ file, folder: 'partners' });
 }
 
 export async function deleteStoredImages(images: Array<{ storageKey?: string | null }>) {

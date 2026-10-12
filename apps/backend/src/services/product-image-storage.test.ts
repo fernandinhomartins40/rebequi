@@ -28,6 +28,10 @@ test('Managed uploads decode bytes, enforce dimensions and store lightweight Web
       assert.ok(result.url.startsWith('/uploads/')); assert.ok(result.filename.endsWith('.webp'));
     }
     await assert.rejects(storage.storeProductImage({ file: file(Buffer.from('not an image')) }), /Imagem inválida/);
+    const portfolio = await storage.storePartnerPortfolioImage(file(input));
+    assert.equal(portfolio.width, 1000); assert.equal(portfolio.height, 750);
+    assert.ok(portfolio.size <= 250 * 1024); assert.ok(portfolio.url.startsWith('/uploads/partners/'));
+    assert.equal((await sharp(await readFile(path.join(temporaryRoot, portfolio.storageKey))).metadata()).format, 'webp');
     await assert.rejects(storage.storeProductImage({ file: file(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"></svg>')) }), /Imagem inválida/);
     await assert.rejects(storage.deleteStoredImages([{ storageKey: '../outside-file' }]), /Invalid storage key/);
   } finally {

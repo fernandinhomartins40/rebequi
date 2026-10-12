@@ -27,3 +27,10 @@ export const requestEstimateQuote = async (id: string, quantity: number) => (awa
 export type LaborQuote = { id: string; projectId: string; version: number; title: string; projectTitleSnapshot: string; professionalNameSnapshot: string; clientNameSnapshot: string; items: (LaborQuoteInput['items'][number] & { totalCents: number })[]; notes: string; totalCents: number; validUntil: string; createdAt: string };
 export const listLaborQuotes = async (projectId: string, page = 1) => (await apiFetch<{ data: { quotes: LaborQuote[]; total: number; page: number; totalPages: number } }>(`/partners/projects/${encodeURIComponent(projectId)}/labor-quotes?page=${page}`)).data;
 export const saveLaborQuote = async (input: LaborQuoteInput) => (await apiFetch<{ data: LaborQuote }>('/partners/labor-quotes', { method: 'POST', body: JSON.stringify(input) })).data;
+export type PortfolioImage = { id: string; url: string; caption: string; size: number; width: number; height: number; createdAt: string };
+export const getPortfolio = async (partnerId?: string) => (await apiFetch<{ data: PortfolioImage[] }>(partnerId ? `/partners/admin/${encodeURIComponent(partnerId)}/portfolio` : '/partners/portfolio')).data;
+export const uploadPortfolio = async (file: File, caption: string, requestKey: string) => {
+  const form = new FormData(); form.append('image', file); form.append('caption', caption); form.append('requestKey', requestKey); form.append('authorized', 'true');
+  return (await apiFetch<{ data: PortfolioImage }>('/partners/portfolio', { method: 'POST', body: form })).data;
+};
+export const removePortfolio = async (id: string) => apiFetch(`/partners/portfolio/${encodeURIComponent(id)}`, { method: 'DELETE' });

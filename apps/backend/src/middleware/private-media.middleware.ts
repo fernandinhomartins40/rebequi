@@ -10,7 +10,7 @@ export function protectPrivateMedia(req: Request, res: Response, next: NextFunct
   try {
     const decoded = decodeURIComponent(req.path);
     if (decoded.includes('\\') || decoded.includes('\0')) throw new NotFoundError('Documento não encontrado');
-    if (path.posix.normalize(decoded).startsWith('/quotes/')) {
+    if (['/quotes/', '/partners/'].some(prefix => path.posix.normalize(decoded).startsWith(prefix))) {
       res.setHeader('Cache-Control', 'private, no-store');
       authenticate(req, res, error => { if (error) next(error); else void servePrivateQuoteDocument(req, res, next); });
       return;
@@ -28,9 +28,15 @@ export async function servePrivateQuoteDocument(req: Request, res: Response, nex
     const storageKey = path.posix.normalize(suffix).replace(/^\//, '');
     const root = path.resolve(env.UPLOAD_DIR);
     const absolute = path.resolve(root, storageKey);
-    if (!absolute.startsWith(`${path.join(root, 'quotes')}${path.sep}`) || storageKey.includes('\\') || suffix.split('/').some(part => part === '..' || part === '.')) throw new NotFoundError('Documento não encontrado');
-    const quote = await prisma.quoteRequest.findFirst({ where: { documentStorageKey: storageKey }, select: { userId: true } });
-    if (!quote || (quote.userId !== req.user!.userId && !hasMerchantPermission(req.user!.role, 'quotes:manage'))) throw new NotFoundError('Documento não encontrado');
+    const folder = storageKey.startsWith('quotes/') ? 'quotes' : 'partners';
+    if (!absolute.startsWith(`${path.join(root, folder)}${path.sep}`) || storageKey.includes('\\') || suffix.split('/').some(part => part === '..' || part === '.')) throw new NotFoundError('Documento não encontrado');
+    if (folder === 'quotes') {
+      const quote = await prisma.quoteRequest.findFirst({ where: { documentStorageKey: storageKey }, select: { userId: true } });
+      if (!quote || (quote.userId !== req.user!.userId && !hasMerchantPermission(req.user!.role, 'quotes:manage'))) throw new NotFoundError('Documento não encontrado');
+    } else {
+      const image = await prisma.partnerPortfolioImage.findUnique({ where: { storageKey }, select: { partner: { select: { userId: true } } } });
+      if (!image || (image.partner.userId !== req.user!.userId && !hasMerchantPermission(req.user!.role, 'partners:manage'))) throw new NotFoundError('Documento não encontrado');
+    }
     res.sendFile(absolute, { headers: { 'Cache-Control': 'private, no-store' } }, error => { if (error) next(new NotFoundError('Documento não encontrado')); });
   } catch (error) { next(error); }
 }

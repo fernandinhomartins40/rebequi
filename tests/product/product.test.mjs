@@ -10,6 +10,7 @@ import { validatePartners } from './partners.mjs';
 import { validatePartnerMaterials } from './partner-materials.mjs';
 import { validatePartnerLabor } from './partner-labor.mjs';
 import { validateQuoteProposals } from './quote-proposals.mjs';
+import { validatePartnerPortfolio } from './partner-portfolio.mjs';
 
 // Mutating validation is confined to a disposable, GitHub-hosted runner.
 if (process.env.CI !== 'true' || process.env.GITHUB_ACTIONS !== 'true' || process.env.RUNNER_ENVIRONMENT !== 'github-hosted') {
@@ -85,6 +86,12 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
       const guest = await client(); const admin = await client();
       await data(await admin.post('/api/auth/login', { data: { identifier: 'integration@example.invalid', password: 'integration-only-admin-password' } }));
       await validateQuoteProposals({ owner, guest, admin, browser, baseURL, data, db, product });
+    });
+    await restartIsolatedApi();
+    await t.test('Private portfolio uses authenticated local WebP, quota, crop and safe removal', async () => {
+      const guest = await client(); const admin = await client();
+      await data(await admin.post('/api/auth/login', { data: { identifier: 'integration@example.invalid', password: 'integration-only-admin-password' } }));
+      await validatePartnerPortfolio({ owner, guest, admin, browser, baseURL, data, db });
     });
     await restartIsolatedApi();
     await t.test('Concurrent sales, duplicate cancellation and persistent worker recovery', () => validateCommercialConsistency(db));

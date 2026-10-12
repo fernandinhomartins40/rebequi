@@ -757,6 +757,7 @@ model PartnerProfile {
   version           Int @default(1)
   audits            PartnerProfileAudit[]
   projects          PartnerProject[]
+  portfolioImages   PartnerPortfolioImage[]
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -864,4 +865,21 @@ model QuoteProposal {
   @@unique([quoteId, version])
   @@index([quoteId, createdAt])
   @@map("quote_proposals")
+}
+
+model PartnerPortfolioImage {
+  id String @id @default(cuid())
+  partnerId String
+  partner PartnerProfile @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  storageKey String @unique
+  url String
+  caption String @default("")
+  size Int
+  width Int
+  height Int
+  requestKey String @unique
+  fingerprint String
+  createdAt DateTime @default(now())
+  @@index([partnerId, createdAt])
+  @@map("partner_portfolio_images")
 }

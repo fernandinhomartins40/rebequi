@@ -35,3 +35,5 @@ export const upload = multer({
     files: 10, // Max 10 files per upload
   },
 });
+export const partnerPortfolioUpload = multer({ storage: multer.memoryStorage(), fileFilter,
+  limits: { fileSize: 2 * 1024 * 1024, files: 1, fields: 3, fieldSize: 1000 } });
