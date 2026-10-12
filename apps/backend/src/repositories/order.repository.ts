@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
 import { releaseOrderReservations } from '../services/stock-reservation.service.js';
 import { ConflictError, ValidationError } from '../utils/errors.util.js';
+import { referralRuleSnapshot } from '../services/partner-program.service.js';
 
 const orderInclude = {
   partnerReferral: { select: { codeSnapshot: true, consentedAt: true } },
@@ -40,7 +41,8 @@ export class OrderRepository {
         const partner = await tx.partnerProfile.findFirst({ where: { referralCode: referral.code, status: 'APPROVED', user: { isActive: true } }, select: { id: true, userId: true } });
         if (!partner) throw new ValidationError('Indicação indisponível. Remova o código para continuar.');
         if (partner.userId === referral.userId) throw new ValidationError('Sua própria compra não pode ser atribuída como indicação. Remova o código para continuar.');
-        return tx.customerOrder.create({ data: { ...data, partnerReferral: { create: { partner: { connect: { id: partner.id } }, codeSnapshot: referral.code, consentVersion: '2026-10-12.1' } } }, include: orderInclude });
+        const ruleId = await referralRuleSnapshot(tx, partner.id);
+        return tx.customerOrder.create({ data: { ...data, partnerReferral: { create: { partner: { connect: { id: partner.id } }, ...(ruleId ? { rule: { connect: { id: ruleId } } } : {}), codeSnapshot: referral.code, consentVersion: '2026-10-12.1' } } }, include: orderInclude });
       }
       return tx.customerOrder.create({ data, include: orderInclude });
     });

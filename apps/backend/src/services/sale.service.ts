@@ -211,7 +211,7 @@ export class SaleService {
     if (query.to) createdAt.lte = new Date(query.to);
     if (query.from || query.to) where.createdAt = createdAt;
 
-    const [{ byStatus, byPayment }, itemsSold] = await Promise.all([
+    const [{ byStatus, byPayment, refunds, refundsByPayment }, itemsSold] = await Promise.all([
       this.saleRepository.aggregateRevenue(where),
       this.saleRepository.sumItemsSold({ ...where, status: 'PAID' }),
     ]);
@@ -221,7 +221,7 @@ export class SaleService {
     const pending = statusMap.get('PENDING_PAYMENT');
     const canceled = statusMap.get('CANCELED');
 
-    const paidRevenue = this.roundCurrency(paid?._sum.total ?? 0);
+    const paidRevenue = this.roundCurrency((paid?._sum.total ?? 0) - Number(refunds) / 100);
     const pendingRevenue = this.roundCurrency(pending?._sum.total ?? 0);
     const paidCount = paid?._count._all ?? 0;
     const pendingCount = pending?._count._all ?? 0;
@@ -241,7 +241,7 @@ export class SaleService {
       itemsSold,
       paymentBreakdown: byPayment.map((row) => ({
         paymentMethod: row.paymentMethod,
-        total: this.roundCurrency(row._sum.total ?? 0),
+        total: this.roundCurrency((row._sum.total ?? 0) - Number(refundsByPayment.find(refund => refund.paymentMethod === row.paymentMethod)?.total ?? 0n) / 100),
         count: row._count._all,
       })),
     };

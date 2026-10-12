@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
 import { ConflictError, NotFoundError, ValidationError } from '../utils/errors.util.js';
 import { enqueueCatalogChange } from '../services/integration-outbox.service.js';
+import { earnPartnerSale, holdPartnerPayment, reversePartnerSale } from '../services/partner-program.service.js';
 
 const saleInclude = {
   customer: {
@@ -38,7 +39,7 @@ export class SaleRepository {
         if (!order || order.status === 'CANCELED') throw new ConflictError('Pedido indisponível para venda');
       }
       const sale = await tx.sale.create({
-        data: params.sale,
+        data: { ...params.sale, accountingVersion: 1 },
         include: saleInclude,
       });
 
@@ -69,6 +70,7 @@ export class SaleRepository {
       if (params.sale.order?.connect?.id) {
         await tx.customerOrder.update({ where: { id: params.sale.order.connect.id }, data: { status: 'COMPLETED', completedAt: new Date() } });
       }
+      await earnPartnerSale(tx, sale.id);
       return sale;
     });
   }
@@ -83,23 +85,35 @@ export class SaleRepository {
         throw new ValidationError('Venda cancelada não pode ser reaberta. Registre uma nova venda.');
       }
       if (status === 'CANCELED' && sale.status !== 'CANCELED') {
+        const returns = await tx.saleReturnItem.groupBy({ by: ['saleItemId'], where: { return: { saleId: id } }, _sum: { quantity: true } });
+        const returned = new Map(returns.map(row => [row.saleItemId, row._sum.quantity ?? 0]));
         for (const item of [...sale.items].sort((a, b) => (a.productId ?? '').localeCompare(b.productId ?? ''))) {
           if (!item.productId) continue;
-          const product = await tx.product.update({ where: { id: item.productId }, data: { stock: { increment: item.quantity } } });
+          const quantity = item.quantity - (returned.get(item.id) ?? 0);
+          if (!quantity) continue;
+          const product = await tx.product.update({ where: { id: item.productId }, data: { stock: { increment: quantity } } });
           await tx.stockMovement.create({ data: {
-            productId: product.id, type: 'RETURN', quantity: item.quantity,
-            stockBefore: product.stock - item.quantity, stockAfter: product.stock,
+            productId: product.id, type: 'RETURN', quantity,
+            stockBefore: product.stock - quantity, stockAfter: product.stock,
             reason: `Estorno da venda ${sale.referenceCode}`, saleId: sale.id,
           } });
           await enqueueCatalogChange(tx, product.id);
         }
         if (sale.orderId) await tx.customerOrder.update({ where: { id: sale.orderId }, data: { status: 'CANCELED', canceledAt: new Date() } });
+        // Release a payment hold before reversing the complete original basis.
+        await holdPartnerPayment(tx, id, sale.statusVersion + 1, true);
+        await reversePartnerSale(tx, id, BigInt(Math.round(sale.total * 100)), `sale-canceled:${id}`);
       }
-      return tx.sale.update({ where: { id }, data: {
+      if (status === 'PENDING_PAYMENT' && sale.status !== status) await holdPartnerPayment(tx, id, sale.statusVersion + 1, false);
+      const updated = await tx.sale.update({ where: { id }, data: {
+        accountingVersion: 1,
+        ...(sale.status !== status ? { statusVersion: { increment: 1 } } : {}),
         status, ...(notes !== undefined ? { notes } : {}),
         paidAt: status === 'PAID' ? sale.paidAt ?? new Date() : sale.paidAt,
         canceledAt: status === 'CANCELED' ? sale.canceledAt ?? new Date() : null,
       }, include: saleInclude });
+      if (status === 'PAID' && sale.status !== status) { await earnPartnerSale(tx, id); await holdPartnerPayment(tx, id, updated.statusVersion, true); }
+      return updated;
     });
   }
 
@@ -145,7 +159,7 @@ export class SaleRepository {
    * Aggregations for the revenue dashboard, scoped by an optional date window.
    */
   async aggregateRevenue(where: Prisma.SaleWhereInput) {
-    const [byStatus, byPayment] = await Promise.all([
+    const [byStatus, byPayment, refunds, refundsByPayment] = await Promise.all([
       prisma.sale.groupBy({
         by: ['status'],
         where,
@@ -158,9 +172,11 @@ export class SaleRepository {
         _sum: { total: true },
         _count: { _all: true },
       }),
+      prisma.saleReturn.aggregate({ where: { sale: { ...where, status: 'PAID' } }, _sum: { refundCents: true } }),
+      Promise.all((['PIX', 'CASH', 'CARD', 'INSTALLMENT'] as const).map(async paymentMethod => ({ paymentMethod, total: (await prisma.saleReturn.aggregate({ where: { sale: { ...where, status: 'PAID', paymentMethod } }, _sum: { refundCents: true } }))._sum.refundCents ?? 0n }))),
     ]);
 
-    return { byStatus, byPayment };
+    return { byStatus, byPayment, refunds: refunds._sum.refundCents ?? 0n, refundsByPayment };
   }
 
   async sumItemsSold(where: Prisma.SaleWhereInput) {
@@ -168,6 +184,7 @@ export class SaleRepository {
       where: { sale: where },
       _sum: { quantity: true },
     });
-    return result._sum.quantity ?? 0;
+    const returned = await prisma.saleReturnItem.aggregate({ where: { saleItem: { sale: where } }, _sum: { quantity: true } });
+    return (result._sum.quantity ?? 0) - (returned._sum.quantity ?? 0);
   }
 }

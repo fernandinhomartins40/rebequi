@@ -1,0 +1,15 @@
+import type { PartnerProgramRuleInput, PartnerPayoutInput, SaleReturnInput, SaleReturnPreviewInput } from '@rebequi/shared/schemas';
+import { apiFetch } from './client';
+export type ProgramRule = Omit<PartnerProgramRuleInput, 'confirmed' | 'expectedVersion'> & { id: string; version: number; createdAt: string };
+export type PartnerWalletData = { availableCents: string; pendingCents: string; availablePoints: string; pendingPoints: string; total: number; page: number; totalPages: number; entries: { id: string; kind: string; commissionCents: string; points: string; basisCents: string; availableAt: string; reference: string | null; createdAt: string; rule: { version: number } | null }[] };
+export const getProgramRule = async () => (await apiFetch<{ data: ProgramRule | null }>('/partners/admin/program')).data;
+export const saveProgramRule = async (input: PartnerProgramRuleInput) => (await apiFetch<{ data: ProgramRule }>('/partners/admin/program', { method: 'POST', body: JSON.stringify(input) })).data;
+export const getOwnProgram = async () => (await apiFetch<{ data: { rule: ProgramRule | null; accepted: boolean; approved: boolean } }>('/partners/program')).data;
+export const acceptProgram = async (ruleId: string) => apiFetch('/partners/program/accept', { method: 'POST', body: JSON.stringify({ ruleId, confirmed: true }) });
+export const getOwnRuleHistory = async (page = 1) => (await apiFetch<{ data: { rules: { id: string; acceptedAt: string; rule: Pick<ProgramRule, 'id' | 'version' | 'terms' | 'commissionBasisPoints' | 'pointsPerReal' | 'maturityDays'> }[]; total: number; page: number; totalPages: number } }>(`/partners/program/history?page=${page}`)).data;
+export const getWallet = async (partnerId?: string, page = 1) => (await apiFetch<{ data: PartnerWalletData }>(`${partnerId ? `/partners/admin/${encodeURIComponent(partnerId)}/wallet` : '/partners/wallet'}?page=${page}`)).data;
+export const recordPayout = async (partnerId: string, input: PartnerPayoutInput) => apiFetch(`/partners/admin/${encodeURIComponent(partnerId)}/payouts`, { method: 'POST', body: JSON.stringify(input) });
+export type ReturnHistory = { version: number; total: number; page: number; totalPages: number; quantities: { saleItemId: string; quantity: number }[]; returns: { id: string; reason: string; refundCents: string; createdAt: string; items: { saleItemId: string; quantity: number; restock: boolean; refundCents: string }[] }[] };
+export const getSaleReturns = async (saleId: string, page = 1) => (await apiFetch<{ data: ReturnHistory }>(`/sales/admin/${encodeURIComponent(saleId)}/returns?page=${page}`)).data;
+export const recordSaleReturn = async (saleId: string, input: SaleReturnInput) => apiFetch(`/sales/admin/${encodeURIComponent(saleId)}/returns`, { method: 'POST', body: JSON.stringify(input) });
+export const previewReturn = async (saleId: string, input: SaleReturnPreviewInput) => (await apiFetch<{ data: { version: number; refundCents: string; items: ReturnHistory['returns'][number]['items'] } }>(`/sales/admin/${encodeURIComponent(saleId)}/returns/preview`, { method: 'POST', body: JSON.stringify(input) })).data;

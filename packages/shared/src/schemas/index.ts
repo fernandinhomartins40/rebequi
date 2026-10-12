@@ -17,3 +17,4 @@ export * from './material.schema.js';
 export * from './labor.schema.js';
 export * from './proposal.schema.js';
 export * from './partner-ai.schema.js';
+export * from './partner-program.schema.js';

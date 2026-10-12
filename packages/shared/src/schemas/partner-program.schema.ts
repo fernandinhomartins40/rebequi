@@ -1,0 +1,10 @@
+import { z } from 'zod';
+export const partnerProgramRuleSchema = z.object({ enabled: z.boolean(), expectedVersion: z.number().int().min(0), commissionBasisPoints: z.number().int().min(0).max(10000), pointsPerReal: z.number().int().min(0).max(1000), maturityDays: z.number().int().min(0).max(365), terms: z.string().trim().min(100).max(10000), confirmed: z.literal(true) }).strict();
+export const acceptPartnerProgramSchema = z.object({ ruleId: z.string().min(1).max(128), confirmed: z.literal(true) }).strict();
+export const saleReturnSchema = z.object({ requestKey: z.string().uuid(), expectedVersion: z.number().int().min(0), reason: z.string().trim().min(3).max(500), confirmed: z.literal(true), items: z.array(z.object({ saleItemId: z.string().min(1).max(128), quantity: z.number().int().min(1).max(9999), restock: z.boolean() }).strict()).min(1).max(100).refine(items => new Set(items.map(item => item.saleItemId)).size === items.length, 'Item repetido') }).strict();
+export const saleReturnPreviewSchema = saleReturnSchema.omit({ requestKey: true, confirmed: true });
+export const partnerPayoutSchema = z.object({ requestKey: z.string().uuid(), amountCents: z.number().int().min(1).max(100000000), reference: z.string().trim().min(3).max(160), paidConfirmed: z.literal(true) }).strict();
+export type PartnerProgramRuleInput = z.infer<typeof partnerProgramRuleSchema>;
+export type SaleReturnInput = z.infer<typeof saleReturnSchema>;
+export type SaleReturnPreviewInput = z.infer<typeof saleReturnPreviewSchema>;
+export type PartnerPayoutInput = z.infer<typeof partnerPayoutSchema>;

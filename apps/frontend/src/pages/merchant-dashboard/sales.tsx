@@ -27,6 +27,8 @@ import { PaymentMethod, SaleStatus } from '@/types';
 import type { Sale } from '@/types';
 import { ADMIN_BASE_PATH } from './config';
 import { DashboardPanel, PageHeader, StatCard } from './components';
+import { SaleReturns } from '@/components/SaleReturns';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 type StatusFilterValue = 'all' | SaleStatus;
 type PaymentFilterValue = 'all' | PaymentMethod;
@@ -285,12 +287,15 @@ function SaleRowActions({
   isMutating: boolean;
   onStatus: (sale: Sale, status: SaleStatus) => void;
 }) {
+  const [showReturns, setShowReturns] = useState(false);
+  const returns = <Dialog open={showReturns} onOpenChange={setShowReturns}><DialogTrigger asChild><Button variant="ghost" size="sm">Devoluções</Button></DialogTrigger><DialogContent className="max-h-[90dvh] overflow-y-auto"><DialogHeader><DialogTitle>Devoluções da venda</DialogTitle></DialogHeader>{showReturns ? <SaleReturns sale={sale} /> : null}</DialogContent></Dialog>;
   if (sale.status === SaleStatus.CANCELED) {
-    return <span className="text-xs text-muted-foreground">—</span>;
+    return returns;
   }
 
   return (
     <div className="flex items-center justify-end gap-1.5">
+      {returns}
       {sale.status === SaleStatus.PENDING_PAYMENT ? (
         <Button
           variant="ghost"
