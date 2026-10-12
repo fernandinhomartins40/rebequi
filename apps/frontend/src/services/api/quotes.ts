@@ -9,6 +9,7 @@ import type {
   UpdateQuoteStatusDTO,
 } from '@/types';
 import { apiFetch } from './client';
+export const fetchAdminQuoteById = async (id: string) => (await apiFetch<{ data: QuoteRequest }>(`/quotes/admin/detail/${encodeURIComponent(id)}`)).data;
 
 type ApiResponse<T> = {
   success: boolean;

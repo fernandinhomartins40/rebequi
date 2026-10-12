@@ -723,6 +723,13 @@ export class QuoteService {
     };
   }
 
+  async getAdminQuote(id: string, actor?: CommercialActor) {
+    await requireCommercialAccess('quote', id, actor);
+    const quote = await this.quoteRepository.findQuoteById(id);
+    if (!quote) throw new NotFoundError('Orçamento não encontrado');
+    return { ...this.formatQuote(quote), ...(actor?.role === 'SALES' ? { lead: undefined } : {}) };
+  }
+
   async getCapturedLeads(filters: LeadFiltersInput, actor?: CommercialActor) {
     const page = filters.page ?? 1;
     const limit = filters.limit ?? 20;

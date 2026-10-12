@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { PageHeader, StatCard } from './components';
 import {
   fetchAdminQuotes,
+  fetchAdminQuoteById,
   fetchCapturedLeads,
   updateAdminQuoteStatus,
   updateCapturedLeadStatus,
@@ -42,6 +43,7 @@ export function MerchantDashboardQuotes() {
     queryKey: ['merchant-dashboard', 'quotes', 'leads'],
     queryFn: () => fetchCapturedLeads({ page: 1, limit: 50 }),
   });
+  const detailQuery = useQuery({ queryKey: ['merchant-dashboard', 'quotes', 'detail', selectedQuoteId], queryFn: () => fetchAdminQuoteById(selectedQuoteId!), enabled: Boolean(selectedQuoteId), retry: false });
 
   const quoteStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: QuoteStatus.IN_REVIEW | QuoteStatus.RESPONDED | QuoteStatus.ARCHIVED }) =>
@@ -49,6 +51,7 @@ export function MerchantDashboardQuotes() {
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['merchant-dashboard', 'quotes', 'admin'] }),
+        queryClient.invalidateQueries({ queryKey: ['merchant-dashboard', 'quotes', 'detail'] }),
         queryClient.invalidateQueries({ queryKey: ['merchant-dashboard', 'quotes-badge'] }),
       ]);
     },
@@ -65,8 +68,8 @@ export function MerchantDashboardQuotes() {
     },
   });
 
-  const quotes = quotesQuery.data?.quotes ?? [];
-  const leads = leadsQuery.data?.leads ?? [];
+  const quotes = useMemo(() => quotesQuery.data?.quotes ?? [], [quotesQuery.data]);
+  const leads = useMemo(() => leadsQuery.data?.leads ?? [], [leadsQuery.data]);
 
   const draftLeads = leads.filter((l) => l.status === 'QUOTE_DRAFTED').length;
   const freshLeads = leads.filter((l) => l.status === 'STARTED').length;
@@ -74,8 +77,8 @@ export function MerchantDashboardQuotes() {
   const respondedQuotes = quotes.filter((q) => q.status === 'RESPONDED').length;
 
   const selectedQuote = useMemo(
-    () => (selectedQuoteId ? quotes.find((q) => q.id === selectedQuoteId) ?? null : quotes[0] ?? null),
-    [quotes, selectedQuoteId]
+    () => (selectedQuoteId ? detailQuery.data ?? (detailQuery.isError ? null : quotes.find((q) => q.id === selectedQuoteId) ?? null) : quotes[0] ?? null),
+    [quotes, selectedQuoteId, detailQuery.data, detailQuery.isError]
   );
 
   const selectedLead = useMemo(
@@ -245,7 +248,7 @@ export function MerchantDashboardQuotes() {
         {/* Detail pane */}
         <div id="merchant-quote-detail" tabIndex={-1} className="dashboard-editor-step rounded-xl border border-border/70 bg-card">
           {activeTab === 'quotes' ? (
-            selectedQuote ? (
+            selectedQuoteId && detailQuery.isError ? <DashboardError message={detailQuery.error.message} onRetry={() => detailQuery.refetch()} /> : selectedQuoteId && detailQuery.isLoading ? <DashboardLoading /> : selectedQuote ? (
               <div className="p-5">
                 {/* Header */}
                 <div className="flex items-start justify-between gap-3 border-b border-border/60 pb-4">

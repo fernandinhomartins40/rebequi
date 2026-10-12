@@ -33,6 +33,8 @@ export async function validateCommercialAccess({ owner, admin, sellerA, sellerB,
   const quoteId = draft.quote.id;
   await data(await owner.post(`/api/quotes/${quoteId}/submit`, { headers }));
   await assign('quote', quoteId, profiles[0].id);
+  assert.equal((await sellerA.get(`/api/quotes/admin/detail/${quoteId}`)).status(), 200);
+  assert.equal((await sellerB.get(`/api/quotes/admin/detail/${quoteId}`)).status(), 404);
   assert.equal((await sellerB.get(`/api/quotes/${quoteId}/proposals`)).status(), 404);
   assert.equal((await sellerB.post(`/api/quotes/admin/${quoteId}/status`, { headers, data: { status: 'IN_REVIEW' } })).status(), 404);
   const proposal = { requestKey: randomUUID(), expectedLatestVersion: 0, validityDays: 7, notes: 'Condições isoladas de teste', items: [{ productId: product.id, quantity: 1, unitPriceCents: Math.round(product.price * 100) }] };

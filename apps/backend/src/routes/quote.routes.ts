@@ -20,6 +20,7 @@ import { listQuoteProposals, createQuoteProposal, acceptQuoteProposal } from '..
 import { successResponse } from '../utils/response.util.js';
 import { z } from 'zod';
 import { validateQuery } from '../middleware/validation.middleware.js';
+import { QuoteService } from '../services/quote.service.js';
 
 const router: Router = Router();
 const quoteController = new QuoteController();
@@ -81,6 +82,10 @@ router.get('/admin/ocr-health', authenticate, authorize(...integrationRoles), qu
 router.get('/admin/ocr-stats', authenticate, authorize(...integrationRoles), quoteController.getOcrStats);
 router.get('/admin/list', authenticate, authorize(...quoteRoles), quoteController.getAdminQuotes);
 router.get('/admin/leads', authenticate, authorize(...quoteRoles), quoteController.getCapturedLeads);
+router.get('/admin/detail/:id', authenticate, authorize(...quoteRoles), async (req, res, next) => {
+  res.setHeader('Cache-Control', 'private, no-store');
+  try { successResponse(res, await new QuoteService().getAdminQuote(req.params.id, req.user)); } catch (error) { next(error); }
+});
 router.post(
   '/admin/:id/status',
   authenticate,
