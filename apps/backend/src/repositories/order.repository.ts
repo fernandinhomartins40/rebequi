@@ -1,9 +1,10 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
 import { releaseOrderReservations } from '../services/stock-reservation.service.js';
-import { ConflictError } from '../utils/errors.util.js';
+import { ConflictError, ValidationError } from '../utils/errors.util.js';
 
 const orderInclude = {
+  partnerReferral: { select: { codeSnapshot: true, consentedAt: true } },
   reservations: true,
   user: true,
   items: {
@@ -30,10 +31,18 @@ const orderInclude = {
 } satisfies Prisma.CustomerOrderInclude;
 
 export class OrderRepository {
-  async createOrder(data: Prisma.CustomerOrderCreateInput) {
-    return prisma.customerOrder.create({
-      data,
-      include: orderInclude,
+  async createOrder(data: Prisma.CustomerOrderCreateInput, referral?: { code: string; userId: string }) {
+    return prisma.$transaction(async tx => {
+      if (referral) {
+        const identity = await tx.partnerProfile.findUnique({ where: { referralCode: referral.code }, select: { userId: true } });
+        if (!identity) throw new ValidationError('Indicação indisponível. Remova o código para continuar.');
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`partner:${identity.userId}`}))`;
+        const partner = await tx.partnerProfile.findFirst({ where: { referralCode: referral.code, status: 'APPROVED', user: { isActive: true } }, select: { id: true, userId: true } });
+        if (!partner) throw new ValidationError('Indicação indisponível. Remova o código para continuar.');
+        if (partner.userId === referral.userId) throw new ValidationError('Sua própria compra não pode ser atribuída como indicação. Remova o código para continuar.');
+        return tx.customerOrder.create({ data: { ...data, partnerReferral: { create: { partner: { connect: { id: partner.id } }, codeSnapshot: referral.code, consentVersion: '2026-10-12.1' } } }, include: orderInclude });
+      }
+      return tx.customerOrder.create({ data, include: orderInclude });
     });
   }
 

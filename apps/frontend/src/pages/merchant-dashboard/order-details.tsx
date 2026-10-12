@@ -169,6 +169,7 @@ export function MerchantDashboardOrderDetails() {
               <InfoRow label="Cliente" value={order.customerNameSnapshot} />
               <InfoRow label="WhatsApp" value={formatWhatsapp(order.customerWhatsapp)} />
               <InfoRow label="Referencia" value={order.referenceCode} />
+              {order.referral ? <InfoRow label="Indicação confirmada" value={order.referral.code} /> : null}
               <InfoRow label="Criado em" value={formatDateTime(order.createdAt)} />
               <InfoRow label="Atualizado em" value={formatDateTime(order.updatedAt)} />
               <InfoRow label="Subtotal" value={formatPrice(order.subtotal)} />

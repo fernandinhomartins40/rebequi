@@ -10,16 +10,22 @@ import { OrderController } from '../controllers/order.controller.js';
 import { authenticate, authorize } from '../middleware/auth.middleware.js';
 import { validateBody, validateQuery } from '../middleware/validation.middleware.js';
 import { reserveOrderStock } from '../services/stock-reservation.service.js';
+import { resolvePartnerReferral } from '../services/partner-referral.service.js';
+import { requireTrustedOrigin } from '../middleware/trusted-origin.middleware.js';
 
 const router: Router = Router();
 const orderController = new OrderController();
 const orderRoles = getRolesForMerchantPermission('orders:manage');
+router.get('/referral/:code', async (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store');
+  try { res.json({ success: true, data: await resolvePartnerReferral(req.params.code) }); } catch (error) { next(error); }
+});
 
-router.post('/public/checkout', validateBody(publicCheckoutOrderSchema), orderController.publicCheckout);
+router.post('/public/checkout', (req, res, next) => req.body?.referral ? requireTrustedOrigin(req, res, next) : next(), validateBody(publicCheckoutOrderSchema), orderController.publicCheckout);
 router.post('/public/:id/whatsapp-redirected', authenticate, authorize('CUSTOMER'), orderController.markWhatsappRedirected);
 
 router.get('/me', authenticate, authorize('CUSTOMER'), orderController.listCustomerOrders);
-router.post('/checkout', authenticate, authorize('CUSTOMER'), validateBody(authenticatedCheckoutOrderSchema), orderController.authenticatedCheckout);
+router.post('/checkout', authenticate, authorize('CUSTOMER'), (req, res, next) => req.body?.referral ? requireTrustedOrigin(req, res, next) : next(), validateBody(authenticatedCheckoutOrderSchema), orderController.authenticatedCheckout);
 
 router.get('/admin/list', authenticate, authorize(...orderRoles), validateQuery(orderFiltersSchema), orderController.listAdminOrders);
 router.get('/admin/:id', authenticate, authorize(...orderRoles), orderController.getAdminOrder);

@@ -22,6 +22,7 @@ import { useCart } from '@/contexts/CartContext';
 import { saveProvisionalCredentials } from '@/lib/provisional-credentials';
 import { STORE_CONTACT } from '@/lib/store-contact';
 import { ApiError } from '@/services/api/client';
+import { clearReferralIntent, readReferralIntent } from '@/lib/partner-referral';
 import {
   checkoutAuthenticatedOrder,
   checkoutPublicOrder,
@@ -63,6 +64,8 @@ export default function CheckoutPage() {
   const { user, isAuthenticated, refreshSession } = useAuth();
   const { items, subtotal, totalItems, isEmpty, clearCart } = useCart();
   const [customerNote, setCustomerNote] = useState('');
+  const [referralCode, setReferralCode] = useState(readReferralIntent);
+  const [referralConfirmed, setReferralConfirmed] = useState(false);
   const [completedOrder, setCompletedOrder] = useState<CheckoutOrderResponse | null>(null);
 
   const {
@@ -103,6 +106,7 @@ export default function CheckoutPage() {
     }
 
     clearCart();
+    clearReferralIntent();
     setCompletedOrder(result);
     openWhatsappWindow(result.whatsappUrl);
     void markPublicOrderWhatsappRedirected(result.order.id).catch(() => undefined);
@@ -116,6 +120,7 @@ export default function CheckoutPage() {
   const handlePublicSubmit = handleSubmit(async (values) => {
     try {
       const result = await publicCheckoutMutation.mutateAsync({
+        ...(referralCode && referralConfirmed ? { referral: { code: referralCode, confirmed: true as const } } : {}),
         customerNote: values.customerNote?.trim() || undefined,
         items: cartItemsPayload,
         name: values.name,
@@ -155,6 +160,7 @@ export default function CheckoutPage() {
   const handleAuthenticatedCheckout = async () => {
     try {
       const result = await authenticatedCheckoutMutation.mutateAsync({
+        ...(referralCode && referralConfirmed ? { referral: { code: referralCode, confirmed: true as const } } : {}),
         customerNote: customerNote.trim() || undefined,
         items: cartItemsPayload,
       });
@@ -290,6 +296,7 @@ export default function CheckoutPage() {
 
           <section className="grid gap-6 2xl:grid-cols-[1.1fr_0.9fr]">
             <div className="space-y-6">
+              {referralCode ? <section className="space-y-3 rounded-xl border bg-white p-4"><h2 className="font-semibold">Indicação profissional</h2><p className="break-all text-xs text-slate-500">{referralCode}</p><label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={referralConfirmed} disabled={isSubmitting} onChange={event => setReferralConfirmed(event.target.checked)} />Confirmo que este profissional indicou esta compra e autorizo o vínculo deste pedido.</label><p className="text-xs text-slate-500">O profissional verá a referência e o andamento, sem seu nome, contato ou itens.</p><Button variant="ghost" size="sm" disabled={isSubmitting} onClick={() => { clearReferralIntent(); setReferralCode(null); setReferralConfirmed(false); }}>Remover indicação</Button></section> : null}
               <Card className="border-[#dfe6f7] bg-[linear-gradient(135deg,rgba(239,246,255,0.98),rgba(255,252,237,0.96))] shadow-[0_28px_72px_-48px_rgba(37,99,235,0.22)]">
                 <CardHeader className="space-y-3">
                   <Badge className="w-fit border-none bg-primary/10 text-primary">Checkout</Badge>

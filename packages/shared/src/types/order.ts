@@ -25,6 +25,7 @@ export interface CustomerOrderItem {
 }
 
 export interface CustomerOrder {
+  referral?: { code: string; confirmedAt: Date | string } | null;
   stockReservation?: { active: boolean; expiresAt: string | Date | null };
   id: string;
   referenceCode: string;
@@ -64,6 +65,7 @@ export interface CheckoutOrderItemDTO {
 }
 
 export interface PublicCheckoutOrderDTO {
+  referral?: { code: string; confirmed: true };
   name: string;
   whatsapp: string;
   customerNote?: string | null;
@@ -71,6 +73,7 @@ export interface PublicCheckoutOrderDTO {
 }
 
 export interface AuthenticatedCheckoutOrderDTO {
+  referral?: { code: string; confirmed: true };
   customerNote?: string | null;
   items: CheckoutOrderItemDTO[];
 }

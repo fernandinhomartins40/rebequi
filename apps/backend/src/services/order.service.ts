@@ -13,6 +13,7 @@ import { PromotionRepository } from '../repositories/promotion.repository.js';
 import { UserRepository } from '../repositories/user.repository.js';
 import { AuthService } from './auth.service.js';
 import { ConflictError, NotFoundError, UnauthorizedError, ValidationError } from '../utils/errors.util.js';
+import { resolvePartnerReferral } from './partner-referral.service.js';
 
 type PersistedOrder = NonNullable<Awaited<ReturnType<OrderRepository['findOrderById']>>>;
 type CartProduct = Awaited<ReturnType<ProductRepository['findMany']>>[number];
@@ -45,6 +46,7 @@ export class OrderService {
   }
 
   async checkoutPublicOrder(data: PublicCheckoutOrderInput) {
+    if (data.referral) await resolvePartnerReferral(data.referral.code);
     const normalizedWhatsapp = normalizeWhatsapp(data.whatsapp);
     const existingUser = await this.userRepository.findByIdentifier(normalizedWhatsapp);
 
@@ -63,6 +65,7 @@ export class OrderService {
     const session = await this.authService.createSessionForUser(ensuredCustomer.user.id);
 
     const order = await this.createOrder({
+      referral: data.referral,
       customerNameSnapshot: data.name.trim(),
       customerNote: data.customerNote ?? null,
       customerWhatsapp: normalizedWhatsapp,
@@ -98,6 +101,7 @@ export class OrderService {
     }
 
     const order = await this.createOrder({
+      referral: data.referral,
       customerNameSnapshot: user.name,
       customerNote: data.customerNote ?? null,
       customerWhatsapp: normalizeWhatsapp(customerWhatsapp),
@@ -234,6 +238,7 @@ export class OrderService {
   }
 
   private async createOrder(params: {
+    referral?: PublicCheckoutOrderInput['referral'];
     customerNameSnapshot: string;
     customerNote: string | null;
     customerWhatsapp: string;
@@ -279,7 +284,7 @@ export class OrderService {
           unitPrice: item.unitPrice,
         })),
       },
-    });
+    }, params.referral ? { code: params.referral.code, userId: params.userId } : undefined);
   }
 
   private async normalizeCheckoutItems(items: PublicCheckoutOrderInput['items']) {
@@ -441,6 +446,7 @@ export class OrderService {
     const subtotal = order.items.reduce((total, item) => total + item.quantity * item.unitPrice, 0);
 
     return {
+      referral: order.partnerReferral ? { code: order.partnerReferral.codeSnapshot, confirmedAt: order.partnerReferral.consentedAt } : null,
       canceledAt: order.canceledAt,
       completedAt: order.completedAt,
       createdAt: order.createdAt,

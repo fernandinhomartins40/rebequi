@@ -20,8 +20,10 @@ export const checkoutOrderItemSchema = z.object({
   quantity: z.coerce.number().int().positive('Quantidade deve ser positiva').max(99, 'Quantidade maxima de 99'),
   promotionId: z.string().min(1, 'Promoção inválida').optional(),
 });
+export const checkoutReferralSchema = z.object({ code: z.string().regex(/^RB[A-F0-9]{16}$/), confirmed: z.literal(true) }).strict();
 
 export const publicCheckoutOrderSchema = z.object({
+  referral: checkoutReferralSchema.optional(),
   name: z.string().min(1, 'Nome e obrigatorio').max(255, 'Nome muito longo'),
   whatsapp: normalizedWhatsappSchema,
   customerNote: z.string().max(1000, 'Observacao muito longa').nullable().optional(),
@@ -29,6 +31,7 @@ export const publicCheckoutOrderSchema = z.object({
 });
 
 export const authenticatedCheckoutOrderSchema = z.object({
+  referral: checkoutReferralSchema.optional(),
   customerNote: z.string().max(1000, 'Observacao muito longa').nullable().optional(),
   items: z.array(checkoutOrderItemSchema).min(1, 'Adicione pelo menos um produto ao carrinho'),
 });

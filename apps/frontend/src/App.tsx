@@ -57,6 +57,7 @@ const MerchantProductOfferPage = merchant('MerchantProductOfferPage');
 const MerchantPromotionEditorPage = merchant('MerchantPromotionEditorPage');
 const MerchantUserEditorPage = merchant('MerchantUserEditorPage');
 const PartnersPage = lazy(() => import('./pages/partners'));
+const PartnerReferralPage = lazy(() => import('./pages/PartnerReferral'));
 const MerchantPartnersPage = lazy(() => import('./pages/merchant-dashboard/partners'));
 
 const queryClient = new QueryClient();
@@ -72,6 +73,7 @@ const App = () => (
             <DesignFrame>
               <Suspense fallback={<div role="status" className="flex min-h-screen items-center justify-center bg-slate-50">Carregando…</div>}><Routes>
                 <Route path="/parceiros/*" element={<PartnersPage />} />
+                <Route path="/indicacao/:code" element={<PartnerReferralPage />} />
                 <Route path="/" element={<Index />} />
                 <Route path="/pedido" element={<RequestQuotePage />} />
                 {/* URL antiga: tinha "ç", que vira %C3%A7 ao compartilhar no WhatsApp. */}

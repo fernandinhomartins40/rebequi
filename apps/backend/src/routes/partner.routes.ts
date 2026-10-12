@@ -14,11 +14,15 @@ import { uploadLimiter } from '../middleware/rate-limit.middleware.js';
 import { addPartnerPortfolio, listPartnerPortfolio, removePartnerPortfolio } from '../services/partner-portfolio.service.js';
 import { partnerAiInputSchema } from '@rebequi/shared/schemas';
 import { getPartnerAiStatus, interpretPartnerDescription } from '../services/partner-ai.service.js';
+import { listOwnReferrals } from '../services/partner-referral.service.js';
 
 const router: Router = Router();
 router.use(authenticate, (_req, res, next) => { res.setHeader('Cache-Control', 'private, no-store'); next(); });
 // Cookie mutations require an allowed browser origin. SameSite is not the only control.
 router.use(requireTrustedOrigin);
+router.get('/referrals', authorize('CUSTOMER'), validateQuery(z.object({ page: z.coerce.number().int().min(1).max(100000).default(1) })), async (req, res, next) => {
+  try { successResponse(res, await listOwnReferrals(req.user!.userId, Number(req.query.page))); } catch (error) { next(error); }
+});
 router.get('/ai/status', authorize('CUSTOMER'), async (req, res, next) => {
   try { successResponse(res, await getPartnerAiStatus(req.user!.userId)); } catch (error) { next(error); }
 });

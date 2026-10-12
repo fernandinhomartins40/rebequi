@@ -443,6 +443,7 @@ model QuoteItem {
 }
 
 model CustomerOrder {
+  partnerReferral PartnerReferral?
   id                   String              @id @default(cuid())
   referenceCode        String              @unique
   proposalQuote QuoteRequest?
@@ -739,6 +740,7 @@ enum PartnerStatus {
 }
 
 model PartnerProfile {
+  referrals PartnerReferral[]
   id                String @id @default(cuid())
   userId            String @unique
   user              User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -912,4 +914,17 @@ model PartnerAiRun {
   @@index([partnerId, day])
   @@index([partnerId, inputHash, createdAt])
   @@map("partner_ai_runs")
+}
+
+model PartnerReferral {
+  id String @id @default(cuid())
+  orderId String @unique
+  order CustomerOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  partnerId String?
+  partner PartnerProfile? @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+  codeSnapshot String
+  consentVersion String
+  consentedAt DateTime @default(now())
+  @@index([partnerId, consentedAt])
+  @@map("partner_referrals")
 }
