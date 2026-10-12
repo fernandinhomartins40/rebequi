@@ -71,7 +71,7 @@ export async function validateCommercialAccess({ owner, admin, sellerA, sellerB,
   const sellerContext = await browser.newContext();
   try {
     await sellerContext.addCookies((await sellerA.storageState()).cookies); const page = await sellerContext.newPage(); await page.setViewportSize({ width: 320, height: 844 });
-    await page.goto(`${baseURL}/painel-lojista/painel/atendimentos`); await page.getByRole('heading', { name: 'Meus atendimentos', exact: true }).waitFor();
+    await page.goto(`${baseURL}/painel-lojista/painel/atendimentos`); await page.getByRole('heading', { name: 'Meus atendimentos', exact: true, level: 2 }).waitFor();
     await page.getByLabel('Digite o nome ou SKU', { exact: true }).fill(product.sku);
     await page.getByText(product.name, { exact: true }).waitFor();
     assert.equal(await page.getByRole('button', { name: 'Distribuir atendimento', exact: true }).count(), 0);

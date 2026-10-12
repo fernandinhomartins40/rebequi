@@ -30,7 +30,10 @@ export async function validatePartnerReferrals({ owner, guest, admin, browser, b
     await page.waitForFunction(() => { const canvas = document.querySelector('canvas'); return canvas?.width === 220 && canvas?.getContext('2d')?.getImageData(0, 0, 220, 220).data.some((value, index) => index % 4 < 3 && value === 0); });
     assert.equal(await page.getByText(checkout.order.referenceCode, { exact: true }).count(), 1);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    const publicLookup = page.waitForResponse(response => new URL(response.url()).pathname === `/api/orders/referral/${profile.referralCode}`);
     await page.goto(`${baseURL}/indicacao/${profile.referralCode}`);
+    const publicResponse = await publicLookup;
+    assert.equal(publicResponse.status(), 200, await publicResponse.text());
     await page.getByRole('button', { name: 'Usar indicação e ver produtos', exact: true }).click();
     await page.waitForURL('**/categorias');
     assert.equal(await page.evaluate(() => JSON.parse(sessionStorage.getItem('rebequi.referral.intent.v1')).code), profile.referralCode);
