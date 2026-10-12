@@ -65,7 +65,11 @@ export async function validatePartners({ owner, guest, admin, browser, baseURL, 
     await context.setOffline(true); await page.reload();
     await page.getByRole('heading', { name: 'Você está sem conexão' }).waitFor();
     assert.equal(await page.getByText('Cadastro aprovado', { exact: true }).count(), 0);
-    await context.setOffline(false); await page.reload();
+    await context.setOffline(false);
+    await page.waitForFunction(() => navigator.onLine);
+    await page.getByText('Cadastro aprovado', { exact: true }).waitFor();
+    assert.equal(new URL(page.url()).pathname, '/parceiros/', 'Reconnecting must restore the session before enforcing the login guard');
+    await page.reload();
     await page.getByText('Cadastro aprovado', { exact: true }).waitFor();
   } finally { await context.close(); }
 }

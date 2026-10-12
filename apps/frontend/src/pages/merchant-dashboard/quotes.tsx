@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Clock3, FileText, MessageCircle, Send, UserRound } from 'lucide-react';
 import { formatDateTime, formatWhatsapp } from '@rebequi/shared/utils';
 import { LeadStatusBadge, QuoteStatusBadge } from '@/components/QuoteStatusBadge';
+import { QuoteProposalPanel } from '@/components/QuoteProposalPanel';
 import { Button } from '@/components/ui/button';
 import { PageHeader, StatCard } from './components';
 import {
@@ -303,6 +304,7 @@ export function MerchantDashboardQuotes() {
                 ) : null}
 
                 {/* Actions */}
+                <QuoteProposalPanel key={selectedQuote.id} quote={selectedQuote} admin />
                 <div className="mt-5 flex flex-wrap gap-2 border-t border-border/40 pt-4">
                   <Button
                     variant="outline"

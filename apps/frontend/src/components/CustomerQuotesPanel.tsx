@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ProductAutocomplete } from '@/components/ProductAutocomplete';
+import { QuoteProposalPanel } from '@/components/QuoteProposalPanel';
 import { buildQuoteDisplayTitle, formatQuoteTimestamp, getQuoteStatusDescription } from '@/lib/quote-ui';
 import type { ScannedDocument } from '@/components/LiveDocumentScanner';
 import type { QuoteItemInputDTO, QuoteRequest } from '@/types';
@@ -111,6 +112,7 @@ export function CustomerQuotesPanel({ quotes, quotesLoading, selectedQuote, edit
         <h3 className="text-xl font-bold">{buildQuoteDisplayTitle(selectedQuote)}</h3><p className="mt-2 text-sm text-slate-500">{getQuoteStatusDescription(selectedQuote.status)}</p>
         <ul className="mt-6 space-y-3">{selectedQuote.items.map(item => <li key={item.id} className="flex items-start justify-between gap-4 border-b border-slate-100 pb-3 text-sm"><span className="min-w-0 break-words">{item.name}{item.notes && <span className="mt-1 block text-xs text-slate-500">{item.notes}</span>}</span><strong className="shrink-0">{item.quantity} {item.unit || 'un'}</strong></li>)}</ul>
         {selectedQuote.customerNote && <p className="mt-5 whitespace-pre-wrap text-sm text-slate-500">{selectedQuote.customerNote}</p>}
+        <QuoteProposalPanel key={selectedQuote.id} quote={selectedQuote} />
       </section>}
     </div>}
   </div>;

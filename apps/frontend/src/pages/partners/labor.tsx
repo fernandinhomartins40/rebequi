@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { laborQuoteSchema, type LaborQuoteInput } from '@rebequi/shared/schemas';
-import { priceLaborQuote } from '@rebequi/shared/utils';
+import { priceLaborQuote, parseMoneyCents } from '@rebequi/shared/utils';
 import { getProject, listLaborQuotes, saveLaborQuote, type LaborQuote } from '@/services/api/partners';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,11 +13,6 @@ import { PartnerSteps } from './steps';
 
 const money = (cents: number) => (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 type ItemDraft = { description: string; quantity: string; unit: LaborQuoteInput['items'][number]['unit']; price: string };
-function cents(text: string) {
-  if (!/^\d+(?:[,.]\d{1,2})?$/.test(text.trim())) throw new Error('Informe preços como 25,00, sem separador de milhar.');
-  const [whole, fraction = ''] = text.trim().replace(',', '.').split('.');
-  return Number(whole) * 100 + Number(fraction.padEnd(2, '0'));
-}
 function LaborEditor({ projectId, latest, onClose }: { projectId: string; latest?: LaborQuote; onClose: () => void }) {
   const client = useQueryClient(); const [step, setStep] = useState(1); const [error, setError] = useState('');
   const [title, setTitle] = useState(latest?.title ?? 'Orçamento de mão de obra');
@@ -25,7 +20,7 @@ function LaborEditor({ projectId, latest, onClose }: { projectId: string; latest
   const [items, setItems] = useState<ItemDraft[]>(latest?.items.map(item => ({ description: item.description, quantity: String(item.quantity), unit: item.unit, price: (item.unitPriceCents / 100).toFixed(2).replace('.', ',') })) ?? [{ description: '', quantity: '1', unit: 'serviço', price: '' }]);
   const request = useRef<{ fingerprint: string; key: string } | null>(null);
   const mutation = useMutation({ mutationFn: saveLaborQuote, onSuccess: async () => { await client.invalidateQueries({ queryKey: ['partners', 'labor', projectId] }); onClose(); }, onError: failure => setError(failure.message) });
-  const parsedItems = () => items.map(item => ({ description: item.description, unit: item.unit, quantity: Number(item.quantity.replace(',', '.')), unitPriceCents: cents(item.price) }));
+  const parsedItems = () => items.map(item => ({ description: item.description, unit: item.unit, quantity: Number(item.quantity.replace(',', '.')), unitPriceCents: parseMoneyCents(item.price) }));
   const patch = (index: number, update: Partial<ItemDraft>) => setItems(current => current.map((item, position) => position === index ? { ...item, ...update } : item));
   const advance = () => {
     try {

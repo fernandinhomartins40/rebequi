@@ -33,7 +33,7 @@ export async function validatePartnerLabor({ owner, guest, admin, browser, baseU
     await page.getByRole('button', { name: 'Salvar versão', exact: true }).click();
     const document = page.locator('#partner-labor-document');
     await document.getByText('Versão 3', { exact: false }).waitFor();
-    assert.ok((await document.innerText()).includes('R$ 31,88'));
+    assert.ok((await document.innerText()).replace(/\s+/g, ' ').includes('R$ 31,88'));
     assert.ok(!(await document.innerText()).includes('Outro nome'), 'Client is excluded from print by default');
     await page.getByRole('checkbox', { name: 'Incluir nome do cliente na impressão' }).check();
     assert.ok((await document.innerText()).includes('Cliente: Outro nome'));

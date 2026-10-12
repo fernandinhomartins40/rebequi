@@ -74,6 +74,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, [refreshSession]);
 
+  useEffect(() => {
+    const reconnect = () => {
+      setStatus('loading');
+      void refreshSession().catch(() => { setStatus('unauthenticated'); });
+    };
+    window.addEventListener('online', reconnect);
+    return () => window.removeEventListener('online', reconnect);
+  }, [refreshSession]);
+
   const login = useCallback(async (payload: LoginInput) => {
     const response = await loginRequest(payload);
     clearProvisionalCredentials();

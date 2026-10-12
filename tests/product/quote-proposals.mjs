@@ -1,0 +1,61 @@
+import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+
+export async function validateQuoteProposals({ owner, guest, admin, browser, baseURL, data, db, product }) {
+  const headers = { Origin: baseURL }; const user = await data(await owner.get('/api/auth/me'));
+  const createQuote = () => JSON.parse(db(`console.log(JSON.stringify(await prisma.quoteRequest.create({data:{referenceCode:${JSON.stringify(`PROP-${randomUUID().slice(0, 8)}`)},userId:${JSON.stringify(user.id)},title:'Proposta de materiais',status:'SUBMITTED',documentUrl:'',ocrStatus:'SKIPPED',submittedAt:new Date(),items:{create:[{productId:${JSON.stringify(product.id)},name:${JSON.stringify(product.name)},quantity:1,position:0}]}}})));`).trim());
+  const quote = createQuote();
+  const input = { items: [{ productId: product.id, quantity: 1, unitPriceCents: 1999 }], notes: 'Retirada combinada com a loja', validityDays: 7, expectedLatestVersion: 0, requestKey: randomUUID() };
+  assert.equal((await guest.get(`/api/quotes/${quote.id}/proposals`)).status(), 401);
+  assert.equal((await owner.post(`/api/quotes/admin/${quote.id}/proposals`, { headers, data: input })).status(), 403);
+  assert.equal((await admin.post(`/api/quotes/admin/${quote.id}/proposals`, { data: input })).status(), 403);
+  const proposals = await Promise.all([1, 2].map(() => admin.post(`/api/quotes/admin/${quote.id}/proposals`, { headers, data: input })));
+  const published = await Promise.all(proposals.map(response => data(response, 201)));
+  assert.equal(published[0].proposalId, published[1].proposalId);
+  assert.equal((await admin.post(`/api/quotes/admin/${quote.id}/proposals`, { headers, data: { ...input, notes: 'Alterado' } })).status(), 409);
+  const second = await data(await admin.post(`/api/quotes/admin/${quote.id}/proposals`, { headers, data: { ...input, expectedLatestVersion: 1, requestKey: randomUUID() } }), 201);
+  assert.equal(second.version, 2);
+  assert.equal((await owner.post(`/api/quotes/${quote.id}/proposals/accept`, { headers, data: { version: 1, confirmed: true } })).status(), 409);
+  assert.equal((await owner.post(`/api/quotes/${quote.id}/proposals/accept`, { headers, data: { version: 2, confirmed: false } })).status(), 400);
+  db(`await prisma.quoteProposal.update({where:{id:${JSON.stringify(second.proposalId)}},data:{validUntil:new Date(Date.now()-1000)}});`);
+  assert.equal((await owner.post(`/api/quotes/${quote.id}/proposals/accept`, { headers, data: { version: 2, confirmed: true } })).status(), 409);
+  const original = JSON.parse(db(`console.log(JSON.stringify(await prisma.product.findUnique({where:{id:${JSON.stringify(product.id)}},select:{stock:true,reservedStock:true,price:true}})));`).trim());
+  db(`await prisma.quoteProposal.update({where:{id:${JSON.stringify(second.proposalId)}},data:{validUntil:new Date(Date.now()+86400000)}}); await prisma.product.update({where:{id:${JSON.stringify(product.id)}},data:{reservedStock:${original.stock}}});`);
+  assert.equal((await owner.post(`/api/quotes/${quote.id}/proposals/accept`, { headers, data: { version: 2, confirmed: true } })).status(), 409);
+  db(`await prisma.product.update({where:{id:${JSON.stringify(product.id)}},data:{reservedStock:${original.reservedStock},price:${original.price + 0.01}}});`);
+  assert.equal((await owner.post(`/api/quotes/${quote.id}/proposals/accept`, { headers, data: { version: 2, confirmed: true } })).status(), 409);
+  db(`await prisma.product.update({where:{id:${JSON.stringify(product.id)}},data:{price:${original.price}}});`);
+  const acceptances = await Promise.all([1, 2].map(() => owner.post(`/api/quotes/${quote.id}/proposals/accept`, { headers, data: { version: 2, confirmed: true } })));
+  const accepted = await Promise.all(acceptances.map(response => data(response)));
+  assert.equal(accepted[0].orderId, accepted[1].orderId);
+  const order = JSON.parse(db(`console.log(JSON.stringify(await prisma.customerOrder.findUnique({where:{id:${JSON.stringify(accepted[0].orderId)}},include:{items:true,sale:true,reservations:true}})));`).trim());
+  assert.equal(order.status, 'PENDING_WHATSAPP'); assert.equal(order.sale, null); assert.equal(order.reservations.length, 0);
+  assert.equal(order.items[0].unitPrice, 19.99); assert.equal(order.userId, user.id);
+  assert.ok(order.whatsappUrl.startsWith('https://wa.me/'));
+  assert.equal((await admin.post(`/api/quotes/admin/${quote.id}/proposals`, { headers, data: { ...input, expectedLatestVersion: 2, requestKey: randomUUID() } })).status(), 400);
+  const history = await data(await owner.get(`/api/quotes/${quote.id}/proposals`));
+  assert.equal(history.total, 2); assert.equal(history.acceptedProposalVersion, 2); assert.equal(history.proposals[0].totalCents, 1999);
+  await data(await guest.post('/api/quotes/public/start', { data: { name: 'Cliente de outra conta', whatsapp: '11987654329' } }), 201);
+  assert.equal((await guest.get(`/api/quotes/${quote.id}/proposals`)).status(), 404);
+  assert.equal((await guest.post(`/api/quotes/${quote.id}/proposals/accept`, { headers, data: { version: 2, confirmed: true } })).status(), 404);
+  const uiQuote = createQuote();
+  const context = await browser.newContext();
+  try {
+    await context.addCookies((await admin.storageState()).cookies);
+    const page = await context.newPage(); await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`${baseURL}/painel-lojista/painel/orçamentos`);
+    await page.getByRole('button', { name: 'Criar proposta', exact: true }).click();
+    await page.getByRole('button', { name: 'Continuar', exact: true }).click();
+    await page.locator('#proposal-price-0').fill('19,99');
+    await page.getByRole('button', { name: 'Continuar', exact: true }).click();
+    await page.getByRole('button', { name: 'Publicar proposta', exact: true }).click();
+    await page.getByRole('button', { name: 'Revisar proposta', exact: true }).waitFor();
+    await context.clearCookies(); await context.addCookies((await owner.storageState()).cookies);
+    await page.goto(`${baseURL}/painel-cliente?tab=quotes&quoteId=${uiQuote.id}`);
+    await page.getByRole('checkbox', { name: 'Conferi os produtos, quantidades e condições.' }).check();
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.getByRole('button', { name: 'Aceitar e criar pedido', exact: true }).click();
+    await page.waitForURL(/painel-cliente\?tab=orders/);
+    assert.ok((await data(await owner.get(`/api/quotes/${uiQuote.id}/proposals`))).proposalOrderId);
+  } finally { await context.close(); }
+}

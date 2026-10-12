@@ -324,6 +324,11 @@ model QuoteRequest {
   id                 String       @id @default(cuid())
   referenceCode      String       @unique
   partnerEstimate    MaterialEstimate?
+  proposals QuoteProposal[]
+  proposalOrderId String? @unique
+  proposalOrder CustomerOrder? @relation(fields: [proposalOrderId], references: [id], onDelete: SetNull)
+  acceptedProposalVersion Int?
+  proposalAcceptedAt DateTime?
   // Null while the quote is an anonymous draft: the customer photographs the
   // list first and only identifies themselves when submitting.
   userId             String?
@@ -440,6 +445,7 @@ model QuoteItem {
 model CustomerOrder {
   id                   String              @id @default(cuid())
   referenceCode        String              @unique
+  proposalQuote QuoteRequest?
   userId               String
   user                 User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   status               OrderStatus         @default(PENDING_WHATSAPP)
@@ -840,4 +846,22 @@ model PartnerLaborQuote {
   @@unique([projectId, version])
   @@index([projectId, createdAt])
   @@map("partner_labor_quotes")
+}
+
+model QuoteProposal {
+  id String @id @default(cuid())
+  quoteId String
+  quote QuoteRequest @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  version Int
+  requestKey String @unique
+  fingerprint String
+  createdById String
+  items Json
+  notes String @default("")
+  totalCents BigInt
+  validUntil DateTime
+  createdAt DateTime @default(now())
+  @@unique([quoteId, version])
+  @@index([quoteId, createdAt])
+  @@map("quote_proposals")
 }
