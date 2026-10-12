@@ -168,3 +168,4 @@ export function generateId(): string {
     return v.toString(16);
   });
 }
+export * from './material-calculator.js';

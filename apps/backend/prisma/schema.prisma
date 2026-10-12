@@ -126,6 +126,7 @@ model Product {
   discount      Int?           // Discount percentage (0-100)
   stock         Int            @default(0) // Current stock quantity
   reservedStock Int            @default(0)
+  technicalSpec ProductTechnicalSpec?
   reservations  StockReservation[]
   minStock      Int            @default(0) // Alert when stock is low
   weight        Float?         // Weight in kg
@@ -322,6 +323,7 @@ model LeadCapture {
 model QuoteRequest {
   id                 String       @id @default(cuid())
   referenceCode      String       @unique
+  partnerEstimate    MaterialEstimate?
   // Null while the quote is an anonymous draft: the customer photographs the
   // list first and only identifies themselves when submitting.
   userId             String?
@@ -748,6 +750,7 @@ model PartnerProfile {
   acceptedTermsAt   DateTime @default(now())
   version           Int @default(1)
   audits            PartnerProfileAudit[]
+  projects          PartnerProject[]
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -768,4 +771,51 @@ model PartnerProfileAudit {
 
   @@index([partnerId, createdAt])
   @@map("partner_profile_audits")
+}
+
+model PartnerProject {
+  id String @id @default(cuid())
+  requestKey String? @unique
+  fingerprint String?
+  partnerId String
+  partner PartnerProfile @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  title String
+  service String
+  reference String @default("")
+  clientName String @default("")
+  notes String @default("")
+  rooms Json
+  archived Boolean @default(false)
+  version Int @default(1)
+  estimates MaterialEstimate[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([partnerId, archived, updatedAt])
+  @@map("partner_projects")
+}
+
+model ProductTechnicalSpec {
+  productId String @id
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  parameters Json
+  sourceUrl String
+  checkedById String
+  checkedAt DateTime @default(now())
+  version Int @default(1)
+  @@map("product_technical_specs")
+}
+
+model MaterialEstimate {
+  id String @id @default(cuid())
+  projectId String
+  project PartnerProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  requestKey String @unique
+  fingerprint String
+  input Json
+  result Json
+  quoteId String? @unique
+  quote QuoteRequest? @relation(fields: [quoteId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  @@index([projectId, createdAt])
+  @@map("material_estimates")
 }

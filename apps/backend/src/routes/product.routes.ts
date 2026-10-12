@@ -8,7 +8,10 @@ import { getRolesForMerchantPermission } from '@rebequi/shared/constants';
 import { ProductController } from '../controllers/product.controller.js';
 import { validateBody } from '../middleware/validation.middleware.js';
 import { authenticate, authorize } from '../middleware/auth.middleware.js';
-import { createProductSchema, updateProductSchema } from '@rebequi/shared/schemas';
+import { requireTrustedOrigin } from '../middleware/trusted-origin.middleware.js';
+import { createProductSchema, updateProductSchema, technicalSpecSchema } from '@rebequi/shared/schemas';
+import { getTechnicalSpec, saveTechnicalSpec } from '../services/partner-project.service.js';
+import { successResponse } from '../utils/response.util.js';
 import { upload } from '../config/multer.js';
 import { uploadLimiter } from '../middleware/rate-limit.middleware.js';
 
@@ -26,6 +29,14 @@ router.get('/slug/:slug', productController.getBySlug);
 
 // Admin read routes
 router.get('/admin/list', authenticate, authorize(...catalogRoles), productController.getAdminAll);
+router.get('/admin/:id/technical-spec', authenticate, authorize(...catalogRoles), async (req, res, next) => {
+  res.setHeader('Cache-Control', 'private, no-store');
+  try { successResponse(res, await getTechnicalSpec(req.params.id)); } catch (error) { next(error); }
+});
+router.put('/admin/:id/technical-spec', authenticate, authorize(...catalogRoles), requireTrustedOrigin, validateBody(technicalSpecSchema), async (req, res, next) => {
+  res.setHeader('Cache-Control', 'private, no-store');
+  try { successResponse(res, await saveTechnicalSpec(req.params.id, req.user!.userId, req.body)); } catch (error) { next(error); }
+});
 
 // Admin routes
 router.post(

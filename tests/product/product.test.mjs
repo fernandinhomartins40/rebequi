@@ -7,6 +7,7 @@ import { validateCatalogLayout } from './catalog-layout.mjs';
 import { validateMediaTools } from './media-tools.mjs';
 import { validateCommercialConsistency } from './commercial-consistency.mjs';
 import { validatePartners } from './partners.mjs';
+import { validatePartnerMaterials } from './partner-materials.mjs';
 
 // Mutating validation is confined to a disposable, GitHub-hosted runner.
 if (process.env.CI !== 'true' || process.env.GITHUB_ACTIONS !== 'true' || process.env.RUNNER_ENVIRONMENT !== 'github-hosted') {
@@ -62,6 +63,7 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
       const guest = await client(); const admin = await client();
       await data(await admin.post('/api/auth/login', { data: { identifier: 'integration@example.invalid', password: 'integration-only-admin-password' } }));
       await validatePartners({ owner, guest, admin, browser, baseURL, data, db });
+      await validatePartnerMaterials({ owner, guest, admin, browser, baseURL, data, db, product });
     });
     await t.test('Concurrent sales, duplicate cancellation and persistent worker recovery', () => validateCommercialConsistency(db));
     assert.ok(account.provisionalCredentials.password.length >= 16);

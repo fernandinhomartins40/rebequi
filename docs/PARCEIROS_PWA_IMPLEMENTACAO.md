@@ -14,6 +14,16 @@ Migração aditiva 20261011200000_partner_profiles; contas/dados históricos pre
 
 ## Próximas entregas
 
+### Obras e cálculo determinístico — implementação de 12/10/2026
+
+Obras privadas com ambientes, paginação, edição por versão, arquivamento e criação idempotente. Contatos/anotações do cliente da obra não são copiados para a cotação. Cadastro aprovado é exigido no servidor para gravar obras, estimativas e solicitações; suspensão é verificada dentro da mesma transação das gravações.
+
+Ficha técnica no editor de produto: aplicação, embalagem, rendimento/área, base por demão ou acabamento, fonte HTTPS e confirmação explícita. Histórico de confirmação com versão e ator. Nenhum produto recebe coeficiente de demonstração em produção. O catálogo da calculadora usa apenas produtos ativos com ficha confirmada do serviço escolhido.
+
+Wizard de cálculo em três passos: obra/medidas, produto real, conferência da lista. Motor compartilhado e recalculado no servidor para pintura e pisos; desconta aberturas, aplica margem explícita e arredonda embalagens para cima. Rendimento acabado inclui as demãos uma única vez. Fórmula, ficha, preço e disponibilidade são fotografados na estimativa. Envio exige WhatsApp válido, revalida ficha/produto e cria QuoteRequest SUBMITTED agrupado; chamadas repetidas não criam solicitações duplicadas. Não altera estoque, não inclui mão de obra e não cria venda paga. Sem ficha disponível mantém cotação manual. Sem conexão há conferência simples de área, sem envio nem persistência de dados privados.
+
+Migração aditiva 20261011210000_partner_projects_estimates. 46 testes unitários backend passaram; integração adiciona PostgreSQL/API reais, permissões, concorrência/idempotência, versão de ficha, privacidade, estoque preservado e jornada mobile obra → cálculo → cotação. Corrigido Nginx para servir o SPA na entrada /parceiros/, mesmo com diretório físico do manifesto; teste HTTP explícito impede regressão. Esta entrega ainda não implementa IA de interpretação, proposta versionada, mão de obra, portfólio ou programa financeiro.
+
 PWA preparado com manifesto próprio, worker Workbox restrito a `/parceiros/`, precache explícito do shell público (21 arquivos, aproximadamente 620 KB nesta revisão), proteção no-cache para worker/manifest e orçamento máximo de 2 MiB no build. APIs, documentos e imagens de clientes não são cacheados. Sem conexão, apresenta estado claro e não afirma que pedidos foram enviados. Orientação de instalação Android/iPhone e aplicação de atualização por ação explícita, desabilitada durante edição. Código das rotas passa a carregar sob demanda; entrada JS reduzida de 1,1 MB para 347 KB antes de gzip. Não há novo serviço residente na VPS.
 
 Build, TypeScript e lint aprovados; navegador Chromium local confirmou shell offline real e ausência de API/uploads no cache. Transporte sintético usado apenas nessa inspeção local de interface; integração no GitHub consulta PostgreSQL/API reais e testa registro do worker, cache e reconexão. Validação física de instalação Android/iPhone e atualização entre releases permanece pendente. Offline nesta entrega permite abrir o shell; formulários/calculadora e rascunhos offline ainda estão nas etapas seguintes.

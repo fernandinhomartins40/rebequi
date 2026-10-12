@@ -30,7 +30,8 @@ export async function validatePartners({ owner, guest, admin, browser, baseURL, 
     const page = await context.newPage();
     for (const width of [320, 390, 1440]) {
       await page.setViewportSize({ width, height: 900 });
-      await page.goto(`${baseURL}/parceiros/`);
+      const response = await page.goto(`${baseURL}/parceiros/`);
+      assert.equal(response.status(), 200, 'The PWA entry must serve the application, not a directory listing');
       await page.getByText('Cadastro aprovado', { exact: true }).waitFor();
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
       await page.getByRole('button', { name: 'Conferir meu perfil' }).click();

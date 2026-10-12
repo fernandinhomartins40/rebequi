@@ -26,6 +26,7 @@ import {
   PageHeader,
 } from "./components";
 import { ProductImageCropDialog } from "./image-crop-dialog";
+import { ProductTechnicalSpecPanel } from './technical-spec';
 import { fetchAllAdminProductsSnapshot } from "./promotion-admin";
 import {
   createObjectPreviewUrl,
@@ -696,6 +697,7 @@ export function MerchantProductEditorPage() {
           </Button>
         </EditorFooter>
       </form>
+      {productId ? <ProductTechnicalSpecPanel productId={productId} /> : null}
 
       <ProductImageCropDialog
         open={Boolean(cropSourceUrl)}

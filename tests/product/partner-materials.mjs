@@ -1,0 +1,80 @@
+import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+
+export async function validatePartnerMaterials({ owner, guest, admin, browser, baseURL, data, db, product }) {
+  const headers = { Origin: baseURL };
+  const spec = { parameters: { kind: 'PAINT', packageLiters: 18, coverageM2PerPack: 110, coverageBasis: 'FINISHED' }, sourceUrl: 'https://example.invalid/isolated-test-spec', confirmed: true, expectedVersion: 0 };
+  assert.equal((await guest.get('/api/partners/projects')).status(), 401);
+  assert.equal((await owner.put(`/api/products/admin/${product.id}/technical-spec`, { headers, data: spec })).status(), 403);
+  assert.equal((await admin.put(`/api/products/admin/${product.id}/technical-spec`, { data: spec })).status(), 403);
+  assert.equal((await admin.put(`/api/products/admin/${product.id}/technical-spec`, { headers, data: { ...spec, confirmed: false } })).status(), 400);
+  const verified = await data(await admin.put(`/api/products/admin/${product.id}/technical-spec`, { headers, data: spec }));
+  assert.equal(verified.version, 1);
+  assert.equal((await admin.put(`/api/products/admin/${product.id}/technical-spec`, { headers, data: spec })).status(), 409);
+  const catalog = await data(await owner.get('/api/partners/catalog?service=PAINT'));
+  assert.ok(catalog.some(item => item.id === product.id));
+  assert.ok(!(await data(await owner.get('/api/partners/catalog?service=TILE'))).some(item => item.id === product.id));
+  const projectInput = { title: 'Obra do profissional', service: 'PAINT', clientName: 'Contato privado', reference: 'Local privado', notes: 'Anotação privada', rooms: [{ name: 'Sala', lengthM: 5, widthM: 4 }], expectedVersion: 0, requestKey: randomUUID() };
+  const created = await data(await owner.post('/api/partners/projects', { headers, data: projectInput }), 201);
+  assert.equal((await data(await owner.post('/api/partners/projects', { headers, data: projectInput }), 201)).id, created.id);
+  assert.equal((await owner.post('/api/partners/projects', { headers, data: { ...projectInput, title: 'Outro envio' } })).status(), 409);
+  assert.equal((await data(await owner.get(`/api/partners/projects/${created.id}`))).clientName, 'Contato privado');
+  const stranger = await browser.newContext({ baseURL });
+  try {
+    await data(await stranger.request.post('/api/orders/public/checkout', { data: { name: 'Outro profissional', whatsapp: '11987654328', items: [{ productId: product.id, quantity: 1 }] } }), 201);
+    assert.equal((await stranger.request.get(`/api/partners/projects/${created.id}`)).status(), 404);
+    assert.equal((await stranger.request.get('/api/partners/projects')).headers()['cache-control'], 'private, no-store');
+  } finally { await stranger.close(); }
+  const input = { projectId: created.id, productId: product.id, input: { service: 'PAINT', areaM2: 110, openingsM2: 10, coats: 3, lossPercent: 10 }, requestKey: randomUUID() };
+  const results = await Promise.all([1, 2].map(() => owner.post('/api/partners/estimates', { headers, data: input })));
+  const estimates = await Promise.all(results.map(response => data(response, 201)));
+  assert.equal(estimates[0].id, estimates[1].id);
+  assert.equal(estimates[0].result.packages, 1, 'Finished coverage must not multiply coats again');
+  assert.equal(estimates[0].result.quantityPurchased, 18);
+  assert.equal((await owner.post('/api/partners/estimates', { headers, data: { ...input, input: { ...input.input, areaM2: 120 } } })).status(), 409);
+  const stock = db(`console.log(JSON.stringify(await prisma.product.findUnique({where:{id:${JSON.stringify(product.id)}},select:{stock:true,reservedStock:true}})));`).trim();
+  const quotes = await Promise.all([1, 2].map(() => owner.post(`/api/partners/estimates/${estimates[0].id}/quote`, { headers, data: { quantity: 2 } })));
+  const sent = await Promise.all(quotes.map(response => data(response)));
+  assert.equal(sent[0].quoteId, sent[1].quoteId);
+  assert.equal((await owner.post(`/api/partners/estimates/${estimates[0].id}/quote`, { headers, data: { quantity: 3 } })).status(), 409);
+  assert.equal(db(`console.log(JSON.stringify(await prisma.product.findUnique({where:{id:${JSON.stringify(product.id)}},select:{stock:true,reservedStock:true}})));`).trim(), stock, 'Requesting prices cannot reserve or consume stock');
+  const stored = JSON.parse(db(`console.log(JSON.stringify(await prisma.quoteRequest.findUnique({where:{id:${JSON.stringify(sent[0].quoteId)}},include:{items:true}})));`).trim());
+  assert.equal(stored.status, 'SUBMITTED'); assert.equal(stored.items.length, 1); assert.equal(stored.items[0].quantity, 2);
+  assert.ok(!JSON.stringify(stored).includes('privad'), 'Private project contacts and notes cannot leak to store quote');
+  const context = await browser.newContext();
+  try {
+    await context.addCookies((await owner.storageState()).cookies);
+    const page = await context.newPage();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`${baseURL}/parceiros/?area=obras`);
+    await page.getByRole('button', { name: 'Nova obra', exact: true }).click();
+    await page.getByLabel('Nome da obra').fill('Pintura em três passos');
+    await page.getByRole('button', { name: 'Continuar', exact: true }).click();
+    await page.getByRole('button', { name: 'Continuar', exact: true }).click();
+    await page.getByRole('button', { name: 'Salvar obra', exact: true }).click();
+    const card = page.getByRole('article').filter({ hasText: 'Pintura em três passos' });
+    await card.getByRole('link', { name: 'Calcular materiais' }).click();
+    await page.getByLabel('Área total confirmada (m²)').fill('110');
+    await page.getByLabel('Portas, janelas e áreas excluídas (m²)').fill('10');
+    await page.getByRole('button', { name: 'Continuar', exact: true }).click();
+    await page.getByLabel('Produto da loja').selectOption(product.id);
+    await page.getByRole('button', { name: 'Calcular e salvar', exact: true }).click();
+    await page.getByLabel('Embalagens para cotação').waitFor();
+    assert.equal(await page.getByLabel('Embalagens para cotação').inputValue(), '1');
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.getByRole('button', { name: 'Solicitar cotação', exact: true }).click();
+    await page.waitForURL(/painel-cliente\?tab=quotes&quoteId=/);
+    assert.ok(new URL(page.url()).searchParams.get('quoteId'));
+  } finally { await context.close(); }
+  const changed = await data(await admin.put(`/api/products/admin/${product.id}/technical-spec`, { headers, data: { ...spec, expectedVersion: 1, parameters: { ...spec.parameters, coverageM2PerPack: 120 } } }));
+  assert.equal(changed.version, 2);
+  const staleInput = { ...input, requestKey: randomUUID() };
+  const stale = await data(await owner.post('/api/partners/estimates', { headers, data: staleInput }), 201);
+  await data(await admin.put(`/api/products/admin/${product.id}/technical-spec`, { headers, data: { ...spec, expectedVersion: 2 } }));
+  assert.equal((await owner.post(`/api/partners/estimates/${stale.id}/quote`, { headers, data: { quantity: 1 } })).status(), 409);
+  const profile = await data(await owner.get('/api/partners/me'));
+  const suspended = await data(await admin.post(`/api/partners/admin/${profile.id}/review`, { headers, data: { status: 'SUSPENDED', expectedVersion: profile.version, reason: 'Conferência no teste isolado' } }));
+  assert.equal((await owner.post('/api/partners/projects', { headers, data: { ...projectInput, requestKey: randomUUID() } })).status(), 403);
+  assert.equal((await owner.post('/api/partners/estimates', { headers, data: { ...input, requestKey: randomUUID() } })).status(), 403);
+  await data(await admin.post(`/api/partners/admin/${profile.id}/review`, { headers, data: { status: 'APPROVED', expectedVersion: suspended.version, reason: 'Conferência concluída' } }));
+}
