@@ -22,7 +22,7 @@ export async function validatePartnerFinance({ owner, guest, admin, browser, bas
   await data(await owner.post('/api/partners/program/accept', { headers, data: { ruleId: firstRule.id, confirmed: true } }));
   await data(await owner.post('/api/partners/program/accept', { headers, data: { ruleId: firstRule.id, confirmed: true } }));
   assert.equal((await data(await owner.get('/api/partners/program/history'))).total, 1);
-  const checkout = await data(await guest.post('/api/orders/checkout', { headers, data: { referral, items: [{ productId: product.id, quantity: 3 }] } }));
+  const checkout = await data(await guest.post('/api/orders/checkout', { headers, data: { referral, items: [{ productId: product.id, quantity: 3 }] } }), 201);
   const secondRule = await data(await admin.post('/api/partners/admin/program', { headers, data: { ...config, expectedVersion: firstRule.version, commissionBasisPoints: 2000, pointsPerReal: 1, maturityDays: 1 } }));
   const sale = await data(await admin.post('/api/sales/admin', { headers, data: { ...saleInput, idempotencyKey: randomUUID(), orderId: checkout.order.id, status: 'PENDING_PAYMENT', discount: 0.01 } }), 201);
   assert.equal((await data(await owner.get('/api/partners/wallet'))).total, 0);
@@ -69,7 +69,7 @@ export async function validatePartnerFinance({ owner, guest, admin, browser, bas
   const immutable = JSON.parse(db(`let ledger=false,rule=false;try{await prisma.partnerLedgerEntry.updateMany({where:{saleId:${JSON.stringify(sale.id)},kind:'EARN'},data:{commissionCents:1n}});}catch{ledger=true;}try{await prisma.partnerProgramRule.update({where:{id:${JSON.stringify(firstRule.id)}},data:{commissionBasisPoints:9999}});}catch{rule=true;}console.log(JSON.stringify({ledger,rule}));`).trim());
   assert.deepEqual(immutable, { ledger: true, rule: true });
   await data(await owner.post('/api/partners/program/accept', { headers, data: { ruleId: secondRule.id, confirmed: true } }));
-  const damagedOrder = await data(await guest.post('/api/orders/checkout', { headers, data: { referral, items: [{ productId: product.id, quantity: 2 }] } }));
+  const damagedOrder = await data(await guest.post('/api/orders/checkout', { headers, data: { referral, items: [{ productId: product.id, quantity: 2 }] } }), 201);
   const damaged = await data(await admin.post('/api/sales/admin', { headers, data: { ...saleInput, idempotencyKey: randomUUID(), orderId: damagedOrder.order.id } }), 201);
   wallet = await data(await owner.get('/api/partners/wallet')); assert.ok(BigInt(wallet.pendingCents) > 0n);
   assert.equal((await admin.post(`/api/partners/admin/${profile.id}/payouts`, { headers, data: { ...payout, reference: 'SYNTHETIC-UNAVAILABLE', requestKey: randomUUID(), amountCents: 1 } })).status(), 409);
