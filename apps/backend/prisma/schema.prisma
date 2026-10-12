@@ -746,6 +746,7 @@ enum PartnerStatus {
 }
 
 model PartnerProfile {
+  redemptions PartnerRedemption[]
   programAcceptances PartnerProgramAcceptance[]
   ledger PartnerLedgerEntry[]
   referrals PartnerReferral[]
@@ -774,6 +775,59 @@ model PartnerProfile {
 
   @@index([status, createdAt])
   @@map("partner_profiles")
+}
+
+model PartnerReward {
+  id String @id @default(cuid())
+  version Int @default(1)
+  name String
+  description String
+  points Int
+  capacity Int
+  reserved Int @default(0)
+  fulfilled Int @default(0)
+  enabled Boolean @default(false)
+  endsAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  redemptions PartnerRedemption[]
+  revisions PartnerRewardRevision[]
+  @@index([enabled, createdAt])
+  @@map("partner_rewards")
+}
+
+model PartnerRewardRevision {
+  id String @id @default(cuid())
+  rewardId String
+  reward PartnerReward @relation(fields: [rewardId], references: [id], onDelete: Restrict)
+  version Int
+  configuration Json
+  actorId String
+  createdAt DateTime @default(now())
+  @@unique([rewardId, version])
+  @@map("partner_reward_revisions")
+}
+
+model PartnerRedemption {
+  id String @id @default(cuid())
+  partnerId String?
+  partner PartnerProfile? @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+  rewardId String
+  reward PartnerReward @relation(fields: [rewardId], references: [id], onDelete: Restrict)
+  requestKey String @unique
+  rewardVersion Int
+  nameSnapshot String
+  descriptionSnapshot String
+  points Int
+  status String @default("PENDING")
+  version Int @default(1)
+  reason String?
+  actorId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([partnerId, createdAt])
+  @@index([status, createdAt])
+  @@map("partner_redemptions")
 }
 
 model PartnerProfileAudit {

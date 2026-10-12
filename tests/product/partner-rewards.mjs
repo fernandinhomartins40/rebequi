@@ -1,0 +1,53 @@
+import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+export async function validatePartnerRewards({ owner, guest, admin, browser, baseURL, data, db, product }) {
+  const headers = { Origin: baseURL }; const profile = await data(await owner.get('/api/partners/me'));
+  const oldRule = await data(await admin.get('/api/partners/admin/program'));
+  const config = { enabled: true, expectedVersion: oldRule.version, commissionBasisPoints: 0, pointsPerReal: 3, maturityDays: 0, terms: 'Regra sintética de resgates apenas no banco descartável. Pontos após venda paga, sujeito a devoluções e saldo disponível. Recompensas dependem de reserva, aprovação e retirada registrada pela loja.', confirmed: true };
+  const rule = await data(await admin.post('/api/partners/admin/program', { headers, data: config }));
+  await data(await owner.post('/api/partners/program/accept', { headers, data: { ruleId: rule.id, confirmed: true } }));
+  const checkout = await data(await guest.post('/api/orders/public/checkout', { headers, data: { name: 'Comprador de teste de pontos', whatsapp: '11987654332', referral: { code: profile.referralCode, confirmed: true }, items: [{ productId: product.id, quantity: 2 }] } }), 201);
+  const sale = await data(await admin.post('/api/sales/admin', { headers, data: { orderId: checkout.order.id, paymentMethod: 'PIX', idempotencyKey: randomUUID() } }), 201);
+  const before = await data(await owner.get('/api/partners/wallet'));
+  assert.ok(BigInt(before.availablePoints) > 10n);
+  const rewardInput = { expectedVersion: 0, name: 'Recompensa sintética do runner', description: 'Uma unidade, retirada após aprovação. Não será cadastrada em produção.', points: 10, capacity: 1, enabled: true, endsAt: null, confirmed: true };
+  assert.equal((await owner.post('/api/partners/admin/rewards', { headers, data: rewardInput })).status(), 403);
+  assert.equal((await admin.post('/api/partners/admin/rewards', { data: rewardInput })).status(), 403);
+  const reward = await data(await admin.post('/api/partners/admin/rewards', { headers, data: rewardInput }), 201);
+  const input = { rewardId: reward.id, rewardVersion: reward.version, requestKey: randomUUID(), confirmed: true };
+  const duplicate = await Promise.all([owner.post('/api/partners/redemptions', { headers, data: input }), owner.post('/api/partners/redemptions', { headers, data: input })]);
+  const holds = await Promise.all(duplicate.map(response => data(response, 201))); assert.equal(holds[0].id, holds[1].id);
+  assert.equal((await data(await owner.get('/api/partners/wallet'))).availablePoints, String(BigInt(before.availablePoints) - 10n));
+  assert.equal((await data(await owner.get('/api/partners/wallet'))).availableCents, before.availableCents, 'A reward never spends commission');
+  assert.equal((await owner.post('/api/partners/redemptions', { headers, data: { ...input, requestKey: randomUUID() } })).status(), 409);
+  const cancel = { expectedVersion: 1, status: 'CANCELED', reason: 'Cancelar no teste isolado', confirmed: true };
+  assert.equal((await guest.post(`/api/partners/redemptions/${holds[0].id}/cancel`, { headers, data: cancel })).status(), 404);
+  const cancels = await Promise.all([owner.post(`/api/partners/redemptions/${holds[0].id}/cancel`, { headers, data: cancel }), owner.post(`/api/partners/redemptions/${holds[0].id}/cancel`, { headers, data: cancel })]);
+  assert.deepEqual(cancels.map(response => response.status()).sort(), [200, 409]);
+  assert.equal((await data(await owner.get('/api/partners/wallet'))).availablePoints, before.availablePoints);
+  assert.equal((await data(await owner.get('/api/partners/rewards'))).rewards[0].available, 1);
+  assert.equal((await admin.put(`/api/partners/admin/rewards/${reward.id}`, { headers, data: { ...rewardInput, expectedVersion: 0 } })).status(), 409);
+  const context = await browser.newContext();
+  try {
+    await context.addCookies((await owner.storageState()).cookies); const page = await context.newPage(); await page.setViewportSize({ width: 320, height: 844 });
+    await page.goto(`${baseURL}/parceiros/?area=beneficios`); await page.getByRole('button', { name: 'Conferir recompensa', exact: true }).click();
+    await page.getByRole('button', { name: 'Continuar para confirmar', exact: true }).click();
+    await page.getByRole('checkbox', { name: 'Conferi as condições e autorizo a reserva dos pontos.' }).check();
+    await page.getByRole('button', { name: 'Solicitar resgate', exact: true }).click(); await page.getByText('Resgate solicitado. Acompanhe a análise abaixo.', { exact: true }).waitFor();
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  } finally { await context.close(); }
+  const history = await data(await owner.get('/api/partners/redemptions')); const pending = history.redemptions.find(item => item.status === 'PENDING'); assert.ok(pending);
+  assert.equal((await guest.get('/api/partners/redemptions')).status(), 404);
+  const approved = await data(await admin.post(`/api/partners/admin/redemptions/${pending.id}/review`, { headers, data: { ...cancel, status: 'APPROVED', expectedVersion: pending.version, reason: 'Disponibilidade conferida no runner' } }));
+  const changed = await data(await admin.put(`/api/partners/admin/rewards/${reward.id}`, { headers, data: { ...rewardInput, expectedVersion: 1, name: 'Nova condição futura', points: 20, enabled: false } }));
+  assert.equal(changed.points, 20); assert.equal((await data(await owner.get('/api/partners/redemptions'))).redemptions.find(item => item.id === pending.id).points, 10);
+  const fulfilled = await data(await admin.post(`/api/partners/admin/redemptions/${pending.id}/review`, { headers, data: { ...cancel, status: 'FULFILLED', expectedVersion: approved.version, reason: 'Entrega sintética registrada apenas no runner' } }));
+  assert.equal(fulfilled.status, 'FULFILLED');
+  assert.equal((await owner.post(`/api/partners/redemptions/${pending.id}/cancel`, { headers, data: { ...cancel, expectedVersion: fulfilled.version } })).status(), 409);
+  const capacity = (await data(await admin.get('/api/partners/admin/rewards'))).rewards[0]; assert.equal(capacity.reserved, 0); assert.equal(capacity.fulfilled, 1); assert.equal(capacity.available, 0);
+  await data(await admin.post(`/api/sales/admin/${sale.id}/status`, { headers, data: { status: 'CANCELED' } }));
+  assert.equal((await data(await owner.get('/api/partners/wallet'))).availablePoints, '-10', 'A return after redemption preserves the point debt');
+  const immutable = db(`let blocked=false;try{await prisma.partnerRedemption.update({where:{id:${JSON.stringify(pending.id)}},data:{points:1}});}catch{blocked=true;}console.log(JSON.stringify({blocked}));`).trim().split('\n').at(-1);
+  assert.deepEqual(JSON.parse(immutable), { blocked: true });
+  await data(await admin.post('/api/partners/admin/program', { headers, data: { ...config, expectedVersion: rule.version, enabled: false } }));
+}

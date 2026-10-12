@@ -1,0 +1,10 @@
+import type { PartnerRewardInput, PartnerRedemptionInput, PartnerRedemptionReviewInput } from '@rebequi/shared/schemas';
+import { apiFetch } from './client';
+export type PartnerReward = Omit<PartnerRewardInput, 'confirmed' | 'expectedVersion'> & { id: string; version: number; available: number; reserved?: number; fulfilled?: number };
+export type PartnerRedemption = { id: string; partnerId: string | null; rewardId: string; rewardVersion: number; nameSnapshot: string; descriptionSnapshot: string; points: number; status: string; version: number; reason: string | null; createdAt: string; partner?: { user: { name: string } } | null };
+type Page<T, K extends string> = { [P in K]: T[] } & { page: number; total: number; totalPages: number };
+export const getRewards = async (page = 1, admin = false) => (await apiFetch<{ data: Page<PartnerReward, 'rewards'> }>(`/partners/${admin ? 'admin/' : ''}rewards?page=${page}`)).data;
+export const saveReward = async (input: PartnerRewardInput, id?: string) => (await apiFetch<{ data: PartnerReward }>(`/partners/admin/rewards${id ? `/${encodeURIComponent(id)}` : ''}`, { method: id ? 'PUT' : 'POST', body: JSON.stringify(input) })).data;
+export const getRedemptions = async (page = 1, admin = false) => (await apiFetch<{ data: Page<PartnerRedemption, 'redemptions'> }>(`/partners/${admin ? 'admin/' : ''}redemptions?page=${page}`)).data;
+export const requestRedemption = async (input: PartnerRedemptionInput) => apiFetch('/partners/redemptions', { method: 'POST', body: JSON.stringify(input) });
+export const reviewRedemption = async (id: string, input: PartnerRedemptionReviewInput, admin = false) => apiFetch(`/partners/${admin ? 'admin/' : ''}redemptions/${encodeURIComponent(id)}/${admin ? 'review' : 'cancel'}`, { method: 'POST', body: JSON.stringify(input) });

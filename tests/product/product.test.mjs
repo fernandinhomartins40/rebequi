@@ -14,6 +14,7 @@ import { validatePartnerPortfolio } from './partner-portfolio.mjs';
 import { validatePartnerAi } from './partner-ai.mjs';
 import { validatePartnerReferrals } from './partner-referrals.mjs';
 import { validatePartnerFinance } from './partner-finance.mjs';
+import { validatePartnerRewards } from './partner-rewards.mjs';
 
 // Mutating validation is confined to a disposable, GitHub-hosted runner.
 if (process.env.CI !== 'true' || process.env.GITHUB_ACTIONS !== 'true' || process.env.RUNNER_ENVIRONMENT !== 'github-hosted') {
@@ -89,6 +90,12 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
       const guest = await client(); const admin = await client();
       await data(await admin.post('/api/auth/login', { data: { identifier: 'integration@example.invalid', password: 'integration-only-admin-password' } }));
       await validatePartnerFinance({ owner, guest, admin, browser, baseURL, data, db, product });
+    });
+    await restartIsolatedApi();
+    await t.test('Reward reservations serialize stock and points, retain snapshots and preserve return debt', async () => {
+      const guest = await client(); const admin = await client();
+      await data(await admin.post('/api/auth/login', { data: { identifier: 'integration@example.invalid', password: 'integration-only-admin-password' } }));
+      await validatePartnerRewards({ owner, guest, admin, browser, baseURL, data, db, product });
     });
     await restartIsolatedApi();
     await t.test('Private projects, verified calculations and grouped quote requests', async () => {

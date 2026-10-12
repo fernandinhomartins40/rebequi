@@ -6,6 +6,7 @@ import { requireTrustedOrigin } from '../middleware/trusted-origin.middleware.js
 import { successResponse } from '../utils/response.util.js';
 import { getPartnerProfile, listPartners, reviewPartner, savePartnerProfile } from '../services/partner.service.js';
 import projectRoutes from './partner-project.routes.js';
+import rewardRoutes from './partner-reward.routes.js';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { NotFoundError } from '../utils/errors.util.js';
@@ -22,6 +23,7 @@ const router: Router = Router();
 router.use(authenticate, (_req, res, next) => { res.setHeader('Cache-Control', 'private, no-store'); next(); });
 // Cookie mutations require an allowed browser origin. SameSite is not the only control.
 router.use(requireTrustedOrigin);
+router.use(rewardRoutes);
 const pageQuery = z.object({ page: z.coerce.number().int().min(1).max(100000).default(1) });
 router.get('/program/history', authorize('CUSTOMER'), validateQuery(pageQuery), async (req, res, next) => { try { successResponse(res, await ownPartnerRuleHistory(req.user!.userId, Number(req.query.page))); } catch (error) { next(error); } });
 router.get('/program', authorize('CUSTOMER'), async (req, res, next) => { try { successResponse(res, await getOwnPartnerProgram(req.user!.userId)); } catch (error) { next(error); } });

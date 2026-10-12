@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DashboardError, DashboardLoading } from '@/components/dashboard/DashboardList';
-const KINDS: Record<string, string> = { EARN: 'Benefício da venda', REVERSE: 'Estorno', PAYOUT: 'Pagamento registrado', PAYMENT_HOLD: 'Pagamento pendente', HOLD_RELEASE: 'Pagamento confirmado', INELIGIBLE: 'Venda sem elegibilidade' };
+const KINDS: Record<string, string> = { EARN: 'Benefício da venda', REVERSE: 'Estorno', PAYOUT: 'Pagamento registrado', PAYMENT_HOLD: 'Pagamento pendente', HOLD_RELEASE: 'Pagamento confirmado', INELIGIBLE: 'Venda sem elegibilidade', REDEMPTION_HOLD: 'Pontos reservados para resgate', REDEMPTION_RELEASE: 'Reserva de pontos devolvida' };
 export function PartnerWallet({ partnerId }: { partnerId?: string }) {
   const client = useQueryClient(); const [page, setPage] = useState(1); const [amount, setAmount] = useState(''); const [reference, setReference] = useState(''); const [confirmed, setConfirmed] = useState(false); const [error, setError] = useState('');
   const intent = useRef<{ fingerprint: string; key: string }>();

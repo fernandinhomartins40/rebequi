@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { PartnerPortfolio } from '@/pages/partners/portfolio';
 import { PartnerWallet } from '@/components/PartnerWallet';
 import { PartnerProgramSettings } from './partner-program';
+import { PartnerRewards } from '@/components/PartnerRewards';
 
 const LABELS = { PENDING: 'Aguardando análise', APPROVED: 'Aprovados', SUSPENDED: 'Suspensos', REJECTED: 'Precisam de ajustes' } as const;
 function PartnerReview({ partner }: { partner: PartnerProfile }) {
@@ -27,10 +28,12 @@ function PartnerReview({ partner }: { partner: PartnerProfile }) {
 }
 export default function MerchantPartnersPage() {
   const [showProgram, setShowProgram] = useState(false);
+  const [showRewards, setShowRewards] = useState(false);
   const [status, setStatus] = useState<PartnerStatus>('PENDING'); const [page, setPage] = useState(1);
   const query = useQuery({ queryKey: ['merchant-dashboard', 'partners', status, page], queryFn: () => listPartners({ status, page }), retry: false });
   return <div className="space-y-5"><PageHeader title="Profissionais parceiros" description="Confira o perfil e aprove a participação." /><div className="flex flex-wrap gap-2" aria-label="Filtrar situação">{Object.entries(LABELS).map(([value, title]) => <Button key={value} variant={status === value ? 'default' : 'outline'} onClick={() => { setStatus(value as PartnerStatus); setPage(1); }}>{title}</Button>)}</div>{query.isLoading ? <DashboardLoading /> : query.isError ? <DashboardError message={query.error.message} onRetry={() => query.refetch()} /> : !query.data?.partners.length ? <DashboardEmpty title="Nenhum cadastro nesta situação" /> : <div className="grid items-start gap-4 xl:grid-cols-2">{query.data.partners.map(partner => <PartnerReview key={`${partner.id}-${partner.version}`} partner={partner} />)}</div>}
     {query.data && query.data.totalPages > 1 ? <div className="flex items-center justify-between"><Button variant="outline" disabled={page === 1} onClick={() => setPage(current => current - 1)}>Anterior</Button><span className="text-sm">Página {page}</span><Button variant="outline" disabled={page >= query.data.totalPages} onClick={() => setPage(current => current + 1)}>Próxima</Button></div> : null}
     <Button variant="outline" onClick={() => setShowProgram(current => !current)}>{showProgram ? 'Fechar regras do programa' : 'Configurar programa de benefícios'}</Button>{showProgram ? <PartnerProgramSettings /> : null}
+    <Button variant="outline" onClick={() => setShowRewards(current => !current)}>{showRewards ? 'Fechar recompensas' : 'Gerenciar recompensas e resgates'}</Button>{showRewards ? <PartnerRewards admin /> : null}
   </div>;
 }
