@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 export async function validateDrivers({ admin, guest, browser, baseURL, data, db, id }) {
   const headers = { Origin: baseURL };
-  const contextA = await browser.newContext(); const contextB = await browser.newContext();
+  const contextA = await browser.newContext({ baseURL }); const contextB = await browser.newContext({ baseURL });
   try {
     const create = async (suffix, context) => {
       const identifier = `driver-${suffix}@example.invalid`; const password = 'Isolated-Driver-2026!';

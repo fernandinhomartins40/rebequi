@@ -94,6 +94,7 @@ export class SaleRepository {
       await requireCommercialAccess('sale', id, actor, tx);
       const sale = await tx.sale.findUnique({ where: { id }, include: saleInclude });
       if (!sale) throw new NotFoundError('Venda não encontrada');
+      if (status !== 'PAID' && await tx.deliveryRunStop.count({ where: { fulfillment: { saleId: id }, active: true } })) throw new ConflictError('Cancele o planejamento do romaneio antes de alterar o pagamento ou cancelar a venda.');
       if (sale.status === 'CANCELED' && status !== 'CANCELED') {
         throw new ValidationError('Venda cancelada não pode ser reaberta. Registre uma nova venda.');
       }

@@ -15,6 +15,7 @@ export async function cancelSaleFulfillment(tx: Prisma.TransactionClient, saleId
   const fulfillment = await tx.fulfillment.findUnique({ where: { saleId }, include: { items: true } });
   if (!fulfillment || fulfillment.status === 'CANCELED') return;
   await tx.$queryRaw`SELECT id FROM fulfillments WHERE id=${fulfillment.id} FOR UPDATE`;
+  if (await tx.deliveryRunStop.count({ where: { fulfillmentId: fulfillment.id, active: true } })) throw new ConflictError('Cancele o planejamento do romaneio antes de cancelar esta venda.');
   if (fulfillment.items.some(item => item.delivered > 0)) throw new ConflictError('Há material entregue. Registre a devolução física e confira a logística antes de cancelar.');
   await tx.fulfillment.update({ where: { id: fulfillment.id }, data: { status: 'CANCELED', version: { increment: 1 } } });
   await tx.fulfillmentEvent.create({ data: { fulfillmentId: fulfillment.id, version: fulfillment.version + 1, requestKey: `fulfillment-canceled:${saleId}`, fingerprint: saleId, kind: 'SALE_CANCELED', actorId: actorId ?? 'system', details: { status: 'CANCELED' } } });
@@ -23,6 +24,7 @@ export async function reviseFulfillmentAfterReturn(tx: Prisma.TransactionClient,
   const row = await tx.fulfillment.findUnique({ where: { saleId } });
   if (!row || row.status === 'CANCELED') return;
   await tx.$queryRaw`SELECT id FROM fulfillments WHERE id=${row.id} FOR UPDATE`;
+  if (await tx.deliveryRunStop.count({ where: { fulfillmentId: row.id, active: true } })) throw new ConflictError('Cancele o planejamento do romaneio antes de registrar a devolução.');
   await tx.fulfillmentItem.updateMany({ where: { fulfillmentId: row.id }, data: { checked: 0 } });
   const updated = await tx.fulfillment.update({ where: { id: row.id }, data: { status: row.mode === 'UNDEFINED' ? 'AWAITING_DETAILS' : 'CHECKING', version: { increment: 1 } } });
   await tx.fulfillmentEvent.create({ data: { fulfillmentId: row.id, version: updated.version, requestKey: `fulfillment-return:${returnId}`, fingerprint: returnId, kind: 'RETURN_REQUIRES_RECHECK', actorId, details: { returnId, status: updated.status } } });
@@ -65,6 +67,7 @@ async function mutateFulfillment(id: string, actorId: string, input: Fulfillment
     if (row.version !== input.expectedVersion) throw new ConflictError('A separação mudou. Recarregue e confira os materiais.');
     if (row.sale.status !== 'PAID') throw new ConflictError('A venda precisa estar paga para liberar a operação do depósito.');
     if (row.status === 'CANCELED') throw new ConflictError('Separação cancelada.');
+    if ((details || (input as FulfillmentOperationInput).action !== 'ISSUE') && await tx.deliveryRunStop.count({ where: { fulfillmentId: id, active: true } })) throw new ConflictError('Entrega vinculada a um romaneio ativo. Cancele o planejamento antes de alterar os materiais ou dados.');
     const returned = await tx.saleReturnItem.groupBy({ by: ['saleItemId'], where: { return: { saleId: row.saleId } }, _sum: { quantity: true } });
     const refunds = new Map(returned.map(item => [item.saleItemId, item._sum.quantity ?? 0]));
     let nextStatus = row.status;

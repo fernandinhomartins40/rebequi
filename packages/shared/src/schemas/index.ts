@@ -23,3 +23,4 @@ export * from './commercial.schema.js';
 export * from './fulfillment.schema.js';
 export * from './external-api.schema.js';
 export * from './vehicle.schema.js';
+export * from './delivery-run.schema.js';

@@ -30,6 +30,7 @@ export async function assignDriver(id: string, actorId: string, raw: DriverAssig
     }
     const current = await tx.fulfillment.findUniqueOrThrow({ where: { id }, include: { sale: { select: { status: true } } } });
     if (current.version !== input.expectedVersion) throw new ConflictError('A entrega mudou. Recarregue antes de atribuir.');
+    if (await tx.deliveryRunStop.count({ where: { fulfillmentId: id, active: true } })) throw new ConflictError('Cancele o planejamento do romaneio antes de trocar o motorista.');
     if (current.mode !== 'DELIVERY' || current.sale.status !== 'PAID' || !['PICKING', 'CHECKING', 'READY'].includes(current.status)) throw new ConflictError('Atribua somente entregas pagas em preparação ou prontas.');
     if (input.driverId) {
       await tx.$queryRaw`SELECT id FROM users WHERE id=${input.driverId} FOR UPDATE`;

@@ -14,6 +14,7 @@ datasource db {
 // USER MODEL - Authentication & Authorization
 // ============================================================================
 model User {
+  deliveryRuns DeliveryRun[] @relation("DeliveryRunDriver")
   driverFulfillments Fulfillment[] @relation("FulfillmentDriver")
   assignedSellerId String?
   assignedSeller User? @relation("CustomerSeller", fields: [assignedSellerId], references: [id], onDelete: SetNull)
@@ -579,6 +580,7 @@ model CommercialAssignmentAudit {
 }
 
 model LogisticsVehicle {
+  deliveryRuns DeliveryRun[]
   id           String   @id @default(cuid())
   plate        String   @unique
   label        String
@@ -612,6 +614,7 @@ model LogisticsVehicleEvent {
 }
 
 model Fulfillment {
+  deliveryStops DeliveryRunStop[]
   driverId String?
   driver User? @relation("FulfillmentDriver", fields: [driverId], references: [id], onDelete: SetNull)
   id String @id @default(cuid())
@@ -631,6 +634,60 @@ model Fulfillment {
   @@index([status, createdAt])
   @@index([driverId, status, createdAt])
   @@map("fulfillments")
+}
+
+model DeliveryRun {
+  id String @id @default(cuid())
+  label String
+  driverId String
+  driver User @relation("DeliveryRunDriver", fields: [driverId], references: [id], onDelete: Restrict)
+  vehicleId String
+  vehicle LogisticsVehicle @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  scheduledAt DateTime
+  status String @default("PLANNED")
+  version Int @default(1)
+  requestKey String @unique
+  fingerprint String
+  snapshot Json
+  stops DeliveryRunStop[]
+  events DeliveryRunEvent[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([status, scheduledAt])
+  @@index([driverId, status, scheduledAt])
+  @@map("delivery_runs")
+}
+
+model DeliveryRunStop {
+  id String @id @default(cuid())
+  runId String
+  run DeliveryRun @relation(fields: [runId], references: [id], onDelete: Restrict)
+  fulfillmentId String
+  fulfillment Fulfillment @relation(fields: [fulfillmentId], references: [id], onDelete: Restrict)
+  position Int
+  active Boolean @default(true)
+  loadKg Decimal? @db.Decimal(12,3)
+  volumeM3 Decimal? @db.Decimal(12,3)
+  snapshot Json
+  @@unique([runId, position])
+  @@unique([runId, fulfillmentId])
+  @@index([fulfillmentId, active])
+  @@map("delivery_run_stops")
+}
+
+model DeliveryRunEvent {
+  id String @id @default(cuid())
+  runId String
+  run DeliveryRun @relation(fields: [runId], references: [id], onDelete: Restrict)
+  version Int
+  requestKey String @unique
+  fingerprint String
+  kind String
+  actorId String
+  details Json
+  createdAt DateTime @default(now())
+  @@unique([runId, version])
+  @@map("delivery_run_events")
 }
 
 model FulfillmentItem {

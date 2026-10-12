@@ -138,6 +138,16 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Planejamento de romaneios — 12/10/2026
+
+Implementado Depósito → Gerenciar romaneios, para ADMIN/MANAGER com logistics:fleet. Fluxo de três passos: equipe/veículo/data de saída planejada, até 20 entregas prontas e ordem manual das paradas, revisão/confirmar. Seleção paginada de entregas pagas em modo DELIVERY, endereço conferido, versão esperada e conferência integral do saldo após devoluções. Planejamento atribui o motorista e registra evento imutável por tarefa na mesma transação. Uma tarefa pode ter apenas um romaneio ativo (índice único parcial); snapshot de parada preserva endereço/material/unidade comercial, não inventa massa/volume por produto. Não altera agendamento combinado com o cliente nem movimenta estoque.
+
+Veículo/motorista devem estar ativos. Medições físicas são strings Decimal, opcionais; qualquer peso/volume conhecido que ultrapasse a capacidade bloqueia planejamento. Falta de medição/capacidade é explícita e não vira validação de carga. Estado inicial PLANNED não significa carregado, em trânsito ou entregue. Consulta paginada, detalhe por ID e cancelamento do planejamento com motivo/versão/intenção idempotente; cancelamento libera as tarefas e preserva snapshots/histórico. Usuário DRIVER consulta somente seus romaneios e vê paradas na ordem definida, em mobile; não recebe eventos internos/chaves/fingerprints. Carregamento/saída/recebimento parcial ainda não implementados.
+
+Locks venda → tarefa, snapshot/histórico protegidos por triggers, guardas de material/pagamento/atribuição enquanto planejamento ativo. Para mudar venda, devolver ou editar tarefa, cancelar o planejamento primeiro. Proteções também bloqueiam escritas incompatíveis por imagens anteriores. Migração aditiva 20261012110000_delivery_run_planning. Sem contas/veículos/romaneios reais cadastrados no desenvolvimento, sem serviço contratado ou contêiner residente novo.
+
+61 testes unitários, tipos, lint, textos e build final passaram localmente. Suíte isolada acrescenta limite de capacidade, concorrência/idempotência, tarefa em dois planos, cancelamento/reenvio, snapshots imutáveis, bloqueio de pagamento/material, estoque preservado, acesso e UI mobile do motorista e planejamento/cancelamento mobile da gestão. Testes integrados/publicação ainda pendentes. Workflow 38321491967 passou na regressão da indicação, mas falhou no helper de motorista por URL relativa sem baseURL no BrowserContext; configurado baseURL nos contextos que fazem chamadas API. Não foi alteração de permissão nem relaxamento das asserções. Restantes etapas continuam no roteiro.
+
 ### Agendamento pelo depósito — 12/10/2026
 
 O contrato de agendamento já existia, mas a tela apenas conservava o valor recebido e não permitia preenchimento. Agora Dados de retirada/entrega → etapa 2 oferece data/hora opcional, no fuso local do dispositivo, e etapa 3 mostra a confirmação. Campo vazio remove o agendamento. Conversão para ISO UTC mantém o contrato e o acompanhamento do cliente/motorista existente; ao não editar o campo, preserva o instante original inclusive segundos/milissegundos. Sem prazo calculado, ETA ou agendamento automático. Usa versão, idempotência, permissões e eventos já existentes; não exige migração.

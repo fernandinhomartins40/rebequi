@@ -6,13 +6,14 @@ import { DashboardError, DashboardLoading } from '@/components/dashboard/Dashboa
 import { Button } from '@/components/ui/button';
 import { PageHeader } from './components';
 import { ADMIN_BASE_PATH } from './config';
+import { DriverRuns } from './driver-runs';
 const LABELS: Record<string, string> = { PICKING: 'Em separação', CHECKING: 'Em conferência', READY: 'Pronto para expedição' };
 export default function DriverTasks() {
   const { taskId } = useParams(); const [page, setPage] = useState(1);
   const list = useQuery({ queryKey: ['driver', 'tasks', page], queryFn: () => getDriverTasks(page), enabled: !taskId, retry: false });
   const detail = useQuery({ queryKey: ['driver', 'task', taskId], queryFn: () => getDriverTask(taskId!), enabled: Boolean(taskId), retry: false });
   return <div className="space-y-4"><PageHeader title="Minhas entregas" description="Confira as tarefas atribuídas a você." />
-    {taskId ? <><Button asChild variant="outline"><Link to={`${ADMIN_BASE_PATH}/entregas`}>Voltar para minhas entregas</Link></Button>{detail.isLoading ? <DashboardLoading /> : detail.isError ? <DashboardError message={detail.error.message} onRetry={() => detail.refetch()} /> : detail.data ? <section className="space-y-4 rounded-xl border bg-white p-4">
+    {!taskId ? <DriverRuns /> : null}{taskId ? <><Button asChild variant="outline"><Link to={`${ADMIN_BASE_PATH}/entregas`}>Voltar para minhas entregas</Link></Button>{detail.isLoading ? <DashboardLoading /> : detail.isError ? <DashboardError message={detail.error.message} onRetry={() => detail.refetch()} /> : detail.data ? <section className="space-y-4 rounded-xl border bg-white p-4">
       <div><h2 className="font-bold">{detail.data.sale.referenceCode}</h2><p className="text-sm">{LABELS[detail.data.status] ?? 'Confira a etapa com a loja'}</p><p className="mt-1 break-words text-sm">{detail.data.sale.customerNameSnapshot || 'Cliente não informado'}</p></div>
       <div><h3 className="font-semibold">Endereço</h3><p className="break-words text-sm">{detail.data.address}</p>{detail.data.scheduledAt ? <p className="mt-1 text-xs">Agendado: {new Date(detail.data.scheduledAt).toLocaleString('pt-BR')}</p> : <p className="text-xs text-muted-foreground">Sem agendamento confirmado.</p>}</div>
       <div><h3 className="font-semibold">Materiais</h3><ul className="mt-2 space-y-2">{detail.data.items.map(item => <li key={item.id} className="min-w-0 rounded-lg border p-3"><p className="break-words text-sm font-semibold">{item.nameSnapshot}</p><p className="text-xs text-muted-foreground">Conferido: {item.checked} · Recebido: {item.delivered}</p></li>)}</ul></div>
