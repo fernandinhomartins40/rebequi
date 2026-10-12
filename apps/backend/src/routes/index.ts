@@ -19,6 +19,7 @@ import integrationRoutes from './integration.routes.js';
 import partnerRoutes from './partner.routes.js';
 import commercialRoutes from './commercial.routes.js';
 import fulfillmentRoutes from './fulfillment.routes.js';
+import vehicleRoutes from './vehicle.routes.js';
 import { externalApiRoutes, externalAdminRoutes } from './external-api.routes.js';
 
 const router: Router = Router();
@@ -39,6 +40,7 @@ router.use('/integrations', integrationRoutes);
 router.use('/partners', partnerRoutes);
 router.use('/commercial', commercialRoutes);
 router.use('/fulfillments', fulfillmentRoutes);
+router.use('/vehicles', vehicleRoutes);
 router.use('/external/v1', externalApiRoutes);
 router.use('/integrations/external-api', externalAdminRoutes);
 

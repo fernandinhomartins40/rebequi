@@ -34,7 +34,12 @@ export async function validatePartnerReferrals({ owner, guest, admin, browser, b
     await page.goto(`${baseURL}/indicacao/${profile.referralCode}`);
     const publicResponse = await publicLookup;
     assert.equal(publicResponse.status(), 200, await publicResponse.text());
-    await page.getByRole('button', { name: 'Usar indicação e ver produtos', exact: true }).click();
+    try {
+      await page.getByRole('button', { name: 'Usar indicação e ver produtos', exact: true }).click();
+    } catch (failure) {
+      await page.screenshot({ path: 'tests/product/artifacts/referral-failure.png', fullPage: true });
+      throw new Error(`Referral page did not expose its action. URL: ${page.url()}. Rendered text: ${await page.locator('body').innerText()}`, { cause: failure });
+    }
     await page.waitForURL('**/categorias');
     assert.equal(await page.evaluate(() => JSON.parse(sessionStorage.getItem('rebequi.referral.intent.v1')).code), profile.referralCode);
   } finally { await context.close(); }

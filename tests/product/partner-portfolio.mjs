@@ -36,6 +36,7 @@ export async function validatePartnerPortfolio({ owner, guest, admin, browser, b
     await page.getByLabel('Foto de trabalho para o portfólio').setInputFiles({ name: 'celular.jpg', mimeType: 'image/jpeg', buffer });
     await page.getByRole('button', { name: 'Usar imagem recortada', exact: true }).click();
     await page.getByText('Trabalho pelo celular', { exact: true }).waitFor();
+    await page.getByRole('dialog').waitFor({ state: 'hidden' });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     const saved = await data(await owner.get('/api/partners/portfolio'));
     assert.equal(saved.length, 8); assert.ok(saved.every(photo => photo.size <= 250 * 1024));

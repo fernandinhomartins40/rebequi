@@ -1,0 +1,17 @@
+import { Router } from 'express';
+import { z } from 'zod';
+import { getRolesForMerchantPermission } from '@rebequi/shared/constants';
+import { vehicleSchema } from '@rebequi/shared/schemas';
+import { authenticate, authorize } from '../middleware/auth.middleware.js';
+import { requireTrustedOrigin } from '../middleware/trusted-origin.middleware.js';
+import { validateBody, validateQuery } from '../middleware/validation.middleware.js';
+import { successResponse } from '../utils/response.util.js';
+import { listVehicles, saveVehicle, vehicleHistory } from '../services/vehicle.service.js';
+const router: Router = Router();
+const pageSchema = z.object({ page: z.coerce.number().int().min(1).max(100000).default(1) });
+router.use(authenticate, authorize(...getRolesForMerchantPermission('logistics:fleet')), requireTrustedOrigin, (_req, res, next) => { res.setHeader('Cache-Control', 'private, no-store'); next(); });
+router.get('/', validateQuery(pageSchema), async (req, res, next) => { try { successResponse(res, await listVehicles(Number(req.query.page))); } catch (error) { next(error); } });
+router.get('/:id/history', validateQuery(pageSchema), async (req, res, next) => { try { successResponse(res, await vehicleHistory(req.params.id, Number(req.query.page))); } catch (error) { next(error); } });
+router.post('/', validateBody(vehicleSchema), async (req, res, next) => { try { successResponse(res, await saveVehicle(null, req.user!.userId, req.body)); } catch (error) { next(error); } });
+router.put('/:id', validateBody(vehicleSchema), async (req, res, next) => { try { successResponse(res, await saveVehicle(req.params.id, req.user!.userId, req.body)); } catch (error) { next(error); } });
+export default router;

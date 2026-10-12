@@ -7,6 +7,7 @@ export type MerchantPermission =
   | 'commercial:assign'
   | 'commercial:work'
   | 'logistics:manage'
+  | 'logistics:fleet'
   | 'promotions:manage'
   | 'orders:manage'
   | 'sales:manage'
@@ -41,6 +42,7 @@ export const INTERNAL_USER_ROLES: InternalUserRole[] = [
 ];
 
 export const MERCHANT_PERMISSION_PROFILES: Record<MerchantPermission, PermissionProfile> = {
+  'logistics:fleet': { label: 'Frota', description: 'Cadastra veículos e confirma capacidades e restrições de transporte.' },
   'logistics:manage': { label: 'Depósito e entregas', description: 'Configura retirada/entrega, separa, confere e acompanha materiais vendidos.' },
   'commercial:work': { label: 'Meus atendimentos', description: 'Consulta suas pendências e registros comerciais atribuídos.' },
   'catalog:read': { label: 'Consulta de catálogo', description: 'Consulta produtos, preços e disponibilidade sem editar o catálogo.' },
@@ -95,7 +97,7 @@ export const MERCHANT_ROLE_PROFILES: Record<InternalUserRole, RoleProfile> = {
     label: 'Administrador',
     description: 'Controle total do painel, incluindo acesso e configuracao da equipe.',
     permissions: [
-      'catalog:read', 'commercial:assign', 'commercial:work', 'logistics:manage',
+      'catalog:read', 'commercial:assign', 'commercial:work', 'logistics:manage', 'logistics:fleet',
       'partners:finance',
       'partners:manage',
       'dashboard:view',
@@ -114,7 +116,7 @@ export const MERCHANT_ROLE_PROFILES: Record<InternalUserRole, RoleProfile> = {
     label: 'Gerente operacional',
     description: 'Opera o painel quase por completo, sem gerenciar usuarios internos.',
     permissions: [
-      'catalog:read', 'commercial:assign', 'commercial:work', 'logistics:manage',
+      'catalog:read', 'commercial:assign', 'commercial:work', 'logistics:manage', 'logistics:fleet',
       'partners:finance',
       'partners:manage',
       'dashboard:view',

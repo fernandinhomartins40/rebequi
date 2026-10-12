@@ -6,7 +6,7 @@ Workflow 38313327790, commit d9697ec: concluído com sucesso, incluindo banco/AP
 
 Próximas tarefas, na ordem de execução:
 
-- [ ] Concluir e validar perfil WAREHOUSE, sem acesso comercial/financeiro; em implementação nesta atualização.
+- [ ] Concluir a validação integrada do perfil WAREHOUSE, sem acesso comercial/financeiro; implementação pronta, deploy ainda bloqueado pelo gate.
 - [ ] Cadastro de motoristas/veículos e permissões por tarefa, dados físicos de capacidade conferidos.
 - [ ] Romaneio, atribuição, agendamento e ordem manual das paradas; capacidade/massa/volume desconhecidos explícitos.
 - [ ] Carregamento, saída, entrega/retirada parcial por item, recebedor, ocorrência/reagendamento e reentrega.
@@ -60,12 +60,12 @@ Implementar vendedores com carteira e atribuição, operação de depósito/entr
 
 ### Etapa 0 — Fundação e segurança comercial
 
-- [ ] Modelar atribuição versionada e auditoria de cliente/lead/orçamento/pedido/venda.
-- [ ] Isolar listas, métricas, detalhes, propostas e documentos por SALES.
-- [ ] Revalidar atribuição dentro das mutações e controlar concorrência/reenvio.
-- [ ] Oferecer consulta de catálogo para vendedor sem permitir edição.
-- [ ] Fluxo de distribuição/retribuição pela gestão e painel de trabalho do vendedor.
-- [ ] Herança de responsável ao converter orçamento/pedido em venda.
+- [x] Modelar atribuição versionada e auditoria de cliente/lead/orçamento/pedido/venda.
+- [x] Isolar listas, métricas, detalhes, propostas e documentos por SALES.
+- [x] Revalidar atribuição dentro das mutações e controlar concorrência/reenvio.
+- [x] Oferecer consulta de catálogo para vendedor sem permitir edição.
+- [x] Fluxo de distribuição/retribuição pela gestão e painel de trabalho do vendedor.
+- [x] Herança de responsável ao converter orçamento/pedido em venda.
 - [ ] Testes de dois vendedores, admin, cliente, acesso por ID/arquivo, reatribuição e conta desativada.
 
 ### Etapa 1 — Atendimento e desempenho
@@ -79,11 +79,11 @@ Implementar vendedores com carteira e atribuição, operação de depósito/entr
 ### Etapa 2 — Depósito e liberação
 
 - [ ] Papéis/permissões operacionais na matriz existente, sem acesso financeiro desnecessário.
-- [ ] Fulfillment/itens/eventos, endereço conferido, entrega ou retirada, prazo confiável opcional.
+- [x] Fulfillment/itens/eventos, endereço conferido, entrega ou retirada, prazo confiável opcional.
 - [ ] Tarefa na transação da venda elegível; pendente bloqueado; exceções autorizadas.
 - [ ] Separar/conferir/registrar falta, localização opcional, prioridade e fila paginada.
 - [ ] Parcial por item, controle de quantidade acumulada e conflito de versão.
-- [ ] Cancelamento/devolução integrados sem nova baixa/reposição duplicada de estoque.
+- [x] Cancelamento/devolução integrados sem nova baixa/reposição duplicada de estoque na preparação; estender invariantes para a futura entrega física.
 
 ### Etapa 3 — Frota, expedição e motorista
 
@@ -137,6 +137,16 @@ Prisma schema/migrations; matriz de acesso e schemas/tipos compartilhados; auth/
 ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloqueia base comercial/logística/API genérica. Conector específico depende de nome/versão, documentação/capacidades, credenciais cadastradas apenas no painel, autoridade por domínio e homologação. Metas/taxas/exceções de liberação dependem de configuração da loja, não bloquear formulários. Veículos/endereço/capacidade e teste físico dependem de dados reais. Custos de API/mapas, integração ativa, pagamentos, migração retroativa e multiempresa exigem escopo/validação próprios.
 
 ## Progresso e retomada
+
+### Cadastro de veículos — 12/10/2026
+
+Implementado cadastro paginado de veículos em Depósito → Gerenciar veículos, restrito a ADMIN/MANAGER por logistics:fleet. Wizard em três passos: identificação/placa, capacidade/restrições, confirmação. Placa normalizada/única, carga útil kg e volume m³ em Decimal(12,3), sem conversão ou capacidade fictícia quando desconhecida. Inativação preserva cadastro e histórico, sem exclusão. Escritas transacionais com intenção idempotente, versão esperada e histórico imutável de snapshots/motivos. Nenhum veículo real cadastrado durante desenvolvimento. Migration 20261012090000_logistics_vehicles aditiva. Motoristas, atribuição e romaneios continuam pendentes.
+
+60 testes unitários, tipos backend/frontend, lint, textos e build passaram localmente. Teste isolado acrescenta origens/permissões, normalização, capacidade exata/desconhecida, duplicação/reenvio, conflito de versão, inativação, histórico sem chaves internas e cadastro mobile. Gate integrado ainda pendente.
+
+Workflow 38319186948 falhou no navegador em indicação pública (API retornou 200, botão não apareceu) e portfólio (geometria medida antes de confirmar fechamento do recorte); deploy foi bloqueado. Acrescentada captura de tela/texto da indicação na falha para obter evidência da tela real. Portfólio agora aguarda o diálogo de recorte fechar antes de verificar responsividade, mantendo a asserção. Não declarar essas falhas corrigidas antes de um novo gate completo. O workflow intermediário d1239eb foi cancelado pela substituição do run pendente; suas mudanças estão nos commits posteriores.
+
+Checklist da fundação atualizado com os itens comprovados pelo workflow 38313327790 já publicado. A suíte comercial cobre dois vendedores/reatribuição; completar o caso explícito de conta desativada antes de marcar a última linha da etapa 0.
 
 ### Histórico completo do depósito — 12/10/2026
 
