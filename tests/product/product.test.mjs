@@ -446,12 +446,13 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
         await page.goto(`${baseURL}/painel-cliente?tab=orders&orderId=${order.id}`);
         await page.getByRole('heading', { name: `Pedido ${order.referenceCode}` }).waitFor();
         assert.equal(await page.getByText('Somente a equipe').count(), 0);
-        await page.getByText('Ver itens do pedido', { exact: true }).click();
-        await page.getByText(product.name, { exact: false }).first().waitFor();
+        const orderCard = page.locator(`#customer-order-${order.id}`);
+        await orderCard.getByText('Ver itens do pedido', { exact: true }).click();
+        await orderCard.getByText(product.name, { exact: false }).first().waitFor();
         await page.screenshot({ path: new URL('./artifacts/orders-mobile.png', import.meta.url).pathname, fullPage: true });
-        const resume = page.getByRole('link', { name: 'Retomar no WhatsApp' });
+        const resume = orderCard.getByRole('link', { name: 'Retomar no WhatsApp' });
         assert.ok((await resume.getAttribute('href')).startsWith('https://'));
-        await page.getByRole('button', { name: 'Adicionar itens ao carrinho' }).click();
+        await orderCard.getByRole('button', { name: 'Adicionar itens ao carrinho' }).click();
         await page.waitForURL('**/carrinho');
         await page.getByText(product.name, { exact: false }).first().waitFor();
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true);
