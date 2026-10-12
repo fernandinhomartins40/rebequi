@@ -49,10 +49,14 @@ export class QuoteRepository {
   }
 
   async updateLead(id: string, data: Prisma.LeadCaptureUpdateInput, actor?: CommercialActor) {
-    return prisma.leadCapture.update({
+    return prisma.$transaction(async tx => {
+    const updated = await tx.leadCapture.update({
       where: { id, ...assignedScope(actor) },
       data,
       include: leadInclude,
+    });
+    if (actor) await tx.integrationAudit.create({ data: { actorId: actor.userId, jobId: id, action: 'COMMERCIAL_LEAD_UPDATED' } });
+    return updated;
     });
   }
 
@@ -87,10 +91,14 @@ export class QuoteRepository {
   }
 
   async updateQuote(id: string, data: Prisma.QuoteRequestUpdateInput, actor?: CommercialActor) {
-    return prisma.quoteRequest.update({
+    return prisma.$transaction(async tx => {
+    const updated = await tx.quoteRequest.update({
       where: { id, ...assignedScope(actor) },
       data,
       include: quoteInclude,
+    });
+    if (actor) await tx.integrationAudit.create({ data: { actorId: actor.userId, jobId: id, action: 'COMMERCIAL_QUOTE_UPDATED' } });
+    return updated;
     });
   }
 

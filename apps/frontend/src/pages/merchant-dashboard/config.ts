@@ -211,7 +211,8 @@ export function groupMerchantNavItems(items: MerchantNavItem[]) {
 
 export function getDefaultMerchantDashboardHref(role?: UserRole | string | null) {
   if (role === 'SALES') return `${ADMIN_BASE_PATH}/atendimentos`;
-  const firstAvailableItem = getMerchantNavItemsForRole(role)[0];
+  const available = getMerchantNavItemsForRole(role);
+  const firstAvailableItem = available.find(item => item.id === 'visão-geral') ?? available[0];
   return firstAvailableItem?.href ?? ADMIN_BASE_PATH;
 }
 

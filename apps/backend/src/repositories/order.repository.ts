@@ -58,7 +58,9 @@ export class OrderRepository {
         if (sale && sale.status !== 'CANCELED') throw new ConflictError('Cancele a venda vinculada antes de cancelar este pedido.');
       }
       if (data.status === 'CANCELED' || data.status === 'COMPLETED') await releaseOrderReservations(tx, id);
-      return tx.customerOrder.update({ where: { id }, data, include: orderInclude });
+      const updated = await tx.customerOrder.update({ where: { id }, data, include: orderInclude });
+      if (actor) await tx.integrationAudit.create({ data: { actorId: actor.userId, jobId: id, action: 'COMMERCIAL_ORDER_UPDATED' } });
+      return updated;
     });
   }
 

@@ -30,6 +30,7 @@ export async function reserveOrderStock(orderId: string, actor?: CommercialActor
         create: { orderId, productId, quantity, expiresAt }, update: { quantity, expiresAt, status: 'ACTIVE' } });
       await enqueueCatalogChange(tx, productId);
     }
+    if (actor) await tx.integrationAudit.create({ data: { actorId: actor.userId, jobId: orderId, action: 'COMMERCIAL_STOCK_RESERVED' } });
     return { expiresAt, reserved: true };
   });
 }
