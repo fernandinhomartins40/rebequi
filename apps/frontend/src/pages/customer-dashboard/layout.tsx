@@ -158,6 +158,9 @@ export function CustomerDashboardLayout({
           title={activeSection.label}
           actions={
             <>
+              <Button size="sm" variant="outline" onClick={() => navigate('/parceiros/')}>
+                Parceiros
+              </Button>
               <Button size="sm" variant="outline" onClick={() => navigate("/")}>
                 <Home />
                 Loja

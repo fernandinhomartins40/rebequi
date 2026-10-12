@@ -12,6 +12,7 @@ import { loggerMiddleware } from './middleware/logger.middleware.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.middleware.js';
 import { apiLimiter } from './middleware/rate-limit.middleware.js';
 import { optionalAuthenticate } from './middleware/auth.middleware.js';
+import { protectPrivateMedia } from './middleware/private-media.middleware.js';
 import routes from './routes/index.js';
 import { env } from './config/env.js';
 
@@ -59,6 +60,7 @@ app.use('/api', routes);
 
 // Serve static files (uploads)
 if (env.UPLOAD_DIR) {
+  app.use('/uploads', protectPrivateMedia);
   app.use('/uploads', express.static(env.UPLOAD_DIR, {
     maxAge: '1y', immutable: true, dotfiles: 'deny',
     setHeaders: (response, filePath) => {

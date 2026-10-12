@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ShieldCheck } from 'lucide-react';
 import { registerSchema, type RegisterInput } from '@rebequi/shared/schemas';
 import { formatWhatsapp } from '@rebequi/shared/utils';
@@ -17,6 +17,7 @@ import { saveProvisionalCredentials } from '@/lib/provisional-credentials';
 const Register = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const { refreshSession } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -49,7 +50,8 @@ const Register = () => {
           ? `Usuário ${response.provisionalCredentials.identifier} criado com senha provisória ${response.provisionalCredentials.password}.`
           : 'Conta criada com sucesso.',
       });
-      navigate('/painel-cliente');
+      const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
+      navigate(from?.startsWith('/parceiros/') || from === '/parceiros' ? '/parceiros/' : '/painel-cliente');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erro ao registrar';
       toast({

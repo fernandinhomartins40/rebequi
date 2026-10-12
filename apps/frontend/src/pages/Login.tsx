@@ -160,7 +160,7 @@ const Login = () => {
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
             Ainda não tem acesso?{' '}
-            <Link to="/registrar" className="font-semibold text-primary hover:underline">
+            <Link to="/registrar" state={locationState} className="font-semibold text-primary hover:underline">
               Cadastro rápido
             </Link>
           </p>

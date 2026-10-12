@@ -12,3 +12,4 @@ export * from './channel.schema.js';
 export * from './quote.schema.js';
 export * from './user.schema.js';
 export * from './integration.schema.js';
+export * from './partner.schema.js';

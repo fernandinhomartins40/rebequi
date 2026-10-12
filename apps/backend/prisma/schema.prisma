@@ -32,6 +32,7 @@ model User {
   leads              LeadCapture[]
   customerOrders     CustomerOrder[]
   quoteRequests      QuoteRequest[]
+  partnerProfile     PartnerProfile?
   sales              Sale[]         @relation("SaleCustomer")
   salesRegistered    Sale[]         @relation("SaleRegisteredBy")
   customerNotes      CustomerNote[] @relation("CustomerNoteCustomer")
@@ -720,4 +721,51 @@ model StockReservation {
   @@unique([orderId, productId])
   @@index([status, expiresAt])
   @@map("stock_reservations")
+}
+
+enum PartnerStatus {
+  PENDING
+  APPROVED
+  SUSPENDED
+  REJECTED
+}
+
+model PartnerProfile {
+  id                String @id @default(cuid())
+  userId            String @unique
+  user              User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  referralCode      String @unique
+  specialties       String[]
+  city              String
+  region            String
+  services          String @default("")
+  experienceYears   Int @default(0)
+  status            PartnerStatus @default(PENDING)
+  reviewReason      String?
+  reviewedById      String?
+  reviewedAt        DateTime?
+  acceptedTermsVersion String
+  acceptedTermsAt   DateTime @default(now())
+  version           Int @default(1)
+  audits            PartnerProfileAudit[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@map("partner_profiles")
+}
+
+model PartnerProfileAudit {
+  id        String @id @default(cuid())
+  partnerId String
+  partner   PartnerProfile @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  actorId   String
+  action    String
+  fromStatus PartnerStatus?
+  toStatus PartnerStatus
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@index([partnerId, createdAt])
+  @@map("partner_profile_audits")
 }

@@ -16,6 +16,7 @@ import customerRoutes from './customer.routes.js';
 import channelRoutes from './channel.routes.js';
 import userRoutes from './user.routes.js';
 import integrationRoutes from './integration.routes.js';
+import partnerRoutes from './partner.routes.js';
 
 const router: Router = Router();
 
@@ -32,5 +33,6 @@ router.use('/channels', channelRoutes);
 router.use('/health', healthRoutes);
 router.use('/users', userRoutes);
 router.use('/integrations', integrationRoutes);
+router.use('/partners', partnerRoutes);
 
 export default router;

@@ -9,7 +9,7 @@ export function DesignFrame({ children }: { children: ReactNode }) {
   const auth = ["/login", "/registrar", "/painel-lojista"].includes(pathname);
   const workspace =
     pathname.startsWith("/painel-lojista/painel") ||
-    pathname === "/painel-cliente";
+    pathname === "/painel-cliente" || pathname.startsWith('/parceiros');
   const surface =
     pathname === "/"
       ? "landing"

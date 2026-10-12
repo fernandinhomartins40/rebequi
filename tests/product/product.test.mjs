@@ -6,6 +6,7 @@ import { chromium, request } from 'playwright';
 import { validateCatalogLayout } from './catalog-layout.mjs';
 import { validateMediaTools } from './media-tools.mjs';
 import { validateCommercialConsistency } from './commercial-consistency.mjs';
+import { validatePartners } from './partners.mjs';
 
 // Mutating validation is confined to a disposable, GitHub-hosted runner.
 if (process.env.CI !== 'true' || process.env.GITHUB_ACTIONS !== 'true' || process.env.RUNNER_ENVIRONMENT !== 'github-hosted') {
@@ -57,6 +58,11 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
       name: 'Cliente Produto', whatsapp: '11987654321', items: [{ productId: product.id, quantity: 2 }],
     } }), 201);
     order = account.order;
+    await t.test('Real partner enrollment, review, concurrency, permissions and responsive wizard', async () => {
+      const guest = await client(); const admin = await client();
+      await data(await admin.post('/api/auth/login', { data: { identifier: 'integration@example.invalid', password: 'integration-only-admin-password' } }));
+      await validatePartners({ owner, guest, admin, browser, baseURL, data, db });
+    });
     await t.test('Concurrent sales, duplicate cancellation and persistent worker recovery', () => validateCommercialConsistency(db));
     assert.ok(account.provisionalCredentials.password.length >= 16);
 
@@ -261,6 +267,12 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
         assert.equal(uploads,1); assert.equal(draft.quote.documentMimeType,'image/webp');
         assert.equal(draft.quote.documentWidth,1800); assert.equal(draft.quote.documentHeight,900);
         assert.ok(draft.quote.documentSize<5*1024*1024);
+        const privateGuest = await client();
+        assert.equal((await privateGuest.get(draft.quote.documentUrl)).status(), 401);
+        assert.equal((await privateGuest.get(draft.quote.documentUrl.replace('/quotes/', '/%71uotes/'))).status(), 401, 'Encoded folders cannot bypass media authorization');
+        const privatePhoto = await context.request.get(draft.quote.documentUrl);
+        assert.equal(privatePhoto.status(), 200); assert.match(privatePhoto.headers()['cache-control'], /private, no-store/);
+        assert.equal((await anonymous.get(draft.quote.documentUrl)).status(), 404, 'A different customer cannot read the original photo');
         // The real HTTP job has no configured provider in CI. Wait before exercising the same service with mock transport.
         for(let attempt=0;attempt<30;attempt++) {
           const status=db('console.log((await prisma.quoteRequest.findUnique({where:{id:'+JSON.stringify(draft.quote.id)+'}})).ocrStatus);').trim();

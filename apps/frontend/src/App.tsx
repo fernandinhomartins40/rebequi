@@ -53,6 +53,9 @@ import RequestQuotePage from "./pages/RequestQuote";
 import Register from "./pages/Register";
 import CartPage from "./pages/Cart";
 import CheckoutPage from "./pages/Checkout";
+import { lazy, Suspense } from "react";
+const PartnersPage = lazy(() => import('./pages/partners'));
+const MerchantPartnersPage = lazy(() => import('./pages/merchant-dashboard/partners'));
 
 const queryClient = new QueryClient();
 
@@ -118,6 +121,9 @@ const App = () => (
                     element={<MerchantDashboardLayout />}
                   >
                     <Route index element={<RoleHomeRedirect />} />
+                    <Route element={<MerchantPermissionRoute permission="partners:manage" />}>
+                      <Route path="parceiros" element={<Suspense fallback={<p>Carregando…</p>}><MerchantPartnersPage /></Suspense>} />
+                    </Route>
                     <Route
                       element={
                         <MerchantPermissionRoute permission="dashboard:view" />
@@ -299,6 +305,7 @@ const App = () => (
                     path="/painel-cliente"
                     element={<CustomerDashboard />}
                   />
+                  <Route path="/parceiros/*" element={<Suspense fallback={<p>Carregando…</p>}><PartnersPage /></Suspense>} />
                 </Route>
 
                 <Route path="*" element={<NotFound />} />

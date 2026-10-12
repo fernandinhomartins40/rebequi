@@ -11,3 +11,4 @@ export * from './customer.js';
 export * from './channel.js';
 export * from './quote.js';
 export * from './user.js';
+export * from './partner.js';

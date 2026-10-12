@@ -10,7 +10,8 @@ export type MerchantPermission =
   | 'quotes:manage'
   | 'channels:manage'
   | 'access:manage'
-  | 'integrations:manage';
+  | 'integrations:manage'
+  | 'partners:manage';
 
 export type InternalUserRole = Exclude<UserRole, UserRole.CUSTOMER>;
 
@@ -34,6 +35,7 @@ export const INTERNAL_USER_ROLES: InternalUserRole[] = [
 ];
 
 export const MERCHANT_PERMISSION_PROFILES: Record<MerchantPermission, PermissionProfile> = {
+  'partners:manage': { label: 'Parceiros', description: 'Confere e aprova cadastros de profissionais parceiros.' },
   'dashboard:view': {
     label: 'Visão geral',
     description: 'Acompanha o resumo operacional do painel do lojista.',
@@ -81,6 +83,7 @@ export const MERCHANT_ROLE_PROFILES: Record<InternalUserRole, RoleProfile> = {
     label: 'Administrador',
     description: 'Controle total do painel, incluindo acesso e configuracao da equipe.',
     permissions: [
+      'partners:manage',
       'dashboard:view',
       'catalog:manage',
       'promotions:manage',
@@ -97,6 +100,7 @@ export const MERCHANT_ROLE_PROFILES: Record<InternalUserRole, RoleProfile> = {
     label: 'Gerente operacional',
     description: 'Opera o painel quase por completo, sem gerenciar usuarios internos.',
     permissions: [
+      'partners:manage',
       'dashboard:view',
       'catalog:manage',
       'promotions:manage',

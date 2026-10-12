@@ -29,7 +29,8 @@ export type MerchantSection =
   | 'orçamentos'
   | 'canais'
   | 'integrações'
-  | 'acesso';
+  | 'acesso'
+  | 'parceiros';
 
 /*
  * Grupos da sidebar — separam o menu por intenção de uso, em vez de
@@ -183,6 +184,8 @@ export const NAV_SECTIONS: Omit<MerchantNavItem, 'badge'>[] = [
     intro: 'Crie usuários internos, distribua papeis e controle quais funções cada colaborador pode usar.',
     requiredPermission: 'access:manage',
   },
+  { id: 'parceiros', group: 'vender', href: `${ADMIN_BASE_PATH}/parceiros`, label: 'Parceiros', description: 'Profissionais e aprovação',
+    icon: Users, eyebrow: 'Relacionamento', title: 'Profissionais parceiros', intro: 'Confira os cadastros e gerencie a participação.', requiredPermission: 'partners:manage' },
 ];
 
 export function getMerchantNavItemsForRole(role?: UserRole | string | null) {
