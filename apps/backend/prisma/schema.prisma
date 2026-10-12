@@ -887,8 +887,8 @@ model PartnerPortfolioImage {
 
 model PartnerAiRun {
   id String @id @default(cuid())
-  partnerId String
-  partner PartnerProfile @relation(fields: [partnerId], references: [id], onDelete: Restrict)
+  partnerId String?
+  partner PartnerProfile? @relation(fields: [partnerId], references: [id], onDelete: SetNull)
   requestKey String @unique
   inputHash String
   provider String

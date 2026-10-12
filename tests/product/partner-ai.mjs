@@ -50,4 +50,6 @@ export async function validatePartnerAi({ owner, guest, admin, browser, baseURL,
   } finally { await context.close(); }
   const last = await data(await admin.get('/api/integrations/partner-ai'));
   await data(await admin.put('/api/integrations/partner-ai', { headers, data: { ...settings, enabled: false, expectedVersion: last.version } }));
+  const cleanup = JSON.parse(db(`const u=await prisma.user.create({data:{email:'ai-cleanup@example.invalid',name:'Synthetic cleanup',password:'not-a-login-hash',partnerProfile:{create:{referralCode:'TEST_AI_CLEANUP',specialties:['PAINT'],city:'Teste',region:'SP',acceptedTermsVersion:'test'}}},include:{partnerProfile:true}});const r=await prisma.partnerAiRun.create({data:{partnerId:u.partnerProfile.id,requestKey:'synthetic-cleanup',inputHash:'synthetic',provider:'deepseek',model:'deepseek-flash',promptVersion:'test',month:'2000-01',day:'2000-01-01',reservedMicroUsd:90n,chargedMicroUsd:90n,inputRateMicroUsd:300000,outputRateMicroUsd:1200000,status:'UNKNOWN'}});await prisma.user.delete({where:{id:u.id}});const preserved=await prisma.partnerAiRun.findUniqueOrThrow({where:{id:r.id}});console.log(JSON.stringify({partnerId:preserved.partnerId,charged:Number(preserved.chargedMicroUsd)}));`).trim());
+  assert.equal(cleanup.partnerId, null); assert.equal(cleanup.charged, 90);
 }
