@@ -13,6 +13,7 @@ import { ImageCropDialog } from './image-crop-dialog';
 import { QUOTE_IMAGE_CONFIG, IMAGE_UPLOAD_ACCEPT, readFileAsDataUrl } from './image-tools';
 import { useSearchParams } from 'react-router-dom';
 import { MarketplaceSettingsPanel } from './marketplace-settings';
+import { PartnerAiSettingsPanel } from './partner-ai-settings';
 
 export function MerchantDashboardIntegrations() {
  const [params, setParams] = useSearchParams();
@@ -23,7 +24,7 @@ export function MerchantDashboardIntegrations() {
    <Button role="tab" aria-selected={!isAi} variant={!isAi ? 'default' : 'outline'} onClick={() => setParams({ tab: 'marketplaces' })}>Marketplaces</Button>
    <Button role="tab" aria-selected={isAi} variant={isAi ? 'default' : 'outline'} onClick={() => setParams({ tab: 'ia' })}>IA de orçamentos</Button>
   </div>
-  {isAi ? <QuoteAiSettings /> : <MarketplaceSettingsPanel />}
+  {isAi ? <><QuoteAiSettings /><PartnerAiSettingsPanel /></> : <MarketplaceSettingsPanel />}
  </div>;
 }
 

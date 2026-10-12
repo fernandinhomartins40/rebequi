@@ -12,11 +12,19 @@ import { NotFoundError } from '../utils/errors.util.js';
 import { partnerPortfolioUpload } from '../config/multer.js';
 import { uploadLimiter } from '../middleware/rate-limit.middleware.js';
 import { addPartnerPortfolio, listPartnerPortfolio, removePartnerPortfolio } from '../services/partner-portfolio.service.js';
+import { partnerAiInputSchema } from '@rebequi/shared/schemas';
+import { getPartnerAiStatus, interpretPartnerDescription } from '../services/partner-ai.service.js';
 
 const router: Router = Router();
 router.use(authenticate, (_req, res, next) => { res.setHeader('Cache-Control', 'private, no-store'); next(); });
 // Cookie mutations require an allowed browser origin. SameSite is not the only control.
 router.use(requireTrustedOrigin);
+router.get('/ai/status', authorize('CUSTOMER'), async (req, res, next) => {
+  try { successResponse(res, await getPartnerAiStatus(req.user!.userId)); } catch (error) { next(error); }
+});
+router.post('/ai/interpret', authorize('CUSTOMER'), validateBody(partnerAiInputSchema), async (req, res, next) => {
+  try { successResponse(res, await interpretPartnerDescription(req.user!.userId, req.body)); } catch (error) { next(error); }
+});
 router.get('/portfolio', authorize('CUSTOMER'), async (req, res, next) => {
   try { successResponse(res, await listPartnerPortfolio(req.user!.userId)); } catch (error) { next(error); }
 });

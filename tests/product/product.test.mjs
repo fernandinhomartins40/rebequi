@@ -11,6 +11,7 @@ import { validatePartnerMaterials } from './partner-materials.mjs';
 import { validatePartnerLabor } from './partner-labor.mjs';
 import { validateQuoteProposals } from './quote-proposals.mjs';
 import { validatePartnerPortfolio } from './partner-portfolio.mjs';
+import { validatePartnerAi } from './partner-ai.mjs';
 
 // Mutating validation is confined to a disposable, GitHub-hosted runner.
 if (process.env.CI !== 'true' || process.env.GITHUB_ACTIONS !== 'true' || process.env.RUNNER_ENVIRONMENT !== 'github-hosted') {
@@ -69,6 +70,12 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
     });
     // Separate journeys restart only the disposable API, preserving the database
     // while giving each suite its own production rate-limit window.
+    await restartIsolatedApi();
+    await t.test('Budgeted partner AI uses real transactions and synthetic provider without paid calls', async () => {
+      const guest = await client(); const admin = await client();
+      await data(await admin.post('/api/auth/login', { data: { identifier: 'integration@example.invalid', password: 'integration-only-admin-password' } }));
+      await validatePartnerAi({ owner, guest, admin, browser, baseURL, data, db });
+    });
     await restartIsolatedApi();
     await t.test('Private projects, verified calculations and grouped quote requests', async () => {
       const guest = await client(); const admin = await client();

@@ -9,10 +9,21 @@ import { validateBody } from '../middleware/validation.middleware.js';
 import { z } from 'zod';
 import { getMarketplaceSettings, saveMarketplaceSettings } from '../services/marketplace-settings.service.js';
 import type { MarketplaceType } from '@rebequi/shared/constants';
+import { partnerAiConfigSchema } from '@rebequi/shared/schemas';
+import { requireTrustedOrigin } from '../middleware/trusted-origin.middleware.js';
+import { getPartnerAiSettings, savePartnerAiSettings } from '../services/partner-ai.service.js';
 
 const router: Router = Router();
 const controller = new IntegrationController();
 const allowedRoles = getRolesForMerchantPermission('integrations:manage');
+router.get('/partner-ai', authenticate, authorize(...allowedRoles), async (_req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store');
+  try { res.json({ success: true, data: await getPartnerAiSettings() }); } catch (error) { next(error); }
+});
+router.put('/partner-ai', authenticate, authorize(...allowedRoles), requireTrustedOrigin, validateBody(partnerAiConfigSchema), async (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store');
+  try { res.json({ success: true, data: await savePartnerAiSettings(req.user!.userId, req.body) }); } catch (error) { next(error); }
+});
 
 router.get('/marketplaces', authenticate, authorize(...allowedRoles), async (_req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');

@@ -758,6 +758,7 @@ model PartnerProfile {
   audits            PartnerProfileAudit[]
   projects          PartnerProject[]
   portfolioImages   PartnerPortfolioImage[]
+  aiRuns PartnerAiRun[]
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -882,4 +883,33 @@ model PartnerPortfolioImage {
   createdAt DateTime @default(now())
   @@index([partnerId, createdAt])
   @@map("partner_portfolio_images")
+}
+
+model PartnerAiRun {
+  id String @id @default(cuid())
+  partnerId String
+  partner PartnerProfile @relation(fields: [partnerId], references: [id], onDelete: Restrict)
+  requestKey String @unique
+  inputHash String
+  provider String
+  model String
+  promptVersion String
+  month String
+  day String
+  status String @default("RESERVED")
+  reservedMicroUsd BigInt
+  chargedMicroUsd BigInt
+  inputRateMicroUsd Int
+  outputRateMicroUsd Int
+  promptTokens Int?
+  completionTokens Int?
+  durationMs Int?
+  errorCode String?
+  result Json?
+  createdAt DateTime @default(now())
+  completedAt DateTime?
+  @@index([month])
+  @@index([partnerId, day])
+  @@index([partnerId, inputHash, createdAt])
+  @@map("partner_ai_runs")
 }

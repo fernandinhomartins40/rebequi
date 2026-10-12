@@ -2,6 +2,12 @@ import type { PartnerFiltersInput, PartnerProfileInput, ReviewPartnerInput, Proj
 import type { calculateMaterials } from '@rebequi/shared/utils';
 import type { PartnerList, PartnerProfile } from '@rebequi/shared/types';
 import { apiFetch } from './client';
+import type { PartnerAiInput, PartnerAiResult, PartnerAiConfigInput } from '@rebequi/shared/schemas';
+export type PartnerAiSettings = PartnerAiConfigInput & { version: number; model: string; hasKey: boolean; month: string; estimatedMicroUsd: number; attempts: number; unknown: number };
+export const getPartnerAiSettings = async () => (await apiFetch<{ data: PartnerAiSettings }>('/integrations/partner-ai')).data;
+export const savePartnerAiSettings = async (input: PartnerAiConfigInput) => (await apiFetch<{ data: PartnerAiSettings }>('/integrations/partner-ai', { method: 'PUT', body: JSON.stringify(input) })).data;
+export const getPartnerAiStatus = async () => (await apiFetch<{ data: { enabled: boolean; remaining: number } }>('/partners/ai/status')).data;
+export const interpretPartnerDescription = async (input: PartnerAiInput) => (await apiFetch<{ data: { result: PartnerAiResult; cached: boolean } }>('/partners/ai/interpret', { method: 'POST', body: JSON.stringify(input) })).data;
 
 export const getPartnerProfile = async () => (await apiFetch<{ data: PartnerProfile | null }>('/partners/me')).data;
 export const savePartnerProfile = async (input: PartnerProfileInput) => (await apiFetch<{ data: PartnerProfile }>('/partners/me', { method: 'PUT', body: JSON.stringify(input) })).data;
