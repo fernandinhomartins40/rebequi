@@ -26,7 +26,7 @@ export async function validatePartnerReferrals({ owner, guest, admin, browser, b
     await context.addCookies((await owner.storageState()).cookies); const page = await context.newPage(); await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`${baseURL}/parceiros/?area=beneficios`);
     await page.getByRole('heading', { name: 'Seu link de indicação', exact: true }).waitFor();
-    assert.equal(await page.getByLabel('Link de indicação').inputValue(), `${baseURL}/indicacao/${profile.referralCode}`);
+    assert.equal(await page.getByLabel('Link de indicação', { exact: true }).inputValue(), `${baseURL}/indicacao/${profile.referralCode}`);
     await page.waitForFunction(() => { const canvas = document.querySelector('canvas'); return canvas?.width === 220 && canvas?.getContext('2d')?.getImageData(0, 0, 220, 220).data.some((value, index) => index % 4 < 3 && value === 0); });
     assert.equal(await page.getByText(checkout.order.referenceCode, { exact: true }).count(), 1);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
