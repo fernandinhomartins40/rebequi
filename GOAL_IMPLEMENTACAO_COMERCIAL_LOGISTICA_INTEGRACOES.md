@@ -1,5 +1,28 @@
 # Gestão comercial, logística e integrações — roteiro de execução
 
+## Estado atual e tarefas restantes — atualização de 12/10/2026
+
+Workflow 38313327790, commit d9697ec: concluído com sucesso, incluindo banco/API/navegador reais e deploy. Estão publicados atribuição/proteção comercial, Meus atendimentos, consulta de catálogo, separação/conferência, acompanhamento inicial pelo cliente e API externa somente de leitura. O plano completo ainda não está concluído.
+
+Próximas tarefas, na ordem de execução:
+
+- [ ] Concluir e validar perfil WAREHOUSE, sem acesso comercial/financeiro; em implementação nesta atualização.
+- [ ] Cadastro de motoristas/veículos e permissões por tarefa, dados físicos de capacidade conferidos.
+- [ ] Romaneio, atribuição, agendamento e ordem manual das paradas; capacidade/massa/volume desconhecidos explícitos.
+- [ ] Carregamento, saída, entrega/retirada parcial por item, recebedor, ocorrência/reagendamento e reentrega.
+- [ ] Evidências privadas com consentimento/crop/compressão/quota e UI mobile/PWA operacional do motorista.
+- [ ] Evoluir unidade comercial e conversões para decimais/granel sem quebrar estoque, pedidos e devoluções existentes.
+- [ ] Acompanhamento completo pelo cliente com privacidade e histórico público controlado; sem localização/ETA presumidos.
+- [ ] Vendedor criar orçamento/pedido para carteira autorizada, distribuição de solicitações e notificações persistentes.
+- [ ] Metas, desempenho e regras/ledger de comissão próprios dos vendedores, configuração prospectiva e conciliação.
+- [ ] Importação estruturada com prévia, vínculos externos únicos, fonte oficial por domínio, inbox/outbox e conflito/replay.
+- [ ] API externa de escrita autorizada, eventos/webhooks assinados, exportação ampliada, rastreabilidade persistente e reprocessamento.
+- [ ] Conector ERP/PDV específico após identificação/documentação; usuário ainda não sabe qual sistema usa. Continuar módulos independentes.
+- [ ] Homologação externa, fluxo orçamento→venda→depósito→entrega, testes concorrentes/reversões/indisponibilidade e piloto em aparelhos reais.
+- [ ] Concluir pendências da plataforma de parceiros registradas em docs/PARCEIROS_PWA_IMPLEMENTACAO.md quando retomar aquele escopo: expiração/lotes, níveis/campanhas, conciliação, outros canais/compras próprias, compartilhamento, conteúdo/oportunidades/push e piloto.
+
+Retomada automática: conferir main/workflow e primeira tarefa incompleta; implementar/testar/corrigir, commit/push na main e atualizar este registro. Não esperar ERP/chaves para tarefas independentes. Nenhuma integração externa, regra financeira ou gasto é ativado automaticamente.
+
 ## Objetivo e autorização
 
 Implementar vendedores com carteira e atribuição, operação de depósito/entregas e integração ERP/PDV usando os módulos existentes. Solicitação de 12/10/2026: execução incremental autônoma, dados reais, testes e publicação na main. Não criar branches, ativar conexões externas, alterar regras financeiras sensíveis, contratar serviços ou executar operações destrutivas. Deploy somente GitHub Actions/GHCR. Este arquivo é roteiro de trabalho, não indicação de conclusão.

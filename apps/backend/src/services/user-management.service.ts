@@ -6,6 +6,7 @@ import { ConflictError, NotFoundError } from '../utils/errors.util.js';
 import { hashPassword } from '../utils/hash.util.js';
 
 const INTERNAL_USER_ROLES: UserRole[] = [
+  UserRole.WAREHOUSE,
   UserRole.ADMIN,
   UserRole.MANAGER,
   UserRole.CATALOG_MANAGER,

@@ -60,6 +60,7 @@ model User {
 }
 
 enum UserRole {
+  WAREHOUSE
   ADMIN
   MANAGER
   CATALOG_MANAGER

@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 export async function validateFulfillment({ owner, guest, admin, browser, baseURL, data, db, product }) {
   const headers = { Origin: baseURL };
+  const warehouseLogin = { identifier: 'warehouse@example.invalid', password: 'Isolated-Warehouse-2026!' };
+  await data(await admin.post('/api/users', { headers, data: { email: warehouseLogin.identifier, password: warehouseLogin.password, name: 'Depósito do runner', role: 'WAREHOUSE', mustChangePassword: false } }), 201);
   const checkout = await data(await owner.post('/api/orders/checkout', { headers, data: { items: [{ productId: product.id, quantity: 3 }] } }), 201);
   const sale = await data(await admin.post('/api/sales/admin', { headers, data: { orderId: checkout.order.id, status: 'PENDING_PAYMENT', paymentMethod: 'PIX', idempotencyKey: randomUUID() } }), 201);
   assert.equal(Number(db(`console.log(await prisma.fulfillment.count({where:{saleId:${JSON.stringify(sale.id)}}}));`).trim()), 0);
@@ -9,11 +11,16 @@ export async function validateFulfillment({ owner, guest, admin, browser, baseUR
   const id = db(`console.log((await prisma.fulfillment.findUniqueOrThrow({where:{saleId:${JSON.stringify(sale.id)}}})).id);`).trim();
   const row = await data(await admin.get(`/api/fulfillments/${id}`)); assert.equal(row.status, 'AWAITING_DETAILS'); assert.equal(row.items.length, 1);
   assert.equal((await owner.get(`/api/fulfillments/${id}`)).status(), 403); assert.equal((await guest.get(`/api/fulfillments/${id}`)).status(), 401);
+  await data(await guest.post('/api/auth/login', { data: warehouseLogin }));
+  assert.equal((await guest.get(`/api/fulfillments/${id}`)).status(), 200);
+  for (const path of ['/api/sales/admin/revenue', '/api/customers/admin/list', '/api/users', '/api/integrations/external-api/clients', '/api/partners/admin/program']) assert.equal((await guest.get(path)).status(), 403);
   const details = { requestKey: randomUUID(), expectedVersion: row.version, confirmed: true, mode: 'PICKUP', address: null, region: null, scheduledAt: null, notes: 'Retirada conferida no runner' };
   assert.equal((await admin.put(`/api/fulfillments/${id}/details`, { data: details })).status(), 403);
   const configured = await data(await admin.put(`/api/fulfillments/${id}/details`, { headers, data: details }));
+  await data(await guest.post(`/api/fulfillments/${id}/operations`, { headers, data: { requestKey: randomUUID(), expectedVersion: configured.version, confirmed: true, action: 'ISSUE', note: 'Equipe do depósito conferindo disponibilidade', items: [] } }));
+  const afterWarehouseIssue = await data(await admin.get(`/api/fulfillments/${id}`));
   const stockBefore = Number(db(`console.log((await prisma.product.findUniqueOrThrow({where:{id:${JSON.stringify(product.id)}}})).stock);`).trim());
-  const op = { requestKey: randomUUID(), expectedVersion: configured.version, confirmed: true, action: 'PICK', note: '', items: [{ id: row.items[0].id, quantity: 3, location: 'Prateleira do teste' }] };
+  const op = { requestKey: randomUUID(), expectedVersion: afterWarehouseIssue.version, confirmed: true, action: 'PICK', note: '', items: [{ id: row.items[0].id, quantity: 3, location: 'Prateleira do teste' }] };
   const duplicates = await Promise.all([admin.post(`/api/fulfillments/${id}/operations`, { headers, data: op }), admin.post(`/api/fulfillments/${id}/operations`, { headers, data: op })]);
   const results = await Promise.all(duplicates.map(response => data(response))); assert.equal(results[0].version, results[1].version);
   assert.equal((await admin.post(`/api/fulfillments/${id}/operations`, { headers, data: { ...op, requestKey: randomUUID(), expectedVersion: results[0].version, items: [{ id: row.items[0].id, quantity: 4 }] } })).status(), 409);

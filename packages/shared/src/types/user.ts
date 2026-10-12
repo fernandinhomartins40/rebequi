@@ -4,6 +4,7 @@
  */
 
 export enum UserRole {
+  WAREHOUSE = 'WAREHOUSE',
   ADMIN = 'ADMIN',
   MANAGER = 'MANAGER',
   CATALOG_MANAGER = 'CATALOG_MANAGER',

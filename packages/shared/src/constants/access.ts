@@ -32,6 +32,7 @@ type PermissionProfile = {
 };
 
 export const INTERNAL_USER_ROLES: InternalUserRole[] = [
+  UserRole.WAREHOUSE,
   UserRole.ADMIN,
   UserRole.MANAGER,
   UserRole.CATALOG_MANAGER,
@@ -89,6 +90,7 @@ export const MERCHANT_PERMISSION_PROFILES: Record<MerchantPermission, Permission
 };
 
 export const MERCHANT_ROLE_PROFILES: Record<InternalUserRole, RoleProfile> = {
+  [UserRole.WAREHOUSE]: { label: 'Equipe do depósito', description: 'Separa e confere materiais sem acessar vendas, financeiro, cadastro de clientes ou integrações.', permissions: ['logistics:manage'] },
   [UserRole.ADMIN]: {
     label: 'Administrador',
     description: 'Controle total do painel, incluindo acesso e configuracao da equipe.',
