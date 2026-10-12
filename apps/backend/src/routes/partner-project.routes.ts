@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { createEstimateSchema, projectSchema, requestEstimateQuoteSchema } from '@rebequi/shared/schemas';
+import { createEstimateSchema, projectSchema, requestEstimateQuoteSchema, laborQuoteSchema } from '@rebequi/shared/schemas';
 import { authorize } from '../middleware/auth.middleware.js';
 import { validateBody, validateQuery } from '../middleware/validation.middleware.js';
 import { successResponse } from '../utils/response.util.js';
-import { getCalculationCatalog, getPartnerProject, listPartnerProjects, requestMaterialQuote, saveMaterialEstimate, savePartnerProject } from '../services/partner-project.service.js';
+import { getCalculationCatalog, getPartnerProject, listPartnerProjects, requestMaterialQuote, saveMaterialEstimate, savePartnerProject, listLaborQuotes, saveLaborQuote } from '../services/partner-project.service.js';
 const router: Router = Router();
 router.use(authorize('CUSTOMER'));
 router.get('/projects', validateQuery(z.object({ page: z.coerce.number().int().min(1).default(1) })), async (req, res, next) => {
@@ -27,5 +27,11 @@ router.post('/estimates', validateBody(createEstimateSchema), async (req, res, n
 });
 router.post('/estimates/:id/quote', validateBody(requestEstimateQuoteSchema), async (req, res, next) => {
   try { successResponse(res, await requestMaterialQuote(req.user!.userId, req.params.id, req.body.quantity)); } catch (error) { next(error); }
+});
+router.get('/projects/:id/labor-quotes', validateQuery(z.object({ page: z.coerce.number().int().min(1).default(1) })), async (req, res, next) => {
+  try { successResponse(res, await listLaborQuotes(req.user!.userId, req.params.id, Number(req.query.page))); } catch (error) { next(error); }
+});
+router.post('/labor-quotes', validateBody(laborQuoteSchema), async (req, res, next) => {
+  try { successResponse(res, await saveLaborQuote(req.user!.userId, req.body), 201); } catch (error) { next(error); }
 });
 export default router;

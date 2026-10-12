@@ -8,6 +8,7 @@ import { validateMediaTools } from './media-tools.mjs';
 import { validateCommercialConsistency } from './commercial-consistency.mjs';
 import { validatePartners } from './partners.mjs';
 import { validatePartnerMaterials } from './partner-materials.mjs';
+import { validatePartnerLabor } from './partner-labor.mjs';
 
 // Mutating validation is confined to a disposable, GitHub-hosted runner.
 if (process.env.CI !== 'true' || process.env.GITHUB_ACTIONS !== 'true' || process.env.RUNNER_ENVIRONMENT !== 'github-hosted') {
@@ -63,8 +64,22 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
       const guest = await client(); const admin = await client();
       await data(await admin.post('/api/auth/login', { data: { identifier: 'integration@example.invalid', password: 'integration-only-admin-password' } }));
       await validatePartners({ owner, guest, admin, browser, baseURL, data, db });
+    });
+    // Separate journeys restart only the disposable API, preserving the database
+    // while giving each suite its own production rate-limit window.
+    await restartIsolatedApi();
+    await t.test('Private projects, verified calculations and grouped quote requests', async () => {
+      const guest = await client(); const admin = await client();
+      await data(await admin.post('/api/auth/login', { data: { identifier: 'integration@example.invalid', password: 'integration-only-admin-password' } }));
       await validatePartnerMaterials({ owner, guest, admin, browser, baseURL, data, db, product });
     });
+    await restartIsolatedApi();
+    await t.test('Versioned labor quotes keep cents, privacy and printable history', async () => {
+      const guest = await client(); const admin = await client();
+      await data(await admin.post('/api/auth/login', { data: { identifier: 'integration@example.invalid', password: 'integration-only-admin-password' } }));
+      await validatePartnerLabor({ owner, guest, admin, browser, baseURL, data });
+    });
+    await restartIsolatedApi();
     await t.test('Concurrent sales, duplicate cancellation and persistent worker recovery', () => validateCommercialConsistency(db));
     assert.ok(account.provisionalCredentials.password.length >= 16);
 

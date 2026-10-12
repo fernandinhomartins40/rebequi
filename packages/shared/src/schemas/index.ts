@@ -14,3 +14,4 @@ export * from './user.schema.js';
 export * from './integration.schema.js';
 export * from './partner.schema.js';
 export * from './material.schema.js';
+export * from './labor.schema.js';

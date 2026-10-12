@@ -1,4 +1,4 @@
-import type { PartnerFiltersInput, PartnerProfileInput, ReviewPartnerInput, ProjectInput, TechnicalParameters, TechnicalSpecInput, CreateEstimateInput } from '@rebequi/shared/schemas';
+import type { PartnerFiltersInput, PartnerProfileInput, ReviewPartnerInput, ProjectInput, TechnicalParameters, TechnicalSpecInput, CreateEstimateInput, LaborQuoteInput } from '@rebequi/shared/schemas';
 import type { calculateMaterials } from '@rebequi/shared/utils';
 import type { PartnerList, PartnerProfile } from '@rebequi/shared/types';
 import { apiFetch } from './client';
@@ -24,3 +24,6 @@ export const saveTechnicalSpec = async (id: string, input: TechnicalSpecInput) =
 export const getCalculationProducts = async (service: 'PAINT' | 'TILE') => (await apiFetch<{ data: CalculationProduct[] }>(`/partners/catalog?service=${service}`)).data;
 export const saveEstimate = async (input: CreateEstimateInput) => (await apiFetch<{ data: SavedEstimate }>('/partners/estimates', { method: 'POST', body: JSON.stringify(input) })).data;
 export const requestEstimateQuote = async (id: string, quantity: number) => (await apiFetch<{ data: { quoteId: string } }>(`/partners/estimates/${encodeURIComponent(id)}/quote`, { method: 'POST', body: JSON.stringify({ quantity }) })).data;
+export type LaborQuote = { id: string; projectId: string; version: number; title: string; projectTitleSnapshot: string; professionalNameSnapshot: string; clientNameSnapshot: string; items: (LaborQuoteInput['items'][number] & { totalCents: number })[]; notes: string; totalCents: number; validUntil: string; createdAt: string };
+export const listLaborQuotes = async (projectId: string, page = 1) => (await apiFetch<{ data: { quotes: LaborQuote[]; total: number; page: number; totalPages: number } }>(`/partners/projects/${encodeURIComponent(projectId)}/labor-quotes?page=${page}`)).data;
+export const saveLaborQuote = async (input: LaborQuoteInput) => (await apiFetch<{ data: LaborQuote }>('/partners/labor-quotes', { method: 'POST', body: JSON.stringify(input) })).data;

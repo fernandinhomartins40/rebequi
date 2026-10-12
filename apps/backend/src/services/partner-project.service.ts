@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import type { Prisma } from '@prisma/client';
-import { createEstimateSchema, materialInputSchema, technicalParametersSchema, type CreateEstimateInput, type ProjectInput, type TechnicalSpecInput } from '@rebequi/shared/schemas';
-import { calculateMaterials, isValidWhatsapp } from '@rebequi/shared/utils';
+import { createEstimateSchema, materialInputSchema, technicalParametersSchema, type CreateEstimateInput, type ProjectInput, type TechnicalSpecInput, type LaborQuoteInput } from '@rebequi/shared/schemas';
+import { calculateMaterials, isValidWhatsapp, priceLaborQuote } from '@rebequi/shared/utils';
 import { prisma } from '../lib/prisma.js';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../utils/errors.util.js';
 
@@ -117,5 +117,36 @@ export async function requestMaterialQuote(userId: string, estimateId: string, q
     await tx.materialEstimate.update({ where: { id: estimate.id }, data: { quoteId: quote.id } });
     await tx.user.updateMany({ where: { id: userId, customerStage: 'NEW', customerStageManual: false }, data: { customerStage: 'QUOTING' } });
     return { quoteId: quote.id };
+  });
+}
+
+export async function listLaborQuotes(userId: string, projectId: string, page: number) {
+  await getPartnerProject(userId, projectId);
+  const [quotes, total] = await Promise.all([prisma.partnerLaborQuote.findMany({ where: { projectId }, skip: (page - 1) * 20, take: 20, orderBy: { version: 'desc' } }), prisma.partnerLaborQuote.count({ where: { projectId } })]);
+  return { quotes: quotes.map(quote => ({ ...quote, totalCents: Number(quote.totalCents), fingerprint: undefined, requestKey: undefined })), page, total, totalPages: Math.ceil(total / 20) };
+}
+export async function saveLaborQuote(userId: string, input: LaborQuoteInput) {
+  const { requestKey: suppliedKey, expectedLatestVersion, ...values } = input;
+  const requestKey = createHash('sha256').update(`${userId}:${suppliedKey}`).digest('hex');
+  const fingerprint = createHash('sha256').update(JSON.stringify(values)).digest('hex');
+  return prisma.$transaction(async tx => {
+    const partner = await writablePartner(tx, userId);
+    const existing = await tx.partnerLaborQuote.findUnique({ where: { requestKey } });
+    if (existing) {
+      if (existing.fingerprint !== fingerprint) throw new ConflictError('Este envio já foi usado para outro orçamento.');
+      return { ...existing, totalCents: Number(existing.totalCents), fingerprint: undefined, requestKey: undefined };
+    }
+    const project = await tx.partnerProject.findFirst({ where: { id: input.projectId, partnerId: partner.id, archived: false } });
+    if (!project) throw new NotFoundError('Obra não encontrada ou arquivada');
+    const latest = await tx.partnerLaborQuote.findFirst({ where: { projectId: project.id }, orderBy: { version: 'desc' }, select: { version: true } });
+    if ((latest?.version ?? 0) !== expectedLatestVersion) throw new ConflictError('Já existe uma versão mais recente. Recarregue antes de criar outra.');
+    const priced = priceLaborQuote(input.items);
+    const professional = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { name: true } });
+    const validUntil = new Date(Date.now() + input.validityDays * 86400000);
+    const quote = await tx.partnerLaborQuote.create({ data: { projectId: project.id, requestKey, fingerprint, title: input.title,
+      projectTitleSnapshot: project.title, professionalNameSnapshot: professional.name, clientNameSnapshot: project.clientName,
+      items: input.items.map((item, index) => ({ ...item, totalCents: priced.lineTotals[index] })), notes: input.notes,
+      totalCents: BigInt(priced.totalCents), version: expectedLatestVersion + 1, validUntil } });
+    return { ...quote, totalCents: priced.totalCents, fingerprint: undefined, requestKey: undefined };
   });
 }

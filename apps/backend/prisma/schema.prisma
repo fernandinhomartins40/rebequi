@@ -788,6 +788,7 @@ model PartnerProject {
   archived Boolean @default(false)
   version Int @default(1)
   estimates MaterialEstimate[]
+  laborQuotes PartnerLaborQuote[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@index([partnerId, archived, updatedAt])
@@ -818,4 +819,25 @@ model MaterialEstimate {
   createdAt DateTime @default(now())
   @@index([projectId, createdAt])
   @@map("material_estimates")
+}
+
+model PartnerLaborQuote {
+  id String @id @default(cuid())
+  projectId String
+  project PartnerProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  version Int
+  requestKey String @unique
+  fingerprint String
+  title String
+  projectTitleSnapshot String
+  professionalNameSnapshot String
+  clientNameSnapshot String @default("")
+  items Json
+  notes String @default("")
+  totalCents BigInt
+  validUntil DateTime
+  createdAt DateTime @default(now())
+  @@unique([projectId, version])
+  @@index([projectId, createdAt])
+  @@map("partner_labor_quotes")
 }
