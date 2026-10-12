@@ -49,7 +49,7 @@ export async function referralRuleSnapshot(tx: Prisma.TransactionClient, partner
 async function walletLock(tx: Prisma.TransactionClient, partnerId: string) {
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`partner-wallet:${partnerId}`}))`;
 }
-export async function earnPartnerSale(tx: Prisma.TransactionClient, saleId: string) {
+export async function earnPartnerSale(tx: Prisma.TransactionClient, saleId: string, actorId?: string) {
   const sale = await tx.sale.findUnique({ where: { id: saleId }, include: { order: { include: { partnerReferral: { include: { rule: true, partner: { include: { user: { select: { isActive: true } } } } } } } } } });
   const referral = sale?.order?.partnerReferral;
   if (sale?.status !== 'PAID' || !referral?.rule || !referral.partner) return;
@@ -57,14 +57,14 @@ export async function earnPartnerSale(tx: Prisma.TransactionClient, saleId: stri
   // A paid->pending->paid cycle cannot create another financial event.
   if (await tx.partnerLedgerEntry.findUnique({ where: { eventKey: `sale-earned:${saleId}` } })) return;
   if (referral.partner.status !== 'APPROVED' || !referral.partner.user.isActive || referral.partner.userId === sale.customerId) {
-    await tx.partnerLedgerEntry.create({ data: { partnerId: referral.partner.id, saleId, ruleId: referral.rule.id, eventKey: `sale-earned:${saleId}`, kind: 'INELIGIBLE', availableAt: new Date(), reference: sale.referenceCode } });
+    await tx.partnerLedgerEntry.create({ data: { partnerId: referral.partner.id, saleId, ruleId: referral.rule.id, eventKey: `sale-earned:${saleId}`, kind: 'INELIGIBLE', availableAt: new Date(), reference: sale.referenceCode, actorId: actorId ?? sale.registeredById } });
     return;
   }
   const cents = Math.round(sale.total * 100);
   if (!Number.isSafeInteger(cents) || cents < 0) throw new ValidationError('Valor de venda fora do limite financeiro.');
   const benefits = benefitsForBasis(BigInt(cents), referral.rule.commissionBasisPoints, referral.rule.pointsPerReal);
   await tx.partnerLedgerEntry.create({ data: { partnerId: referral.partner.id, saleId, ruleId: referral.rule.id, eventKey: `sale-earned:${saleId}`, kind: 'EARN', basisCents: BigInt(cents), ...benefits,
-    availableAt: new Date(Date.now() + referral.rule.maturityDays * 86400000), reference: sale.referenceCode } });
+    availableAt: new Date(Date.now() + referral.rule.maturityDays * 86400000), reference: sale.referenceCode, actorId: actorId ?? sale.registeredById } });
 }
 export async function reversePartnerSale(tx: Prisma.TransactionClient, saleId: string, cumulativeRefundCents: bigint, eventKey: string, actorId?: string) {
   const earned = await tx.partnerLedgerEntry.findUnique({ where: { eventKey: `sale-earned:${saleId}` }, include: { rule: true } });
@@ -79,7 +79,7 @@ export async function reversePartnerSale(tx: Prisma.TransactionClient, saleId: s
   const basisCents = -basis - (previous._sum.basisCents ?? 0n);
   await tx.partnerLedgerEntry.create({ data: { partnerId: earned.partnerId, saleId, ruleId: earned.ruleId, eventKey, kind: 'REVERSE', commissionCents, points, basisCents, availableAt: earned.availableAt, actorId, reference: earned.reference } });
 }
-export async function holdPartnerPayment(tx: Prisma.TransactionClient, saleId: string, version: number, paid: boolean) {
+export async function holdPartnerPayment(tx: Prisma.TransactionClient, saleId: string, version: number, paid: boolean, actorId?: string) {
   const earned = await tx.partnerLedgerEntry.findUnique({ where: { eventKey: `sale-earned:${saleId}` } });
   if (!earned?.partnerId) return;
   await walletLock(tx, earned.partnerId);
@@ -88,7 +88,7 @@ export async function holdPartnerPayment(tx: Prisma.TransactionClient, saleId: s
   const totals = await tx.partnerLedgerEntry.aggregate({ where: { saleId, ...(paid ? { kind: { in: ['PAYMENT_HOLD', 'HOLD_RELEASE'] } } : {}) }, _sum: { commissionCents: true, points: true } });
   const commissionCents = -(totals._sum.commissionCents ?? 0n); const points = -(totals._sum.points ?? 0n);
   if (!commissionCents && !points) return;
-  await tx.partnerLedgerEntry.create({ data: { partnerId: earned.partnerId, saleId, ruleId: earned.ruleId, eventKey, kind: paid ? 'HOLD_RELEASE' : 'PAYMENT_HOLD', commissionCents, points, availableAt: earned.availableAt, reference: earned.reference } });
+  await tx.partnerLedgerEntry.create({ data: { partnerId: earned.partnerId, saleId, ruleId: earned.ruleId, eventKey, kind: paid ? 'HOLD_RELEASE' : 'PAYMENT_HOLD', commissionCents, points, availableAt: earned.availableAt, reference: earned.reference, actorId } });
 }
 export async function readPartnerWallet(partnerId: string, page: number, tx: Pick<Prisma.TransactionClient, 'partnerLedgerEntry'> = prisma) {
   const now = new Date(); const where = { partnerId };

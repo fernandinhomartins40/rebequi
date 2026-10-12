@@ -75,7 +75,7 @@ export class SaleRepository {
     });
   }
 
-  async transitionStatus(id: string, status: 'PAID' | 'PENDING_PAYMENT' | 'CANCELED', notes?: string | null) {
+  async transitionStatus(id: string, status: 'PAID' | 'PENDING_PAYMENT' | 'CANCELED', notes?: string | null, actorId?: string) {
     return prisma.$transaction(async tx => {
       // Serialize transitions so duplicate cancellations cannot restore twice.
       await tx.$queryRaw`SELECT id FROM sales WHERE id = ${id} FOR UPDATE`;
@@ -101,10 +101,10 @@ export class SaleRepository {
         }
         if (sale.orderId) await tx.customerOrder.update({ where: { id: sale.orderId }, data: { status: 'CANCELED', canceledAt: new Date() } });
         // Release a payment hold before reversing the complete original basis.
-        await holdPartnerPayment(tx, id, sale.statusVersion + 1, true);
-        await reversePartnerSale(tx, id, BigInt(Math.round(sale.total * 100)), `sale-canceled:${id}`);
+        await holdPartnerPayment(tx, id, sale.statusVersion + 1, true, actorId);
+        await reversePartnerSale(tx, id, BigInt(Math.round(sale.total * 100)), `sale-canceled:${id}`, actorId);
       }
-      if (status === 'PENDING_PAYMENT' && sale.status !== status) await holdPartnerPayment(tx, id, sale.statusVersion + 1, false);
+      if (status === 'PENDING_PAYMENT' && sale.status !== status) await holdPartnerPayment(tx, id, sale.statusVersion + 1, false, actorId);
       const updated = await tx.sale.update({ where: { id }, data: {
         accountingVersion: 1,
         ...(sale.status !== status ? { statusVersion: { increment: 1 } } : {}),
@@ -112,7 +112,8 @@ export class SaleRepository {
         paidAt: status === 'PAID' ? sale.paidAt ?? new Date() : sale.paidAt,
         canceledAt: status === 'CANCELED' ? sale.canceledAt ?? new Date() : null,
       }, include: saleInclude });
-      if (status === 'PAID' && sale.status !== status) { await earnPartnerSale(tx, id); await holdPartnerPayment(tx, id, updated.statusVersion, true); }
+      if (status === 'PAID' && sale.status !== status) { await earnPartnerSale(tx, id, actorId); await holdPartnerPayment(tx, id, updated.statusVersion, true, actorId); }
+      if (actorId && sale.status !== status) await tx.integrationAudit.create({ data: { actorId, jobId: id, action: `SALE_STATUS_${status}` } });
       return updated;
     });
   }

@@ -47,7 +47,7 @@ export class SaleController {
   updateSaleStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const payload: UpdateSaleStatusInput = req.body;
-      const sale = await this.saleService.updateSaleStatus(req.params.id, payload);
+      const sale = await this.saleService.updateSaleStatus(req.params.id, payload, req.user!.userId);
       successResponse(res, sale, 200, 'Venda atualizada com sucesso');
     } catch (error) {
       next(error);

@@ -169,8 +169,8 @@ export class SaleService {
     return this.formatSale(sale);
   }
 
-  async updateSaleStatus(saleId: string, data: UpdateSaleStatusInput) {
-    const updated = await this.saleRepository.transitionStatus(saleId, data.status, data.notes);
+  async updateSaleStatus(saleId: string, data: UpdateSaleStatusInput, actorId?: string) {
+    const updated = await this.saleRepository.transitionStatus(saleId, data.status, data.notes, actorId);
 
     return this.formatSale(updated);
   }

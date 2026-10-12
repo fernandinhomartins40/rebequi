@@ -65,6 +65,7 @@ export async function validatePartnerFinance({ owner, guest, admin, browser, bas
   for (const response of cancelled) await data(response);
   assert.equal(Number(db(`console.log((await prisma.product.findUniqueOrThrow({where:{id:${JSON.stringify(product.id)}}})).stock);`).trim()), beforeStock + 3, 'Cancellation restores only units not already returned');
   wallet = await data(await owner.get('/api/partners/wallet')); assert.equal(wallet.availableCents, String(-paidAmount)); assert.equal(wallet.availablePoints, '0');
+  assert.equal(Number(db(`console.log(await prisma.partnerLedgerEntry.count({where:{saleId:${JSON.stringify(sale.id)},actorId:null}}));`).trim()), 0, 'Financial events must retain the authenticated operator');
   const immutable = JSON.parse(db(`let ledger=false,rule=false;try{await prisma.partnerLedgerEntry.updateMany({where:{saleId:${JSON.stringify(sale.id)},kind:'EARN'},data:{commissionCents:1n}});}catch{ledger=true;}try{await prisma.partnerProgramRule.update({where:{id:${JSON.stringify(firstRule.id)}},data:{commissionBasisPoints:9999}});}catch{rule=true;}console.log(JSON.stringify({ledger,rule}));`).trim());
   assert.deepEqual(immutable, { ledger: true, rule: true });
   await data(await owner.post('/api/partners/program/accept', { headers, data: { ruleId: secondRule.id, confirmed: true } }));
