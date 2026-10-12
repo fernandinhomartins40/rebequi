@@ -26,6 +26,14 @@ export async function validatePartnerRewards({ owner, guest, admin, browser, bas
   assert.deepEqual(cancels.map(response => response.status()).sort(), [200, 409]);
   assert.equal((await data(await owner.get('/api/partners/wallet'))).availablePoints, before.availablePoints);
   assert.equal((await data(await owner.get('/api/partners/rewards'))).rewards[0].available, 1);
+  const pointsOnly = await data(await admin.post('/api/partners/admin/rewards', { headers, data: { ...rewardInput, name: 'Concorrência de saldo no runner', points: Number(before.availablePoints), capacity: 2 } }), 201);
+  const pointRace = await Promise.all([owner.post('/api/partners/redemptions', { headers, data: { ...input, rewardId: pointsOnly.id, rewardVersion: pointsOnly.version, requestKey: randomUUID() } }), owner.post('/api/partners/redemptions', { headers, data: { ...input, rewardId: pointsOnly.id, rewardVersion: pointsOnly.version, requestKey: randomUUID() } })]);
+  assert.deepEqual(pointRace.map(response => response.status()).sort(), [201, 409], 'Two requests must not spend the same available points even when reward capacity permits both');
+  const pointWinner = await data(pointRace.find(response => response.status() === 201), 201);
+  assert.equal((await data(await owner.get('/api/partners/wallet'))).availablePoints, '0');
+  await data(await owner.post(`/api/partners/redemptions/${pointWinner.id}/cancel`, { headers, data: cancel }));
+  assert.equal((await data(await owner.get('/api/partners/wallet'))).availablePoints, before.availablePoints);
+  await data(await admin.put(`/api/partners/admin/rewards/${pointsOnly.id}`, { headers, data: { ...rewardInput, name: 'Concorrência de saldo no runner', expectedVersion: 1, points: Number(before.availablePoints), capacity: 2, enabled: false } }));
   assert.equal((await admin.put(`/api/partners/admin/rewards/${reward.id}`, { headers, data: { ...rewardInput, expectedVersion: 0 } })).status(), 409);
   const context = await browser.newContext();
   try {
@@ -44,7 +52,7 @@ export async function validatePartnerRewards({ owner, guest, admin, browser, bas
   const fulfilled = await data(await admin.post(`/api/partners/admin/redemptions/${pending.id}/review`, { headers, data: { ...cancel, status: 'FULFILLED', expectedVersion: approved.version, reason: 'Entrega sintética registrada apenas no runner' } }));
   assert.equal(fulfilled.status, 'FULFILLED');
   assert.equal((await owner.post(`/api/partners/redemptions/${pending.id}/cancel`, { headers, data: { ...cancel, expectedVersion: fulfilled.version } })).status(), 409);
-  const capacity = (await data(await admin.get('/api/partners/admin/rewards'))).rewards[0]; assert.equal(capacity.reserved, 0); assert.equal(capacity.fulfilled, 1); assert.equal(capacity.available, 0);
+  const capacity = (await data(await admin.get('/api/partners/admin/rewards'))).rewards.find(item => item.id === reward.id); assert.equal(capacity.reserved, 0); assert.equal(capacity.fulfilled, 1); assert.equal(capacity.available, 0);
   await data(await admin.post(`/api/sales/admin/${sale.id}/status`, { headers, data: { status: 'CANCELED' } }));
   assert.equal((await data(await owner.get('/api/partners/wallet'))).availablePoints, '-10', 'A return after redemption preserves the point debt');
   const immutable = db(`let blocked=false;try{await prisma.partnerRedemption.update({where:{id:${JSON.stringify(pending.id)}},data:{points:1}});}catch{blocked=true;}console.log(JSON.stringify({blocked}));`).trim().split('\n').at(-1);
