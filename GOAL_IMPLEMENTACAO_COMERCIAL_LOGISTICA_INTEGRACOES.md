@@ -138,6 +138,12 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Agendamento pelo depósito — 12/10/2026
+
+O contrato de agendamento já existia, mas a tela apenas conservava o valor recebido e não permitia preenchimento. Agora Dados de retirada/entrega → etapa 2 oferece data/hora opcional, no fuso local do dispositivo, e etapa 3 mostra a confirmação. Campo vazio remove o agendamento. Conversão para ISO UTC mantém o contrato e o acompanhamento do cliente/motorista existente; ao não editar o campo, preserva o instante original inclusive segundos/milissegundos. Sem prazo calculado, ETA ou agendamento automático. Usa versão, idempotência, permissões e eventos já existentes; não exige migração.
+
+Tipos frontend, lint, textos e build passaram. Teste integrado acrescenta cadastro mobile no fuso America/Sao_Paulo, horário local→UTC persistido, leitura no pedido do proprietário, reabertura no mesmo horário local, remoção e responsividade. Gate PostgreSQL/API/navegador ainda pendente. Workflow 38320772495 permanece em validação integrada; correção 34ef268 aguarda uma execução que a inclua. Roteiro completo continua ativo, com romaneios, expedição, parciais e demais módulos ainda por implementar.
+
 ### Correção da sessão inicial e gate de frota — 12/10/2026
 
 Reproduzida localmente a indicação travada: consulta pública iniciada, resposta da sessão autenticada recebida primeiro, resposta pública 200 recebida depois; antes, botão ausente e “Carregando…” permanente. AuthContext limpava QueryClient na primeira resolução de sessão, cancelando consultas em voo e desconectando seus observers. Agora a primeira verificação conserva o cache novo em memória; após uma sessão resolvida, troca de identidade continua limpando o cache para proteger dados privados. Não existe persistência de QueryClient entre carregamentos de página. A mesma reprodução local após build mostrou o botão disponível. Teste integrado força a ordem de respostas com interceptação temporal, mas usa dados/respostas reais da API isolada.

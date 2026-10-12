@@ -84,6 +84,30 @@ export async function validateFulfillment({ owner, guest, admin, browser, baseUR
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   } finally { await context.close(); }
   await validateDrivers({ admin, guest, browser, baseURL, data, db, id });
+  const scheduling = await browser.newContext({ timezoneId: 'America/Sao_Paulo' });
+  try {
+    await scheduling.addCookies((await admin.storageState()).cookies);
+    const page = await scheduling.newPage(); await page.setViewportSize({ width: 390, height: 844 });
+    const editSchedule = async value => {
+      await page.goto(`${baseURL}/painel-lojista/painel/deposito/${id}`);
+      await page.getByRole('checkbox', { name: 'Conferir dados de retirada ou entrega' }).check();
+      await page.getByRole('button', { name: 'Continuar', exact: true }).click();
+      const input = page.getByLabel('Data e horário combinados (opcional)', { exact: true });
+      if (value === '') assert.equal(await input.inputValue(), '2026-11-15T10:30', 'Saved UTC date must reopen in the device timezone');
+      await input.fill(value);
+      await page.getByRole('button', { name: 'Continuar', exact: true }).click();
+      await page.getByRole('checkbox', { name: 'Conferi os materiais e autorizo este registro.' }).check();
+      const response = page.waitForResponse(response => new URL(response.url()).pathname === `/api/fulfillments/${id}/details` && response.request().method() === 'PUT');
+      await page.getByRole('button', { name: 'Confirmar registro', exact: true }).click();
+      await data(await response);
+    };
+    await editSchedule('2026-11-15T10:30');
+    assert.equal((await data(await admin.get(`/api/fulfillments/${id}`))).scheduledAt, '2026-11-15T13:30:00.000Z');
+    assert.equal((await data(await owner.get('/api/orders/me'))).find(item => item.id === checkout.order.id).fulfillment.scheduledAt, '2026-11-15T13:30:00.000Z');
+    await editSchedule('');
+    assert.equal((await data(await admin.get(`/api/fulfillments/${id}`))).scheduledAt, null);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  } finally { await scheduling.close(); }
   let historyVersion = (await data(await admin.get(`/api/fulfillments/${id}`))).version;
   for (let index = 0; index < 21; index += 1) {
     const updated = await data(await admin.post(`/api/fulfillments/${id}/operations`, { headers, data: { requestKey: randomUUID(), expectedVersion: historyVersion, confirmed: true, action: 'ISSUE', note: `Ocorrência de paginação ${index + 1}`, items: [] } }));
