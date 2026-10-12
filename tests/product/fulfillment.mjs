@@ -49,7 +49,19 @@ export async function validateFulfillment({ owner, guest, admin, browser, baseUR
     await page.getByText(`Conferir materiais · Versão ${revised.version + 1}`, { exact: true }).waitFor();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   } finally { await context.close(); }
+  let historyVersion = (await data(await admin.get(`/api/fulfillments/${id}`))).version;
+  for (let index = 0; index < 21; index += 1) {
+    const updated = await data(await admin.post(`/api/fulfillments/${id}/operations`, { headers, data: { requestKey: randomUUID(), expectedVersion: historyVersion, confirmed: true, action: 'ISSUE', note: `Ocorrência de paginação ${index + 1}`, items: [] } }));
+    historyVersion = updated.version;
+  }
   await data(await admin.post(`/api/sales/admin/${sale.id}/status`, { headers, data: { status: 'CANCELED' } }));
   assert.equal((await data(await admin.get(`/api/fulfillments/${id}`))).status, 'CANCELED');
+  const history = await data(await guest.get(`/api/fulfillments/${id}/history?page=1`));
+  assert.ok(history.total > 20); assert.equal(history.events.length, 20); assert.ok(history.events.every(event => !('requestKey' in event) && !('fingerprint' in event)));
+  const older = await data(await guest.get(`/api/fulfillments/${id}/history?page=2`));
+  assert.equal(older.total, history.total); assert.ok(older.events.length > 0);
+  assert.ok(older.events.every(event => event.version < history.events.at(-1).version), 'History pages must be ordered without repeated events');
+  assert.equal((await guest.get(`/api/fulfillments/${id}/history?page=0`)).status(), 400);
+  assert.equal((await owner.get(`/api/fulfillments/${id}/history`)).status(), 403);
   assert.equal(Number(db(`console.log(await prisma.fulfillment.count({where:{saleId:${JSON.stringify(sale.id)}}}));`).trim()), 1);
 }

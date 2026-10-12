@@ -138,6 +138,12 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Histórico completo do depósito — 12/10/2026
+
+Acrescentada consulta paginada de todos os eventos operacionais, 20 por página, ordenados por versão. A tela carrega o histórico apenas quando aberto e permite consultar eventos anteriores. Acesso restrito à permissão logistics:manage; não retorna chaves de idempotência nem fingerprints. Teste integrado cria mais de 20 eventos pela API e verifica paginação sem repetição, ordem, validação e bloqueio ao cliente. TypeScript backend/frontend, lint, 59 testes unitários, textos e build frontend passaram localmente. Integração PostgreSQL/API/navegador aguarda o workflow deste incremento.
+
+Workflow 38319186948: builds frontend/backend e verificações passaram; validação integrada ainda em execução no momento desta atualização. Execução 38319280169 permanece aguardando. Não considerar estes incrementos publicados antes da conclusão do deploy. Próximo bloco: frota/motoristas e expedição, preservando saldo, auditoria e permissões; demais pendências continuam no roteiro.
+
 ### Validação da retomada
 
 O incremento anterior a2fd288 acrescentou o perfil WAREHOUSE e testes de acesso operacional sem financeiro. A execução 38319186948 foi consultada nesta retomada e ainda estava em andamento; sua publicação não está confirmada. O próximo incremento deve concluir esse gate antes de ampliar o fluxo de expedição. Acrescentada guarda explícita de etapa na liberação READY para impedir que futuras etapas de carga/entrega voltem à expedição por essa ação.

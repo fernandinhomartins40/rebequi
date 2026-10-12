@@ -39,6 +39,15 @@ export async function getFulfillment(id: string) {
   const quantities = new Map(returned.map(item => [item.saleItemId, item._sum.quantity ?? 0]));
   return { ...row, items: row.items.map(item => ({ ...item, remainingQuantity: item.quantity - (quantities.get(item.saleItemId) ?? 0) })) };
 }
+export async function listFulfillmentHistory(id: string, page: number) {
+  if (!await prisma.fulfillment.findUnique({ where: { id }, select: { id: true } })) throw new NotFoundError('Separação não encontrada');
+  const where = { fulfillmentId: id };
+  const [events, total] = await Promise.all([
+    prisma.fulfillmentEvent.findMany({ where, orderBy: { version: 'desc' }, skip: (page - 1) * 20, take: 20, select: { id: true, version: true, kind: true, details: true, createdAt: true } }),
+    prisma.fulfillmentEvent.count({ where }),
+  ]);
+  return { events, total, page, totalPages: Math.ceil(total / 20) };
+}
 async function mutateFulfillment(id: string, actorId: string, input: FulfillmentDetailsInput | FulfillmentOperationInput, details: boolean) {
   const key = createHash('sha256').update(`fulfillment:${actorId}:${input.requestKey}`).digest('hex');
   const { requestKey: _, expectedVersion: _version, confirmed: _confirmed, ...values } = input;
