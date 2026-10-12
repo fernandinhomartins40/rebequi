@@ -211,7 +211,7 @@ export class SaleService {
     if (query.to) createdAt.lte = new Date(query.to);
     if (query.from || query.to) where.createdAt = createdAt;
 
-    const [{ byStatus, byPayment, refunds, refundsByPayment }, itemsSold] = await Promise.all([
+    const [{ byStatus, byPayment, refunds, refundsByPayment, pendingRefunds }, itemsSold] = await Promise.all([
       this.saleRepository.aggregateRevenue(where),
       this.saleRepository.sumItemsSold({ ...where, status: 'PAID' }),
     ]);
@@ -222,7 +222,7 @@ export class SaleService {
     const canceled = statusMap.get('CANCELED');
 
     const paidRevenue = this.roundCurrency((paid?._sum.total ?? 0) - Number(refunds) / 100);
-    const pendingRevenue = this.roundCurrency(pending?._sum.total ?? 0);
+    const pendingRevenue = this.roundCurrency((pending?._sum.total ?? 0) - Number(pendingRefunds) / 100);
     const paidCount = paid?._count._all ?? 0;
     const pendingCount = pending?._count._all ?? 0;
     const canceledCount = canceled?._count._all ?? 0;

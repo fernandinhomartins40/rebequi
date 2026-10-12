@@ -53,11 +53,15 @@ export async function validatePartnerFinance({ owner, guest, admin, browser, bas
   const beforeRevenue = await data(await admin.get('/api/sales/admin/revenue'));
   const returns = await Promise.all([admin.post(`/api/sales/admin/${sale.id}/returns`, { headers, data: returnInput }), admin.post(`/api/sales/admin/${sale.id}/returns`, { headers, data: returnInput })]);
   const returned = await Promise.all(returns.map(response => data(response, 201))); assert.equal(returned[0].id, returned[1].id);
-  const oldImageGuard = JSON.parse(db(`let blocked=false;try{await prisma.sale.update({where:{id:${JSON.stringify(sale.id)}},data:{status:'CANCELED'}});}catch{blocked=true;}console.log(JSON.stringify({blocked,status:(await prisma.sale.findUniqueOrThrow({where:{id:${JSON.stringify(sale.id)}}})).status}));`).trim());
+  const oldImageGuard = JSON.parse(db(`let blocked=false;try{await prisma.sale.update({where:{id:${JSON.stringify(sale.id)}},data:{status:'CANCELED'}});}catch{blocked=true;}console.log(JSON.stringify({blocked,status:(await prisma.sale.findUniqueOrThrow({where:{id:${JSON.stringify(sale.id)}}})).status}));`).trim().split('\n').at(-1));
   assert.deepEqual(oldImageGuard, { blocked: true, status: 'PAID' }, 'An older application must not cancel financial/partially returned sales without accounting');
   assert.equal(Number(db(`console.log((await prisma.product.findUniqueOrThrow({where:{id:${JSON.stringify(product.id)}}})).stock);`).trim()), beforeStock + 1);
   const afterRevenue = await data(await admin.get('/api/sales/admin/revenue'));
   assert.equal(Math.round((beforeRevenue.paidRevenue - afterRevenue.paidRevenue) * 100), Number(basis / 3n)); assert.equal(beforeRevenue.itemsSold - afterRevenue.itemsSold, 1);
+  await data(await admin.post(`/api/sales/admin/${sale.id}/status`, { headers, data: { status: 'PENDING_PAYMENT' } }));
+  const pendingAfterReturn = await data(await admin.get('/api/sales/admin/revenue'));
+  assert.equal(Math.round((pendingAfterReturn.pendingRevenue - afterRevenue.pendingRevenue) * 100), Number(basis - basis / 3n), 'Payment pending must preserve the net amount after a return');
+  await data(await admin.post(`/api/sales/admin/${sale.id}/status`, { headers, data: { status: 'PAID' } }));
   assert.equal((await admin.post(`/api/sales/admin/${sale.id}/returns`, { headers, data: { ...returnInput, requestKey: randomUUID() } })).status(), 409);
   wallet = await data(await owner.get('/api/partners/wallet'));
   assert.equal(wallet.availableCents, String(earned - paidAmount - (basis / 3n) * 1000n / 10000n));
@@ -66,7 +70,7 @@ export async function validatePartnerFinance({ owner, guest, admin, browser, bas
   assert.equal(Number(db(`console.log((await prisma.product.findUniqueOrThrow({where:{id:${JSON.stringify(product.id)}}})).stock);`).trim()), beforeStock + 3, 'Cancellation restores only units not already returned');
   wallet = await data(await owner.get('/api/partners/wallet')); assert.equal(wallet.availableCents, String(-paidAmount)); assert.equal(wallet.availablePoints, '0');
   assert.equal(Number(db(`console.log(await prisma.partnerLedgerEntry.count({where:{saleId:${JSON.stringify(sale.id)},actorId:null}}));`).trim()), 0, 'Financial events must retain the authenticated operator');
-  const immutable = JSON.parse(db(`let ledger=false,rule=false;try{await prisma.partnerLedgerEntry.updateMany({where:{saleId:${JSON.stringify(sale.id)},kind:'EARN'},data:{commissionCents:1n}});}catch{ledger=true;}try{await prisma.partnerProgramRule.update({where:{id:${JSON.stringify(firstRule.id)}},data:{commissionBasisPoints:9999}});}catch{rule=true;}console.log(JSON.stringify({ledger,rule}));`).trim());
+  const immutable = JSON.parse(db(`let ledger=false,rule=false;try{await prisma.partnerLedgerEntry.updateMany({where:{saleId:${JSON.stringify(sale.id)},kind:'EARN'},data:{commissionCents:1n}});}catch{ledger=true;}try{await prisma.partnerProgramRule.update({where:{id:${JSON.stringify(firstRule.id)}},data:{commissionBasisPoints:9999}});}catch{rule=true;}console.log(JSON.stringify({ledger,rule}));`).trim().split('\n').at(-1));
   assert.deepEqual(immutable, { ledger: true, rule: true });
   await data(await owner.post('/api/partners/program/accept', { headers, data: { ruleId: secondRule.id, confirmed: true } }));
   const damagedOrder = await data(await guest.post('/api/orders/checkout', { headers, data: { referral, items: [{ productId: product.id, quantity: 2 }] } }), 201);

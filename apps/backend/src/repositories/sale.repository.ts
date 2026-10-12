@@ -160,7 +160,7 @@ export class SaleRepository {
    * Aggregations for the revenue dashboard, scoped by an optional date window.
    */
   async aggregateRevenue(where: Prisma.SaleWhereInput) {
-    const [byStatus, byPayment, refunds, refundsByPayment] = await Promise.all([
+    const [byStatus, byPayment, refunds, refundsByPayment, pendingRefunds] = await Promise.all([
       prisma.sale.groupBy({
         by: ['status'],
         where,
@@ -175,9 +175,10 @@ export class SaleRepository {
       }),
       prisma.saleReturn.aggregate({ where: { sale: { ...where, status: 'PAID' } }, _sum: { refundCents: true } }),
       Promise.all((['PIX', 'CASH', 'CARD', 'INSTALLMENT'] as const).map(async paymentMethod => ({ paymentMethod, total: (await prisma.saleReturn.aggregate({ where: { sale: { ...where, status: 'PAID', paymentMethod } }, _sum: { refundCents: true } }))._sum.refundCents ?? 0n }))),
+      prisma.saleReturn.aggregate({ where: { sale: { ...where, status: 'PENDING_PAYMENT' } }, _sum: { refundCents: true } }),
     ]);
 
-    return { byStatus, byPayment, refunds: refunds._sum.refundCents ?? 0n, refundsByPayment };
+    return { byStatus, byPayment, refunds: refunds._sum.refundCents ?? 0n, refundsByPayment, pendingRefunds: pendingRefunds._sum.refundCents ?? 0n };
   }
 
   async sumItemsSold(where: Prisma.SaleWhereInput) {
