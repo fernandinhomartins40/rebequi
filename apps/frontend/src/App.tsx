@@ -14,46 +14,48 @@ import {
   RoleHomeRedirect,
 } from "@/components/auth/RouteGuards";
 import { DesignFrame } from "@/components/DesignFrame";
-import Index from "./pages/Index";
-import MerchantPanel from "./pages/MerchantPanel";
-import MerchantDashboard, {
-  MerchantCategoryEditorPage,
-  MerchantCategoryListPage,
-  MerchantDashboardAccess,
-  MerchantDashboardIntegrations,
-  MerchantDashboardLayout,
-  MerchantDashboardOrderDetails,
-  MerchantDashboardOrders,
-  MerchantDashboardSales,
-  MerchantSaleEditorPage,
-  MerchantDashboardCustomers,
-  MerchantCustomerDetailPage,
-  MerchantDashboardChannels,
-  MerchantChannelDetailPage,
-  MerchantDashboardProducts,
-  MerchantDashboardPromotions,
-  MerchantDashboardQuotes,
-  MerchantProductEditorPage,
-  MerchantProductOfferPage,
-  MerchantPromotionEditorPage,
-  MerchantUserEditorPage,
-} from "./pages/MerchantDashboard";
-import CustomerDashboard from "./pages/CustomerDashboard";
-import NotFound from "./pages/NotFound";
-import Login from "./pages/Login";
-import CategoriesPage from "./pages/Categories";
-import CategoryDetailsPage from "./pages/CategoryDetails";
-import ProductDetails from "./pages/ProductDetails";
-import PromotionDetailsPage from "./pages/PromotionDetails";
-import PromotionsPage from "./pages/Promotions";
-import NewsPage from "./pages/News";
-import ContactPage from "./pages/Contact";
-import SearchResultsPage from "./pages/Search";
-import RequestQuotePage from "./pages/RequestQuote";
-import Register from "./pages/Register";
-import CartPage from "./pages/Cart";
-import CheckoutPage from "./pages/Checkout";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, type ComponentType } from "react";
+const Index = lazy(() => import('./pages/Index'));
+const MerchantPanel = lazy(() => import('./pages/MerchantPanel'));
+const CustomerDashboard = lazy(() => import('./pages/CustomerDashboard'));
+const NotFound = lazy(() => import('./pages/NotFound'));
+const Login = lazy(() => import('./pages/Login'));
+const CategoriesPage = lazy(() => import('./pages/Categories'));
+const CategoryDetailsPage = lazy(() => import('./pages/CategoryDetails'));
+const ProductDetails = lazy(() => import('./pages/ProductDetails'));
+const PromotionDetailsPage = lazy(() => import('./pages/PromotionDetails'));
+const PromotionsPage = lazy(() => import('./pages/Promotions'));
+const NewsPage = lazy(() => import('./pages/News'));
+const ContactPage = lazy(() => import('./pages/Contact'));
+const SearchResultsPage = lazy(() => import('./pages/Search'));
+const RequestQuotePage = lazy(() => import('./pages/RequestQuote'));
+const Register = lazy(() => import('./pages/Register'));
+const CartPage = lazy(() => import('./pages/Cart'));
+const CheckoutPage = lazy(() => import('./pages/Checkout'));
+function merchant(name: keyof typeof import('./pages/MerchantDashboard')) {
+  return lazy(async () => ({ default: (await import('./pages/MerchantDashboard'))[name] as ComponentType }));
+}
+const MerchantDashboard = merchant('default');
+const MerchantCategoryEditorPage = merchant('MerchantCategoryEditorPage');
+const MerchantCategoryListPage = merchant('MerchantCategoryListPage');
+const MerchantDashboardAccess = merchant('MerchantDashboardAccess');
+const MerchantDashboardIntegrations = merchant('MerchantDashboardIntegrations');
+const MerchantDashboardLayout = merchant('MerchantDashboardLayout');
+const MerchantDashboardOrderDetails = merchant('MerchantDashboardOrderDetails');
+const MerchantDashboardOrders = merchant('MerchantDashboardOrders');
+const MerchantDashboardSales = merchant('MerchantDashboardSales');
+const MerchantSaleEditorPage = merchant('MerchantSaleEditorPage');
+const MerchantDashboardCustomers = merchant('MerchantDashboardCustomers');
+const MerchantCustomerDetailPage = merchant('MerchantCustomerDetailPage');
+const MerchantDashboardChannels = merchant('MerchantDashboardChannels');
+const MerchantChannelDetailPage = merchant('MerchantChannelDetailPage');
+const MerchantDashboardProducts = merchant('MerchantDashboardProducts');
+const MerchantDashboardPromotions = merchant('MerchantDashboardPromotions');
+const MerchantDashboardQuotes = merchant('MerchantDashboardQuotes');
+const MerchantProductEditorPage = merchant('MerchantProductEditorPage');
+const MerchantProductOfferPage = merchant('MerchantProductOfferPage');
+const MerchantPromotionEditorPage = merchant('MerchantPromotionEditorPage');
+const MerchantUserEditorPage = merchant('MerchantUserEditorPage');
 const PartnersPage = lazy(() => import('./pages/partners'));
 const MerchantPartnersPage = lazy(() => import('./pages/merchant-dashboard/partners'));
 
@@ -68,7 +70,8 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <DesignFrame>
-              <Routes>
+              <Suspense fallback={<div role="status" className="flex min-h-screen items-center justify-center bg-slate-50">Carregando…</div>}><Routes>
+                <Route path="/parceiros/*" element={<PartnersPage />} />
                 <Route path="/" element={<Index />} />
                 <Route path="/pedido" element={<RequestQuotePage />} />
                 {/* URL antiga: tinha "ç", que vira %C3%A7 ao compartilhar no WhatsApp. */}
@@ -305,11 +308,10 @@ const App = () => (
                     path="/painel-cliente"
                     element={<CustomerDashboard />}
                   />
-                  <Route path="/parceiros/*" element={<Suspense fallback={<p>Carregando…</p>}><PartnersPage /></Suspense>} />
                 </Route>
 
                 <Route path="*" element={<NotFound />} />
-              </Routes>
+              </Routes></Suspense>
             </DesignFrame>
           </BrowserRouter>
         </TooltipProvider>

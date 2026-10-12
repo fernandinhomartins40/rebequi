@@ -14,4 +14,8 @@ Migração aditiva 20261011200000_partner_profiles; contas/dados históricos pre
 
 ## Próximas entregas
 
+PWA preparado com manifesto próprio, worker Workbox restrito a `/parceiros/`, precache explícito do shell público (21 arquivos, aproximadamente 620 KB nesta revisão), proteção no-cache para worker/manifest e orçamento máximo de 2 MiB no build. APIs, documentos e imagens de clientes não são cacheados. Sem conexão, apresenta estado claro e não afirma que pedidos foram enviados. Orientação de instalação Android/iPhone e aplicação de atualização por ação explícita, desabilitada durante edição. Código das rotas passa a carregar sob demanda; entrada JS reduzida de 1,1 MB para 347 KB antes de gzip. Não há novo serviço residente na VPS.
+
+Build, TypeScript e lint aprovados; navegador Chromium local confirmou shell offline real e ausência de API/uploads no cache. Transporte sintético usado apenas nessa inspeção local de interface; integração no GitHub consulta PostgreSQL/API reais e testa registro do worker, cache e reconexão. Validação física de instalação Android/iPhone e atualização entre releases permanece pendente. Offline nesta entrega permite abrir o shell; formulários/calculadora e rascunhos offline ainda estão nas etapas seguintes.
+
 Obras/ambientes e PWA instalável com cache seguro; fichas técnicas/motor de pintura e pisos; IA com cotas e proposta comercial; indicações/eventos/ledger; recompensas e relacionamento. A fundação não equivale à conclusão do plano. Câmera física, instalação/push Android/iOS e testes pagos dependem de validação específica posterior.
