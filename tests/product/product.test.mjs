@@ -270,7 +270,7 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
         const privateGuest = await client();
         assert.equal((await privateGuest.get(draft.quote.documentUrl)).status(), 401);
         assert.equal((await privateGuest.get(draft.quote.documentUrl.replace('/quotes/', '/%71uotes/'))).status(), 401, 'Encoded folders cannot bypass media authorization');
-        const privatePhoto = await context.request.get(draft.quote.documentUrl);
+        const privatePhoto = await context.request.get(`${baseURL}${draft.quote.documentUrl}`);
         assert.equal(privatePhoto.status(), 200); assert.match(privatePhoto.headers()['cache-control'], /private, no-store/);
         assert.equal((await anonymous.get(draft.quote.documentUrl)).status(), 404, 'A different customer cannot read the original photo');
         // The real HTTP job has no configured provider in CI. Wait before exercising the same service with mock transport.
