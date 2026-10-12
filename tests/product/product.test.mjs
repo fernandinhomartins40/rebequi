@@ -528,6 +528,7 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
         assert.equal(await page.getByRole('heading', { name: 'Confira os produtos', exact: true }).count(), 0);
         await page.getByRole('button', { name: `Abrir orçamento ${anotherDraft.quote.referenceCode}`, exact: true }).click();
         await page.getByRole('heading', { name: 'Confira os produtos', exact: true }).waitFor();
+        await page.waitForFunction(() => [...document.querySelectorAll('label')].filter(label => label.textContent === 'Quantidade').length === 2);
         assert.equal(await page.getByLabel('Quantidade', { exact: true }).count(), 2);
         await page.getByRole('button', { name: 'Todos os orçamentos', exact: true }).click();
         await firstCard.waitFor();
