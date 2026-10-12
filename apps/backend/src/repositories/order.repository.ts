@@ -6,6 +6,7 @@ import { ConflictError, ValidationError } from '../utils/errors.util.js';
 import { referralRuleSnapshot } from '../services/partner-program.service.js';
 
 const orderInclude = {
+  sale: { select: { status: true, fulfillment: { select: { status: true, mode: true, scheduledAt: true, updatedAt: true } } } },
   partnerReferral: { select: { codeSnapshot: true, consentedAt: true } },
   reservations: true,
   user: true,

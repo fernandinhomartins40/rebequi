@@ -25,6 +25,7 @@ export interface CustomerOrderItem {
 }
 
 export interface CustomerOrder {
+  fulfillment?: { status: string; mode: string; scheduledAt: Date | string | null; updatedAt: Date | string } | null;
   referral?: { code: string; confirmedAt: Date | string } | null;
   stockReservation?: { active: boolean; expiresAt: string | Date | null };
   id: string;

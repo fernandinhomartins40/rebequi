@@ -449,6 +449,7 @@ export class OrderService {
     const subtotal = order.items.reduce((total, item) => total + item.quantity * item.unitPrice, 0);
 
     return {
+      fulfillment: order.sale?.fulfillment ? { ...order.sale.fulfillment, status: order.sale.status === 'PENDING_PAYMENT' ? 'PAYMENT_PENDING' : order.sale.fulfillment.status } : null,
       referral: order.partnerReferral ? { code: order.partnerReferral.codeSnapshot, confirmedAt: order.partnerReferral.consentedAt } : null,
       canceledAt: order.canceledAt,
       completedAt: order.completedAt,

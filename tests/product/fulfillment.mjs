@@ -21,6 +21,10 @@ export async function validateFulfillment({ owner, guest, admin, browser, baseUR
   const checked = await data(await admin.post(`/api/fulfillments/${id}/operations`, { headers, data: { ...op, requestKey: randomUUID(), expectedVersion: results[0].version, action: 'CHECK' } }));
   const ready = await data(await admin.post(`/api/fulfillments/${id}/operations`, { headers, data: { ...op, requestKey: randomUUID(), expectedVersion: checked.version, action: 'READY', items: [] } }));
   assert.equal((await data(await admin.get(`/api/fulfillments/${id}`))).status, 'READY');
+  const customerOrder = (await data(await owner.get('/api/orders/me'))).find(item => item.id === checkout.order.id);
+  assert.equal(customerOrder.fulfillment.status, 'READY');
+  assert.deepEqual(Object.keys(customerOrder.fulfillment).sort(), ['mode', 'scheduledAt', 'status', 'updatedAt']);
+  assert.equal(JSON.stringify(customerOrder.fulfillment).includes('Prateleira do teste'), false, 'Customer progress never exposes warehouse notes or location');
   assert.equal(Number(db(`console.log((await prisma.product.findUniqueOrThrow({where:{id:${JSON.stringify(product.id)}}})).stock);`).trim()), stockBefore, 'Separating and checking must not debit inventory again');
   await data(await admin.post(`/api/sales/admin/${sale.id}/returns`, { headers, data: { requestKey: randomUUID(), expectedVersion: 0, confirmed: true, reason: 'Devolução antes da expedição no runner', items: [{ saleItemId: sale.items[0].id, quantity: 1, restock: false }] } }), 201);
   const revised = await data(await admin.get(`/api/fulfillments/${id}`)); assert.equal(revised.status, 'CHECKING'); assert.equal(revised.items[0].remainingQuantity, 2); assert.equal(revised.items[0].checked, 0);
