@@ -4,3 +4,5 @@ export const fulfillmentDetailsSchema = z.object({ ...base, mode: z.enum(['PICKU
 export const fulfillmentOperationSchema = z.object({ ...base, action: z.enum(['PICK', 'CHECK', 'READY', 'ISSUE']), note: z.string().trim().max(500).default(''), items: z.array(z.object({ id: z.string().min(1).max(128), quantity: z.number().int().min(0).max(1000000), location: z.string().trim().max(100).nullable().optional() }).strict()).max(100).default([]) }).strict().refine(value => new Set(value.items.map(item => item.id)).size === value.items.length, 'Item repetido').refine(value => value.action !== 'ISSUE' || value.note.length >= 3, 'Descreva a ocorrência');
 export type FulfillmentDetailsInput = z.infer<typeof fulfillmentDetailsSchema>;
 export type FulfillmentOperationInput = z.infer<typeof fulfillmentOperationSchema>;
+export const driverAssignmentSchema = z.object({ ...base, driverId: z.string().min(1).max(128).nullable(), reason: z.string().trim().min(3).max(300) }).strict();
+export type DriverAssignmentInput = z.infer<typeof driverAssignmentSchema>;

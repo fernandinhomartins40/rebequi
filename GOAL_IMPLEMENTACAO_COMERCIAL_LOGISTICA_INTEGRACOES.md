@@ -138,6 +138,14 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Motorista e tarefas atribuídas — 12/10/2026
+
+Perfil DRIVER na matriz compartilhada e cadastro de equipe, com apenas logistics:drive. Tela Minhas entregas carregada sob demanda: paginação, etapa real, endereço/agendamento e quantidades conferidas/recebidas; não mostra financeiro, preços, notas/localização do depósito ou outras tarefas. Backend filtra por motorista autenticado, entrega paga não cancelada; consulta por ID também exige vínculo. Conta desativada ou papel alterado é revalidado pelo middleware existente a cada chamada. A atribuição ADMIN/MANAGER fica na tarefa do Depósito em três passos, motivo obrigatório, versão esperada, intenção idempotente e evento imutável; exige motorista ativo, modo DELIVERY e preparação/pronto. Troca para retirada exige primeiro remover o motorista. Não atribui históricos automaticamente, não cria contas reais, não registra entrega realizada nem simula romaneio.
+
+Migração 20261012100000_driver_assignments aditiva (papel DRIVER, FK opcional e índice de tarefas próprias). Tipos, lint, 60 testes unitários, textos e build aprovados localmente. Integração acrescenta dois motoristas, reenvio/origem/permissões, bloqueio de retirada, dados mínimos, detalhe ID, mobile do motorista, reatribuição mobile da gestão, revogação e conta desativada. Teste isolado e deploy deste incremento ainda dependem do workflow.
+
+Workflow 38319666509: logística/histórico passaram, mas indicação pública voltou a falhar (API 200, botão ausente); deploy bloqueado. Workflow 38320249189 de veículos segue em teste integrado, incluindo o diagnóstico de tela/texto e a espera pelo fechamento do recorte. Não considerar veículos/motoristas publicados antes do gate. Próximas etapas continuam romaneio/carga/saída/recebimento parcial, evidências privadas, acompanhamento completo e integrações restantes.
+
 ### Cadastro de veículos — 12/10/2026
 
 Implementado cadastro paginado de veículos em Depósito → Gerenciar veículos, restrito a ADMIN/MANAGER por logistics:fleet. Wizard em três passos: identificação/placa, capacidade/restrições, confirmação. Placa normalizada/única, carga útil kg e volume m³ em Decimal(12,3), sem conversão ou capacidade fictícia quando desconhecida. Inativação preserva cadastro e histórico, sem exclusão. Escritas transacionais com intenção idempotente, versão esperada e histórico imutável de snapshots/motivos. Nenhum veículo real cadastrado durante desenvolvimento. Migration 20261012090000_logistics_vehicles aditiva. Motoristas, atribuição e romaneios continuam pendentes.

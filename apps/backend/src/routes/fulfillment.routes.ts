@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { getRolesForMerchantPermission } from '@rebequi/shared/constants';
-import { fulfillmentDetailsSchema, fulfillmentOperationSchema } from '@rebequi/shared/schemas';
+import { fulfillmentDetailsSchema, fulfillmentOperationSchema, driverAssignmentSchema } from '@rebequi/shared/schemas';
+import { assignDriver, listActiveDrivers } from '../services/driver.service.js';
 import { authenticate, authorize } from '../middleware/auth.middleware.js';
 import { validateBody, validateQuery } from '../middleware/validation.middleware.js';
 import { requireTrustedOrigin } from '../middleware/trusted-origin.middleware.js';
@@ -10,6 +11,8 @@ import { listFulfillments, getFulfillment, listFulfillmentHistory, configureFulf
 const router: Router = Router();
 router.use(authenticate, authorize(...getRolesForMerchantPermission('logistics:manage')), requireTrustedOrigin, (_req, res, next) => { res.setHeader('Cache-Control', 'private, no-store'); next(); });
 router.get('/', validateQuery(z.object({ page: z.coerce.number().int().min(1).max(100000).default(1), status: z.enum(['AWAITING_DETAILS', 'PICKING', 'CHECKING', 'READY', 'CANCELED']).optional() })), async (req, res, next) => { try { successResponse(res, await listFulfillments(Number(req.query.page), req.query.status as string | undefined)); } catch (error) { next(error); } });
+router.get('/drivers', authorize(...getRolesForMerchantPermission('logistics:fleet')), validateQuery(z.object({ page: z.coerce.number().int().min(1).max(100000).default(1) })), async (req, res, next) => { try { successResponse(res, await listActiveDrivers(Number(req.query.page))); } catch (error) { next(error); } });
+router.put('/:id/driver', authorize(...getRolesForMerchantPermission('logistics:fleet')), validateBody(driverAssignmentSchema), async (req, res, next) => { try { successResponse(res, await assignDriver(req.params.id, req.user!.userId, req.body)); } catch (error) { next(error); } });
 router.get('/:id', async (req, res, next) => { try { successResponse(res, await getFulfillment(req.params.id)); } catch (error) { next(error); } });
 router.get('/:id/history', validateQuery(z.object({ page: z.coerce.number().int().min(1).max(100000).default(1) })), async (req, res, next) => { try { successResponse(res, await listFulfillmentHistory(req.params.id, Number(req.query.page))); } catch (error) { next(error); } });
 router.put('/:id/details', validateBody(fulfillmentDetailsSchema), async (req, res, next) => { try { successResponse(res, await configureFulfillment(req.params.id, req.user!.userId, req.body)); } catch (error) { next(error); } });

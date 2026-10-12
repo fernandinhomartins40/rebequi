@@ -8,6 +8,7 @@ export type MerchantPermission =
   | 'commercial:work'
   | 'logistics:manage'
   | 'logistics:fleet'
+  | 'logistics:drive'
   | 'promotions:manage'
   | 'orders:manage'
   | 'sales:manage'
@@ -33,6 +34,7 @@ type PermissionProfile = {
 };
 
 export const INTERNAL_USER_ROLES: InternalUserRole[] = [
+  UserRole.DRIVER,
   UserRole.WAREHOUSE,
   UserRole.ADMIN,
   UserRole.MANAGER,
@@ -42,6 +44,7 @@ export const INTERNAL_USER_ROLES: InternalUserRole[] = [
 ];
 
 export const MERCHANT_PERMISSION_PROFILES: Record<MerchantPermission, PermissionProfile> = {
+  'logistics:drive': { label: 'Minhas entregas', description: 'Consulta somente tarefas atribuídas ao próprio motorista.' },
   'logistics:fleet': { label: 'Frota', description: 'Cadastra veículos e confirma capacidades e restrições de transporte.' },
   'logistics:manage': { label: 'Depósito e entregas', description: 'Configura retirada/entrega, separa, confere e acompanha materiais vendidos.' },
   'commercial:work': { label: 'Meus atendimentos', description: 'Consulta suas pendências e registros comerciais atribuídos.' },
@@ -92,6 +95,7 @@ export const MERCHANT_PERMISSION_PROFILES: Record<MerchantPermission, Permission
 };
 
 export const MERCHANT_ROLE_PROFILES: Record<InternalUserRole, RoleProfile> = {
+  [UserRole.DRIVER]: { label: 'Motorista', description: 'Consulta suas entregas, materiais e endereços, sem acesso comercial ou financeiro.', permissions: ['logistics:drive'] },
   [UserRole.WAREHOUSE]: { label: 'Equipe do depósito', description: 'Separa e confere materiais sem acessar vendas, financeiro, cadastro de clientes ou integrações.', permissions: ['logistics:manage'] },
   [UserRole.ADMIN]: {
     label: 'Administrador',

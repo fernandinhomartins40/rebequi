@@ -1,0 +1,11 @@
+import { Router } from 'express';
+import { z } from 'zod';
+import { authenticate, authorize } from '../middleware/auth.middleware.js';
+import { validateQuery } from '../middleware/validation.middleware.js';
+import { driverTask, driverTasks } from '../services/driver.service.js';
+import { successResponse } from '../utils/response.util.js';
+const router: Router = Router();
+router.use(authenticate, authorize('DRIVER'), (_req, res, next) => { res.setHeader('Cache-Control', 'private, no-store'); next(); });
+router.get('/', validateQuery(z.object({ page: z.coerce.number().int().min(1).max(100000).default(1) })), async (req, res, next) => { try { successResponse(res, await driverTasks(req.user!.userId, Number(req.query.page))); } catch (error) { next(error); } });
+router.get('/:id', async (req, res, next) => { try { successResponse(res, await driverTask(req.user!.userId, req.params.id)); } catch (error) { next(error); } });
+export default router;

@@ -71,6 +71,7 @@ async function mutateFulfillment(id: string, actorId: string, input: Fulfillment
     if (details) {
       if (!['AWAITING_DETAILS', 'PICKING', 'CHECKING', 'READY'].includes(row.status)) throw new ConflictError('Esta etapa não permite alterar os dados de retirada/entrega.');
       const configuration = input as FulfillmentDetailsInput;
+      if (row.driverId && configuration.mode !== row.mode) throw new ConflictError('Remova a atribuição do motorista antes de mudar para retirada.');
       await tx.fulfillment.update({ where: { id }, data: { mode: configuration.mode, address: configuration.mode === 'DELIVERY' ? configuration.address : null, region: configuration.region, scheduledAt: configuration.scheduledAt ? new Date(configuration.scheduledAt) : null, notes: configuration.notes } });
       if (row.status === 'AWAITING_DETAILS') nextStatus = 'PICKING';
     } else {

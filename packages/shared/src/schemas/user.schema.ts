@@ -6,8 +6,8 @@
 import { z } from 'zod';
 import { isValidWhatsapp, normalizeWhatsapp } from '../utils/index.js';
 
-export const userRoleSchema = z.enum(['ADMIN', 'MANAGER', 'CATALOG_MANAGER', 'MARKETING', 'SALES', 'WAREHOUSE', 'CUSTOMER']);
-export const managedUserRoleSchema = z.enum(['ADMIN', 'MANAGER', 'CATALOG_MANAGER', 'MARKETING', 'SALES', 'WAREHOUSE']);
+export const userRoleSchema = z.enum(['ADMIN', 'MANAGER', 'CATALOG_MANAGER', 'MARKETING', 'SALES', 'WAREHOUSE', 'DRIVER', 'CUSTOMER']);
+export const managedUserRoleSchema = z.enum(['ADMIN', 'MANAGER', 'CATALOG_MANAGER', 'MARKETING', 'SALES', 'WAREHOUSE', 'DRIVER']);
 
 const whatsappSchema = z
   .string()

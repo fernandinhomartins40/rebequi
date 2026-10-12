@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import { validateDrivers } from './drivers.mjs';
 export async function validateFulfillment({ owner, guest, admin, browser, baseURL, data, db, product }) {
   const headers = { Origin: baseURL };
   const warehouseLogin = { identifier: 'warehouse@example.invalid', password: 'Isolated-Warehouse-2026!' };
@@ -82,6 +83,7 @@ export async function validateFulfillment({ owner, guest, admin, browser, baseUR
     await page.getByText('Veículo mobile · DEF4567', { exact: true }).waitFor();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   } finally { await context.close(); }
+  await validateDrivers({ admin, guest, browser, baseURL, data, db, id });
   let historyVersion = (await data(await admin.get(`/api/fulfillments/${id}`))).version;
   for (let index = 0; index < 21; index += 1) {
     const updated = await data(await admin.post(`/api/fulfillments/${id}/operations`, { headers, data: { requestKey: randomUUID(), expectedVersion: historyVersion, confirmed: true, action: 'ISSUE', note: `Ocorrência de paginação ${index + 1}`, items: [] } }));

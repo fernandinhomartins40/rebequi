@@ -61,6 +61,7 @@ const PartnerReferralPage = lazy(() => import('./pages/PartnerReferral'));
 const MerchantPartnersPage = lazy(() => import('./pages/merchant-dashboard/partners'));
 const CommercialWorkbenchPage = lazy(() => import('./pages/merchant-dashboard/commercial-workbench'));
 const WarehousePage = lazy(() => import('./pages/merchant-dashboard/warehouse'));
+const DriverTasksPage = lazy(() => import('./pages/merchant-dashboard/driver-tasks'));
 
 const queryClient = new QueryClient();
 
@@ -218,6 +219,10 @@ const App = () => (
                     </Route>
                     <Route element={<MerchantPermissionRoute permission="commercial:work" />}>
                       <Route path="atendimentos" element={<CommercialWorkbenchPage />} />
+                    </Route>
+                    <Route element={<MerchantPermissionRoute permission="logistics:drive" />}>
+                      <Route path="entregas" element={<DriverTasksPage />} />
+                      <Route path="entregas/:taskId" element={<DriverTasksPage />} />
                     </Route>
                     <Route element={<MerchantPermissionRoute permission="logistics:manage" />}>
                       <Route path="deposito" element={<WarehousePage />} />

@@ -20,6 +20,7 @@ export const SIDEBAR_THEME = {
 } as const;
 
 export type MerchantSection =
+  | 'entregas'
   | 'atendimentos'
   | 'deposito'
   | 'visão-geral'
@@ -66,6 +67,7 @@ export type MerchantNavItem = {
 };
 
 export const NAV_SECTIONS: Omit<MerchantNavItem, 'badge'>[] = [
+  { id: 'entregas', group: 'vender', href: `${ADMIN_BASE_PATH}/entregas`, label: 'Minhas entregas', description: 'Tarefas atribuídas ao motorista', icon: Boxes, eyebrow: 'Operação', title: 'Minhas entregas', intro: 'Confira suas entregas atribuídas.', requiredPermission: 'logistics:drive' },
   { id: 'deposito', group: 'vender', href: `${ADMIN_BASE_PATH}/deposito`, label: 'Depósito', description: 'Separação e conferência', icon: Boxes, eyebrow: 'Operação', title: 'Depósito', intro: 'Separe e confira os materiais vendidos.', requiredPermission: 'logistics:manage' },
   { id: 'atendimentos', group: 'vender', href: `${ADMIN_BASE_PATH}/atendimentos`, label: 'Meus atendimentos', description: 'Pendências atribuídas e consulta de produtos', icon: Users, eyebrow: 'Comercial', title: 'Meus atendimentos', intro: 'Confira seus atendimentos e pendências.', requiredPermission: 'commercial:work' },
   {

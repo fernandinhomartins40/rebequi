@@ -4,6 +4,7 @@
  */
 
 export enum UserRole {
+  DRIVER = 'DRIVER',
   WAREHOUSE = 'WAREHOUSE',
   ADMIN = 'ADMIN',
   MANAGER = 'MANAGER',
