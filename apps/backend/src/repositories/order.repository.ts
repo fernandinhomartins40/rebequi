@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { requireCommercialAccess, type CommercialActor } from '../services/commercial-access.service.js';
 import { prisma } from '../lib/prisma.js';
 import { releaseOrderReservations } from '../services/stock-reservation.service.js';
 import { ConflictError, ValidationError } from '../utils/errors.util.js';
@@ -48,9 +49,10 @@ export class OrderRepository {
     });
   }
 
-  async updateOrder(id: string, data: Prisma.CustomerOrderUpdateInput) {
+  async updateOrder(id: string, data: Prisma.CustomerOrderUpdateInput, actor?: CommercialActor) {
     return prisma.$transaction(async tx => {
       await tx.$queryRaw`SELECT id FROM customer_orders WHERE id = ${id} FOR UPDATE`;
+      await requireCommercialAccess('order', id, actor, tx);
       if (data.status === 'CANCELED') {
         const sale = await tx.sale.findUnique({ where: { orderId: id } });
         if (sale && sale.status !== 'CANCELED') throw new ConflictError('Cancele a venda vinculada antes de cancelar este pedido.');

@@ -30,7 +30,7 @@ router.post('/checkout', authenticate, authorize('CUSTOMER'), (req, res, next) =
 router.get('/admin/list', authenticate, authorize(...orderRoles), validateQuery(orderFiltersSchema), orderController.listAdminOrders);
 router.get('/admin/:id', authenticate, authorize(...orderRoles), orderController.getAdminOrder);
 router.post('/admin/:id/reserve', authenticate, authorize(...orderRoles), async (req, res, next) => {
-  try { res.json({ success: true, data: await reserveOrderStock(req.params.id) }); }
+  try { res.json({ success: true, data: await reserveOrderStock(req.params.id, req.user) }); }
   catch (error) { next(error); }
 });
 router.post(

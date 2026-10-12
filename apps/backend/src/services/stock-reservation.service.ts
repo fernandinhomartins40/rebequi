@@ -2,10 +2,12 @@ import type { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
 import { ConflictError, NotFoundError, ValidationError } from '../utils/errors.util.js';
 import { enqueueCatalogChange } from './integration-outbox.service.js';
+import { requireCommercialAccess, type CommercialActor } from './commercial-access.service.js';
 
-export async function reserveOrderStock(orderId: string) {
+export async function reserveOrderStock(orderId: string, actor?: CommercialActor) {
   return prisma.$transaction(async tx => {
     await tx.$queryRaw`SELECT id FROM customer_orders WHERE id = ${orderId} FOR UPDATE`;
+    await requireCommercialAccess('order', orderId, actor, tx);
     const order = await tx.customerOrder.findUnique({ where: { id: orderId }, include: { items: true, reservations: true, sale: true } });
     if (!order) throw new NotFoundError('Pedido não encontrado');
     if (order.sale || ['COMPLETED', 'CANCELED'].includes(order.status)) throw new ValidationError('Pedido encerrado não pode reservar estoque');

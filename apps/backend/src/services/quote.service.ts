@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { assignedScope, requireCommercialAccess, type CommercialActor } from './commercial-access.service.js';
 import sharp from 'sharp';
 import type { LeadStatus, QuoteStatus } from '@prisma/client';
 import type {
@@ -693,12 +694,13 @@ export class QuoteService {
     return this.quoteRepository.getOcrStats(since);
   }
 
-  async getAdminQuotes(filters: QuoteFiltersInput) {
+  async getAdminQuotes(filters: QuoteFiltersInput, actor?: CommercialActor) {
     const page = filters.page ?? 1;
     const limit = filters.limit ?? 20;
     const skip = (page - 1) * limit;
 
     const where = {
+      ...assignedScope(actor),
       ...(filters.status ? { status: filters.status } : { status: { not: 'DRAFT' as QuoteStatus } }),
     };
 
@@ -713,7 +715,7 @@ export class QuoteService {
     ]);
 
     return {
-      quotes: quotes.map((quote) => this.formatQuote(quote)),
+      quotes: quotes.map((quote) => ({ ...this.formatQuote(quote), ...(actor?.role === 'SALES' ? { lead: undefined } : {}) })),
       total,
       page,
       limit,
@@ -721,7 +723,7 @@ export class QuoteService {
     };
   }
 
-  async getCapturedLeads(filters: LeadFiltersInput) {
+  async getCapturedLeads(filters: LeadFiltersInput, actor?: CommercialActor) {
     const page = filters.page ?? 1;
     const limit = filters.limit ?? 20;
     const skip = (page - 1) * limit;
@@ -739,14 +741,14 @@ export class QuoteService {
       this.quoteRepository.findManyLeads({
         skip,
         take: limit,
-        where,
+        where: { ...where, ...assignedScope(actor) },
         orderBy: { createdAt: 'desc' },
       }),
-      this.quoteRepository.countLeads(where),
+      this.quoteRepository.countLeads({ ...where, ...assignedScope(actor) }),
     ]);
 
     return {
-      leads: leads.map((lead) => this.formatLead(lead)),
+      leads: leads.map((lead) => ({ ...this.formatLead(lead), ...(actor?.role === 'SALES' ? { quoteCount: undefined } : {}) })),
       total,
       page,
       limit,
@@ -754,7 +756,8 @@ export class QuoteService {
     };
   }
 
-  async updateQuoteStatus(quoteId: string, data: UpdateQuoteStatusInput) {
+  async updateQuoteStatus(quoteId: string, data: UpdateQuoteStatusInput, actor?: CommercialActor) {
+    await requireCommercialAccess('quote', quoteId, actor);
     const quote = await this.quoteRepository.findQuoteById(quoteId);
     if (!quote) {
       throw new NotFoundError('Orçamento não encontrado');
@@ -763,12 +766,13 @@ export class QuoteService {
     const updatedQuote = await this.quoteRepository.updateQuote(quoteId, {
       status: data.status,
       reviewedAt: data.status === 'IN_REVIEW' || data.status === 'RESPONDED' ? new Date() : quote.reviewedAt,
-    });
+    }, actor);
 
-    return this.formatQuote(updatedQuote);
+    return { ...this.formatQuote(updatedQuote), ...(actor?.role === 'SALES' ? { lead: undefined } : {}) };
   }
 
-  async updateLeadStatus(leadId: string, data: UpdateLeadStatusInput) {
+  async updateLeadStatus(leadId: string, data: UpdateLeadStatusInput, actor?: CommercialActor) {
+    await requireCommercialAccess('lead', leadId, actor);
     const lead = await this.quoteRepository.findLeadById(leadId);
     if (!lead) {
       throw new NotFoundError('Lead nao encontrado');
@@ -777,9 +781,9 @@ export class QuoteService {
     const updatedLead = await this.quoteRepository.updateLead(leadId, {
       status: data.status,
       completedAt: data.status === 'ARCHIVED' ? new Date() : lead.completedAt,
-    });
+    }, actor);
 
-    return this.formatLead(updatedLead);
+    return { ...this.formatLead(updatedLead), ...(actor?.role === 'SALES' ? { quoteCount: undefined } : {}) };
   }
 
   private async ensureCustomerQuoteAccess(userId: string, quoteId: string) {

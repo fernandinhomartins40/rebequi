@@ -19,15 +19,15 @@ const saleController = new SaleController();
 const saleRoles = getRolesForMerchantPermission('sales:manage');
 router.post('/admin/:id/returns/preview', authenticate, authorize(...saleRoles), requireTrustedOrigin, validateBody(saleReturnPreviewSchema), async (req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
-  try { res.json({ success: true, data: await previewSaleReturn(req.params.id, req.body) }); } catch (error) { next(error); }
+  try { res.json({ success: true, data: await previewSaleReturn(req.params.id, req.body, req.user) }); } catch (error) { next(error); }
 });
 router.get('/admin/:id/returns', authenticate, authorize(...saleRoles), validateQuery(z.object({ page: z.coerce.number().int().min(1).max(100000).default(1) })), async (req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
-  try { res.json({ success: true, data: await listSaleReturns(req.params.id, Number(req.query.page)) }); } catch (error) { next(error); }
+  try { res.json({ success: true, data: await listSaleReturns(req.params.id, Number(req.query.page), req.user) }); } catch (error) { next(error); }
 });
 router.post('/admin/:id/returns', authenticate, authorize(...saleRoles), requireTrustedOrigin, validateBody(saleReturnSchema), async (req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
-  try { res.status(201).json({ success: true, data: await createSaleReturn(req.params.id, req.user!.userId, req.body) }); } catch (error) { next(error); }
+  try { res.status(201).json({ success: true, data: await createSaleReturn(req.params.id, req.user!.userId, req.body, req.user) }); } catch (error) { next(error); }
 });
 
 router.get('/admin/revenue', authenticate, authorize(...saleRoles), validateQuery(revenueSummaryQuerySchema), saleController.getRevenueSummary);

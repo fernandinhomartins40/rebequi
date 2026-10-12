@@ -18,6 +18,7 @@ import { uploadLimiter } from '../middleware/rate-limit.middleware.js';
 const router: Router = Router();
 const productController = new ProductController();
 const catalogRoles = getRolesForMerchantPermission('catalog:manage');
+const catalogReadRoles = getRolesForMerchantPermission('catalog:read');
 
 // Public routes
 router.get('/', productController.getAll);
@@ -28,8 +29,8 @@ router.get('/category/:categorySlug', productController.getByCategory);
 router.get('/slug/:slug', productController.getBySlug);
 
 // Admin read routes
-router.get('/admin/list', authenticate, authorize(...catalogRoles), productController.getAdminAll);
-router.get('/admin/:id/technical-spec', authenticate, authorize(...catalogRoles), async (req, res, next) => {
+router.get('/admin/list', authenticate, authorize(...catalogReadRoles), productController.getAdminAll);
+router.get('/admin/:id/technical-spec', authenticate, authorize(...catalogReadRoles), async (req, res, next) => {
   res.setHeader('Cache-Control', 'private, no-store');
   try { successResponse(res, await getTechnicalSpec(req.params.id)); } catch (error) { next(error); }
 });

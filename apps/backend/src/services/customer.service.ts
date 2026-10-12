@@ -7,6 +7,7 @@ import type {
 import { normalizeWhatsapp } from '@rebequi/shared/utils';
 import { CustomerRepository, type CustomerMetricsRow } from '../repositories/customer.repository.js';
 import { NotFoundError } from '../utils/errors.util.js';
+import { assignedScope, type CommercialActor } from './commercial-access.service.js';
 
 type PersistedCustomer = NonNullable<Awaited<ReturnType<CustomerRepository['findCustomerById']>>>;
 
@@ -27,19 +28,19 @@ export class CustomerService {
     this.repository = new CustomerRepository();
   }
 
-  async listCustomers(filters: CustomerFiltersInput) {
+  async listCustomers(filters: CustomerFiltersInput, actor?: CommercialActor) {
     const page = filters.page ?? 1;
     const limit = filters.limit ?? 20;
     const skip = (page - 1) * limit;
 
-    const where = this.buildWhere(filters);
+    const where = { ...this.buildWhere(filters), ...assignedScope(actor) };
 
     const [customers, total] = await Promise.all([
       this.repository.findManyCustomers({ skip, take: limit, where }),
       this.repository.countCustomers(where),
     ]);
 
-    const metricsMap = await this.repository.metricsForCustomers(customers.map((c) => c.id));
+    const metricsMap = await this.repository.metricsForCustomers(customers.map((c) => c.id), actor);
 
     return {
       customers: customers.map((customer) => this.toListItem(customer, metricsMap.get(customer.id) ?? EMPTY_METRICS)),
@@ -50,21 +51,21 @@ export class CustomerService {
     };
   }
 
-  async getStageDistribution() {
-    const distribution = await this.repository.stageDistribution();
+  async getStageDistribution(actor?: CommercialActor) {
+    const distribution = await this.repository.stageDistribution(actor);
     return distribution.map((row) => ({ stage: row.customerStage, count: row._count._all }));
   }
 
-  async getCustomerDetail(id: string) {
-    const customer = await this.repository.findCustomerById(id);
+  async getCustomerDetail(id: string, actor?: CommercialActor) {
+    const customer = await this.repository.findCustomerById(id, actor);
     if (!customer) {
       throw new NotFoundError('Cliente nao encontrado');
     }
 
     const [metricsMap, timelineData, notes] = await Promise.all([
-      this.repository.metricsForCustomers([id]),
-      this.repository.timelineForCustomer(id),
-      this.repository.listNotes(id),
+      this.repository.metricsForCustomers([id], actor),
+      this.repository.timelineForCustomer(id, actor),
+      this.repository.listNotes(id, actor),
     ]);
 
     const metrics = metricsMap.get(id) ?? EMPTY_METRICS;
@@ -85,8 +86,8 @@ export class CustomerService {
     };
   }
 
-  async updateCrm(id: string, data: UpdateCustomerCrmInput) {
-    const customer = await this.repository.findCustomerById(id);
+  async updateCrm(id: string, data: UpdateCustomerCrmInput, actor?: CommercialActor) {
+    const customer = await this.repository.findCustomerById(id, actor);
     if (!customer) {
       throw new NotFoundError('Cliente nao encontrado');
     }
@@ -109,21 +110,18 @@ export class CustomerService {
       update.followUpAt = data.followUpAt ? new Date(data.followUpAt) : null;
     }
 
-    const updated = await this.repository.updateCustomer(id, update);
-    const metricsMap = await this.repository.metricsForCustomers([id]);
+    const updated = await this.repository.updateCustomer(id, update, actor);
+    const metricsMap = await this.repository.metricsForCustomers([id], actor);
     return this.toListItem(updated, metricsMap.get(id) ?? EMPTY_METRICS);
   }
 
-  async addNote(id: string, authorId: string | undefined, data: CreateCustomerNoteInput) {
-    const customer = await this.repository.findCustomerById(id);
+  async addNote(id: string, authorId: string | undefined, data: CreateCustomerNoteInput, actor?: CommercialActor) {
+    const customer = await this.repository.findCustomerById(id, actor);
     if (!customer) {
       throw new NotFoundError('Cliente nao encontrado');
     }
 
-    // Registrar uma nota conta como contato.
-    await this.repository.updateCustomer(id, { lastContactedAt: new Date() });
-
-    const note = await this.repository.createNote({ customerId: id, authorId, body: data.body });
+    const note = await this.repository.createNote({ customerId: id, authorId, body: data.body }, actor);
     return {
       id: note.id,
       customerId: note.customerId,
@@ -135,8 +133,8 @@ export class CustomerService {
     };
   }
 
-  async deleteNote(customerId: string, noteId: string) {
-    const result = await this.repository.deleteNote(noteId, customerId);
+  async deleteNote(customerId: string, noteId: string, actor?: CommercialActor) {
+    const result = await this.repository.deleteNote(noteId, customerId, actor);
     if (result.count === 0) {
       throw new NotFoundError('Anotacao nao encontrada');
     }

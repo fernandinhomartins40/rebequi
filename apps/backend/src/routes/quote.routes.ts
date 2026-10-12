@@ -24,6 +24,7 @@ import { validateQuery } from '../middleware/validation.middleware.js';
 const router: Router = Router();
 const quoteController = new QuoteController();
 const quoteRoles = getRolesForMerchantPermission('quotes:manage');
+const integrationRoles = getRolesForMerchantPermission('integrations:manage');
 
 router.get('/:id/proposals', authenticate, authorize('CUSTOMER', ...quoteRoles), validateQuery(z.object({ page: z.coerce.number().int().min(1).default(1) })), async (req, res, next) => {
   res.setHeader('Cache-Control', 'private, no-store');
@@ -31,7 +32,7 @@ router.get('/:id/proposals', authenticate, authorize('CUSTOMER', ...quoteRoles),
 });
 router.post('/admin/:id/proposals', authenticate, authorize(...quoteRoles), requireTrustedOrigin, validateBody(proposalSchema), async (req, res, next) => {
   res.setHeader('Cache-Control', 'private, no-store');
-  try { successResponse(res, await createQuoteProposal(req.params.id, req.user!.userId, req.body), 201); } catch (error) { next(error); }
+  try { successResponse(res, await createQuoteProposal(req.params.id, req.user!.userId, req.body, req.user), 201); } catch (error) { next(error); }
 });
 router.post('/:id/proposals/accept', authenticate, authorize('CUSTOMER'), requireTrustedOrigin, validateBody(acceptProposalSchema), async (req, res, next) => {
   res.setHeader('Cache-Control', 'private, no-store');
@@ -76,8 +77,8 @@ router.post(
 router.put('/:id', authenticate, authorize('CUSTOMER'), validateBody(updateQuoteDraftSchema), quoteController.updateCustomerDraft);
 router.post('/:id/submit', authenticate, authorize('CUSTOMER'), quoteController.submitCustomerQuote);
 
-router.get('/admin/ocr-health', authenticate, authorize(...quoteRoles), quoteController.getOcrHealth);
-router.get('/admin/ocr-stats', authenticate, authorize(...quoteRoles), quoteController.getOcrStats);
+router.get('/admin/ocr-health', authenticate, authorize(...integrationRoles), quoteController.getOcrHealth);
+router.get('/admin/ocr-stats', authenticate, authorize(...integrationRoles), quoteController.getOcrStats);
 router.get('/admin/list', authenticate, authorize(...quoteRoles), quoteController.getAdminQuotes);
 router.get('/admin/leads', authenticate, authorize(...quoteRoles), quoteController.getCapturedLeads);
 router.post(

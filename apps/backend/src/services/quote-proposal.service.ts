@@ -5,23 +5,25 @@ import { isValidWhatsapp, normalizeWhatsapp } from '@rebequi/shared/utils';
 import { prisma } from '../lib/prisma.js';
 import { env } from '../config/env.js';
 import { ConflictError, NotFoundError, ValidationError } from '../utils/errors.util.js';
+import { assignedScope, requireCommercialAccess, type CommercialActor } from './commercial-access.service.js';
 
 type ProposalItem = { productId: string; productName: string; productSlug: string; imageUrl: string | null; quantity: number; unitPriceCents: number; referencePriceCents: number; totalCents: number };
 export async function listQuoteProposals(quoteId: string, userId: string, role: string, page: number) {
-  const quote = await prisma.quoteRequest.findFirst({ where: { id: quoteId, ...(hasMerchantPermission(role, 'quotes:manage') ? {} : { userId }) },
+  const quote = await prisma.quoteRequest.findFirst({ where: { id: quoteId, ...(hasMerchantPermission(role, 'quotes:manage') ? assignedScope({ userId, role }) : { userId }) },
     select: { id: true, proposalOrderId: true, acceptedProposalVersion: true, status: true } });
   if (!quote) throw new NotFoundError('Orçamento não encontrado');
   const [proposals, total] = await Promise.all([prisma.quoteProposal.findMany({ where: { quoteId }, skip: (page - 1) * 20, take: 20, orderBy: { version: 'desc' },
     select: { id: true, quoteId: true, version: true, items: true, notes: true, totalCents: true, validUntil: true, createdAt: true } }), prisma.quoteProposal.count({ where: { quoteId } })]);
   return { ...quote, proposals: proposals.map(proposal => ({ ...proposal, totalCents: Number(proposal.totalCents) })), total, page, totalPages: Math.ceil(total / 20) };
 }
-export async function createQuoteProposal(quoteId: string, actorId: string, input: ProposalInput) {
+export async function createQuoteProposal(quoteId: string, actorId: string, input: ProposalInput, actor?: CommercialActor) {
   const { requestKey: suppliedKey, expectedLatestVersion, ...values } = input;
   const requestKey = createHash('sha256').update(`${actorId}:${suppliedKey}`).digest('hex');
   const fingerprint = createHash('sha256').update(JSON.stringify({ quoteId, ...values })).digest('hex');
   return prisma.$transaction(async tx => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`proposal-request:${requestKey}`}))`;
     await tx.$queryRaw`SELECT id FROM quote_requests WHERE id = ${quoteId} FOR UPDATE`;
+    await requireCommercialAccess('quote', quoteId, actor, tx);
     const quote = await tx.quoteRequest.findUnique({ where: { id: quoteId } });
     if (!quote || !quote.userId) throw new NotFoundError('Orçamento de cliente não encontrado');
     const existing = await tx.quoteProposal.findUnique({ where: { requestKey } });
@@ -74,7 +76,7 @@ export async function acceptQuoteProposal(quoteId: string, userId: string, versi
       ...items.map(item => `${item.quantity} × ${item.productName}`), `Materiais: ${(Number(proposal.totalCents) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}. Confirmar atendimento; sem pagamento ou reserva automática.`].join('\n');
     const storeWhatsapp = normalizeWhatsapp(env.STORE_WHATSAPP);
     const whatsappUrl = isValidWhatsapp(storeWhatsapp) ? `https://wa.me/55${storeWhatsapp}?text=${encodeURIComponent(whatsappMessage)}` : null;
-    const order = await tx.customerOrder.create({ data: { referenceCode, userId, whatsappMessage, whatsappUrl,
+    const order = await tx.customerOrder.create({ data: { referenceCode, userId, whatsappMessage, whatsappUrl, assignedSellerId: quote.assignedSellerId,
       status: 'PENDING_WHATSAPP', source: 'quote_proposal', customerNameSnapshot: customer.name, customerWhatsapp: customer.whatsapp,
       customerNote: `Proposta ${quote.referenceCode} — versão ${version}. ${proposal.notes}`, items: { create: items.map(item => ({ productId: item.productId,
         productNameSnapshot: item.productName, productSlugSnapshot: item.productSlug, productImageUrlSnapshot: item.imageUrl, quantity: item.quantity,

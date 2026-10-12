@@ -6,9 +6,11 @@ import { ConflictError, NotFoundError, ValidationError } from '../utils/errors.u
 import { allocateDiscountedLines, cumulativeReturnCents } from './partner-finance-math.js';
 import { reversePartnerSale } from './partner-program.service.js';
 import { enqueueCatalogChange } from './integration-outbox.service.js';
+import { requireCommercialAccess, type CommercialActor } from './commercial-access.service.js';
 
 const serialize = <T extends { refundCents: bigint; items: { refundCents: bigint }[] }>(row: T) => ({ ...row, refundCents: String(row.refundCents), items: row.items.map(item => ({ ...item, refundCents: String(item.refundCents) })) });
-export async function listSaleReturns(saleId: string, page: number) {
+export async function listSaleReturns(saleId: string, page: number, actor?: CommercialActor) {
+  await requireCommercialAccess('sale', saleId, actor);
   const sale = await prisma.sale.findUnique({ where: { id: saleId }, select: { id: true, returnVersion: true } });
   if (!sale) throw new NotFoundError('Venda não encontrada');
   const [returns, total] = await Promise.all([prisma.saleReturn.findMany({ where: { saleId }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: (page - 1) * 20, take: 20, include: { items: true } }), prisma.saleReturn.count({ where: { saleId } })]);
@@ -42,22 +44,24 @@ async function prepareSaleReturn(tx: Prisma.TransactionClient, saleId: string, i
     const refundCents = items.reduce((sum, item) => sum + item.refundCents, 0n);
     return { sale, items, refundCents };
 }
-export async function previewSaleReturn(saleId: string, raw: SaleReturnPreviewInput) {
+export async function previewSaleReturn(saleId: string, raw: SaleReturnPreviewInput, actor?: CommercialActor) {
   const input = saleReturnPreviewSchema.parse(raw);
   return prisma.$transaction(async tx => {
+    await requireCommercialAccess('sale', saleId, actor, tx);
     const { items, refundCents, sale } = await prepareSaleReturn(tx, saleId, input);
     return { version: sale.returnVersion, refundCents: String(refundCents), items: items.map(item => ({ saleItemId: item.saleItemId, quantity: item.quantity, restock: item.restock, refundCents: String(item.refundCents) })) };
   }, { isolationLevel: 'RepeatableRead' });
 }
-export async function createSaleReturn(saleId: string, actorId: string, raw: SaleReturnInput) {
+export async function createSaleReturn(saleId: string, actorId: string, raw: SaleReturnInput, actor?: CommercialActor) {
   const input = saleReturnSchema.parse(raw);
   const requestKey = createHash('sha256').update(`${actorId}:${input.requestKey}`).digest('hex');
   const fingerprint = createHash('sha256').update(JSON.stringify({ saleId, reason: input.reason, items: [...input.items].sort((a, b) => a.saleItemId.localeCompare(b.saleItemId)) })).digest('hex');
   return prisma.$transaction(async tx => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`sale-return:${requestKey}`}))`;
+    await tx.$queryRaw`SELECT id FROM sales WHERE id = ${saleId} FOR UPDATE`;
+    await requireCommercialAccess('sale', saleId, actor, tx);
     const previous = await tx.saleReturn.findUnique({ where: { requestKey }, include: { items: true } });
     if (previous) { if (previous.fingerprint !== fingerprint) throw new ConflictError('Este envio já foi usado para outra devolução.'); return serialize(previous); }
-    await tx.$queryRaw`SELECT id FROM sales WHERE id = ${saleId} FOR UPDATE`;
     const { items, refundCents, sale } = await prepareSaleReturn(tx, saleId, input);
     const result = await tx.saleReturn.create({ data: { saleId, requestKey, fingerprint, actorId, reason: input.reason, refundCents, items: { create: items.map(({ productId: _, ...item }) => item) } }, include: { items: true } });
     for (const item of [...items].sort((a, b) => (a.productId ?? '').localeCompare(b.productId ?? ''))) {

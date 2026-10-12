@@ -24,6 +24,7 @@ import { fetchAdminOrderById, updateAdminOrderStatus, reserveAdminOrderStock } f
 import type { OrderStatus } from '@/types';
 import { DashboardPanel, InfoRow, SectionLeadCard } from './components';
 import { ADMIN_BASE_PATH } from './config';
+import { CommercialAssignment } from '@/components/CommercialAssignment';
 
 const STATUS_OPTIONS: Array<{ label: string; value: OrderStatus }> = [
   { label: 'Aguardando WhatsApp', value: OrderStatusValue.PENDING_WHATSAPP },
@@ -130,6 +131,7 @@ export function MerchantDashboardOrderDetails() {
 
   return (
     <div className="space-y-6">
+      <CommercialAssignment kind="order" id={orderId} />
       {order.status !== OrderStatusValue.COMPLETED && order.status !== OrderStatusValue.CANCELED ? (
         <DashboardPanel title="Reserva de estoque">
           <div className="flex flex-wrap items-center justify-between gap-3">

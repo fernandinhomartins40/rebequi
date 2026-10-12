@@ -13,6 +13,7 @@ import { ProductRepository } from '../repositories/product.repository.js';
 import { SaleRepository } from '../repositories/sale.repository.js';
 import { CustomerService } from './customer.service.js';
 import { ConflictError, NotFoundError, ValidationError } from '../utils/errors.util.js';
+import { requireCommercialAccess, saleScope, type CommercialActor } from './commercial-access.service.js';
 
 type PersistedSale = NonNullable<Awaited<ReturnType<SaleRepository['findSaleById']>>>;
 
@@ -38,13 +39,14 @@ export class SaleService {
     this.customerService = new CustomerService();
   }
 
-  async createSale(registeredById: string | undefined, data: CreateSaleInput) {
-    try { return await this.createSaleOnce(registeredById, data); }
+  async createSale(registeredById: string | undefined, data: CreateSaleInput, actor?: CommercialActor) {
+    try { return await this.createSaleOnce(registeredById, data, actor); }
     catch (error) {
       if (data.idempotencyKey) {
         const key = createHash('sha256').update(`${registeredById ?? ''}:${data.idempotencyKey}`).digest('hex');
         const existing = await this.saleRepository.findByIdempotencyKey(key);
         if (existing) {
+          await requireCommercialAccess('sale', existing.id, actor);
           if (existing.requestFingerprint !== this.requestFingerprint(data)) throw new ConflictError('Este envio já foi utilizado para outra venda.');
           return this.formatSale(existing);
         }
@@ -61,12 +63,13 @@ export class SaleService {
     })).digest('hex');
   }
 
-  private async createSaleOnce(registeredById: string | undefined, data: CreateSaleInput) {
+  private async createSaleOnce(registeredById: string | undefined, data: CreateSaleInput, actor?: CommercialActor) {
     const requestKey = data.idempotencyKey ? createHash('sha256').update(`${registeredById ?? ''}:${data.idempotencyKey}`).digest('hex') : undefined;
     const fingerprint = this.requestFingerprint(data);
     if (requestKey) {
       const existing = await this.saleRepository.findByIdempotencyKey(requestKey);
       if (existing) {
+        await requireCommercialAccess('sale', existing.id, actor);
         if (existing.requestFingerprint !== fingerprint) throw new ConflictError('Este envio já foi utilizado para outra venda.');
         return this.formatSale(existing);
       }
@@ -79,10 +82,12 @@ export class SaleService {
     let rawItems: Array<{ productId: string; quantity: number; unitPrice?: number }>;
 
     if (data.orderId) {
+      await requireCommercialAccess('order', data.orderId, actor);
       const order = await this.orderRepository.findOrderById(data.orderId);
       if (!order) {
         throw new NotFoundError('Pedido nao encontrado');
       }
+      if (data.customerId && data.customerId !== order.userId) throw new ValidationError('O cliente precisa corresponder ao pedido.');
 
       const existingSale = await this.saleRepository.findSaleByOrderId(order.id);
       if (existingSale) {
@@ -120,6 +125,7 @@ export class SaleService {
     const status = data.status ?? 'PAID';
 
     const sale = await this.saleRepository.createSaleWithStock({
+      actor,
       sale: {
         referenceCode: this.generateReferenceCode(),
         idempotencyKey: requestKey ?? null,
@@ -169,18 +175,19 @@ export class SaleService {
     return this.formatSale(sale);
   }
 
-  async updateSaleStatus(saleId: string, data: UpdateSaleStatusInput, actorId?: string) {
-    const updated = await this.saleRepository.transitionStatus(saleId, data.status, data.notes, actorId);
+  async updateSaleStatus(saleId: string, data: UpdateSaleStatusInput, actorId?: string, actor?: CommercialActor) {
+    const updated = await this.saleRepository.transitionStatus(saleId, data.status, data.notes, actorId, actor);
 
     return this.formatSale(updated);
   }
 
-  async listSales(filters: SaleFiltersInput) {
+  async listSales(filters: SaleFiltersInput, actor?: CommercialActor) {
     const page = filters.page ?? 1;
     const limit = filters.limit ?? 20;
     const skip = (page - 1) * limit;
 
     const where = this.buildWhere(filters);
+    if (actor?.role === 'SALES') where.AND = [saleScope(actor)];
 
     const [sales, total] = await Promise.all([
       this.saleRepository.findManySales({ skip, take: limit, where, orderBy: { createdAt: 'desc' } }),
@@ -196,7 +203,8 @@ export class SaleService {
     };
   }
 
-  async getSaleById(saleId: string) {
+  async getSaleById(saleId: string, actor?: CommercialActor) {
+    await requireCommercialAccess('sale', saleId, actor);
     const sale = await this.saleRepository.findSaleById(saleId);
     if (!sale) {
       throw new NotFoundError('Venda nao encontrada');
@@ -204,8 +212,8 @@ export class SaleService {
     return this.formatSale(sale);
   }
 
-  async getRevenueSummary(query: RevenueSummaryQueryInput) {
-    const where: Prisma.SaleWhereInput = {};
+  async getRevenueSummary(query: RevenueSummaryQueryInput, actor?: CommercialActor) {
+    const where: Prisma.SaleWhereInput = { AND: [saleScope(actor)] };
     const createdAt: Prisma.DateTimeFilter = {};
     if (query.from) createdAt.gte = new Date(query.from);
     if (query.to) createdAt.lte = new Date(query.to);

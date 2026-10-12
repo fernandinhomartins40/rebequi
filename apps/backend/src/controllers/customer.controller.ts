@@ -17,16 +17,16 @@ export class CustomerController {
   listCustomers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const filters = req.query as unknown as CustomerFiltersInput;
-      const result = await this.customerService.listCustomers(filters);
+      const result = await this.customerService.listCustomers(filters, req.user);
       paginatedResponse(res, result.customers, result.page, result.limit, result.total, undefined);
     } catch (error) {
       next(error);
     }
   };
 
-  getStageDistribution = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  getStageDistribution = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const distribution = await this.customerService.getStageDistribution();
+      const distribution = await this.customerService.getStageDistribution(req.user);
       successResponse(res, distribution, 200);
     } catch (error) {
       next(error);
@@ -35,7 +35,7 @@ export class CustomerController {
 
   getCustomer = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const customer = await this.customerService.getCustomerDetail(req.params.id);
+      const customer = await this.customerService.getCustomerDetail(req.params.id, req.user);
       successResponse(res, customer, 200);
     } catch (error) {
       next(error);
@@ -45,7 +45,7 @@ export class CustomerController {
   updateCrm = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const payload: UpdateCustomerCrmInput = req.body;
-      const customer = await this.customerService.updateCrm(req.params.id, payload);
+      const customer = await this.customerService.updateCrm(req.params.id, payload, req.user);
       successResponse(res, customer, 200, 'Cliente atualizado com sucesso');
     } catch (error) {
       next(error);
@@ -55,7 +55,7 @@ export class CustomerController {
   addNote = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const payload: CreateCustomerNoteInput = req.body;
-      const note = await this.customerService.addNote(req.params.id, req.user?.userId, payload);
+      const note = await this.customerService.addNote(req.params.id, req.user?.userId, payload, req.user);
       successResponse(res, note, 201, 'Anotacao adicionada');
     } catch (error) {
       next(error);
@@ -64,7 +64,7 @@ export class CustomerController {
 
   deleteNote = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const result = await this.customerService.deleteNote(req.params.id, req.params.noteId);
+      const result = await this.customerService.deleteNote(req.params.id, req.params.noteId, req.user);
       successResponse(res, result, 200, 'Anotacao removida');
     } catch (error) {
       next(error);

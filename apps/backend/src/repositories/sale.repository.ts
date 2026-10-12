@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma.js';
 import { ConflictError, NotFoundError, ValidationError } from '../utils/errors.util.js';
 import { enqueueCatalogChange } from '../services/integration-outbox.service.js';
 import { earnPartnerSale, holdPartnerPayment, reversePartnerSale } from '../services/partner-program.service.js';
+import { requireCommercialAccess, type CommercialActor } from '../services/commercial-access.service.js';
 
 const saleInclude = {
   customer: {
@@ -28,18 +29,27 @@ export class SaleRepository {
    * venda nunca ficam inconsistentes.
    */
   async createSaleWithStock(params: {
+    actor?: CommercialActor;
     sale: Prisma.SaleCreateInput;
     stockDecrements: Array<{ productId: string; quantity: number; stockBefore: number; reason: string }>;
   }) {
     return prisma.$transaction(async (tx) => {
+      let assignedSellerId = params.sale.registeredBy?.connect?.id;
       const orderId = params.sale.order?.connect?.id;
       if (orderId) {
         await tx.$queryRaw`SELECT id FROM customer_orders WHERE id = ${orderId} FOR UPDATE`;
         const order = await tx.customerOrder.findUnique({ where: { id: orderId } });
         if (!order || order.status === 'CANCELED') throw new ConflictError('Pedido indisponível para venda');
+        await requireCommercialAccess('order', orderId, params.actor, tx);
+        assignedSellerId = order.assignedSellerId ?? assignedSellerId;
+      }
+      const customerId = params.sale.customer?.connect?.id;
+      if (customerId && params.actor?.role === 'SALES' && !orderId) {
+        await tx.$queryRaw`SELECT id FROM users WHERE id=${customerId} FOR UPDATE`;
+        await requireCommercialAccess('customer', customerId, params.actor, tx);
       }
       const sale = await tx.sale.create({
-        data: { ...params.sale, accountingVersion: 1 },
+        data: { ...params.sale, ...(assignedSellerId ? { assignedSeller: { connect: { id: assignedSellerId } } } : {}), accountingVersion: 1 },
         include: saleInclude,
       });
 
@@ -75,10 +85,11 @@ export class SaleRepository {
     });
   }
 
-  async transitionStatus(id: string, status: 'PAID' | 'PENDING_PAYMENT' | 'CANCELED', notes?: string | null, actorId?: string) {
+  async transitionStatus(id: string, status: 'PAID' | 'PENDING_PAYMENT' | 'CANCELED', notes?: string | null, actorId?: string, actor?: CommercialActor) {
     return prisma.$transaction(async tx => {
       // Serialize transitions so duplicate cancellations cannot restore twice.
       await tx.$queryRaw`SELECT id FROM sales WHERE id = ${id} FOR UPDATE`;
+      await requireCommercialAccess('sale', id, actor, tx);
       const sale = await tx.sale.findUnique({ where: { id }, include: saleInclude });
       if (!sale) throw new NotFoundError('Venda não encontrada');
       if (sale.status === 'CANCELED' && status !== 'CANCELED') {

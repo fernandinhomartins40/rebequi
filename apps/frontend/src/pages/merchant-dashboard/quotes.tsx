@@ -6,6 +6,7 @@ import { Clock3, FileText, MessageCircle, Send, UserRound } from 'lucide-react';
 import { formatDateTime, formatWhatsapp } from '@rebequi/shared/utils';
 import { LeadStatusBadge, QuoteStatusBadge } from '@/components/QuoteStatusBadge';
 import { QuoteProposalPanel } from '@/components/QuoteProposalPanel';
+import { CommercialAssignment } from '@/components/CommercialAssignment';
 import { Button } from '@/components/ui/button';
 import { PageHeader, StatCard } from './components';
 import {
@@ -304,6 +305,7 @@ export function MerchantDashboardQuotes() {
                 ) : null}
 
                 {/* Actions */}
+                <CommercialAssignment key={`assignment-${selectedQuote.id}`} kind="quote" id={selectedQuote.id} />
                 <QuoteProposalPanel key={selectedQuote.id} quote={selectedQuote} admin />
                 <div className="mt-5 flex flex-wrap gap-2 border-t border-border/40 pt-4">
                   <Button
@@ -350,6 +352,7 @@ export function MerchantDashboardQuotes() {
 
               {/* Meta */}
               <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                <CommercialAssignment key={`assignment-${selectedLead.id}`} kind="lead" id={selectedLead.id} />
                 <InfoTile label="WhatsApp" value={formatWhatsapp(selectedLead.whatsapp)} />
                 <InfoTile label="Criado em" value={formatDateTime(selectedLead.createdAt)} />
                 <InfoTile label="Rascunhos" value={`${selectedLead.quoteCount}`} />

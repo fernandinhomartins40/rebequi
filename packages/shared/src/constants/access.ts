@@ -3,6 +3,8 @@ import { UserRole } from '../types/user.js';
 export type MerchantPermission =
   | 'dashboard:view'
   | 'catalog:manage'
+  | 'catalog:read'
+  | 'commercial:assign'
   | 'promotions:manage'
   | 'orders:manage'
   | 'sales:manage'
@@ -36,6 +38,8 @@ export const INTERNAL_USER_ROLES: InternalUserRole[] = [
 ];
 
 export const MERCHANT_PERMISSION_PROFILES: Record<MerchantPermission, PermissionProfile> = {
+  'catalog:read': { label: 'Consulta de catálogo', description: 'Consulta produtos, preços e disponibilidade sem editar o catálogo.' },
+  'commercial:assign': { label: 'Distribuição comercial', description: 'Atribui e redistribui clientes, atendimentos, pedidos e vendas entre colaboradores.' },
   'partners:finance': { label: 'Financeiro de parceiros', description: 'Publica regras, confere extratos, registra pagamentos e gerencia recompensas e resgates.' },
   'partners:manage': { label: 'Parceiros', description: 'Confere e aprova cadastros de profissionais parceiros.' },
   'dashboard:view': {
@@ -85,6 +89,7 @@ export const MERCHANT_ROLE_PROFILES: Record<InternalUserRole, RoleProfile> = {
     label: 'Administrador',
     description: 'Controle total do painel, incluindo acesso e configuracao da equipe.',
     permissions: [
+      'catalog:read', 'commercial:assign',
       'partners:finance',
       'partners:manage',
       'dashboard:view',
@@ -103,6 +108,7 @@ export const MERCHANT_ROLE_PROFILES: Record<InternalUserRole, RoleProfile> = {
     label: 'Gerente operacional',
     description: 'Opera o painel quase por completo, sem gerenciar usuarios internos.',
     permissions: [
+      'catalog:read', 'commercial:assign',
       'partners:finance',
       'partners:manage',
       'dashboard:view',
@@ -119,7 +125,7 @@ export const MERCHANT_ROLE_PROFILES: Record<InternalUserRole, RoleProfile> = {
   [UserRole.CATALOG_MANAGER]: {
     label: 'Gestor de catalogo',
     description: 'Responsavel por cadastro, manutencao e organizacao do catalogo.',
-    permissions: ['dashboard:view', 'catalog:manage'],
+    permissions: ['dashboard:view', 'catalog:read', 'catalog:manage'],
   },
   [UserRole.MARKETING]: {
     label: 'Gestor de promoções',
@@ -129,7 +135,7 @@ export const MERCHANT_ROLE_PROFILES: Record<InternalUserRole, RoleProfile> = {
   [UserRole.SALES]: {
     label: 'Operador comercial',
     description: 'Atende solicitacoes, pedidos, recuperacao de vendas e acompanha o fluxo comercial.',
-    permissions: ['orders:manage', 'sales:manage', 'customers:manage', 'quotes:manage'],
+    permissions: ['catalog:read', 'orders:manage', 'sales:manage', 'customers:manage', 'quotes:manage'],
   },
 };
 

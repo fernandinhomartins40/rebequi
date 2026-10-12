@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { assignedScope, type CommercialActor } from '../services/commercial-access.service.js';
 import { prisma } from '../lib/prisma.js';
 import { ConflictError } from '../utils/errors.util.js';
 
@@ -47,9 +48,9 @@ export class QuoteRepository {
     });
   }
 
-  async updateLead(id: string, data: Prisma.LeadCaptureUpdateInput) {
+  async updateLead(id: string, data: Prisma.LeadCaptureUpdateInput, actor?: CommercialActor) {
     return prisma.leadCapture.update({
-      where: { id },
+      where: { id, ...assignedScope(actor) },
       data,
       include: leadInclude,
     });
@@ -85,9 +86,9 @@ export class QuoteRepository {
     });
   }
 
-  async updateQuote(id: string, data: Prisma.QuoteRequestUpdateInput) {
+  async updateQuote(id: string, data: Prisma.QuoteRequestUpdateInput, actor?: CommercialActor) {
     return prisma.quoteRequest.update({
-      where: { id },
+      where: { id, ...assignedScope(actor) },
       data,
       include: quoteInclude,
     });

@@ -14,6 +14,7 @@ import { UserRepository } from '../repositories/user.repository.js';
 import { AuthService } from './auth.service.js';
 import { ConflictError, NotFoundError, UnauthorizedError, ValidationError } from '../utils/errors.util.js';
 import { resolvePartnerReferral } from './partner-referral.service.js';
+import { assignedScope, requireCommercialAccess, type CommercialActor } from './commercial-access.service.js';
 
 type PersistedOrder = NonNullable<Awaited<ReturnType<OrderRepository['findOrderById']>>>;
 type CartProduct = Awaited<ReturnType<ProductRepository['findMany']>>[number];
@@ -146,12 +147,12 @@ export class OrderService {
     return orders.map((order) => this.formatCustomerOrder(order));
   }
 
-  async listAdminOrders(filters: OrderFiltersInput) {
+  async listAdminOrders(filters: OrderFiltersInput, actor?: CommercialActor) {
     const page = filters.page ?? 1;
     const limit = filters.limit ?? 20;
     const skip = (page - 1) * limit;
 
-    const where: Prisma.CustomerOrderWhereInput = {};
+    const where: Prisma.CustomerOrderWhereInput = assignedScope(actor);
 
     if (filters.status) {
       where.status = filters.status;
@@ -200,7 +201,8 @@ export class OrderService {
     };
   }
 
-  async getAdminOrderById(orderId: string) {
+  async getAdminOrderById(orderId: string, actor?: CommercialActor) {
+    await requireCommercialAccess('order', orderId, actor);
     const order = await this.orderRepository.findOrderById(orderId);
 
     if (!order) {
@@ -210,7 +212,8 @@ export class OrderService {
     return this.formatOrder(order);
   }
 
-  async updateOrderStatus(orderId: string, data: UpdateOrderStatusInput) {
+  async updateOrderStatus(orderId: string, data: UpdateOrderStatusInput, actor?: CommercialActor) {
+    await requireCommercialAccess('order', orderId, actor);
     const order = await this.orderRepository.findOrderById(orderId);
     if (!order) {
       throw new NotFoundError('Pedido nao encontrado');
@@ -232,7 +235,7 @@ export class OrderService {
         nextStatus === 'WHATSAPP_REDIRECTED'
           ? order.whatsappRedirectedAt ?? new Date()
           : order.whatsappRedirectedAt,
-    });
+    }, actor);
 
     return this.formatOrder(updatedOrder);
   }

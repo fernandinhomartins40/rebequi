@@ -14,6 +14,14 @@ datasource db {
 // USER MODEL - Authentication & Authorization
 // ============================================================================
 model User {
+  assignedSellerId String?
+  assignedSeller User? @relation("CustomerSeller", fields: [assignedSellerId], references: [id], onDelete: SetNull)
+  assignedCustomers User[] @relation("CustomerSeller")
+  assignmentVersion Int @default(0)
+  assignedLeads LeadCapture[] @relation("LeadSeller")
+  assignedQuotes QuoteRequest[] @relation("QuoteSeller")
+  assignedOrders CustomerOrder[] @relation("OrderSeller")
+  assignedSales Sale[] @relation("SaleSeller")
   id                 String         @id @default(cuid())
   email              String         @unique
   name               String
@@ -47,6 +55,7 @@ model User {
   @@index([isProvisional])
   @@index([customerStage])
   @@index([followUpAt])
+  @@index([assignedSellerId, role])
   @@map("users")
 }
 
@@ -301,6 +310,9 @@ enum OrderStatus {
 }
 
 model LeadCapture {
+  assignedSellerId String?
+  assignedSeller User? @relation("LeadSeller", fields: [assignedSellerId], references: [id], onDelete: SetNull)
+  assignmentVersion Int @default(0)
   id           String         @id @default(cuid())
   userId       String
   user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -318,9 +330,13 @@ model LeadCapture {
   @@index([whatsapp])
   @@index([status])
   @@map("lead_captures")
+  @@index([assignedSellerId, createdAt])
 }
 
 model QuoteRequest {
+  assignedSellerId String?
+  assignedSeller User? @relation("QuoteSeller", fields: [assignedSellerId], references: [id], onDelete: SetNull)
+  assignmentVersion Int @default(0)
   id                 String       @id @default(cuid())
   referenceCode      String       @unique
   partnerEstimate    MaterialEstimate?
@@ -372,6 +388,7 @@ model QuoteRequest {
   @@index([submittedAt])
   @@index([anonymousExpiresAt])
   @@map("quote_requests")
+  @@index([assignedSellerId, createdAt])
 }
 
 /// One recognition attempt. Answers "is the AI worth it?" and "which model
@@ -443,6 +460,9 @@ model QuoteItem {
 }
 
 model CustomerOrder {
+  assignedSellerId String?
+  assignedSeller User? @relation("OrderSeller", fields: [assignedSellerId], references: [id], onDelete: SetNull)
+  assignmentVersion Int @default(0)
   partnerReferral PartnerReferral?
   id                   String              @id @default(cuid())
   referenceCode        String              @unique
@@ -473,6 +493,7 @@ model CustomerOrder {
   @@index([customerWhatsapp])
   @@index([whatsappRedirectedAt])
   @@map("customer_orders")
+  @@index([assignedSellerId, createdAt])
 }
 
 // ============================================================================
@@ -492,6 +513,9 @@ enum SaleStatus {
 }
 
 model Sale {
+  assignedSellerId String?
+  assignedSeller User? @relation("SaleSeller", fields: [assignedSellerId], references: [id], onDelete: SetNull)
+  assignmentVersion Int @default(0)
   accountingVersion Int @default(0)
   returnVersion Int @default(0)
   statusVersion Int @default(1)
@@ -533,6 +557,21 @@ model Sale {
   @@index([registeredById])
   @@index([createdAt])
   @@map("sales")
+}
+
+model CommercialAssignmentAudit {
+  id String @id @default(cuid())
+  resourceKind String
+  resourceId String
+  previousSellerId String?
+  nextSellerId String?
+  version Int
+  actorId String
+  reason String
+  createdAt DateTime @default(now())
+  @@unique([resourceKind, resourceId, version])
+  @@index([resourceKind, resourceId, createdAt])
+  @@map("commercial_assignment_audits")
 }
 
 model SaleItem {

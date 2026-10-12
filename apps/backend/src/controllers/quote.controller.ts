@@ -229,7 +229,7 @@ export class QuoteController {
         limit: req.query.limit ? Number(req.query.limit) : 20,
       } as QuoteFiltersInput;
 
-      const result = await this.quoteService.getAdminQuotes(filters);
+      const result = await this.quoteService.getAdminQuotes(filters, req.user);
       paginatedResponse(res, result.quotes, result.page, result.limit, result.total);
     } catch (error) {
       next(error);
@@ -244,7 +244,7 @@ export class QuoteController {
         limit: req.query.limit ? Number(req.query.limit) : 20,
       } as LeadFiltersInput;
 
-      const result = await this.quoteService.getCapturedLeads(filters);
+      const result = await this.quoteService.getCapturedLeads(filters, req.user);
       paginatedResponse(res, result.leads, result.page, result.limit, result.total);
     } catch (error) {
       next(error);
@@ -255,7 +255,7 @@ export class QuoteController {
     try {
       const id = getRouteParam(req.params.id);
       const data: UpdateQuoteStatusInput = req.body;
-      const result = await this.quoteService.updateQuoteStatus(id, data);
+      const result = await this.quoteService.updateQuoteStatus(id, data, req.user);
       successResponse(res, result, 200, 'Quote status updated successfully');
     } catch (error) {
       next(error);
@@ -266,7 +266,7 @@ export class QuoteController {
     try {
       const id = getRouteParam(req.params.id);
       const data: UpdateLeadStatusInput = req.body;
-      const result = await this.quoteService.updateLeadStatus(id, data);
+      const result = await this.quoteService.updateLeadStatus(id, data, req.user);
       successResponse(res, result, 200, 'Lead status updated successfully');
     } catch (error) {
       next(error);

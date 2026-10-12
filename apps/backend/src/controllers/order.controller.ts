@@ -93,7 +93,7 @@ export class OrderController {
   listAdminOrders = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const filters = req.query as unknown as OrderFiltersInput;
-      const result = await this.orderService.listAdminOrders(filters);
+      const result = await this.orderService.listAdminOrders(filters, req.user);
       paginatedResponse(res, result.orders, result.page, result.limit, result.total);
     } catch (error) {
       next(error);
@@ -102,7 +102,7 @@ export class OrderController {
 
   getAdminOrder = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const order = await this.orderService.getAdminOrderById(req.params.id);
+      const order = await this.orderService.getAdminOrderById(req.params.id, req.user);
       successResponse(res, order, 200);
     } catch (error) {
       next(error);
@@ -112,7 +112,7 @@ export class OrderController {
   updateOrderStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const payload: UpdateOrderStatusInput = req.body;
-      const order = await this.orderService.updateOrderStatus(req.params.id, payload);
+      const order = await this.orderService.updateOrderStatus(req.params.id, payload, req.user);
       successResponse(res, order, 200, 'Pedido atualizado com sucesso');
     } catch (error) {
       next(error);

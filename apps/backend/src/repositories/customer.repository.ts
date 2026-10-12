@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
+import { assignedScope, saleScope, requireCommercialAccess, type CommercialActor } from '../services/commercial-access.service.js';
 
 /**
  * Data access for the CRM. Clientes são usuários com role CUSTOMER; as métricas
@@ -28,16 +29,16 @@ export class CustomerRepository {
     return prisma.user.count({ where: this.baseWhere(where) });
   }
 
-  async findCustomerById(id: string) {
+  async findCustomerById(id: string, actor?: CommercialActor) {
     return prisma.user.findFirst({
-      where: { id, role: 'CUSTOMER' },
+      where: { id, role: 'CUSTOMER', ...assignedScope(actor) },
     });
   }
 
-  async stageDistribution() {
+  async stageDistribution(actor?: CommercialActor) {
     return prisma.user.groupBy({
       by: ['customerStage'],
-      where: { role: 'CUSTOMER' },
+      where: { role: 'CUSTOMER', ...assignedScope(actor) },
       _count: { _all: true },
     });
   }
@@ -46,7 +47,7 @@ export class CustomerRepository {
    * Métricas leves por cliente (para a lista). Faz 3 groupBy e cruza em memória
    * — evita N+1 mantendo a lista paginada eficiente.
    */
-  async metricsForCustomers(customerIds: string[]) {
+  async metricsForCustomers(customerIds: string[], actor?: CommercialActor) {
     if (customerIds.length === 0) {
       return new Map<string, CustomerMetricsRow>();
     }
@@ -54,19 +55,19 @@ export class CustomerRepository {
     const [quotes, orders, sales] = await Promise.all([
       prisma.quoteRequest.groupBy({
         by: ['userId'],
-        where: { userId: { in: customerIds } },
+        where: { userId: { in: customerIds }, ...assignedScope(actor) },
         _count: { _all: true },
         _max: { createdAt: true },
       }),
       prisma.customerOrder.groupBy({
         by: ['userId'],
-        where: { userId: { in: customerIds } },
+        where: { userId: { in: customerIds }, ...assignedScope(actor) },
         _count: { _all: true },
         _max: { createdAt: true },
       }),
       prisma.sale.groupBy({
         by: ['customerId'],
-        where: { customerId: { in: customerIds }, status: 'PAID' },
+        where: { customerId: { in: customerIds }, status: 'PAID', AND: [saleScope(actor)] },
         _count: { _all: true },
         _sum: { total: true },
         _max: { createdAt: true },
@@ -107,22 +108,22 @@ export class CustomerRepository {
     return map;
   }
 
-  async timelineForCustomer(customerId: string) {
+  async timelineForCustomer(customerId: string, actor?: CommercialActor) {
     const [quotes, orders, sales] = await Promise.all([
       prisma.quoteRequest.findMany({
-        where: { userId: customerId },
+        where: { userId: customerId, ...assignedScope(actor) },
         orderBy: { createdAt: 'desc' },
         take: 50,
         include: { items: { select: { id: true } } },
       }),
       prisma.customerOrder.findMany({
-        where: { userId: customerId },
+        where: { userId: customerId, ...assignedScope(actor) },
         orderBy: { createdAt: 'desc' },
         take: 50,
         include: { items: true },
       }),
       prisma.sale.findMany({
-        where: { customerId },
+        where: { customerId, AND: [saleScope(actor)] },
         orderBy: { createdAt: 'desc' },
         take: 50,
         include: { items: { select: { id: true } } },
@@ -132,16 +133,20 @@ export class CustomerRepository {
     return { quotes, orders, sales };
   }
 
-  async listNotes(customerId: string) {
+  async listNotes(customerId: string, actor?: CommercialActor) {
     return prisma.customerNote.findMany({
-      where: { customerId },
+      where: { customerId, ...(actor?.role === 'SALES' ? { authorId: actor.userId } : {}) },
       orderBy: { createdAt: 'desc' },
       include: { author: { select: { name: true } } },
     });
   }
 
-  async createNote(data: { customerId: string; authorId?: string; body: string }) {
-    return prisma.customerNote.create({
+  async createNote(data: { customerId: string; authorId?: string; body: string }, actor?: CommercialActor) {
+    return prisma.$transaction(async tx => {
+    await tx.$queryRaw`SELECT id FROM users WHERE id=${data.customerId} FOR UPDATE`;
+    await requireCommercialAccess('customer', data.customerId, actor, tx);
+    await tx.user.update({ where: { id: data.customerId }, data: { lastContactedAt: new Date() } });
+    const note = await tx.customerNote.create({
       data: {
         customerId: data.customerId,
         authorId: data.authorId,
@@ -149,14 +154,29 @@ export class CustomerRepository {
       },
       include: { author: { select: { name: true } } },
     });
+    if (actor) await tx.integrationAudit.create({ data: { actorId: actor.userId, jobId: note.id, action: 'CUSTOMER_NOTE_CREATED' } });
+    return note;
+    });
   }
 
-  async deleteNote(id: string, customerId: string) {
-    return prisma.customerNote.deleteMany({ where: { id, customerId } });
+  async deleteNote(id: string, customerId: string, actor?: CommercialActor) {
+    return prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT id FROM users WHERE id=${customerId} FOR UPDATE`;
+      await requireCommercialAccess('customer', customerId, actor, tx);
+      const result = await tx.customerNote.deleteMany({ where: { id, customerId, ...(actor?.role === 'SALES' ? { authorId: actor.userId } : {}) } });
+      if (actor && result.count) await tx.integrationAudit.create({ data: { actorId: actor.userId, jobId: id, action: 'CUSTOMER_NOTE_REMOVED' } });
+      return result;
+    });
   }
 
-  async updateCustomer(id: string, data: Prisma.UserUpdateInput) {
-    return prisma.user.update({ where: { id }, data });
+  async updateCustomer(id: string, data: Prisma.UserUpdateInput, actor?: CommercialActor) {
+    return prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT id FROM users WHERE id=${id} FOR UPDATE`;
+      await requireCommercialAccess('customer', id, actor, tx);
+      const result = await tx.user.update({ where: { id, ...assignedScope(actor) }, data });
+      if (actor) await tx.integrationAudit.create({ data: { actorId: actor.userId, jobId: id, action: 'CUSTOMER_CRM_UPDATED' } });
+      return result;
+    });
   }
 }
 

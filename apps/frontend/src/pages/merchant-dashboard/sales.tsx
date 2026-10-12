@@ -28,6 +28,7 @@ import type { Sale } from '@/types';
 import { ADMIN_BASE_PATH } from './config';
 import { DashboardPanel, PageHeader, StatCard } from './components';
 import { SaleReturns } from '@/components/SaleReturns';
+import { CommercialAssignment } from '@/components/CommercialAssignment';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 type StatusFilterValue = 'all' | SaleStatus;
@@ -289,12 +290,14 @@ function SaleRowActions({
 }) {
   const [showReturns, setShowReturns] = useState(false);
   const returns = <Dialog open={showReturns} onOpenChange={setShowReturns}><DialogTrigger asChild><Button variant="ghost" size="sm">Devoluções</Button></DialogTrigger><DialogContent className="max-h-[90dvh] overflow-y-auto"><DialogHeader><DialogTitle>Devoluções da venda</DialogTitle></DialogHeader>{showReturns ? <SaleReturns sale={sale} /> : null}</DialogContent></Dialog>;
+  const assignment = <Dialog><DialogTrigger asChild><Button variant="ghost" size="sm">Responsável</Button></DialogTrigger><DialogContent><DialogHeader><DialogTitle>Responsável pela venda</DialogTitle></DialogHeader><CommercialAssignment kind="sale" id={sale.id} /></DialogContent></Dialog>;
   if (sale.status === SaleStatus.CANCELED) {
-    return returns;
+    return <div className="flex flex-wrap gap-1">{assignment}{returns}</div>;
   }
 
   return (
     <div className="flex items-center justify-end gap-1.5">
+      {assignment}
       {returns}
       {sale.status === SaleStatus.PENDING_PAYMENT ? (
         <Button

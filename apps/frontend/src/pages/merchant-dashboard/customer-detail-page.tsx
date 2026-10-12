@@ -35,6 +35,7 @@ import { CustomerStage } from '@/types';
 import type { CustomerTimelineEntry } from '@/types';
 import { ADMIN_BASE_PATH } from './config';
 import { DashboardPanel, EditorBackLink, PageHeader } from './components';
+import { CommercialAssignment } from '@/components/CommercialAssignment';
 
 function toDateTimeLocal(value?: string | Date | null) {
   if (!value) return '';
@@ -159,6 +160,7 @@ export function MerchantCustomerDetailPage() {
   return (
     <div className="space-y-6">
       <EditorBackLink to={`${ADMIN_BASE_PATH}/clientes`} label="Voltar para clientes" />
+      <CommercialAssignment kind="customer" id={customer.id} />
       <PageHeader
         title={customer.name}
         description={customer.whatsapp ? formatWhatsapp(customer.whatsapp) : customer.email || 'Sem contato'}

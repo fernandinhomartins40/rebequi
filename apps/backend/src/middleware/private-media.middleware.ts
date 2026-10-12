@@ -31,8 +31,9 @@ export async function servePrivateQuoteDocument(req: Request, res: Response, nex
     const folder = storageKey.startsWith('quotes/') ? 'quotes' : 'partners';
     if (!absolute.startsWith(`${path.join(root, folder)}${path.sep}`) || storageKey.includes('\\') || suffix.split('/').some(part => part === '..' || part === '.')) throw new NotFoundError('Documento não encontrado');
     if (folder === 'quotes') {
-      const quote = await prisma.quoteRequest.findFirst({ where: { documentStorageKey: storageKey }, select: { userId: true } });
+      const quote = await prisma.quoteRequest.findFirst({ where: { documentStorageKey: storageKey }, select: { userId: true, assignedSellerId: true } });
       if (!quote || (quote.userId !== req.user!.userId && !hasMerchantPermission(req.user!.role, 'quotes:manage'))) throw new NotFoundError('Documento não encontrado');
+      if (req.user!.role === 'SALES' && quote.assignedSellerId !== req.user!.userId) throw new NotFoundError('Documento não encontrado');
     } else {
       const image = await prisma.partnerPortfolioImage.findUnique({ where: { storageKey }, select: { partner: { select: { userId: true } } } });
       if (!image || (image.partner.userId !== req.user!.userId && !hasMerchantPermission(req.user!.role, 'partners:manage'))) throw new NotFoundError('Documento não encontrado');

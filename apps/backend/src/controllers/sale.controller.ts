@@ -18,7 +18,7 @@ export class SaleController {
   createSale = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const payload: CreateSaleInput = req.body;
-      const sale = await this.saleService.createSale(req.user?.userId, payload);
+      const sale = await this.saleService.createSale(req.user?.userId, payload, req.user);
       successResponse(res, sale, 201, 'Venda registrada com sucesso');
     } catch (error) {
       next(error);
@@ -28,7 +28,7 @@ export class SaleController {
   listSales = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const filters = req.query as unknown as SaleFiltersInput;
-      const result = await this.saleService.listSales(filters);
+      const result = await this.saleService.listSales(filters, req.user);
       paginatedResponse(res, result.sales, result.page, result.limit, result.total);
     } catch (error) {
       next(error);
@@ -37,7 +37,7 @@ export class SaleController {
 
   getSale = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const sale = await this.saleService.getSaleById(req.params.id);
+      const sale = await this.saleService.getSaleById(req.params.id, req.user);
       successResponse(res, sale, 200);
     } catch (error) {
       next(error);
@@ -47,7 +47,7 @@ export class SaleController {
   updateSaleStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const payload: UpdateSaleStatusInput = req.body;
-      const sale = await this.saleService.updateSaleStatus(req.params.id, payload, req.user!.userId);
+      const sale = await this.saleService.updateSaleStatus(req.params.id, payload, req.user!.userId, req.user);
       successResponse(res, sale, 200, 'Venda atualizada com sucesso');
     } catch (error) {
       next(error);
@@ -57,7 +57,7 @@ export class SaleController {
   getRevenueSummary = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const query = req.query as unknown as RevenueSummaryQueryInput;
-      const summary = await this.saleService.getRevenueSummary(query);
+      const summary = await this.saleService.getRevenueSummary(query, req.user);
       successResponse(res, summary, 200);
     } catch (error) {
       next(error);
