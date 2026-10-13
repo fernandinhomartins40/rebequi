@@ -142,6 +142,13 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Contrato explícito de unidades e passo mínimo — 13/10/2026
+
+Schema compartilhado commercial-unit.schema.ts exige unidade comercial/estoque, fator positivo confirmado e passo mínimo, sem defaults ou inferência por nome. Mesma unidade exige fator 1; unidades/embalagens/sacos/caixas usam passo inteiro; conversão do passo não pode exigir precisão superior a milésimos. Quantidade positiva precisa ser múltiplo exato do passo. Unidade/fator desconhecidos e campos extras são rejeitados. Conversões dimensionais diferentes continuam dependendo de configuração física específica verificada; enum não homologa fator por si só.
+
+74 testes locais passaram; build compartilhado e textos aprovados. Ajuste adicional de schema conserva safeParse para entrada decimal inválida, seguido de testes direcionados aprovados. Fundação ainda não ativa venda decimal, não modifica dados históricos nem altera moeda. Próxima integração precisa persistência/versionamento/snapshots de política, migração coordenada das quantidades e interfaces. Workflow da aritmética b8674c9 em execução na consulta desta retomada. Objetivo completo permanece ativo.
+
+
 ### Base exata para quantidades fracionadas — 13/10/2026
 
 Diagnóstico confirmado: Product.stock/reservedStock, SaleItem, CustomerOrderItem, StockMovement, StockReservation, devolução e contadores logísticos usam Int; financeiro de devolução multiplica centavos por BigInt(quantity). Não basta remover .int() dos formulários. Adicionada aritmética compartilhada em commercial-quantity.ts: contrato decimal canônico de até três casas, milésimos BigInt, conversão com fator explicitamente confirmado e rejeição de precisão extra, extensão de preço em centavos half-up e devolução cumulativa conservando o total. Sem inferir unidade, fator ou conversão física por nome de produto.
