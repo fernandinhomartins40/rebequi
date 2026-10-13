@@ -15,6 +15,7 @@ const conflictNames: Record<string, string> = {
   SKU_ALREADY_LOCAL: 'SKU já cadastrado', CATEGORY_NOT_FOUND: 'Categoria não encontrada',
   LINK_SKU_MISMATCH: 'Vínculo existente com outro SKU',
   PRODUCT_LINKED_TO_OTHER_ID: 'Produto já vinculado a outro ID desta origem',
+  SKU_ARCHIVED_LOCAL: 'SKU pertence a um produto arquivado na loja',
 };
 const endpoint = '/integrations/external-api/imports/products';
 

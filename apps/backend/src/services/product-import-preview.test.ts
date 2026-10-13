@@ -38,4 +38,6 @@ test('Verified external links resolve known products and expose changed SKUs', (
   assert.deepEqual(classifyProductImport(changedSku, products, categories, links).rows[0].conflicts, ['LINK_SKU_MISMATCH']);
   const duplicatedIdentity = previewProductImportSchema.parse({ ...base, rows: [{ ...base.rows[0], externalId: 'B' }] });
   assert.deepEqual(classifyProductImport(duplicatedIdentity, products, categories, links).rows[0].conflicts, ['PRODUCT_LINKED_TO_OTHER_ID']);
+  const archived = [{ id: 'product-1', sku: 'SKU-1', deletedAt: new Date() }];
+  assert.deepEqual(classifyProductImport(input, archived, categories).rows[0].conflicts, ['SKU_ARCHIVED_LOCAL']);
 });
