@@ -82,7 +82,8 @@ export async function validateCommercialAccess({ owner, admin, sellerA, sellerB,
   assert.equal((await sellerB.post(`/api/orders/admin/${order.id}/reserve`, { headers })).status(), 404);
   assert.equal((await sellerB.get(`/api/customers/admin/${customer.id}`)).status(), 404);
   const ownDetail = await data(await sellerA.get(`/api/customers/admin/${customer.id}`));
-  assert.ok(ownDetail.timeline.every(item => item.id === order.id || item.id === assisted.id), 'Customer access must not reveal unrelated commercial history');
+  assert.ok(ownDetail.timeline.every(item => [order.id, assisted.id, assistedOrder.id].includes(item.id)),
+    'Customer access must not reveal unrelated commercial history');
   const note = await data(await sellerA.post(`/api/customers/admin/${customer.id}/notes`, { headers, data: { body: 'Nota privada do vendedor A' } }), 201);
   const draft = await data(await owner.post('/api/quotes/public/manual', { headers, data: { text: `1 ${product.name}` } }), 201);
   const quoteId = draft.quote.id;
