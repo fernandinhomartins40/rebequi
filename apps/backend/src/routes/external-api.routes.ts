@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import { getRolesForMerchantPermission } from '@rebequi/shared/constants';
-import { createExternalClientSchema } from '@rebequi/shared/schemas';
+import { createExternalClientSchema, previewProductImportSchema } from '@rebequi/shared/schemas';
 import { prisma } from '../lib/prisma.js';
 import { authenticate, authorize } from '../middleware/auth.middleware.js';
 import { requireTrustedOrigin } from '../middleware/trusted-origin.middleware.js';
@@ -12,10 +12,14 @@ import { successResponse } from '../utils/response.util.js';
 import { ConflictError, ForbiddenError, NotFoundError, UnauthorizedError } from '../utils/errors.util.js';
 import { createExternalToken, externalBearer, externalTokenHash } from '../services/external-api-token.js';
 import { externalApiOpenApi } from '../services/external-api-openapi.js';
+import { previewProductImport } from '../services/product-import-preview.service.js';
 
 export const externalAdminRoutes: Router = Router();
 externalAdminRoutes.use(authenticate, authorize(...getRolesForMerchantPermission('integrations:manage')), requireTrustedOrigin, (_req, res, next) => { res.setHeader('Cache-Control', 'private, no-store'); next(); });
 const paging = z.object({ page: z.coerce.number().int().min(1).max(100000).default(1), limit: z.coerce.number().int().min(1).max(100).default(20), updatedSince: z.string().datetime().optional() });
+externalAdminRoutes.post('/imports/products/preview', validateBody(previewProductImportSchema), async (req, res, next) => {
+  try { successResponse(res, await previewProductImport(req.body)); } catch (error) { next(error); }
+});
 externalAdminRoutes.get('/clients', validateQuery(paging), async (req, res, next) => {
   try { const page = Number(req.query.page); const [clients, total] = await Promise.all([prisma.externalApiClient.findMany({ orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: (page - 1) * 20, take: 20, select: { id: true, name: true, scopes: true, expiresAt: true, revokedAt: true, createdAt: true } }), prisma.externalApiClient.count()]); successResponse(res, { clients, page, total, totalPages: Math.ceil(total / 20) }); } catch (error) { next(error); }
 });

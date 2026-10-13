@@ -10,6 +10,26 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
   const clients = await data(await admin.get('/api/integrations/external-api/clients')); assert.equal(clients.clients.filter(item => item.id === credential.id).length, 1); assert.equal(JSON.stringify(clients).includes(credential.token), false); assert.equal(JSON.stringify(clients).includes('tokenHash'), false);
   const persisted = JSON.parse(db(`console.log(JSON.stringify(await prisma.externalApiClient.findUniqueOrThrow({where:{id:${JSON.stringify(credential.id)}},select:{tokenHash:true}})));`).trim());
   assert.equal(persisted.tokenHash, createHash('sha256').update(credential.token).digest('hex')); assert.notEqual(persisted.tokenHash, credential.token);
+  const importPath = '/api/integrations/external-api/imports/products/preview';
+  const catalog = JSON.parse(db(`console.log(JSON.stringify(await prisma.product.findFirstOrThrow({where:{sku:{not:null}},select:{id:true,sku:true,categoryId:true,stock:true,reservedStock:true,price:true}})));`).trim());
+  const importRows = [
+    { externalId: 'existing', sku: catalog.sku, name: 'Material existente', categoryId: catalog.categoryId, priceCents: '1000', stockQuantity: '5' },
+    { externalId: 'new', sku: `IMPORT-${randomUUID()}`, name: 'Material novo', categoryId: catalog.categoryId, priceCents: '1000', stockQuantity: '5' },
+  ];
+  const importInput = { source: 'pdv-runner', rows: importRows };
+  assert.equal((await owner.post(importPath, { headers, data: importInput })).status(), 403);
+  assert.equal((await guest.post(importPath, { headers, data: importInput })).status(), 401);
+  assert.equal((await admin.post(importPath, { data: importInput })).status(), 403);
+  assert.equal((await admin.post(importPath, { headers, data: { ...importInput, apply: true } })).status(), 400);
+  const importResponse = await admin.post(importPath, { headers, data: importInput });
+  const importPreview = await data(importResponse);
+  assert.match(importResponse.headers()['cache-control'], /no-store/);
+  assert.equal(importPreview.applied, false); assert.equal(importPreview.authority.stock, 'LOCAL');
+  assert.deepEqual(importPreview.rows[0].conflicts, ['SKU_ALREADY_LOCAL']);
+  assert.equal(importPreview.rows[0].localProductId, catalog.id);
+  assert.equal(importPreview.rows[1].status, 'READY_FOR_REVIEW');
+  assert.deepEqual(JSON.parse(db(`console.log(JSON.stringify(await prisma.product.findUniqueOrThrow({where:{id:${JSON.stringify(catalog.id)}},select:{stock:true,reservedStock:true,price:true}})));`).trim()), { stock: catalog.stock, reservedStock: catalog.reservedStock, price: catalog.price });
+  assert.equal(Number(db(`console.log(await prisma.product.count({where:{sku:${JSON.stringify(importRows[1].sku)}}}));`).trim()), 0);
   assert.equal((await admin.get('/api/external/v1/products')).status(), 401, 'Admin cookies do not authenticate the external API');
   const bearer = { Authorization: `Bearer ${credential.token}` };
   const response = await guest.get('/api/external/v1/products?limit=2', { headers: bearer }); const products = await data(response);

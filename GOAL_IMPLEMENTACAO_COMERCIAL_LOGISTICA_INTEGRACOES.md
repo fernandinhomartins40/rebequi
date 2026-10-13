@@ -471,3 +471,10 @@ A validação integrada 115435563877 e o deploy 115437494650 concluíram com suc
 ### Interface da prévia por medida — 13/10/2026
 
 Editor do produto oferece seção recolhível Conferir uma quantidade, disponível após registrar política. Quantidade e preço são digitados explicitamente; troca do preço retira a confirmação, troca de qualquer campo oculta resultado antigo. A chamada usa a versão persistida e não envia totais nem presume disponibilidade do estoque legado. Resultado mostra quantidade comercial, consumo convertido e total com formatação por inteiros, sem perda de centavos grandes. Textos esclarecem que é simulação, sem venda ou reserva. Tipos, lint, build e textos aprovados. Teste integrado mobile acrescenta entrada com vírgula, total 61,73 e descarte do resultado ao editar; validação de navegador e publicação ainda pendentes. Venda fracionada operacional e demais requisitos continuam abertos.
+
+
+### Interface de prévia publicada e importação estruturada iniciada — 13/10/2026
+
+A validação integrada 115440097419 e o deploy 115442309368 da execução 38438736631 terminaram com sucesso, publicando eef8cef (prévia mobile por medida).
+
+Nova rota administrativa POST /api/integrations/external-api/imports/products/preview recebe lote estruturado de até 100 produtos, exige sessão de gestão de integrações e origem confiável. Compara SKUs locais e categorias ativas em transação de leitura consistente, rejeita entrada ambígua e reporta ID externo duplicado, SKU duplicado no lote, SKU já local e categoria ausente. Retorna autoridade LOCAL para catálogo, preço e estoque e applied=false; não grava vínculo externo, produto, preço ou saldo. 81 testes unitários, tipos e verificador de textos passaram. Teste integrado valida permissões, no-store, conflitos reais e ausência de mutação; ainda depende do workflow e deploy. Próximo passo: vínculo externo único, autoridade configurável, prévia de clientes/categorias, aplicação idempotente, inbox/outbox e tratamento de conflitos. A venda fracionada operacional também segue pendente.

@@ -25,3 +25,4 @@ export * from './external-api.schema.js';
 export * from './vehicle.schema.js';
 export * from './delivery-run.schema.js';
 export * from './commercial-unit.schema.js';
+export * from './product-import.schema.js';
