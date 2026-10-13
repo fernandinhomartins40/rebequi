@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-export async function validateProductUnitPolicy({ admin, owner, guest, baseURL, data, db, product }) {
+export async function validateProductUnitPolicy({ admin, owner, guest, browser, baseURL, data, db, product }) {
   const path = `/api/products/admin/${product.id}/unit-policy`; const headers = { Origin: baseURL };
   const before = JSON.parse(db(`console.log(JSON.stringify(await prisma.product.findUniqueOrThrow({where:{id:${JSON.stringify(product.id)}},select:{stock:true,reservedStock:true,price:true}})));`).trim());
   assert.deepEqual(await data(await admin.get(path)), { policy: null, operational: false });
@@ -17,5 +17,21 @@ export async function validateProductUnitPolicy({ admin, owner, guest, baseURL, 
   assert.deepEqual(await data(await admin.put(path, { headers, data: input })), first);
   const immutable = JSON.parse(db(`let blocked=false;try{await prisma.productUnitPolicy.update({where:{id:${JSON.stringify(first.policy.id)}},data:{quantityStep:'0.5'}});}catch{blocked=true;}console.log(JSON.stringify({blocked}));`).trim().split('\n').at(-1)); assert.equal(immutable.blocked, true);
   assert.equal(Number(db(`console.log(await prisma.productUnitPolicy.count({where:{productId:${JSON.stringify(product.id)}}}));`).trim()), 2);
+  const context = await browser.newContext({ baseURL });
+  try {
+    await context.addCookies((await admin.storageState()).cookies); const page = await context.newPage(); await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`${baseURL}/painel-lojista/painel/produtos/${product.id}/editar`);
+    await page.getByText('Unidades e conversão', { exact: true }).click();
+    const wizard = page.getByRole('region', { name: 'Configurar unidades', exact: true });
+    await wizard.getByRole('button', { name: 'Continuar', exact: true }).click();
+    await wizard.getByLabel('Passo permitido na quantidade de venda', { exact: true }).fill('0,5');
+    await wizard.getByLabel('Como a conversão foi conferida?', { exact: true }).fill('Conferência explícita no editor mobile');
+    await wizard.getByRole('button', { name: 'Continuar', exact: true }).click();
+    await wizard.getByRole('checkbox', { name: 'Conferi as unidades, o fator e o passo deste produto.', exact: true }).check();
+    const response = page.waitForResponse(value => new URL(value.url()).pathname === path && value.request().method() === 'PUT');
+    await wizard.getByRole('button', { name: 'Registrar política', exact: true }).click(); assert.equal((await response).status(), 200);
+    await wizard.getByText('Política registrada · versão 3', { exact: true }).waitFor();
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  } finally { await context.close(); }
   assert.deepEqual(JSON.parse(db(`console.log(JSON.stringify(await prisma.product.findUniqueOrThrow({where:{id:${JSON.stringify(product.id)}},select:{stock:true,reservedStock:true,price:true}})));`).trim()), before);
 }

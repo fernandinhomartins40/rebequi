@@ -142,6 +142,13 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Formulário de política de unidades no produto — 13/10/2026
+
+Editor existente recebe painel expansível “Unidades e conversão”, consulta somente quando aberto e wizard Unidades → Conversão → Confirmar. Não escolhe valores físicos por padrão; mostra versão registrada, fator/passos e motivo de conferência, aceita vírgula decimal na UI e envia decimal canônico validado. Confirmação explícita, intenção estável em retry e expectedVersion; atualização remonta formulário com política atual. Registro apresenta aviso de preparação sem ativação de estoque/venda decimal. Política antiga permanece imutável no backend.
+
+TypeScript/lint locais aprovados; build/textos e cenário integrado mobile adicionados para terceira versão pelo formulário, consentimento explícito, refetch e responsividade, mantendo saldo/preço inalterados. Gate/deploy deste incremento pendentes. Migração operacional/snapshots e objetivo completo continuam pendentes.
+
+
 ### Persistência versionada de políticas por produto — 13/10/2026
 
 Migração aditiva 20261013030000_product_unit_policies cria política por produto/versão, unidades, fator e passo Decimal(12,3), intenção/hash, ator/motivo/data. Não preenche produtos históricos automaticamente. Restrict preserva referência ao produto; alteração/exclusão da política bloqueadas e insert exige próxima versão com lock de produto. Bounds no banco replicam unidade/fator/precisão/passo de embalagem. Consulta retorna última política e operational:false; gravação autenticada em /products/admin/:id/unit-policy exige catalog:manage, origem confiável, operador ativo, expectedVersion e intenção idempotente canônica. Auditoria na mesma transação. Não altera estoque/reserva/preço nem ativa venda fracionada.
