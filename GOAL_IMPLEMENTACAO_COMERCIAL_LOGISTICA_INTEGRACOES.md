@@ -141,6 +141,11 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Correção do seletor de retorno online — 13/10/2026
+
+Gate 38418748103 terminou com falha no seletor final do PWA: a página tem título h1 do painel e h2 do conteúdo “Minhas entregas”, e o seletor sem nível encontrou os dois. Etapas anteriores de manifesto, controlador, cache restrito e navegação offline passaram até esse ponto. Teste agora exige especificamente heading nível 2 do conteúdo, mantendo todas as verificações e sem retry/bypass de permissão ou enfraquecimento do gate. Workflow antigo não publicou por falha; validar o novo incremento antes de declarar PWA concluído. Demais requisitos do objetivo continuam pendentes.
+
+
 ### Cabeçalhos e escopo do PWA — 13/10/2026
 
 Configuração Nginx da própria aplicação agora serve /driver-sw.js com no-cache e Service-Worker-Allowed limitado ao prefixo de entregas, evitando tratar o worker de URL fixa como um asset imutável de um ano. Manifesto do motorista usa application/manifest+json e no-cache, como o manifesto de parceiros. Nenhum serviço compartilhado da VPS é alterado. Teste integrado verifica cabeçalhos, manifesto e escopo, além do controlador/offline/cache privado. Sintaxe do cenário e configuração de produção verificadas localmente; Nginx/runtime/browser serão exercitados pelo gate antes de deploy. Workflow 38418748103 do PWA inicial ainda em gate integrado no momento deste registro; proteção offline 2d5c50c aguarda o workflow seguinte. Objetivo completo permanece ativo.

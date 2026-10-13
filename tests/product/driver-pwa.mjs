@@ -36,5 +36,5 @@ export async function validateDriverPwa({ context, page, baseURL }) {
     assert.equal(leaked, false);
   } finally { await context.setOffline(false); }
   await page.getByRole('link', { name: 'Tentar novamente', exact: true }).click();
-  await page.getByRole('heading', { name: 'Minhas entregas', exact: true }).waitFor();
+  await page.getByRole('heading', { name: 'Minhas entregas', level: 2, exact: true }).waitFor();
 }
