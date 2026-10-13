@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { linkExternalProductSchema, previewProductImportSchema, revokeExternalProductLinkSchema, stageProductImportSchema, type PreviewProductImportInput } from '@rebequi/shared/schemas';
+import { linkExternalProductSchema, previewProductImportSchema, recordProductImportReviewSchema, revokeExternalProductLinkSchema, stageProductImportSchema, type PreviewProductImportInput } from '@rebequi/shared/schemas';
 import { apiFetch } from '@/services/api/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,10 +36,14 @@ export function ProductImportPanel() {
     queryFn: async () => (await apiFetch<{ data: { batches: ImportBatch[]; totalPages: number } }>(`${endpoint}/batches?page=${batchPage}`)).data });
   const batchReview = useQuery({ queryKey: ['external-product-import-batch-review', reviewBatchId], enabled: Boolean(reviewBatchId), retry: false,
     queryFn: async () => (await apiFetch<{ data: BatchReview }>(`${endpoint}/batches/${encodeURIComponent(reviewBatchId)}`)).data });
+  const reviewHistory = useQuery({ queryKey: ['external-product-import-review-history', reviewBatchId], enabled: Boolean(reviewBatchId), retry: false,
+    queryFn: async () => (await apiFetch<{ data: { reviews: { id: string; createdAt: string; changedRows: number[]; summary: { conflicts: number } }[] } }>(
+      `${endpoint}/batches/${encodeURIComponent(reviewBatchId)}/reviews?page=1`)).data });
   const links = useQuery({ queryKey: ['external-product-links', linkPage], retry: false,
     queryFn: async () => (await apiFetch<{ data: { links: ProductLink[]; totalPages: number } }>(`${endpoint}/links?page=${linkPage}`)).data });
   const intent = useRef<{ fingerprint: string; key: string }>();
   const batchIntent = useRef<{ fingerprint: string; key: string }>();
+  const reviewIntent = useRef<{ batchId: string; key: string }>();
   const preview = useMutation({ mutationFn: async (input: PreviewProductImportInput) =>
     (await apiFetch<{ data: Preview }>(`${endpoint}/preview`, { method: 'POST', body: JSON.stringify(input) })).data,
     onSuccess: () => { setStep(2); setError(''); }, onError: failure => setError(failure.message) });
@@ -51,6 +55,15 @@ export function ProductImportPanel() {
     return (await apiFetch<{ data: { id: string } }>(`${endpoint}/batches`, { method: 'POST', body: JSON.stringify(input) })).data;
   }, onSuccess: async result => { setSavedBatch(result.id); setError(''); await queryClient.invalidateQueries({ queryKey: ['external-product-import-batches'] }); },
   onError: failure => setError(failure.message) });
+  const recordReview = useMutation({ mutationFn: async () => {
+    if (reviewIntent.current?.batchId !== reviewBatchId) reviewIntent.current = { batchId: reviewBatchId, key: crypto.randomUUID() };
+    const input = recordProductImportReviewSchema.parse({ requestKey: reviewIntent.current.key, confirmed: true });
+    return apiFetch(`${endpoint}/batches/${encodeURIComponent(reviewBatchId)}/reviews`, { method: 'POST', body: JSON.stringify(input) });
+  }, onSuccess: async () => {
+    reviewIntent.current = undefined; setError('');
+    await queryClient.invalidateQueries({ queryKey: ['external-product-import-review-history', reviewBatchId] });
+    await queryClient.invalidateQueries({ queryKey: ['external-product-import-batch-review', reviewBatchId] });
+  }, onError: failure => setError(failure.message) });
   const link = useMutation({ mutationFn: async (row: PreviewRow) => {
     const fingerprint = JSON.stringify({ source, externalId: row.externalId, productId: row.localProductId, expectedSku: row.sku });
     if (intent.current?.fingerprint !== fingerprint) intent.current = { fingerprint, key: crypto.randomUUID() };
@@ -124,7 +137,8 @@ export function ProductImportPanel() {
       <details className="rounded-lg border p-3"><summary className="cursor-pointer font-medium">Análises salvas</summary>
         {batches.isLoading ? <p className="mt-2 text-sm">Carregando análises…</p> : batches.isError ? <p role="alert" className="mt-2 text-sm text-red-700">{batches.error.message}</p> : !batches.data?.batches.length ? <p className="mt-2 text-sm">Nenhuma análise salva.</p> : <ul className="mt-3 space-y-2">{batches.data.batches.map(item => <li key={item.id} className="rounded-lg border p-3 text-sm"><p className="font-semibold">{item.source} · {item.summary.total} produtos</p><p className="text-xs text-muted-foreground">{item.summary.conflicts} conflitos · {new Date(item.createdAt).toLocaleString('pt-BR')}</p><Button type="button" size="sm" variant="outline" className="mt-2" onClick={() => setReviewBatchId(item.id)}>Rever análise</Button></li>)}</ul>}
         {reviewBatchId ? <div className="mt-3 rounded-lg bg-slate-50 p-3 text-sm"><div className="flex items-center justify-between gap-2"><p className="font-semibold">Revisão atual</p><Button type="button" size="sm" variant="ghost" onClick={() => setReviewBatchId('')}>Fechar</Button></div>
-          {batchReview.isLoading ? <p>Conferindo catálogo…</p> : batchReview.isError ? <p role="alert" className="text-red-700">{batchReview.error.message}</p> : batchReview.data ? <><p className="mt-1">{batchReview.data.changedRows.length ? `${batchReview.data.changedRows.length} itens mudaram desde o registro.` : 'Os conflitos permanecem iguais ao registro.'} Nenhum produto foi importado.</p><ul className="mt-2 max-h-64 space-y-2 overflow-auto">{batchReview.data.currentPreview.rows.map(row => <li key={row.row} className="rounded border bg-white p-2"><p className="font-medium">{row.row}. {row.sku}</p><p className="break-all text-xs">ID: {row.externalId}</p><p className="text-xs">{row.conflicts.length ? row.conflicts.map(code => conflictNames[code] ?? 'Conflito').join(' · ') : 'Pronto para revisão'}{batchReview.data.changedRows.includes(row.row) ? ' · Alterado desde o registro' : ''}</p></li>)}</ul></> : null}
+          {batchReview.isLoading ? <p>Conferindo catálogo…</p> : batchReview.isError ? <p role="alert" className="text-red-700">{batchReview.error.message}</p> : batchReview.data ? <><p className="mt-1">{batchReview.data.changedRows.length ? `${batchReview.data.changedRows.length} itens mudaram desde o registro.` : 'Os conflitos permanecem iguais ao registro.'} Nenhum produto foi importado.</p><ul className="mt-2 max-h-64 space-y-2 overflow-auto">{batchReview.data.currentPreview.rows.map(row => <li key={row.row} className="rounded border bg-white p-2"><p className="font-medium">{row.row}. {row.sku}</p><p className="break-all text-xs">ID: {row.externalId}</p><p className="text-xs">{row.conflicts.length ? row.conflicts.map(code => conflictNames[code] ?? 'Conflito').join(' · ') : 'Pronto para revisão'}{batchReview.data.changedRows.includes(row.row) ? ' · Alterado desde o registro' : ''}</p></li>)}</ul><Button type="button" size="sm" variant="outline" className="mt-2" disabled={recordReview.isPending} onClick={() => recordReview.mutate()}>{recordReview.isPending ? 'Registrando…' : 'Registrar esta revisão'}</Button></> : null}
+          {reviewHistory.data?.reviews.length ? <div className="mt-3"><p className="font-medium">Revisões registradas</p><ul className="mt-1 space-y-1">{reviewHistory.data.reviews.map(item => <li key={item.id}>{new Date(item.createdAt).toLocaleString('pt-BR')} · {item.summary.conflicts} conflitos · {item.changedRows.length} linhas alteradas</li>)}</ul></div> : null}
         </div> : null}
         {batches.data && batches.data.totalPages > 1 ? <div className="mt-3 flex justify-between gap-2"><Button type="button" variant="outline" disabled={batchPage === 1} onClick={() => setBatchPage(value => value - 1)}>Anterior</Button><Button type="button" variant="outline" disabled={batchPage >= batches.data.totalPages} onClick={() => setBatchPage(value => value + 1)}>Próxima</Button></div> : null}
       </details>

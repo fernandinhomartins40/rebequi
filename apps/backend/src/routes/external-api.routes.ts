@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import { getRolesForMerchantPermission } from '@rebequi/shared/constants';
-import { createExternalClientSchema, previewProductImportSchema, stageProductImportSchema, linkExternalProductSchema, revokeExternalProductLinkSchema, previewCategoryImportSchema, linkExternalCategorySchema, revokeExternalCategoryLinkSchema, previewCustomerImportSchema, linkExternalCustomerSchema, revokeExternalCustomerLinkSchema } from '@rebequi/shared/schemas';
+import { createExternalClientSchema, previewProductImportSchema, stageProductImportSchema, recordProductImportReviewSchema, linkExternalProductSchema, revokeExternalProductLinkSchema, previewCategoryImportSchema, linkExternalCategorySchema, revokeExternalCategoryLinkSchema, previewCustomerImportSchema, linkExternalCustomerSchema, revokeExternalCustomerLinkSchema } from '@rebequi/shared/schemas';
 import { prisma } from '../lib/prisma.js';
 import { authenticate, authorize } from '../middleware/auth.middleware.js';
 import { requireTrustedOrigin } from '../middleware/trusted-origin.middleware.js';
@@ -15,6 +15,7 @@ import { externalApiOpenApi } from '../services/external-api-openapi.js';
 import { previewProductImport } from '../services/product-import-preview.service.js';
 import { createExternalProductLink, revokeExternalProductLink } from '../services/external-product-link.service.js';
 import { stageExternalProductImport } from '../services/external-product-import-batch.service.js';
+import { compareProductImportBatch, recordProductImportReview } from '../services/external-product-import-review.service.js';
 import { previewCategoryImport } from '../services/category-import-preview.service.js';
 import { createExternalCategoryLink, revokeExternalCategoryLink } from '../services/external-category-link.service.js';
 import { previewCustomerImport } from '../services/customer-import-preview.service.js';
@@ -79,18 +80,32 @@ externalAdminRoutes.get('/imports/products/batches/:id', validateParams(z.object
   try {
     const batch = await prisma.externalProductImportBatch.findUnique({ where: { id: req.params.id }, select: { id: true, source: true, rows: true, preview: true, createdAt: true } });
     if (!batch) throw new NotFoundError('Análise de importação não encontrada.');
-    const current = await previewProductImport({ source: batch.source, rows: batch.rows as z.infer<typeof previewProductImportSchema>['rows'] });
-    const saved = batch.preview as { rows: { status: string; conflicts: string[]; localProductId: string | null; resolvedCategoryId?: string | null }[] };
-    const changedRows = current.rows.filter((row, index) => {
-      const before = saved.rows[index];
-      return !before || before.status !== row.status || before.localProductId !== row.localProductId
-        || (before.resolvedCategoryId ?? null) !== row.resolvedCategoryId
-        || JSON.stringify(before.conflicts) !== JSON.stringify(row.conflicts);
-    }).map(row => row.row);
+    const { currentPreview, changedRows } = await compareProductImportBatch(batch);
     successResponse(res, { id: batch.id, source: batch.source, createdAt: batch.createdAt, savedPreview: batch.preview,
-      currentPreview: current, changedRows, applied: false });
+      currentPreview, changedRows, applied: false });
   } catch (error) { next(error); }
 });
+externalAdminRoutes.get('/imports/products/batches/:id/reviews', validateParams(z.object({ id: z.string().cuid() }).strict()),
+  validateQuery(z.object({ page: z.coerce.number().int().min(1).max(100000).default(1) }).strict()), async (req, res, next) => {
+    try {
+      const page = Number(req.query.page);
+      if (!await prisma.externalProductImportBatch.findUnique({ where: { id: req.params.id }, select: { id: true } })) {
+        throw new NotFoundError('Análise de importação não encontrada.');
+      }
+      const [reviews, total] = await Promise.all([
+        prisma.externalProductImportReview.findMany({ where: { batchId: req.params.id },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: (page - 1) * 20, take: 20,
+          select: { id: true, summary: true, changedRows: true, createdAt: true } }),
+        prisma.externalProductImportReview.count({ where: { batchId: req.params.id } }),
+      ]);
+      successResponse(res, { reviews, total, page, totalPages: Math.ceil(total / 20) });
+    } catch (error) { next(error); }
+  });
+externalAdminRoutes.post('/imports/products/batches/:id/reviews', validateParams(z.object({ id: z.string().cuid() }).strict()),
+  validateBody(recordProductImportReviewSchema), async (req, res, next) => {
+    try { successResponse(res, await recordProductImportReview(req.user!, req.params.id, req.body), 201); }
+    catch (error) { next(error); }
+  });
 externalAdminRoutes.get('/imports/products/links', validateQuery(z.object({ page: z.coerce.number().int().min(1).max(100000).default(1) }).strict()), async (req, res, next) => {
   try {
     const page = Number(req.query.page); const [links, total] = await Promise.all([

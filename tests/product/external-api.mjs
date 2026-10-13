@@ -124,6 +124,16 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
   const initialReview = await data(await admin.get(`${batchesPath}/${staged.id}`));
   assert.equal(initialReview.changedRows.length, 0);
   assert.deepEqual(initialReview.savedPreview.rows, initialReview.currentPreview.rows);
+  const reviewsPath = `${batchesPath}/${staged.id}/reviews`;
+  const reviewInput = { requestKey: randomUUID(), confirmed: true };
+  assert.equal((await owner.post(reviewsPath, { headers, data: reviewInput })).status(), 403);
+  assert.equal((await admin.post(reviewsPath, { data: reviewInput })).status(), 403);
+  const recordedReview = await data(await admin.post(reviewsPath, { headers, data: reviewInput }), 201);
+  assert.deepEqual(recordedReview.changedRows, []);
+  assert.deepEqual(await data(await admin.post(reviewsPath, { headers, data: reviewInput }), 201), recordedReview);
+  assert.equal((await data(await admin.get(`${reviewsPath}?page=1`))).reviews.some(row => row.id === recordedReview.id), true);
+  const blockedReviewMutation = JSON.parse(db(`let blocked=false;try{await prisma.externalProductImportReview.delete({where:{id:${JSON.stringify(recordedReview.id)}}});}catch{blocked=true;}console.log(JSON.stringify({blocked}));`).trim().split('\n').at(-1));
+  assert.equal(blockedReviewMutation.blocked, true);
   const stagedInDb = JSON.parse(db(`console.log(JSON.stringify(await prisma.externalProductImportBatch.findUniqueOrThrow({where:{id:${JSON.stringify(staged.id)}},select:{rows:true,preview:true,requestKey:true}})));`).trim());
   assert.equal(stagedInDb.rows.length, 2); assert.equal(stagedInDb.preview.applied, false);
   assert.notEqual(stagedInDb.requestKey, stageInput.requestKey);
@@ -240,6 +250,8 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
     await importPanel.getByText('Análises salvas', { exact: true }).click();
     await importPanel.getByRole('button', { name: 'Rever análise', exact: true }).first().click();
     await importPanel.getByText('Os conflitos permanecem iguais ao registro. Nenhum produto foi importado.', { exact: true }).waitFor();
+    await importPanel.getByRole('button', { name: 'Registrar esta revisão', exact: true }).click();
+    await importPanel.getByText('Revisões registradas', { exact: true }).waitFor();
     await importPanel.getByRole('button', { name: 'Conferir vínculo', exact: true }).click();
     await importPanel.getByRole('button', { name: 'Confirmar vínculo', exact: true }).click();
     await importPanel.getByText('Vínculo registrado. Confira os demais conflitos antes de importar.', { exact: true }).waitFor();
