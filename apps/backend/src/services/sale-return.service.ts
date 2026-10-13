@@ -8,6 +8,7 @@ import { reversePartnerSale } from './partner-program.service.js';
 import { enqueueCatalogChange } from './integration-outbox.service.js';
 import { requireCommercialAccess, type CommercialActor } from './commercial-access.service.js';
 import { reviseFulfillmentAfterReturn } from './fulfillment.service.js';
+import { reconcilePhysicalReturn } from './physical-return-policy.js';
 
 const serialize = <T extends { refundCents: bigint; items: { refundCents: bigint }[] }>(row: T) => ({ ...row, refundCents: String(row.refundCents), items: row.items.map(item => ({ ...item, refundCents: String(item.refundCents) })) });
 export async function listSaleReturns(saleId: string, page: number, actor?: CommercialActor) {
@@ -16,13 +17,15 @@ export async function listSaleReturns(saleId: string, page: number, actor?: Comm
   if (!sale) throw new NotFoundError('Venda não encontrada');
   const [returns, total] = await Promise.all([prisma.saleReturn.findMany({ where: { saleId }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: (page - 1) * 20, take: 20, include: { items: true } }), prisma.saleReturn.count({ where: { saleId } })]);
   const quantities = await prisma.saleReturnItem.groupBy({ by: ['saleItemId'], where: { return: { saleId } }, _sum: { quantity: true } });
-  return { version: sale.returnVersion, returns: returns.map(serialize), total, page, totalPages: Math.ceil(total / 20), quantities: quantities.map(row => ({ saleItemId: row.saleItemId, quantity: row._sum.quantity ?? 0 })) };
+  const physical = await prisma.fulfillmentItem.findMany({ where: { fulfillment: { saleId } }, select: { saleItemId: true, delivered: true } });
+  return { physicalMaterials: physical.map(item => ({ saleItemId: item.saleItemId, received: item.delivered })), version: sale.returnVersion, returns: returns.map(serialize), total, page, totalPages: Math.ceil(total / 20), quantities: quantities.map(row => ({ saleItemId: row.saleItemId, quantity: row._sum.quantity ?? 0 })) };
 }
 async function prepareSaleReturn(tx: Prisma.TransactionClient, saleId: string, input: SaleReturnPreviewInput) {
-    const sale = await tx.sale.findUnique({ where: { id: saleId }, include: { items: true } });
+    const sale = await tx.sale.findUnique({ where: { id: saleId }, include: { items: true, fulfillment: { include: { items: true, deliveryStops: { where: { active: true }, take: 1, select: { id: true } } } } } });
     if (!sale) throw new NotFoundError('Venda não encontrada');
     if (sale.returnVersion !== input.expectedVersion) throw new ConflictError('As devoluções mudaram. Recarregue e confira novamente.');
     if (sale.status !== 'PAID') throw new ConflictError('Devolução parcial exige venda paga. Confira o atendimento antes de registrar.');
+    if (sale.fulfillment?.deliveryStops.length) throw new ConflictError('Encerre ou cancele o romaneio antes de registrar a devolução dos materiais.');
     const totalCents = Math.round(sale.total * 100);
     if (!Number.isSafeInteger(totalCents) || totalCents < 0) throw new ValidationError('Valor de venda fora do limite.');
     const allocations = allocateDiscountedLines(sale.items.map(item => {
@@ -38,9 +41,11 @@ async function prepareSaleReturn(tx: Prisma.TransactionClient, saleId: string, i
       const already = returned.get(item.id) ?? 0;
       if (already + line.quantity > item.quantity) throw new ConflictError('Quantidade maior que o saldo vendido. Recarregue as devoluções.');
       if (line.restock && !item.productId) throw new ValidationError('Produto indisponível para retorno ao estoque.');
+      const tracked = sale.fulfillment?.items.find(material => material.saleItemId === item.id);
+      const physical = reconcilePhysicalReturn({ sold: item.quantity, previouslyReturned: already, received: tracked?.delivered ?? null, quantity: line.quantity, origin: line.physicalOrigin });
       const net = allocations.get(item.id)!;
       const refundCents = cumulativeReturnCents(net, item.quantity, already + line.quantity) - cumulativeReturnCents(net, item.quantity, already);
-      return { ...line, productId: item.productId, refundCents };
+      return { ...line, physicalOrigin: physical.origin, productId: item.productId, refundCents };
     });
     const refundCents = items.reduce((sum, item) => sum + item.refundCents, 0n);
     return { sale, items, refundCents };
@@ -50,7 +55,7 @@ export async function previewSaleReturn(saleId: string, raw: SaleReturnPreviewIn
   return prisma.$transaction(async tx => {
     await requireCommercialAccess('sale', saleId, actor, tx);
     const { items, refundCents, sale } = await prepareSaleReturn(tx, saleId, input);
-    return { version: sale.returnVersion, refundCents: String(refundCents), items: items.map(item => ({ saleItemId: item.saleItemId, quantity: item.quantity, restock: item.restock, refundCents: String(item.refundCents) })) };
+    return { version: sale.returnVersion, refundCents: String(refundCents), items: items.map(item => ({ saleItemId: item.saleItemId, quantity: item.quantity, restock: item.restock, physicalOrigin: item.physicalOrigin, refundCents: String(item.refundCents) })) };
   }, { isolationLevel: 'RepeatableRead' });
 }
 export async function createSaleReturn(saleId: string, actorId: string, raw: SaleReturnInput, actor?: CommercialActor) {

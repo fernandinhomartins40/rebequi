@@ -25,7 +25,15 @@ export async function reviseFulfillmentAfterReturn(tx: Prisma.TransactionClient,
   if (!row || row.status === 'CANCELED') return;
   await tx.$queryRaw`SELECT id FROM fulfillments WHERE id=${row.id} FOR UPDATE`;
   if (await tx.deliveryRunStop.count({ where: { fulfillmentId: row.id, active: true } })) throw new ConflictError('Cancele o planejamento do romaneio antes de registrar a devolução.');
-  await tx.fulfillmentItem.updateMany({ where: { fulfillmentId: row.id }, data: { checked: 0 } });
+  const materials = await tx.fulfillmentItem.findMany({ where: { fulfillmentId: row.id } });
+  const returnedItems = await tx.saleReturnItem.findMany({ where: { returnId }, select: { saleItemId: true, quantity: true, physicalOrigin: true } });
+  const returnedByItem = new Map(returnedItems.filter(item => item.physicalOrigin === 'RECEIVED_FROM_CUSTOMER').map(item => [item.saleItemId, item.quantity]));
+  await tx.fulfillmentItem.updateMany({ where: { fulfillmentId: row.id, delivered: 0 }, data: { checked: 0 } });
+  for (const material of materials.filter(item => item.delivered > 0)) {
+    const received = material.delivered - (returnedByItem.get(material.saleItemId) ?? 0);
+    if (received < 0) throw new ConflictError('Saldo recebido mudou. Confira novamente os materiais devolvidos.');
+    await tx.fulfillmentItem.update({ where: { id: material.id }, data: { delivered: received, checked: received } });
+  }
   const updated = await tx.fulfillment.update({ where: { id: row.id }, data: { status: row.mode === 'UNDEFINED' ? 'AWAITING_DETAILS' : 'CHECKING', version: { increment: 1 } } });
   await tx.fulfillmentEvent.create({ data: { fulfillmentId: row.id, version: updated.version, requestKey: `fulfillment-return:${returnId}`, fingerprint: returnId, kind: 'RETURN_REQUIRES_RECHECK', actorId, details: { returnId, status: updated.status } } });
 }
@@ -86,6 +94,7 @@ async function mutateFulfillment(id: string, actorId: string, input: Fulfillment
         for (const line of operation.items) {
           const item = row.items.find(candidate => candidate.id === line.id);
           if (!item) throw new ValidationError('Material não pertence à separação.');
+          if (line.quantity < item.delivered) throw new ConflictError('A quantidade não pode ficar abaixo dos materiais já recebidos pelo cliente.');
           const remaining = item.quantity - (refunds.get(item.saleItemId) ?? 0);
           if (line.quantity > remaining || (operation.action === 'CHECK' && line.quantity > item.picked)) throw new ConflictError('Quantidade maior que o saldo vendido ou separado. Confira as devoluções.');
           if (operation.action === 'PICK' && line.quantity < item.checked) throw new ConflictError('A quantidade já conferida não pode ficar maior que a separada. Corrija a conferência primeiro.');

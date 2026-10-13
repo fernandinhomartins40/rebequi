@@ -67,7 +67,11 @@ export async function validateFulfillment({ owner, guest, admin, browser, baseUR
   assert.deepEqual(Object.keys(customerOrder.fulfillment).sort(), ['mode', 'scheduledAt', 'status', 'updatedAt']);
   assert.equal(JSON.stringify(customerOrder.fulfillment).includes('Prateleira do teste'), false, 'Customer progress never exposes warehouse notes or location');
   assert.equal(Number(db(`console.log((await prisma.product.findUniqueOrThrow({where:{id:${JSON.stringify(product.id)}}})).stock);`).trim()), stockBefore, 'Separating and checking must not debit inventory again');
-  await data(await admin.post(`/api/sales/admin/${sale.id}/returns`, { headers, data: { requestKey: randomUUID(), expectedVersion: 0, confirmed: true, reason: 'Devolução antes da expedição no runner', items: [{ saleItemId: sale.items[0].id, quantity: 1, restock: false }] } }), 201);
+  const impossibleReceiptReturn = { requestKey: randomUUID(), expectedVersion: 0, confirmed: true, reason: 'Origem recebida sem registro físico', items: [{ saleItemId: sale.items[0].id, quantity: 1, restock: true, physicalOrigin: 'RECEIVED_FROM_CUSTOMER' }] };
+  assert.equal((await admin.post(`/api/sales/admin/${sale.id}/returns`, { headers, data: impossibleReceiptReturn })).status(), 409);
+  const physicalState = await data(await admin.get(`/api/sales/admin/${sale.id}/returns`)); assert.equal(physicalState.version, 0); assert.equal(physicalState.total, 0); assert.equal(physicalState.physicalMaterials[0].received, 0);
+  const unreceivedReturn = await data(await admin.post(`/api/sales/admin/${sale.id}/returns`, { headers, data: { requestKey: randomUUID(), expectedVersion: 0, confirmed: true, reason: 'Devolução antes da expedição no runner', items: [{ saleItemId: sale.items[0].id, quantity: 1, restock: false }] } }), 201);
+  assert.equal(unreceivedReturn.items[0].physicalOrigin, 'NOT_RECEIVED');
   const revised = await data(await admin.get(`/api/fulfillments/${id}`)); assert.equal(revised.status, 'CHECKING'); assert.equal(revised.items[0].remainingQuantity, 2); assert.equal(revised.items[0].checked, 0);
   assert.equal((await admin.post(`/api/fulfillments/${id}/operations`, { headers, data: { ...op, requestKey: randomUUID(), expectedVersion: ready.version, action: 'READY', items: [] } })).status(), 409);
   await data(await admin.post(`/api/sales/admin/${sale.id}/status`, { headers, data: { status: 'PENDING_PAYMENT' } }));

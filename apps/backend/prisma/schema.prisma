@@ -1281,6 +1281,7 @@ model SaleReturn {
   @@map("sale_returns")
 }
 model SaleReturnItem {
+  physicalOrigin String?
   id String @id @default(cuid())
   returnId String
   return SaleReturn @relation(fields: [returnId], references: [id], onDelete: Restrict)

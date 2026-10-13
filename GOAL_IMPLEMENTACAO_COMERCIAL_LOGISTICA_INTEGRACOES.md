@@ -9,7 +9,8 @@ Próximas tarefas, na ordem de execução:
 - [x] Validação integrada do perfil WAREHOUSE, sem acesso comercial/financeiro — workflow 38326558378 aprovado e publicado.
 - [x] Cadastro de motoristas/veículos e permissões por tarefa, dados físicos de capacidade conferidos — validado e publicado no workflow 38326558378.
 - [x] Romaneio, atribuição, agendamento e ordem manual das paradas; capacidade/massa/volume desconhecidos explícitos — validado e publicado no workflow 38326558378.
-- [ ] Carregamento, saída, entrega/retirada parcial por item, recebedor, ocorrência/reagendamento e reentrega.
+- [x] Carregamento, saída e retorno ao depósito — validados e publicados até o workflow 38329771847.
+- [ ] Entrega/retirada parcial por item, recebedor, ocorrência/reagendamento e reentrega.
 - [ ] Evidências privadas com consentimento/crop/compressão/quota e UI mobile/PWA operacional do motorista.
 - [ ] Evoluir unidade comercial e conversões para decimais/granel sem quebrar estoque, pedidos e devoluções existentes.
 - [ ] Acompanhamento completo pelo cliente com privacidade e histórico público controlado; sem localização/ETA presumidos.
@@ -137,6 +138,14 @@ Prisma schema/migrations; matriz de acesso e schemas/tipos compartilhados; auth/
 ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloqueia base comercial/logística/API genérica. Conector específico depende de nome/versão, documentação/capacidades, credenciais cadastradas apenas no painel, autoridade por domínio e homologação. Metas/taxas/exceções de liberação dependem de configuração da loja, não bloquear formulários. Veículos/endereço/capacidade e teste físico dependem de dados reais. Custos de API/mapas, integração ativa, pagamentos, migração retroativa e multiempresa exigem escopo/validação próprios.
 
 ## Progresso e retomada
+
+### Origem física das devoluções — preparação do recebimento parcial
+
+Migração aditiva 20261012150000_sale_return_physical_origin registra NOT_RECEIVED ou RECEIVED_FROM_CUSTOMER por item. Históricos anteriores mantêm origem nula/desconhecida; não se inventa recebimento antigo. Venda sem acompanhamento físico continua devolvível pelo fluxo anterior, com origem desconhecida. Quando há controle físico, origem pendente é limitada ao saldo vendido não recebido; origem recebida do cliente exige quantidade efetivamente registrada como recebida. Havendo saldo recebido, omissão de origem é rejeitada com mensagem específica. Prévia confere também vínculo a romaneio ativo antes de mostrar confirmação.
+
+Devolução recebida do cliente reduz somente seu saldo recebido atual. Rechecagem preserva esse saldo como piso de quantidade conferida, evitando apagar materiais já recebidos ou violar constraints. Materiais ainda não recebidos usam atualização em lote. Cálculo de centavos, rateio, benefícios e opção de retorno ao estoque são preservados; não ativa regra financeira ou conector. Formulário apresenta origem somente para materiais com acompanhamento, preserva escolha ao editar quantidade/condição e usa validação fresca no envio. Testes cobrem saldo misto, ausência de rastreio histórico e origem impossível; integração garante rejeição sem devolução/versão financeira e registra a origem do fluxo anterior. Tipos, lint, build, textos e 65 testes locais aprovados. Validação integrada e deploy deste incremento pendentes. Registro de entrega/retirada ainda não ativado; próximo incremento depende desta base e dos testes completos.
+
+Workflow 38330377655 falhou porque o fixture de outro cliente tentou usar cadastro interno de equipe, cuja validação corretamente rejeita CUSTOMER. Commit 211902a usa cadastro real de cliente em contexto isolado e preserva a asserção 404 por propriedade. Demais testes desse workflow passaram; validação do acompanhamento do cliente continua pendente. Não se flexibilizou a permissão administrativa.
 
 ### Histórico de etapas para o cliente — 12/10/2026
 
