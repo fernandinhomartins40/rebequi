@@ -668,6 +668,22 @@ model SellerGoalRevision {
   @@map("seller_goal_revisions")
 }
 
+model SellerCommissionDraft {
+  id String @id @default(cuid())
+  version Int @unique
+  requestKey String @unique
+  fingerprint String
+  effectiveMonth String
+  basis String
+  eligibleRole String
+  basisPoints Int
+  maturityDays Int
+  actorId String
+  reason String
+  createdAt DateTime @default(now())
+  @@map("seller_commission_drafts")
+}
+
 model LogisticsVehicle {
   deliveryRuns DeliveryRun[]
   id           String   @id @default(cuid())

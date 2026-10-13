@@ -142,6 +142,10 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Rascunho de comissão separado de ativação — 13/10/2026
+
+Gestão pode registrar versões imutáveis de uma política proposta para vendedores SALES: base explícita de vendas pagas líquidas de devoluções, percentual em pontos-base, primeiro mês futuro, prazo de conciliação, motivo e confirmação. A rota é administrativa, idempotente e auditada; não há ativação, ledger de vendedor, saldo ou pagamento nesta etapa. Teste integrado cobre permissão, origem, reenvio, conflito de versão, mês passado, imutabilidade e formulário mobile. Gate/deploy pendentes. Antes de calcular créditos reais, falta validar a política financeira, implementar eventos prospectivos de venda/estorno/hold, conciliação e autorização explícita de ativação.
+
 ### Avisos comerciais persistentes — 13/10/2026
 
 O painel “Meus atendimentos” agora consulta encaminhamentos registrados na auditoria de distribuição e mostra contagem de novos avisos. O destinatário pode marcar cada aviso como lido; o recibo é persistente, imutável e idempotente, sem revelar motivo interno ou dados de outro vendedor. Avisos históricos permanecem mesmo após redistribuição, sem presumir acesso ao atendimento antigo. Teste integrado cobre destinatário, origem, leitura simultânea, imutabilidade e tela mobile. Gate/deploy ainda pendentes; distribuição automática e outros alertas comerciais continuam no objetivo.

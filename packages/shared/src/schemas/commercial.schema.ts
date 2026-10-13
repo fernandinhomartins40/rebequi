@@ -11,6 +11,15 @@ export const sellerGoalSchema = z.object({
   reason: z.string().trim().min(3).max(500), confirmed: z.literal(true),
 }).strict();
 export type SellerGoalInput = z.infer<typeof sellerGoalSchema>;
+export const sellerCommissionDraftSchema = z.object({
+  requestKey: z.string().uuid(), expectedVersion: z.number().int().min(0).max(10000),
+  effectiveMonth: z.string().regex(/^20\d{2}-(?:0[1-9]|1[0-2])$/),
+  basis: z.literal('NET_PAID_SALE_AFTER_RETURNS'), eligibleRole: z.literal('SALES'),
+  basisPoints: z.number().int().min(0).max(10000),
+  maturityDays: z.number().int().min(0).max(365),
+  reason: z.string().trim().min(3).max(500), confirmed: z.literal(true),
+}).strict();
+export type SellerCommissionDraftInput = z.infer<typeof sellerCommissionDraftSchema>;
 export const commercialQuoteSchema = z.object({
   requestKey: z.string().uuid(), confirmed: z.literal(true), customerId: z.string().min(1).max(128), expectedCustomerVersion: z.number().int().min(0),
   title: z.string().trim().min(3).max(255), note: z.string().trim().max(1500).default(''),
