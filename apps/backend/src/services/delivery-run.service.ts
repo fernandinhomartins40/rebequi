@@ -32,7 +32,7 @@ export async function createDeliveryRun(actorId: string, raw: DeliveryRunInput) 
       if (row.status !== 'READY' || row.mode !== 'DELIVERY' || row.sale.status !== 'PAID' || !row.address) throw new ConflictError('Use somente entregas pagas e prontas com endereço conferido.');
       const items = row.items.map(item => ({ id: item.id, name: item.nameSnapshot, quantity: item.quantity - (refunded.get(item.saleItemId) ?? 0) - item.delivered, unit: 'COMMERCIAL_UNIT' }));
       if (!items.some(item => item.quantity > 0) || row.items.some(item => item.checked !== item.quantity - (refunded.get(item.saleItemId) ?? 0))) throw new ConflictError('Confira novamente o saldo dos materiais.');
-      return { fulfillmentId: row.id, position: index + 1, loadKg: stop.loadKg, volumeM3: stop.volumeM3, snapshot: { referenceCode: row.sale.referenceCode, customerName: row.sale.customerNameSnapshot, address: row.address, region: row.region, customerScheduledAt: row.scheduledAt?.toISOString() ?? null, fulfillmentVersion: row.version, items } };
+      return { fulfillmentId: row.id, position: index + 1, loadKg: stop.loadKg, volumeM3: stop.volumeM3, items: { create: items.filter(item => item.quantity > 0).map(item => ({ fulfillmentItemId: item.id, planned: item.quantity })) }, snapshot: { referenceCode: row.sale.referenceCode, customerName: row.sale.customerNameSnapshot, address: row.address, region: row.region, customerScheduledAt: row.scheduledAt?.toISOString() ?? null, fulfillmentVersion: row.version, items } };
     });
     const sum = (field: 'loadKg' | 'volumeM3') => input.stops.every(stop => stop[field] !== null) ? input.stops.reduce((total, stop) => total.plus(stop[field]!), new Prisma.Decimal(0)) : null;
     const load = sum('loadKg'); const volume = sum('volumeM3');
@@ -72,7 +72,7 @@ export async function listDeliveryRuns(page: number) {
   return { runs, page, totalPages: Math.ceil(total / 20) };
 }
 export async function getDeliveryRun(id: string) {
-  const run = await prisma.deliveryRun.findUnique({ where: { id }, select: { id: true, label: true, scheduledAt: true, status: true, version: true, snapshot: true, stops: { orderBy: { position: 'asc' }, select: { id: true, position: true, snapshot: true, loadKg: true, volumeM3: true, active: true } }, events: { orderBy: { version: 'desc' }, take: 20, select: { id: true, version: true, kind: true, details: true, createdAt: true } } } });
+  const run = await prisma.deliveryRun.findUnique({ where: { id }, select: { id: true, label: true, scheduledAt: true, status: true, version: true, snapshot: true, loadedAt: true, departedAt: true, loadSnapshot: true, stops: { orderBy: { position: 'asc' }, select: { id: true, position: true, snapshot: true, loadKg: true, volumeM3: true, active: true, items: { select: { id: true, fulfillmentItemId: true, planned: true, loaded: true, delivered: true, returnedToWarehouse: true } } } }, events: { orderBy: { version: 'desc' }, take: 20, select: { id: true, version: true, kind: true, details: true, createdAt: true } } } });
   if (!run) throw new NotFoundError('Romaneio não encontrado.'); return run;
 }
 export async function deliveryCandidates(page: number) {

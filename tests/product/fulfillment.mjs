@@ -109,7 +109,7 @@ export async function validateFulfillment({ owner, guest, admin, browser, baseUR
     assert.equal((await data(await admin.get(`/api/fulfillments/${id}`))).scheduledAt, null);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   } finally { await scheduling.close(); }
-  await validateDeliveryRuns({ admin, guest, owner, browser, baseURL, data, db, id, sale, product });
+  await validateDeliveryRuns({ admin, guest, owner, browser, baseURL, data, db, id, sale, product, orderId: checkout.order.id });
   let historyVersion = (await data(await admin.get(`/api/fulfillments/${id}`))).version;
   for (let index = 0; index < 21; index += 1) {
     const updated = await data(await admin.post(`/api/fulfillments/${id}/operations`, { headers, data: { requestKey: randomUUID(), expectedVersion: historyVersion, confirmed: true, action: 'ISSUE', note: `Ocorrência de paginação ${index + 1}`, items: [] } }));

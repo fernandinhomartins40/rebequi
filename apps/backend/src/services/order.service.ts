@@ -447,9 +447,11 @@ export class OrderService {
 
   private formatOrder(order: PersistedOrder) {
     const subtotal = order.items.reduce((total, item) => total + item.quantity * item.unitPrice, 0);
+    const preparation = order.sale?.fulfillment;
+    const transport = preparation?.deliveryStops[0]?.run;
 
     return {
-      fulfillment: order.sale?.fulfillment ? { ...order.sale.fulfillment, status: order.sale.status === 'PENDING_PAYMENT' ? 'PAYMENT_PENDING' : order.sale.fulfillment.status } : null,
+      fulfillment: preparation ? { status: order.sale?.status === 'PENDING_PAYMENT' ? 'PAYMENT_PENDING' : transport && ['LOADED', 'IN_TRANSIT'].includes(transport.status) ? transport.status : preparation.status, mode: preparation.mode, scheduledAt: preparation.scheduledAt, updatedAt: transport?.departedAt ?? transport?.loadedAt ?? preparation.updatedAt } : null,
       referral: order.partnerReferral ? { code: order.partnerReferral.codeSnapshot, confirmedAt: order.partnerReferral.consentedAt } : null,
       canceledAt: order.canceledAt,
       completedAt: order.completedAt,

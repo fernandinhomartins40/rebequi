@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import type { Prisma } from '@prisma/client';
 import type { DriverAssignmentInput } from '@rebequi/shared/schemas';
 import { driverAssignmentSchema } from '@rebequi/shared/schemas';
 import { prisma } from '../lib/prisma.js';
@@ -45,10 +46,16 @@ export async function assignDriver(id: string, actorId: string, raw: DriverAssig
 }
 
 const taskSelect = {
+  deliveryStops: { where: { active: true }, take: 1, select: { run: { select: { status: true } } } },
   id: true, status: true, region: true, address: true, scheduledAt: true,
   sale: { select: { referenceCode: true, customerNameSnapshot: true } },
   items: { select: { id: true, nameSnapshot: true, quantity: true, checked: true, delivered: true } },
 } as const;
+function formatDriverTask(row: Prisma.FulfillmentGetPayload<{ select: typeof taskSelect }>) {
+  const { deliveryStops, ...task } = row;
+  const transport = deliveryStops[0]?.run;
+  return { ...task, status: transport && ['LOADED', 'IN_TRANSIT'].includes(transport.status) ? transport.status : task.status };
+}
 const driverScope = (driverId: string) => ({ driverId, mode: 'DELIVERY', status: { not: 'CANCELED' }, sale: { status: 'PAID' as const } });
 export async function driverTasks(driverId: string, page: number) {
   const where = driverScope(driverId);
@@ -56,10 +63,10 @@ export async function driverTasks(driverId: string, page: number) {
     prisma.fulfillment.findMany({ where, orderBy: [{ scheduledAt: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }], skip: (page - 1) * 20, take: 20, select: taskSelect }),
     prisma.fulfillment.count({ where }),
   ]);
-  return { tasks, page, totalPages: Math.ceil(total / 20) };
+  return { tasks: tasks.map(formatDriverTask), page, totalPages: Math.ceil(total / 20) };
 }
 export async function driverTask(driverId: string, id: string) {
   const task = await prisma.fulfillment.findFirst({ where: { ...driverScope(driverId), id }, select: taskSelect });
   if (!task) throw new NotFoundError('Entrega não encontrada.');
-  return task;
+  return formatDriverTask(task);
 }

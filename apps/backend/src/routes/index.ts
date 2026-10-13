@@ -23,6 +23,7 @@ import vehicleRoutes from './vehicle.routes.js';
 import driverRoutes from './driver.routes.js';
 import deliveryRunRoutes from './delivery-run.routes.js';
 import driverRunRoutes from './driver-run.routes.js';
+import dispatchRunRoutes from './dispatch-run.routes.js';
 import { externalApiRoutes, externalAdminRoutes } from './external-api.routes.js';
 
 const router: Router = Router();
@@ -47,6 +48,7 @@ router.use('/vehicles', vehicleRoutes);
 router.use('/driver/tasks', driverRoutes);
 router.use('/delivery-runs', deliveryRunRoutes);
 router.use('/driver/runs', driverRunRoutes);
+router.use('/dispatch/runs', dispatchRunRoutes);
 router.use('/external/v1', externalApiRoutes);
 router.use('/integrations/external-api', externalAdminRoutes);
 

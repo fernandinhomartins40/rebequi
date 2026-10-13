@@ -637,6 +637,9 @@ model Fulfillment {
 }
 
 model DeliveryRun {
+  loadSnapshot Json?
+  loadedAt DateTime?
+  departedAt DateTime?
   id String @id @default(cuid())
   label String
   driverId String
@@ -659,6 +662,7 @@ model DeliveryRun {
 }
 
 model DeliveryRunStop {
+  items DeliveryRunItem[]
   id String @id @default(cuid())
   runId String
   run DeliveryRun @relation(fields: [runId], references: [id], onDelete: Restrict)
@@ -673,6 +677,20 @@ model DeliveryRunStop {
   @@unique([runId, fulfillmentId])
   @@index([fulfillmentId, active])
   @@map("delivery_run_stops")
+}
+
+model DeliveryRunItem {
+  id String @id @default(cuid())
+  stopId String
+  stop DeliveryRunStop @relation(fields: [stopId], references: [id], onDelete: Restrict)
+  fulfillmentItemId String
+  fulfillmentItem FulfillmentItem @relation(fields: [fulfillmentItemId], references: [id], onDelete: Restrict)
+  planned Int
+  loaded Int @default(0)
+  delivered Int @default(0)
+  returnedToWarehouse Int @default(0)
+  @@unique([stopId, fulfillmentItemId])
+  @@map("delivery_run_items")
 }
 
 model DeliveryRunEvent {
@@ -691,6 +709,7 @@ model DeliveryRunEvent {
 }
 
 model FulfillmentItem {
+  runItems DeliveryRunItem[]
   id String @id @default(cuid())
   fulfillmentId String
   fulfillment Fulfillment @relation(fields: [fulfillmentId], references: [id], onDelete: Restrict)

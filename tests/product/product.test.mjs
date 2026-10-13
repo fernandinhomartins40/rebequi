@@ -567,8 +567,17 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
       const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
       try {
         const page = await context.newPage();
+        const catalogResponses = [];
+        page.on('response', response => {
+          const pathname = new URL(response.url()).pathname;
+          if (pathname.startsWith('/api/products') || pathname.startsWith('/api/categories') || pathname.startsWith('/api/promotions')) catalogResponses.push({ pathname, status: response.status() });
+        });
         await page.goto(baseURL);
-        await page.locator('.landing-product').first().waitFor();
+        try { await page.locator('.landing-product').first().waitFor(); }
+        catch (error) {
+          await page.screenshot({ path: 'tests/product/artifacts/landing-load-failure.png', fullPage: true });
+          throw new Error(`Landing products did not render. API: ${JSON.stringify(catalogResponses)}. Text: ${await page.locator('body').innerText()}`, { cause: error });
+        }
         for (const width of [320, 390, 768, 1024, 1440]) {
           await page.setViewportSize({ width, height: 900 });
           assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `Landing overflow at ${width}px`);

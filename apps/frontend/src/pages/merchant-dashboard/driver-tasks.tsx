@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { PageHeader } from './components';
 import { ADMIN_BASE_PATH } from './config';
 import { DriverRuns } from './driver-runs';
-const LABELS: Record<string, string> = { PICKING: 'Em separação', CHECKING: 'Em conferência', READY: 'Pronto para expedição' };
+const LABELS: Record<string, string> = { LOADED: 'Materiais carregados', IN_TRANSIT: 'Entrega em andamento', PICKING: 'Em separação', CHECKING: 'Em conferência', READY: 'Pronto para expedição' };
 export default function DriverTasks() {
   const { taskId } = useParams(); const [page, setPage] = useState(1);
   const list = useQuery({ queryKey: ['driver', 'tasks', page], queryFn: () => getDriverTasks(page), enabled: !taskId, retry: false });

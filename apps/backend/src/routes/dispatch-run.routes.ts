@@ -1,0 +1,16 @@
+import { Router } from 'express';
+import { z } from 'zod';
+import { getRolesForMerchantPermission } from '@rebequi/shared/constants';
+import { deliveryRunOperationSchema } from '@rebequi/shared/schemas';
+import { authenticate, authorize } from '../middleware/auth.middleware.js';
+import { requireTrustedOrigin } from '../middleware/trusted-origin.middleware.js';
+import { validateBody, validateQuery } from '../middleware/validation.middleware.js';
+import { successResponse } from '../utils/response.util.js';
+import { getDeliveryRun, listDeliveryRuns } from '../services/delivery-run.service.js';
+import { operateDeliveryRun } from '../services/delivery-run-operations.service.js';
+const router: Router = Router();
+router.use(authenticate, authorize(...getRolesForMerchantPermission('logistics:manage')), requireTrustedOrigin, (_req, res, next) => { res.setHeader('Cache-Control', 'private, no-store'); next(); });
+router.get('/', validateQuery(z.object({ page: z.coerce.number().int().min(1).max(100000).default(1) })), async (req, res, next) => { try { successResponse(res, await listDeliveryRuns(Number(req.query.page))); } catch (error) { next(error); } });
+router.get('/:id', async (req, res, next) => { try { successResponse(res, await getDeliveryRun(req.params.id)); } catch (error) { next(error); } });
+router.post('/:id/operations', validateBody(deliveryRunOperationSchema), async (req, res, next) => { try { successResponse(res, await operateDeliveryRun(req.params.id, { userId: req.user!.userId, role: req.user!.role }, req.body)); } catch (error) { next(error); } });
+export default router;
