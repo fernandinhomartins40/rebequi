@@ -18,6 +18,16 @@ import { createExternalProductLink, revokeExternalProductLink } from '../service
 export const externalAdminRoutes: Router = Router();
 externalAdminRoutes.use(authenticate, authorize(...getRolesForMerchantPermission('integrations:manage')), requireTrustedOrigin, (_req, res, next) => { res.setHeader('Cache-Control', 'private, no-store'); next(); });
 const paging = z.object({ page: z.coerce.number().int().min(1).max(100000).default(1), limit: z.coerce.number().int().min(1).max(100).default(20), updatedSince: z.string().datetime().optional() });
+externalAdminRoutes.get('/imports/products/links', validateQuery(z.object({ page: z.coerce.number().int().min(1).max(100000).default(1) }).strict()), async (req, res, next) => {
+  try {
+    const page = Number(req.query.page); const [links, total] = await Promise.all([
+      prisma.externalProductLink.findMany({ orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: (page - 1) * 20, take: 20,
+        select: { id: true, source: true, externalId: true, createdAt: true, revokedAt: true, product: { select: { id: true, sku: true, name: true } } } }),
+      prisma.externalProductLink.count(),
+    ]);
+    successResponse(res, { links, page, total, totalPages: Math.ceil(total / 20) });
+  } catch (error) { next(error); }
+});
 externalAdminRoutes.post('/imports/products/preview', validateBody(previewProductImportSchema), async (req, res, next) => {
   try { successResponse(res, await previewProductImport(req.body)); } catch (error) { next(error); }
 });

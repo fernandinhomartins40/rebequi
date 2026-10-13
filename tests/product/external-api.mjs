@@ -35,6 +35,8 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
   assert.equal((await admin.post(linksPath, { data: linkInput })).status(), 403);
   const linked = await data(await admin.post(linksPath, { headers, data: linkInput }), 201);
   assert.equal(linked.productId, catalog.id);
+  const listedLinks = await data(await admin.get(`${linksPath}?page=1`));
+  assert.equal(listedLinks.links.some(value => value.id === linked.id && value.product.sku === catalog.sku && !value.revokedAt), true);
   assert.deepEqual(await data(await admin.post(linksPath, { headers, data: linkInput }), 201), linked);
   assert.equal((await admin.post(linksPath, { headers, data: { ...linkInput, productId: 'other' } })).status(), 409);
   assert.equal((await admin.post(linksPath, { headers, data: { ...linkInput, requestKey: randomUUID() } })).status(), 409);
@@ -95,6 +97,17 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
     await page.getByRole('checkbox', { name: 'Autorizo este sistema a consultar os dados nas permissões selecionadas.' }).check(); await page.getByRole('button', { name: 'Emitir credencial', exact: true }).click();
     await page.getByLabel('Credencial exibida somente nesta emissão', { exact: true }).waitFor(); assert.match(await page.getByLabel('Credencial exibida somente nesta emissão', { exact: true }).inputValue(), /^rb_api_/);
     await page.getByRole('button', { name: 'Fechar credencial', exact: true }).click(); await page.reload(); assert.equal(await page.getByLabel('Credencial exibida somente nesta emissão', { exact: true }).count(), 0);
+    await page.getByText('Conferir produtos de outro sistema', { exact: true }).click();
+    const importPanel = page.getByRole('region', { name: 'Prévia de importação de produtos', exact: true });
+    await importPanel.getByLabel('Identificação do sistema', { exact: true }).fill(importInput.source);
+    await importPanel.getByLabel('Arquivo de produtos (.json)', { exact: true }).setInputFiles({
+      name: 'produtos.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(importRows)),
+    });
+    await importPanel.getByRole('button', { name: 'Conferir arquivo', exact: true }).click();
+    await importPanel.getByText('2 produtos · 1 com conflito. Nenhum produto foi importado.', { exact: true }).waitFor();
+    await importPanel.getByRole('button', { name: 'Conferir vínculo', exact: true }).click();
+    await importPanel.getByRole('button', { name: 'Confirmar vínculo', exact: true }).click();
+    await importPanel.getByText('Vínculo registrado. Confira os demais conflitos antes de importar.', { exact: true }).waitFor();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   } finally { await context.close(); }
   const final = await data(await admin.get('/api/integrations/external-api/clients'));
