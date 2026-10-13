@@ -142,6 +142,11 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Contrato de unidades validado — 13/10/2026
+
+Workflow 38426132519, commit 2be088f: testes/infra, imagens e gate integrado concluídos com sucesso. Deploy confirmado em execução; conclusão de publicação ainda não presumida. Evidência confirma compatibilidade da biblioteca/schema com jornadas atuais e testes específicos de precisão/passos, não prova uso decimal no fluxo real ainda não integrado. Persistência/versionamento/snapshot por produto e migração coordenada de estoque, reservas, pedidos, vendas, devoluções, logística e interfaces permanecem pendentes. Objetivo completo continua ativo.
+
+
 ### Aritmética decimal publicada — 13/10/2026
 
 Workflow 38425867098, commit b8674c9: concluído com sucesso, incluindo testes, imagens, gate integrado e deploy. Publicada a biblioteca exata de quantidades/conversão/centavos; não está conectada à venda ou estoque decimal e não habilita granel por si só. Contrato de unidades/passos 2be088f aguarda workflow 38426132519. Próxima integração deve conservar registros antigos como unidades comerciais legadas sem inferir unidade física, persistir políticas verificadas/versionadas e snapshots antes de permitir conversões. Goal completo continua ativo e as caixas de unidades/granel permanecem incompletas.
