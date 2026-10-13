@@ -1,11 +1,13 @@
 import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { applyProductImportDraftSchema, linkExternalProductSchema, previewProductImportSchema, recordProductImportReviewSchema, revokeExternalProductLinkSchema, stageProductImportSchema, type PreviewProductImportInput } from '@rebequi/shared/schemas';
 import { apiFetch } from '@/services/api/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PartnerSteps } from '@/pages/partners/steps';
+import { ADMIN_BASE_PATH } from './config';
 
 type PreviewRow = { row: number; externalId: string; sku: string; localProductId: string | null; resolvedCategoryId: string | null; conflicts: string[]; status: string };
 type Preview = { source: string; rows: PreviewRow[]; summary: { total: number; conflicts: number; readyForReview: number }; applied: false };
@@ -40,7 +42,7 @@ export function ProductImportPanel() {
     queryFn: async () => (await apiFetch<{ data: { reviews: { id: string; createdAt: string; changedRows: number[]; summary: { conflicts: number } }[]; totalPages: number } }>(
       `${endpoint}/batches/${encodeURIComponent(reviewBatchId)}/reviews?page=${reviewPage}`)).data });
   const application = useQuery({ queryKey: ['external-product-import-application', reviewBatchId], enabled: Boolean(reviewBatchId), retry: false,
-    queryFn: async () => (await apiFetch<{ data: { application: { products: { row: number; sku: string }[]; skippedRows: number[] } | null } }>(
+    queryFn: async () => (await apiFetch<{ data: { application: { products: { row: number; productId: string; sku: string }[]; skippedRows: number[] } | null } }>(
       `${endpoint}/batches/${encodeURIComponent(reviewBatchId)}/application`)).data });
   const links = useQuery({ queryKey: ['external-product-links', linkPage], retry: false,
     queryFn: async () => (await apiFetch<{ data: { links: ProductLink[]; totalPages: number } }>(`${endpoint}/links?page=${linkPage}`)).data });
@@ -163,7 +165,10 @@ export function ProductImportPanel() {
             {reviewHistory.data.totalPages > 1 ? <div className="mt-2 flex justify-between gap-2"><Button type="button" size="sm" variant="outline" disabled={reviewPage === 1} onClick={() => setReviewPage(value => value - 1)}>Anterior</Button>
               <Button type="button" size="sm" variant="outline" disabled={reviewPage >= reviewHistory.data.totalPages} onClick={() => setReviewPage(value => value + 1)}>Próxima</Button></div> : null}
           </div> : null}
-          {application.data?.application ? <p role="status" className="mt-3">{application.data.application.products.length} {application.data.application.products.length === 1 ? 'produto criado' : 'produtos criados'} como {application.data.application.products.length === 1 ? 'rascunho inativo' : 'rascunhos inativos'}. {application.data.application.skippedRows.length} {application.data.application.skippedRows.length === 1 ? 'linha não foi aplicada' : 'linhas não foram aplicadas'}. Configure preço e estoque no cadastro antes de publicar.</p> :
+          {application.data?.application ? <div className="mt-3 space-y-2"><p role="status">{application.data.application.products.length} {application.data.application.products.length === 1 ? 'produto criado' : 'produtos criados'} como {application.data.application.products.length === 1 ? 'rascunho inativo' : 'rascunhos inativos'}. {application.data.application.skippedRows.length} {application.data.application.skippedRows.length === 1 ? 'linha não foi aplicada' : 'linhas não foram aplicadas'}. Configure preço e estoque no cadastro antes de publicar.</p>
+            <ul className="space-y-1">{application.data.application.products.map(item => <li key={item.productId}><Link className="text-blue-700 underline" to={`${ADMIN_BASE_PATH}/produtos/${item.productId}/editar`}>Editar {item.sku}</Link></li>)}</ul>
+            {application.data.application.skippedRows.length ? <p>Linhas pendentes: {application.data.application.skippedRows.join(', ')}.</p> : null}
+          </div> :
             batchReview.data && reviewHistory.data?.reviews.length && reviewPage === 1 ? <div className="mt-3 rounded border border-amber-200 bg-amber-50 p-3">
               <p>Produtos prontos podem ser criados como rascunhos inativos. Preços e saldos externos serão ignorados; linhas com conflito serão puladas. Confira a revisão registrada antes de continuar.</p>
               <Button type="button" size="sm" className="mt-2" disabled={applyDrafts.isPending || !batchReview.data.currentPreview.rows.some(row => row.status === 'READY_FOR_REVIEW')}

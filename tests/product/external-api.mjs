@@ -258,6 +258,7 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
     await importPanel.getByRole('button', { name: 'Registrar esta revisão', exact: true }).click();
     await importPanel.getByRole('button', { name: 'Criar 1 rascunho inativo', exact: true }).click();
     await importPanel.getByText('1 produto criado como rascunho inativo. 1 linha não foi aplicada. Configure preço e estoque no cadastro antes de publicar.', { exact: true }).waitFor();
+    assert.match(await importPanel.getByRole('link', { name: `Editar ${importRows[1].sku}` }).getAttribute('href'), /\/produtos\/[^/]+\/editar$/);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   } finally { await context.close(); }
   const draftSource = `draft-${randomUUID()}`;
