@@ -461,3 +461,8 @@ Publicação de ce4403a confirmada pelo deploy 115428324005, após integração 
 ### Prévia autenticada de linha por medida — 13/10/2026
 
 O deploy 115432931201 confirmou a publicação de e12f34e. Acrescentado POST /api/products/admin/:id/unit-policy/preview, restrito a catalog:read, origem confiável e no-store. Consulta política atual em snapshot transacional, exige versão esperada e preço por unidade explicitamente confirmado. Não usa preço legado sem unidade, não recebe totais calculados pelo cliente, não reserva nem movimenta saldo. Calcula somente com política persistida; versão antiga retorna conflito e quantidade fora do passo é rejeitada. Testes integrados cobrem essas condições e preservação dos saldos; dependem do workflow. Interface de prévia e integração transacional com pedidos/estoque ainda pendentes.
+
+
+### Publicação da prévia por medida — 13/10/2026
+
+A validação integrada 115435563877 e o deploy 115437494650 concluíram com sucesso na execução 38437365330, publicando c3bab37 via GitHub Actions/GHCR. A API de prévia está disponível para colaboradores autorizados; interface e integração operacional com pedidos, reservas, estoque, logística e devoluções seguem pendentes. Nenhuma política financeira nova ou conexão externa foi ativada.
