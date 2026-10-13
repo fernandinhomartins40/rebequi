@@ -1,8 +1,8 @@
 # Gestão comercial, logística e integrações — roteiro de execução
 
-## Estado atual e tarefas restantes — atualização de 12/10/2026
+## Estado atual e tarefas restantes — atualização de 13/10/2026
 
-Workflows 38326558378 e 38327147537: concluídos com sucesso, incluindo banco/API/navegador reais e deploy. Estão publicados atribuição/proteção comercial, Meus atendimentos, catálogo, separação/conferência, perfis de depósito/motorista, frota, romaneio, carregamento/saída/retorno, prioridade operacional, acompanhamento inicial pelo cliente e API externa somente de leitura. Orçamento assistido está no gate do workflow 38328469217. O plano completo ainda não está concluído.
+Workflows até 38332596582 concluídos com sucesso, incluindo banco/API/navegador reais e deploy. Estão publicados atribuição/proteção comercial, Meus atendimentos, orçamento assistido, catálogo, separação/conferência, perfis de depósito/motorista, frota, romaneio, carregamento/saída/retorno, prioridade operacional, retirada parcial com recebedor, histórico privado por papel e API externa somente de leitura com exportação de orçamentos. O plano completo ainda não está concluído.
 
 Próximas tarefas, na ordem de execução:
 
@@ -139,13 +139,18 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Saldo de materiais no painel do cliente — 13/10/2026
+
+Consulta própria paginada em 20 materiais, sem notas internas, endereço, recebedor ou dados de outros clientes. Snapshot RepeatableRead calcula saldo físico atual recebido, saldo ainda a receber e quantidade removida por devolução/cancelamento parcial; não usa venda paga como prova de recebimento. Painel consulta somente ao abrir “O que recebi e o que falta?”, com atualização manual e paginação. Consulta não movimenta estoque nem registra entrega. Testes integrados acrescentam isolamento por proprietário/papel, no-store, pedido sem preparação, versão da consulta após retiradas/devoluções e navegador mobile de 320px. Validação integrada deste incremento pendente após publicação pela main. Entrega parcial em rota e demais requisitos permanecem no goal ativo.
+
+
 ### Retirada parcial com recebedor — 13/10/2026
 
 Novo registro de retirada em três passos: quantidades entregues agora → nome do recebedor → confirmação física. Restringe a retirada paga, em modo PICKUP e liberada; quantidades inteiras positivas não podem superar saldo conferido menos recebido e devoluções. Lock venda/tarefa, versão esperada, revalidação de operador ativo e intenção idempotente impedem duplicações e preservam concorrência com devoluções. Evento imutável guarda recebedor, materiais/nome/quantidade, horário e ator. Não exige CPF/telefone, não representa assinatura eletrônica e não movimenta estoque novamente. Upload de evidência permanece pendente.
 
 PARTIALLY_RECEIVED conserva materiais ainda pendentes; RECEIVED sai da fila padrão e permanece consultável por etapa. Cliente recebe etapa e histórico mínimo, sem nome do recebedor. Preparação pronta para retirada fica resumida, com revisão sob botão; parcial não oferece edição que apagaria recebimentos. Rechecagem após devolução preserva saldo recebido: materiais ainda não recebidos não reduzem esse saldo, recebidos do cliente reduzem somente quantidades conferidas. Obrigações totalmente recebidas permanecem RECEIVED; devolução de todos os materiais encerra tarefa CANCELED, sem presumir entrega ou reposição de estoque. Cálculos financeiros são os existentes.
 
-Migração aditiva 20261012160000_pickup_receipts amplia estados operacionais. 66 testes locais, tipos, lint, textos e build passaram. Integração acrescenta fluxo real com banco/API/navegador: pago/liberado, retirada parcial concorrente/idempotente, versão/quantidade/origem, cancelamento bloqueado enquanto há material recebido, rechecagem sem apagar recebimento, conclusão mobile, devolução física parcial/total, privacidade e estoque sem movimento duplicado. Validação integrada deste incremento ainda pendente. Workflows 38331168790 e 38331498243 aprovados e publicados confirmaram o acompanhamento do cliente e a origem física das devoluções. Recebimento em rota, ocorrências/reagendamento/reentrega, evidência/PWA, métricas/comissões e integrações restantes continuam no goal ativo.
+Migração aditiva 20261012160000_pickup_receipts amplia estados operacionais. 66 testes locais, tipos, lint, textos e build passaram. Integração acrescenta fluxo real com banco/API/navegador: pago/liberado, retirada parcial concorrente/idempotente, versão/quantidade/origem, cancelamento bloqueado enquanto há material recebido, rechecagem sem apagar recebimento, conclusão mobile, devolução física parcial/total, privacidade e estoque sem movimento duplicado. Validação integrada e deploy aprovados no workflow 38332596582. Workflows 38331168790 e 38331498243 aprovados e publicados confirmaram o acompanhamento do cliente e a origem física das devoluções. Recebimento em rota, ocorrências/reagendamento/reentrega, evidência/PWA, métricas/comissões e integrações restantes continuam no goal ativo.
 
 ### Origem física das devoluções — preparação do recebimento parcial
 

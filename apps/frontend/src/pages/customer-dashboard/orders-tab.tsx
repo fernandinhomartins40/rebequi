@@ -16,6 +16,7 @@ import { SectionPanel } from './components';
 import { DashboardHeading } from '@/components/dashboard/DashboardElements';
 import { DashboardEmpty, DashboardError, DashboardLoading } from '@/components/dashboard/DashboardList';
 import { OrderHistory } from './order-history';
+import { OrderMaterials } from './order-materials';
 
 export function OrdersTab() {
   const [params] = useSearchParams();
@@ -83,7 +84,7 @@ export function OrdersTab() {
         </div>
         {order.fulfillment ? <div className="rounded-lg bg-blue-50 p-3"><p className="text-sm font-semibold">{({ RECEIVED: 'Materiais recebidos', PARTIALLY_RECEIVED: 'Materiais recebidos parcialmente', LOADED: 'Materiais carregados', IN_TRANSIT: 'Entrega em andamento', AWAITING_DETAILS: 'Confirmando retirada ou entrega', PICKING: 'Em separação', CHECKING: 'Conferindo os materiais', READY: order.fulfillment.mode === 'PICKUP' ? 'Materiais preparados para retirada' : 'Preparando entrega', CANCELED: 'Operação cancelada', PAYMENT_PENDING: 'Aguardando confirmação de pagamento' } as Record<string, string>)[order.fulfillment.status] ?? 'Andamento em conferência'}</p><p className="mt-1 text-xs text-muted-foreground">Atualizado em {formatDateTime(order.fulfillment.updatedAt)}</p>{order.fulfillment.scheduledAt ? <p className="mt-1 text-xs">Agendamento confirmado: {formatDateTime(order.fulfillment.scheduledAt)}</p> : null}</div> : null}
         <p className="text-sm">{order.itemCount} itens · <strong>{formatCurrency(order.subtotal)}</strong></p>
-        {order.fulfillment ? <OrderHistory orderId={order.id} /> : null}
+        {order.fulfillment ? <><OrderMaterials orderId={order.id} /><OrderHistory orderId={order.id} /></> : null}
         <details className="rounded-lg border border-border p-3">
           <summary className="cursor-pointer text-sm font-medium">Ver itens do pedido</summary>
           <ul className="mt-3 space-y-2">

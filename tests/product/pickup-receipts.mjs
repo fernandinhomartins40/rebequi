@@ -33,9 +33,28 @@ export async function validatePickupReceipts({ owner, admin, guest, browser, bas
   assert.equal((await guest.post(`/api/fulfillments/${id}/pickup-receipts`, { headers, data: { ...receipt, requestKey: randomUUID(), expectedVersion: row.version, items: [{ id: row.items[0].id, quantity: 3 }] } })).status(), 409);
   assert.equal((await admin.post(`/api/sales/admin/${sale.id}/status`, { headers, data: { status: 'CANCELED' } })).status(), 409);
   const ownOrder = (await data(await owner.get('/api/orders/me'))).find(value => value.id === order.id); assert.equal(ownOrder.fulfillment.status, 'PARTIALLY_RECEIVED'); assert.equal(JSON.stringify(ownOrder).includes(receipt.receiverName), false);
+  const materialResponse = await owner.get(`/api/orders/me/${order.id}/fulfillment-materials`);
+  const publicMaterials = await data(materialResponse); assert.match(materialResponse.headers()['cache-control'], /no-store/);
+  assert.deepEqual(publicMaterials.materials, [{ id: row.items[0].id, name: row.items[0].nameSnapshot, orderedQuantity: 3, removedQuantity: 0, receivedQuantity: 1, pendingQuantity: 2 }]);
+  assert.equal(JSON.stringify(publicMaterials).includes(receipt.receiverName), false);
+  const nextMaterials = await data(await owner.get(`/api/orders/me/${order.id}/fulfillment-materials?page=2`));
+  assert.equal(nextMaterials.total, 1); assert.equal(nextMaterials.page, 2); assert.equal(nextMaterials.materials.length, 0);
+  const customerContext = await browser.newContext();
+  try {
+    await customerContext.addCookies((await owner.storageState()).cookies); const page = await customerContext.newPage(); await page.setViewportSize({ width: 320, height: 844 });
+    await page.goto(`${baseURL}/painel-cliente?tab=orders&orderId=${encodeURIComponent(order.id)}`);
+    const card = page.locator(`#customer-order-${order.id}`);
+    await card.getByText('O que recebi e o que falta?', { exact: true }).click();
+    await card.getByText('Recebido comigo', { exact: true }).waitFor();
+    assert.equal(await card.locator('dd').nth(0).innerText(), '1');
+    assert.equal(await card.locator('dd').nth(1).innerText(), '2');
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  } finally { await customerContext.close(); }
   const pendingReturn = { requestKey: randomUUID(), expectedVersion: 0, confirmed: true, reason: 'Material não recebido retirado do pedido', items: [{ saleItemId: sale.items[0].id, quantity: 1, restock: false, physicalOrigin: 'NOT_RECEIVED' }] };
   await data(await admin.post(`/api/sales/admin/${sale.id}/returns`, { headers, data: pendingReturn }), 201);
   row = await data(await admin.get(`/api/fulfillments/${id}`)); assert.equal(row.items[0].delivered, 1); assert.equal(row.items[0].checked, 1); assert.equal(row.items[0].remainingQuantity, 2);
+  const afterRemoval = (await data(await owner.get(`/api/orders/me/${order.id}/fulfillment-materials`))).materials[0];
+  assert.equal(afterRemoval.pendingQuantity, 1); assert.equal(afterRemoval.removedQuantity, 1); assert.equal(afterRemoval.receivedQuantity, 1);
   assert.equal((await guest.post(`/api/fulfillments/${id}/operations`, { headers, data: { requestKey: randomUUID(), expectedVersion: row.version, confirmed: true, action: 'CHECK', items: [{ id: row.items[0].id, quantity: 0 }] } })).status(), 409);
   await prepare(2);
   const context = await browser.newContext();
@@ -61,6 +80,8 @@ export async function validatePickupReceipts({ owner, admin, guest, browser, bas
   row = await data(await admin.get(`/api/fulfillments/${id}`)); assert.equal(row.status, 'RECEIVED'); assert.equal(row.items[0].delivered, 1); assert.equal(row.items[0].checked, 1);
   await data(await admin.post(`/api/sales/admin/${sale.id}/returns`, { headers, data: { requestKey: randomUUID(), expectedVersion: 2, confirmed: true, reason: 'Último material recebido de volta do cliente', items: [{ saleItemId: sale.items[0].id, quantity: 1, restock: false, physicalOrigin: 'RECEIVED_FROM_CUSTOMER' }] } }), 201);
   row = await data(await admin.get(`/api/fulfillments/${id}`)); assert.equal(row.status, 'CANCELED'); assert.equal(row.items[0].delivered, 0); assert.equal(row.items[0].remainingQuantity, 0);
+  const finalMaterials = (await data(await owner.get(`/api/orders/me/${order.id}/fulfillment-materials`))).materials[0];
+  assert.equal(finalMaterials.pendingQuantity, 0); assert.equal(finalMaterials.receivedQuantity, 0); assert.equal(finalMaterials.removedQuantity, 3);
   assert.deepEqual(await data(await guest.post(`/api/fulfillments/${id}/pickup-receipts`, { headers, data: receipt }), 201), first);
   assert.equal(Number(db(`console.log((await prisma.product.findUniqueOrThrow({where:{id:${JSON.stringify(product.id)}}})).stock);`).trim()), stockBefore, 'Receipt and returns without restocking must not create another stock movement');
   assert.equal(Number(db(`console.log(await prisma.fulfillmentEvent.count({where:{fulfillmentId:${JSON.stringify(id)},kind:'PICKUP_RECEIVED'}}));`).trim()), 2);

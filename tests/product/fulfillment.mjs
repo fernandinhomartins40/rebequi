@@ -11,6 +11,7 @@ export async function validateFulfillment({ owner, guest, admin, browser, baseUR
   const sale = await data(await admin.post('/api/sales/admin', { headers, data: { orderId: checkout.order.id, status: 'PENDING_PAYMENT', paymentMethod: 'PIX', idempotencyKey: randomUUID() } }), 201);
   assert.equal(Number(db(`console.log(await prisma.fulfillment.count({where:{saleId:${JSON.stringify(sale.id)}}}));`).trim()), 0);
   const emptyHistory = await data(await owner.get(`/api/orders/me/${checkout.order.id}/fulfillment-history`)); assert.equal(emptyHistory.total, 0);
+  assert.equal((await data(await owner.get(`/api/orders/me/${checkout.order.id}/fulfillment-materials`))).total, 0);
   await data(await admin.post(`/api/sales/admin/${sale.id}/status`, { headers, data: { status: 'PAID' } }));
   const id = db(`console.log((await prisma.fulfillment.findUniqueOrThrow({where:{saleId:${JSON.stringify(sale.id)}}})).id);`).trim();
   const row = await data(await admin.get(`/api/fulfillments/${id}`)); assert.equal(row.status, 'AWAITING_DETAILS'); assert.equal(row.items.length, 1);
@@ -23,6 +24,9 @@ export async function validateFulfillment({ owner, guest, admin, browser, baseUR
   const foreignOrderId = `foreign_history_${randomUUID()}`;
   db(`await prisma.customerOrder.create({data:{id:${JSON.stringify(foreignOrderId)},referenceCode:${JSON.stringify(foreignOrderId)},userId:${JSON.stringify(otherCustomer.id)},customerNameSnapshot:'Outro cliente isolado',customerWhatsapp:'11999998888'}});`);
   assert.equal((await owner.get(`/api/orders/me/${foreignOrderId}/fulfillment-history`)).status(), 404, 'Knowing another customer order ID cannot reveal its history');
+  assert.equal((await owner.get(`/api/orders/me/${foreignOrderId}/fulfillment-materials`)).status(), 404);
+  assert.equal((await owner.get(`/api/orders/me/${checkout.order.id}/fulfillment-materials?page=0`)).status(), 400);
+  assert.equal((await admin.get(`/api/orders/me/${checkout.order.id}/fulfillment-materials`)).status(), 403);
   assert.equal((await owner.get(`/api/fulfillments/${id}`)).status(), 403); assert.equal((await guest.get(`/api/fulfillments/${id}`)).status(), 401);
   await data(await guest.post('/api/auth/login', { data: warehouseLogin }));
   assert.equal((await guest.get(`/api/fulfillments/${id}`)).status(), 200);
