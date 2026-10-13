@@ -126,6 +126,7 @@ model Category {
 // ============================================================================
 model Product {
   unitPolicies ProductUnitPolicy[]
+  externalLinks ExternalProductLink[]
   id            String         @id @default(cuid())
   name          String
   slug          String         @unique
@@ -170,6 +171,24 @@ model Product {
   @@index([deletedAt])
   @@index([price])
   @@map("products")
+}
+
+model ExternalProductLink {
+  id String @id @default(cuid())
+  source String
+  externalId String
+  productId String
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+  requestKey String @unique
+  fingerprint String
+  actorId String
+  createdAt DateTime @default(now())
+  revokedAt DateTime?
+  revokedById String?
+  revokedReason String?
+  @@index([productId])
+  @@index([source, externalId])
+  @@map("external_product_links")
 }
 
 model ProductUnitPolicy {

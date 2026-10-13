@@ -13,3 +13,8 @@ export const previewProductImportSchema = z.object({
   }).strict()).min(1).max(100),
 }).strict();
 export type PreviewProductImportInput = z.infer<typeof previewProductImportSchema>;
+export const linkExternalProductSchema = z.object({
+  requestKey: z.string().uuid(), source: code, externalId: code,
+  productId: z.string().min(1).max(128), expectedSku: code, confirmed: z.literal(true),
+}).strict();
+export const revokeExternalProductLinkSchema = z.object({ confirmed: z.literal(true), reason: z.string().trim().min(3).max(300) }).strict();

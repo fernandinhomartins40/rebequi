@@ -41,3 +41,11 @@ Sem endpoint arbitrário ou chamada de saída: não há SSRF de conector nesta b
 Teste mutante apenas no banco descartável do GitHub: emissões e revogações sintéticas, autorização/origem, hash-only, reenvio, escopos, expiração, leitura real/limite/sem PII, contratos e interface mobile. Nunca emitir credencial real ou alterar sistema comercial para validar produção.
 
 Referência: [OpenAPI 3.1.1](https://spec.openapis.org/oas/v3.1.1.html). Conectores futuros devem seguir as capacidades específicas descritas no [Bling](https://developer.bling.com.br/bling-api) e no [catálogo Omie](https://developer.omie.com.br/service-list/), conforme o fornecedor efetivamente escolhido.
+
+## Prévia e vínculo de produtos externos
+
+Uma sessão administrativa com permissão de gestão de integrações pode enviar até 100 registros estruturados para `POST /api/integrations/external-api/imports/products/preview`. Cada registro informa `externalId`, `sku`, `name`, `categoryId`, `priceCents` e `stockQuantity`, além de `source` no lote. A resposta identifica IDs e SKUs repetidos, SKU local já existente, categoria ausente e vínculo cujo SKU diverge. A autoridade continua local para catálogo, preço e estoque. `applied=false` significa que a prévia não importou nem atualizou dados.
+
+Após conferir um produto local e seu SKU, `POST /api/integrations/external-api/imports/products/links` registra somente o vínculo entre `source`, `externalId` e `productId`, com `requestKey` UUID, `expectedSku` e `confirmed=true`. A mesma chave e conteúdo podem ser reenviados; conteúdo diferente, SKU alterado ou vínculo ativo conflitante retornam conflito. `POST /api/integrations/external-api/imports/products/links/{id}/revoke` exige `confirmed=true` e um motivo, preservando o histórico. A mesma origem não pode ter dois IDs ativos para o mesmo produto nem dois produtos ativos para o mesmo ID.
+
+Essas rotas usam cookie administrativo e verificação de origem, não a credencial Bearer da API externa. Ainda não há aplicação de lote, mudança de preço/estoque, conector ERP ativo ou interface administrativa para esses vínculos. A futura aplicação precisa escolher autoridade por domínio, registrar inbox idempotente e conciliar divergências antes de modificar dados.

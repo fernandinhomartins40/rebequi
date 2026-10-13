@@ -27,3 +27,13 @@ test('Import preview rejects unsafe, ambiguous and oversized input', () => {
     assert.equal(previewProductImportSchema.safeParse(value).success, false);
   }
 });
+
+test('Verified external links resolve known products and expose changed SKUs', () => {
+  const base = { source: 'pdv-test', rows: [{ externalId: 'A', sku: 'SKU-1', name: 'Material novo', categoryId: 'cat-1', priceCents: '100', stockQuantity: '2' }] };
+  const input = previewProductImportSchema.parse(base);
+  const products = [{ id: 'product-1', sku: 'SKU-1' }]; const categories = [{ id: 'cat-1' }];
+  const links = [{ source: 'pdv-test', externalId: 'A', productId: 'product-1' }];
+  assert.equal(classifyProductImport(input, products, categories, links).rows[0].status, 'LINKED_REVIEW');
+  const changedSku = previewProductImportSchema.parse({ ...base, rows: [{ ...base.rows[0], sku: 'SKU-2' }] });
+  assert.deepEqual(classifyProductImport(changedSku, products, categories, links).rows[0].conflicts, ['LINK_SKU_MISMATCH']);
+});

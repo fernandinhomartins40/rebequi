@@ -11,7 +11,7 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
   const persisted = JSON.parse(db(`console.log(JSON.stringify(await prisma.externalApiClient.findUniqueOrThrow({where:{id:${JSON.stringify(credential.id)}},select:{tokenHash:true}})));`).trim());
   assert.equal(persisted.tokenHash, createHash('sha256').update(credential.token).digest('hex')); assert.notEqual(persisted.tokenHash, credential.token);
   const importPath = '/api/integrations/external-api/imports/products/preview';
-  const catalog = JSON.parse(db(`console.log(JSON.stringify(await prisma.product.findFirstOrThrow({where:{sku:{not:null}},select:{id:true,sku:true,categoryId:true,stock:true,reservedStock:true,price:true}})));`).trim());
+  const catalog = JSON.parse(db(`console.log(JSON.stringify(await prisma.product.findFirstOrThrow({where:{sku:{not:null},deletedAt:null,category:{isActive:true,deletedAt:null}},select:{id:true,sku:true,categoryId:true,stock:true,reservedStock:true,price:true}})));`).trim());
   const importRows = [
     { externalId: 'existing', sku: catalog.sku, name: 'Material existente', categoryId: catalog.categoryId, priceCents: '1000', stockQuantity: '5' },
     { externalId: 'new', sku: `IMPORT-${randomUUID()}`, name: 'Material novo', categoryId: catalog.categoryId, priceCents: '1000', stockQuantity: '5' },
@@ -28,6 +28,32 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
   assert.deepEqual(importPreview.rows[0].conflicts, ['SKU_ALREADY_LOCAL']);
   assert.equal(importPreview.rows[0].localProductId, catalog.id);
   assert.equal(importPreview.rows[1].status, 'READY_FOR_REVIEW');
+  const linksPath = '/api/integrations/external-api/imports/products/links';
+  const linkInput = { requestKey: randomUUID(), source: importInput.source, externalId: importRows[0].externalId,
+    productId: catalog.id, expectedSku: catalog.sku, confirmed: true };
+  assert.equal((await owner.post(linksPath, { headers, data: linkInput })).status(), 403);
+  assert.equal((await admin.post(linksPath, { data: linkInput })).status(), 403);
+  const linked = await data(await admin.post(linksPath, { headers, data: linkInput }), 201);
+  assert.equal(linked.productId, catalog.id);
+  assert.deepEqual(await data(await admin.post(linksPath, { headers, data: linkInput }), 201), linked);
+  assert.equal((await admin.post(linksPath, { headers, data: { ...linkInput, productId: 'other' } })).status(), 409);
+  assert.equal((await admin.post(linksPath, { headers, data: { ...linkInput, requestKey: randomUUID() } })).status(), 409);
+  const linkedPreview = await data(await admin.post(importPath, { headers, data: importInput }));
+  assert.equal(linkedPreview.rows[0].status, 'LINKED_REVIEW');
+  assert.deepEqual(linkedPreview.rows[0].conflicts, []);
+  const revocation = { confirmed: true, reason: 'Vínculo revogado no teste isolado' };
+  const revokePath = `${linksPath}/${linked.id}/revoke`;
+  assert.equal((await owner.post(revokePath, { headers, data: revocation })).status(), 403);
+  await data(await admin.post(revokePath, { headers, data: revocation }));
+  await data(await admin.post(revokePath, { headers, data: revocation }));
+  assert.equal((await admin.post(linksPath, { headers, data: linkInput })).status(), 409);
+  assert.deepEqual((await data(await admin.post(importPath, { headers, data: importInput }))).rows[0].conflicts, ['SKU_ALREADY_LOCAL']);
+  const rebound = await data(await admin.post(linksPath, { headers, data: { ...linkInput, requestKey: randomUUID() } }), 201);
+  assert.notEqual(rebound.id, linked.id);
+  assert.equal((await data(await admin.post(importPath, { headers, data: importInput }))).rows[0].status, 'LINKED_REVIEW');
+  await data(await admin.post(`${linksPath}/${rebound.id}/revoke`, { headers, data: revocation }));
+  const blockedMutation = JSON.parse(db(`let blocked=false;try{await prisma.externalProductLink.update({where:{id:${JSON.stringify(linked.id)}},data:{externalId:'rewritten'}});}catch{blocked=true;}console.log(JSON.stringify({blocked}));`).trim().split('\n').at(-1));
+  assert.equal(blockedMutation.blocked, true);
   assert.deepEqual(JSON.parse(db(`console.log(JSON.stringify(await prisma.product.findUniqueOrThrow({where:{id:${JSON.stringify(catalog.id)}},select:{stock:true,reservedStock:true,price:true}})));`).trim()), { stock: catalog.stock, reservedStock: catalog.reservedStock, price: catalog.price });
   assert.equal(Number(db(`console.log(await prisma.product.count({where:{sku:${JSON.stringify(importRows[1].sku)}}}));`).trim()), 0);
   assert.equal((await admin.get('/api/external/v1/products')).status(), 401, 'Admin cookies do not authenticate the external API');
