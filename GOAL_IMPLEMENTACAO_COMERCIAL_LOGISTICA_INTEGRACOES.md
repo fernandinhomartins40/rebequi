@@ -142,6 +142,13 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Base exata para quantidades fracionadas — 13/10/2026
+
+Diagnóstico confirmado: Product.stock/reservedStock, SaleItem, CustomerOrderItem, StockMovement, StockReservation, devolução e contadores logísticos usam Int; financeiro de devolução multiplica centavos por BigInt(quantity). Não basta remover .int() dos formulários. Adicionada aritmética compartilhada em commercial-quantity.ts: contrato decimal canônico de até três casas, milésimos BigInt, conversão com fator explicitamente confirmado e rejeição de precisão extra, extensão de preço em centavos half-up e devolução cumulativa conservando o total. Sem inferir unidade, fator ou conversão física por nome de produto.
+
+72 testes locais passaram, incluindo limites, separador ambíguo, precisão, conversão, arredondamento de meia unidade monetária e devoluções parciais que recuperam todos os centavos. Build shared/textos aprovados. Esta é fundação incremental: não altera estoque/dados históricos, não ativa venda fracionada e não declara migração concluída. Próximos requisitos: unidade/fator/versionamento explícitos e snapshots, migração decimal aditiva compatível, todos os serviços/reservas/movimentos/devoluções/logística, formulários e exportações, concorrência e ciclo real. Goal completo permanece ativo.
+
+
 ### PWA publicado e roteiro de piloto — 13/10/2026
 
 Workflow 38424364723 concluído com sucesso incluindo deploy; PWA/reconexão publicados. Criado docs/PILOTO_MOTORISTA_PWA.md com três etapas de instalação, operação e reconexão; critérios específicos de Android/Chrome e iPhone/Safari, privacidade de foto, recebimento parcial/reentrega, saldo, revogação e atualização. Matriz de aparelhos permanece explicitamente pendente. Não cria vendas de teste em produção nem declara piloto real executado. Quantidades fracionadas/granel e demais módulos continuam pendentes no objetivo completo.
