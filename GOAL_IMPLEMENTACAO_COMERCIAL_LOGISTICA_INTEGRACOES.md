@@ -25,6 +25,7 @@ Próximas tarefas, na ordem de execução:
 - [ ] Prévia e vínculos de clientes externos: painel/API, unicidade, confirmação dos contatos e revogação implementados; validar PostgreSQL/navegador e deploy no workflow antes de marcar publicado. Aplicação do lote continua pendente.
 - [ ] API externa de escrita autorizada, eventos/webhooks assinados, exportação ampliada, rastreabilidade persistente e reprocessamento.
 - [ ] Entrada autenticada de lotes de produtos pela API externa: escopo imports:write vinculado à origem, idempotência e registro para revisão implementados; validar workflow antes de considerar publicado. Escritas comerciais, webhooks e outbox externa seguem pendentes.
+- [ ] Retorno de estado do lote à credencial de origem: consulta restrita ao emissor com revisão, contagem de rascunhos e linhas puladas implementada; validar API integrada e deploy no workflow. Ainda não há retorno por webhook nem sincronização automática.
 - [ ] Conector ERP/PDV específico após identificação/documentação; usuário ainda não sabe qual sistema usa. Continuar módulos independentes.
 - [ ] Homologação externa, fluxo orçamento→venda→depósito→entrega, testes concorrentes/reversões/indisponibilidade e piloto em aparelhos reais.
 - [ ] Concluir pendências da plataforma de parceiros registradas em docs/PARCEIROS_PWA_IMPLEMENTACAO.md quando retomar aquele escopo: expiração/lotes, níveis/campanhas, conciliação, outros canais/compras próprias, compartilhamento, conteúdo/oportunidades/push e piloto.

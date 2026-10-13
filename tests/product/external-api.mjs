@@ -116,6 +116,19 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
   const apiBatch = await data(await guest.post(apiBatchPath, { headers: { Authorization: `Bearer ${importCredential.token}` },
     data: apiBatchInput }), 201);
   assert.equal(apiBatch.applied, false);
+  const apiBatchStatusPath = `${apiBatchPath}/${apiBatch.id}`;
+  assert.equal((await guest.get(apiBatchStatusPath)).status(), 401);
+  assert.equal((await guest.get(apiBatchStatusPath, { headers: { Authorization: `Bearer ${credential.token}` } })).status(), 403);
+  const apiBatchStatus = await data(await guest.get(apiBatchStatusPath,
+    { headers: { Authorization: `Bearer ${importCredential.token}` } }));
+  assert.equal(apiBatchStatus.status, 'PENDING_REVIEW');
+  assert.equal(apiBatchStatus.reviewCount, 0);
+  assert.equal(apiBatchStatus.draftCount, 0);
+  assert.equal('rows' in apiBatchStatus || 'preview' in apiBatchStatus, false);
+  const sameSourceCredential = await data(await admin.post('/api/integrations/external-api/clients', { headers,
+    data: { ...importClientRequest, requestKey: randomUUID(), name: 'Outro cliente da mesma origem' } }), 201);
+  assert.equal((await guest.get(apiBatchStatusPath,
+    { headers: { Authorization: `Bearer ${sameSourceCredential.token}` } })).status(), 404);
   assert.deepEqual(await data(await guest.post(apiBatchPath, { headers: { Authorization: `Bearer ${importCredential.token}` },
     data: apiBatchInput }), 201), apiBatch);
   assert.equal((await guest.post(apiBatchPath, { headers: { Authorization: `Bearer ${importCredential.token}` },
@@ -138,6 +151,8 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
   assert.equal((await admin.post(batchesPath, { data: stageInput })).status(), 403);
   const staged = await data(await admin.post(batchesPath, { headers, data: stageInput }), 201);
   assert.equal(staged.applied, false);
+  assert.equal((await guest.get(`${apiBatchPath}/${staged.id}`,
+    { headers: { Authorization: `Bearer ${importCredential.token}` } })).status(), 404);
   assert.deepEqual(await data(await admin.post(batchesPath, { headers, data: stageInput }), 201), staged);
   assert.equal((await admin.post(batchesPath, { headers, data: { ...stageInput, rows: [importRows[0]] } })).status(), 409);
   const saved = await data(await admin.get(`${batchesPath}?page=1`));

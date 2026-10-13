@@ -165,6 +165,26 @@ externalApiRoutes.post('/imports/products/batches', scope('imports:write'), vali
   try { successResponse(res, await stageExternalProductImportFromApi(res.locals.externalClient.id, req.body), 201); }
   catch (error) { next(error); }
 });
+externalApiRoutes.get('/imports/products/batches/:id', scope('imports:write'),
+  validateParams(z.object({ id: z.string().cuid() }).strict()), async (req, res, next) => {
+    try {
+      const client = res.locals.externalClient;
+      const batch = await prisma.externalProductImportBatch.findFirst({
+        where: { id: req.params.id, actorId: `external-api:${client.id}`, source: client.source },
+        select: { id: true, source: true, createdAt: true,
+          _count: { select: { reviews: true } },
+          application: { select: { createdAt: true, products: true, skippedRows: true } } },
+      });
+      if (!batch) throw new NotFoundError('Lote não encontrado.');
+      const applied = batch.application;
+      successResponse(res, { id: batch.id, source: batch.source, createdAt: batch.createdAt,
+        status: applied ? 'DRAFTS_CREATED' : batch._count.reviews ? 'REVIEWED' : 'PENDING_REVIEW',
+        reviewCount: batch._count.reviews, appliedAt: applied?.createdAt ?? null,
+        draftCount: Array.isArray(applied?.products) ? applied.products.length : 0,
+        skippedCount: Array.isArray(applied?.skippedRows) ? applied.skippedRows.length : 0,
+        requestId: res.locals.requestId });
+    } catch (error) { next(error); }
+  });
 externalApiRoutes.get('/products', scope('catalog:read'), validateQuery(paging), async (req, res, next) => {
   try {
     const page = Number(req.query.page); const limit = Number(req.query.limit); const where = { ...(req.query.updatedSince ? { updatedAt: { gte: new Date(String(req.query.updatedSince)) } } : {}) };
