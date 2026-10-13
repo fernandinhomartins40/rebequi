@@ -14,6 +14,10 @@ export const previewCustomerImportSchema = z.object({
   }).strict().refine(row => Boolean(row.email || row.whatsapp), { message: 'Informe email ou WhatsApp' })).min(1).max(100),
 }).strict();
 export type PreviewCustomerImportInput = z.infer<typeof previewCustomerImportSchema>;
+export const stageCustomerImportSchema = previewCustomerImportSchema.extend({
+  requestKey: z.string().uuid(), confirmed: z.literal(true),
+});
+export type StageCustomerImportInput = z.infer<typeof stageCustomerImportSchema>;
 export const linkExternalCustomerSchema = z.object({
   requestKey: z.string().uuid(), source: code, externalId: code,
   customerId: z.string().min(1).max(128),

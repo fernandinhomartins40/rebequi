@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import { getRolesForMerchantPermission } from '@rebequi/shared/constants';
-import { createExternalClientSchema, previewProductImportSchema, stageProductImportSchema, recordProductImportReviewSchema, applyProductImportDraftSchema, linkExternalProductSchema, revokeExternalProductLinkSchema, previewCategoryImportSchema, linkExternalCategorySchema, revokeExternalCategoryLinkSchema, previewCustomerImportSchema, linkExternalCustomerSchema, revokeExternalCustomerLinkSchema } from '@rebequi/shared/schemas';
+import { createExternalClientSchema, previewProductImportSchema, stageProductImportSchema, recordProductImportReviewSchema, applyProductImportDraftSchema, linkExternalProductSchema, revokeExternalProductLinkSchema, previewCategoryImportSchema, linkExternalCategorySchema, revokeExternalCategoryLinkSchema, previewCustomerImportSchema, stageCustomerImportSchema, linkExternalCustomerSchema, revokeExternalCustomerLinkSchema } from '@rebequi/shared/schemas';
 import { prisma } from '../lib/prisma.js';
 import { authenticate, authorize } from '../middleware/auth.middleware.js';
 import { requireTrustedOrigin } from '../middleware/trusted-origin.middleware.js';
@@ -20,6 +20,7 @@ import { applyProductImportDrafts } from '../services/external-product-import-ap
 import { previewCategoryImport } from '../services/category-import-preview.service.js';
 import { createExternalCategoryLink, revokeExternalCategoryLink } from '../services/external-category-link.service.js';
 import { previewCustomerImport } from '../services/customer-import-preview.service.js';
+import { compareCustomerImportBatch, stageExternalCustomerImport } from '../services/external-customer-import-batch.service.js';
 import { createExternalCustomerLink, revokeExternalCustomerLink } from '../services/external-customer-link.service.js';
 
 export const externalAdminRoutes: Router = Router();
@@ -27,6 +28,32 @@ externalAdminRoutes.use(authenticate, authorize(...getRolesForMerchantPermission
 const paging = z.object({ page: z.coerce.number().int().min(1).max(100000).default(1), limit: z.coerce.number().int().min(1).max(100).default(20), updatedSince: z.string().datetime().optional() });
 externalAdminRoutes.post('/imports/customers/preview', validateBody(previewCustomerImportSchema), async (req, res, next) => {
   try { successResponse(res, await previewCustomerImport(req.body)); } catch (error) { next(error); }
+});
+externalAdminRoutes.get('/imports/customers/batches', validateQuery(z.object({ page: z.coerce.number().int().min(1).max(100000).default(1) }).strict()), async (req, res, next) => {
+  try {
+    const page = Number(req.query.page);
+    const [batches, total] = await Promise.all([
+      prisma.externalCustomerImportBatch.findMany({ orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: (page - 1) * 20, take: 20,
+        select: { id: true, source: true, createdAt: true, preview: true } }),
+      prisma.externalCustomerImportBatch.count(),
+    ]);
+    successResponse(res, { batches: batches.map(batch => ({ id: batch.id, source: batch.source, createdAt: batch.createdAt,
+      summary: (batch.preview as { summary?: unknown }).summary ?? null, applied: false })), page, total,
+      totalPages: Math.ceil(total / 20) });
+  } catch (error) { next(error); }
+});
+externalAdminRoutes.post('/imports/customers/batches', validateBody(stageCustomerImportSchema), async (req, res, next) => {
+  try { successResponse(res, await stageExternalCustomerImport(req.user!, req.body), 201); } catch (error) { next(error); }
+});
+externalAdminRoutes.get('/imports/customers/batches/:id', validateParams(z.object({ id: z.string().cuid() }).strict()), async (req, res, next) => {
+  try {
+    const batch = await prisma.externalCustomerImportBatch.findUnique({ where: { id: req.params.id },
+      select: { id: true, source: true, rows: true, preview: true, createdAt: true } });
+    if (!batch) throw new NotFoundError('Lote de clientes não encontrado.');
+    const { currentPreview, changedRows } = await compareCustomerImportBatch(batch);
+    successResponse(res, { id: batch.id, source: batch.source, createdAt: batch.createdAt,
+      savedPreview: batch.preview, currentPreview, changedRows, applied: false });
+  } catch (error) { next(error); }
 });
 externalAdminRoutes.get('/imports/customers/links', validateQuery(z.object({ page: z.coerce.number().int().min(1).max(100000).default(1) }).strict()), async (req, res, next) => {
   try {

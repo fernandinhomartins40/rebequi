@@ -39,10 +39,9 @@ export function classifyCustomerImport(input: PreviewCustomerImportInput, users:
     summary: { total: rows.length, conflicts: rows.filter(row => row.conflicts.length).length }, applied: false };
 }
 
-export async function previewCustomerImport(raw: PreviewCustomerImportInput) {
+export async function previewCustomerImport(raw: PreviewCustomerImportInput, client?: Prisma.TransactionClient) {
   const input = previewCustomerImportSchema.parse(raw);
-  const { prisma } = await import('../lib/prisma.js');
-  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+  const evaluate = async (tx: Prisma.TransactionClient) => {
     const emails = input.rows.flatMap(row => row.email ? [row.email] : []);
     const phones = input.rows.flatMap(row => row.whatsapp ? [row.whatsapp] : []);
     const users = await tx.user.findMany({ where: { OR: [
@@ -54,5 +53,8 @@ export async function previewCustomerImport(raw: PreviewCustomerImportInput) {
       OR: [{ externalId: { in: input.rows.map(row => row.externalId) } }, { customerId: { in: users.map(user => user.id) } }] },
       select: { source: true, externalId: true, customerId: true } });
     return classifyCustomerImport(input, users, links);
-  }, { isolationLevel: 'RepeatableRead' });
+  };
+  if (client) return evaluate(client);
+  const { prisma } = await import('../lib/prisma.js');
+  return prisma.$transaction(evaluate, { isolationLevel: 'RepeatableRead' });
 }

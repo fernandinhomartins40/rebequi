@@ -246,6 +246,19 @@ model ExternalProductImportBatch {
   @@map("external_product_import_batches")
 }
 
+model ExternalCustomerImportBatch {
+  id String @id @default(cuid())
+  source String
+  requestKey String @unique
+  fingerprint String
+  actorId String
+  rows Json
+  preview Json
+  createdAt DateTime @default(now())
+  @@index([source, createdAt])
+  @@map("external_customer_import_batches")
+}
+
 model ExternalProductImportApplication {
   id String @id
   batchId String @unique

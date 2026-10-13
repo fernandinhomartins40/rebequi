@@ -28,6 +28,21 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
   assert.equal(customerPreview.rows[1].status, 'READY_FOR_REVIEW');
   assert.equal(JSON.stringify(customerPreview).includes(existingCustomer.email), false);
   assert.equal(Number(db(`console.log(await prisma.user.count({where:{email:${JSON.stringify(customerRows[1].email)}}}));`).trim()), 0);
+  const customerBatchesPath = '/api/integrations/external-api/imports/customers/batches';
+  const customerStageInput = { ...customerInput, requestKey: randomUUID(), confirmed: true };
+  assert.equal((await owner.post(customerBatchesPath, { headers, data: customerStageInput })).status(), 403);
+  assert.equal((await admin.post(customerBatchesPath, { data: customerStageInput })).status(), 403);
+  const customerBatch = await data(await admin.post(customerBatchesPath, { headers, data: customerStageInput }), 201);
+  assert.equal(customerBatch.applied, false);
+  assert.deepEqual(await data(await admin.post(customerBatchesPath, { headers, data: customerStageInput }), 201), customerBatch);
+  assert.equal((await admin.post(customerBatchesPath, { headers,
+    data: { ...customerStageInput, rows: [customerRows[0]] } })).status(), 409);
+  const customerBatchList = await data(await admin.get(`${customerBatchesPath}?page=1`));
+  assert.equal(customerBatchList.batches.some(row => row.id === customerBatch.id), true);
+  assert.equal(JSON.stringify(customerBatchList).includes(existingCustomer.email), false);
+  const savedCustomerBatch = await data(await admin.get(`${customerBatchesPath}/${customerBatch.id}`));
+  assert.deepEqual(savedCustomerBatch.changedRows, []);
+  assert.equal(JSON.stringify(savedCustomerBatch).includes(existingCustomer.email), false);
   const customerLinksPath = '/api/integrations/external-api/imports/customers/links';
   const customerLinkInput = { requestKey: randomUUID(), source: customerInput.source, externalId: customerRows[0].externalId,
     customerId: existingCustomer.id, expectedEmail: existingCustomer.email, confirmed: true };
@@ -39,6 +54,7 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
   assert.equal((await admin.post(customerLinksPath, { headers, data: { ...customerLinkInput, requestKey: randomUUID() } })).status(), 409);
   assert.equal((await admin.post(customerLinksPath, { headers, data: { ...customerLinkInput, requestKey: randomUUID(), expectedEmail: 'wrong@example.invalid' } })).status(), 409);
   assert.equal((await data(await admin.post(customerPath, { headers, data: customerInput }))).rows[0].status, 'LINKED_REVIEW');
+  assert.deepEqual((await data(await admin.get(`${customerBatchesPath}/${customerBatch.id}`))).changedRows, [1]);
   assert.equal((await data(await admin.get(`${customerLinksPath}?page=1`))).links.some(row => row.id === customerLink.id), true);
   await data(await admin.post(`${customerLinksPath}/${customerLink.id}/revoke`, { headers, data: { confirmed: true, reason: 'Revisão isolada do runner' } }));
   assert.deepEqual((await data(await admin.post(customerPath, { headers, data: customerInput }))).rows[0].conflicts, ['LOCAL_CUSTOMER_EXISTS']);
@@ -52,6 +68,8 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
     data: { confirmed: true, reason: 'Limpeza do teste concorrente' } }));
   const blockedCustomerMutation = JSON.parse(db(`let blocked=false;try{await prisma.externalCustomerLink.delete({where:{id:${JSON.stringify(customerLink.id)}}});}catch{blocked=true;}console.log(JSON.stringify({blocked}));`).trim().split('\n').at(-1));
   assert.equal(blockedCustomerMutation.blocked, true);
+  const blockedCustomerBatchMutation = JSON.parse(db(`let blocked=false;try{await prisma.externalCustomerImportBatch.delete({where:{id:${JSON.stringify(customerBatch.id)}}});}catch{blocked=true;}console.log(JSON.stringify({blocked}));`).trim().split('\n').at(-1));
+  assert.equal(blockedCustomerBatchMutation.blocked, true);
   const importPath = '/api/integrations/external-api/imports/products/preview';
   const batchesPath = '/api/integrations/external-api/imports/products/batches';
   const catalog = JSON.parse(db(`console.log(JSON.stringify(await prisma.product.findFirstOrThrow({where:{sku:{not:null},deletedAt:null,category:{isActive:true,deletedAt:null}},select:{id:true,sku:true,categoryId:true,stock:true,reservedStock:true,price:true}})));`).trim());
@@ -259,6 +277,11 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
     });
     await customerPanel.getByRole('button', { name: 'Conferir clientes', exact: true }).click();
     await customerPanel.getByText('2 clientes · 1 com conflito. Nenhuma conta foi alterada.', { exact: true }).waitFor();
+    await customerPanel.getByRole('button', { name: 'Salvar lote para revisão', exact: true }).click();
+    await customerPanel.getByText(/Nenhum cliente foi criado ou alterado/).waitFor();
+    await customerPanel.getByText('Lotes salvos para revisão', { exact: true }).click();
+    await customerPanel.getByRole('button', { name: 'Rever lote', exact: true }).first().click();
+    await customerPanel.getByText('Nenhuma linha mudou desde o salvamento.', { exact: true }).waitFor();
     await customerPanel.getByRole('button', { name: 'Conferir vínculo do cliente', exact: true }).click();
     await customerPanel.getByRole('button', { name: 'Confirmar vínculo do cliente', exact: true }).click();
     await customerPanel.getByText('Vínculo de cliente registrado.', { exact: true }).waitFor();
