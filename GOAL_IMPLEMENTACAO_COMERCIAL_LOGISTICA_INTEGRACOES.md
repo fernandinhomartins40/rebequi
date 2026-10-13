@@ -139,6 +139,11 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Validação integrada de entregas e impedimentos aprovada — 13/10/2026
+
+Workflow 38343635783, commit 84a8c1a: testes/infra, imagens API/migrador/frontend e gate PostgreSQL/API/navegador concluídos com sucesso. Inclui recebimento parcial com recebedor, intenção concorrente/idempotente, limites e versão, guard de material, saldo por cliente, retorno ao depósito preservando recebido, reentrega do saldo, conclusão visível no celular, dois clientes/paradas isolados, impedimentos privados e UI mobile 320/390. Falha anterior de detalhe oculto está corrigida e a asserção de conclusão passou sem relaxar o teste. Estoque não sofre nova baixa. Deploy deste workflow confirmado em execução, ainda não declarado concluído neste registro. Histórico explícito de reagendamento/retirada de horário (9cb8fe3) permanece no workflow seguinte 38343878418. Evidências privadas/PWA, unidades/granel, gestão comercial restante, ERP/importações/webhooks e homologação completa continuam pendentes; objetivo não está concluído.
+
+
 ### Histórico explícito de reagendamento — 13/10/2026
 
 Alteração de um horário previamente definido registra RESCHEDULED; retirada de horário antigo registra SCHEDULE_CLEARED. Primeiro agendamento e alterações sem mudar o instante mantêm DETAILS_CONFIRMED. Evento único por versão preserva intenção/replay existentes, data anterior privada e nova data do formulário confirmado. Cliente consulta etapa específica e agendamento atual, sem notas internas; nenhuma data é escolhida automaticamente. Mutação continua bloqueada em romaneio ativo e tarefas encerradas, liberada após retorno físico para nova conferência. Teste com dois clientes acrescenta agendamento → novo horário → retirada do horário e confere DTO/histórico/privacidade. 69 testes locais, TypeScript, lint e textos passaram; gate integrado deste incremento pendente.
