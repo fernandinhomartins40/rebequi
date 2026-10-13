@@ -54,11 +54,11 @@ const taskSelect = {
 function formatDriverTask(row: Prisma.FulfillmentGetPayload<{ select: typeof taskSelect }>) {
   const { deliveryStops, ...task } = row;
   const transport = deliveryStops[0]?.run;
-  return { ...task, status: transport && ['LOADED', 'IN_TRANSIT'].includes(transport.status) ? transport.status : task.status };
+  return { ...task, status: ['RECEIVED', 'PARTIALLY_RECEIVED'].includes(task.status) ? task.status : transport && ['LOADED', 'IN_TRANSIT'].includes(transport.status) ? transport.status : task.status };
 }
 const driverScope = (driverId: string) => ({ driverId, mode: 'DELIVERY', status: { not: 'CANCELED' }, sale: { status: 'PAID' as const } });
 export async function driverTasks(driverId: string, page: number) {
-  const where = driverScope(driverId);
+  const where = { ...driverScope(driverId), status: { notIn: ['CANCELED', 'RECEIVED'] } };
   const [tasks, total] = await Promise.all([
     prisma.fulfillment.findMany({ where, orderBy: [{ scheduledAt: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }], skip: (page - 1) * 20, take: 20, select: taskSelect }),
     prisma.fulfillment.count({ where }),

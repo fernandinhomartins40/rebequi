@@ -36,6 +36,11 @@ export async function validateDrivers({ admin, guest, browser, baseURL, data, db
     await page.goto(`${baseURL}/painel-lojista/painel/entregas`);
     await page.getByRole('link', { name: 'Conferir entrega', exact: true }).click();
     await page.getByRole('heading', { name: 'Endereço', exact: true }).waitFor();
+    const navigation = page.getByRole('link', { name: 'Como chegar — abrir Google Maps', exact: true });
+    const navigationUrl = new URL(await navigation.getAttribute('href'));
+    assert.equal(navigationUrl.origin, 'https://www.google.com'); assert.equal(navigationUrl.pathname, '/maps/dir/');
+    assert.deepEqual(Object.fromEntries(navigationUrl.searchParams), { api: '1', destination: 'Rua do runner, 100, bairro de teste', travelmode: 'driving' });
+    assert.equal(await navigation.getAttribute('rel'), 'noopener noreferrer'); assert.equal(await navigation.getAttribute('referrerpolicy'), 'no-referrer');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     const management = await browser.newContext();
     try {

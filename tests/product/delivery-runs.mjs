@@ -30,6 +30,11 @@ export async function validateDeliveryRuns({ admin, guest, owner, browser, baseU
     const ownHistory = await data(await driverContext.request.get(`/api/driver/runs/${first.id}/history`)); assert.equal(ownHistory.total, 1); assert.deepEqual(Object.keys(ownHistory.events[0]).sort(), ['createdAt', 'id', 'kind', 'version']);
     const page = await driverContext.newPage(); await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`${baseURL}/painel-lojista/painel/entregas`); await page.getByRole('button', { name: /^Romaneio do runner/ }).click();
+    const navigation = page.getByRole('link', { name: 'Como chegar — abrir Google Maps', exact: true });
+    await navigation.waitFor();
+    const navigationUrl = new URL(await navigation.getAttribute('href'));
+    assert.equal(navigationUrl.searchParams.get('destination'), ownRun.stops[0].snapshot.address);
+    assert.deepEqual([...navigationUrl.searchParams.keys()].sort(), ['api', 'destination', 'travelmode']);
     await page.getByText(`1. ${sale.referenceCode}`, { exact: true }).waitFor();
     await page.getByText('Histórico do romaneio', { exact: true }).click();
     await page.getByText('Romaneio planejado', { exact: true }).waitFor();

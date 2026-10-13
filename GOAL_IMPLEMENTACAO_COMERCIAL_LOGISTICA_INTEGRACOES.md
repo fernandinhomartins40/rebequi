@@ -2,7 +2,7 @@
 
 ## Estado atual e tarefas restantes — atualização de 13/10/2026
 
-Workflows até 38341886372 concluídos com sucesso, incluindo banco/API/navegador reais e deploy. Estão publicados atribuição/proteção comercial, Meus atendimentos, orçamento assistido, catálogo, separação/conferência, perfis de depósito/motorista, frota, romaneio, carregamento/saída/retorno, prioridade operacional, retirada parcial com recebedor, histórico privado por papel e API externa somente de leitura com exportação de orçamentos. O plano completo ainda não está concluído.
+Workflows até 38343635783 concluídos com sucesso, incluindo banco/API/navegador reais e deploy. Estão publicados atribuição/proteção comercial, Meus atendimentos, orçamento assistido, catálogo, separação/conferência, perfis de depósito/motorista, frota, romaneio, carregamento/saída/retorno, prioridade operacional, retirada parcial com recebedor, histórico privado por papel e API externa somente de leitura com exportação de orçamentos. O plano completo ainda não está concluído.
 
 Próximas tarefas, na ordem de execução:
 
@@ -10,7 +10,8 @@ Próximas tarefas, na ordem de execução:
 - [x] Cadastro de motoristas/veículos e permissões por tarefa, dados físicos de capacidade conferidos — validado e publicado no workflow 38326558378.
 - [x] Romaneio, atribuição, agendamento e ordem manual das paradas; capacidade/massa/volume desconhecidos explícitos — validado e publicado no workflow 38326558378.
 - [x] Carregamento, saída e retorno ao depósito — validados e publicados até o workflow 38329771847.
-- [ ] Entrega/retirada parcial por item, recebedor, ocorrência/reagendamento e reentrega.
+- [x] Entrega/retirada parcial por item, recebedor, impedimentos por parada e reentrega — workflow 38343635783 aprovado e publicado.
+- [ ] Histórico explícito de reagendamento/retirada de horário — workflow 38343878418 em execução; acompanhar gate/deploy.
 - [ ] Evidências privadas com consentimento/crop/compressão/quota e UI mobile/PWA operacional do motorista.
 - [ ] Evoluir unidade comercial e conversões para decimais/granel sem quebrar estoque, pedidos e devoluções existentes.
 - [ ] Acompanhamento completo pelo cliente com privacidade e histórico público controlado; sem localização/ETA presumidos.
@@ -138,6 +139,13 @@ Prisma schema/migrations; matriz de acesso e schemas/tipos compartilhados; auth/
 ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloqueia base comercial/logística/API genérica. Conector específico depende de nome/versão, documentação/capacidades, credenciais cadastradas apenas no painel, autoridade por domínio e homologação. Metas/taxas/exceções de liberação dependem de configuração da loja, não bloquear formulários. Veículos/endereço/capacidade e teste físico dependem de dados reais. Custos de API/mapas, integração ativa, pagamentos, migração retroativa e multiempresa exigem escopo/validação próprios.
 
 ## Progresso e retomada
+
+### Navegação por ação do motorista e fila de pendências — 13/10/2026
+
+Deploy 38343635783 concluído com sucesso: recebimento parcial/impedimentos estão publicados. Adicionado componente de navegação reutilizado no detalhe da tarefa e na parada do romaneio. URL Google Maps Directions com destino somente do endereço conferido, domínio fixo HTTPS, encoding e limite oficial de 2048 caracteres; sem origem/coordenadas/ETA/waypoints/chave API ou requisição automática. Abre por clique em “Como chegar”, com noopener/noreferrer/no-referrer; não envia nome/telefone/ID interno nem coleta posição pela Rebequi. Google Maps controla sua própria experiência externa. Endereço excessivo não é truncado; permanece visível no painel. Referência técnica: https://developers.google.com/maps/documentation/urls/get-started.
+
+Fila do motorista exclui RECEIVED, conservando consulta de sua tarefa concluída. Estado recebido/parcial prevalece sobre trânsito das outras paradas do mesmo romaneio; labels correspondentes no detalhe. Testes integrados verificam links/destino/referrer/ausência de campos extras em tarefa e romaneio e saída da fila após entrega real com consulta própria preservada. Tipo/lint/build/textos/sintaxe local aprovados; gate integrado deste incremento pendente. Evidências/PWA, unidades, desempenho/comissões e integrações restantes continuam pendentes.
+
 
 ### Validação integrada de entregas e impedimentos aprovada — 13/10/2026
 

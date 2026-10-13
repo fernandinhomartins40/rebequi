@@ -56,6 +56,10 @@ export async function validateDeliveryReceipts({ owner, admin, guest, browser, b
     const saved = page.waitForResponse(response => response.url().endsWith(`/driver/runs/${next.id}/receipts`) && response.request().method() === 'POST');
     await wizard.getByRole('button', { name: 'Confirmar entrega', exact: true }).click(); assert.equal((await saved).status(), 201);
     await page.getByText('Rota encerrada', { exact: false }).waitFor(); assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    const pendingTasks = await data(await context.request.get('/api/driver/tasks'));
+    assert.equal(pendingTasks.tasks.some(task => task.id === fulfillmentId), false, 'Received materials leave the pending driver queue');
+    const receivedTask = await data(await context.request.get(`/api/driver/tasks/${fulfillmentId}`));
+    assert.equal(receivedTask.status, 'RECEIVED', 'Own completed task remains readable after leaving the queue');
   } finally { await context.close(); }
   row = await data(await admin.get(`/api/fulfillments/${fulfillmentId}`)); assert.equal(row.status, 'RECEIVED'); assert.equal(row.items[0].delivered, 3);
   const complete = await data(await admin.get(`/api/delivery-runs/${next.id}`)); assert.equal(complete.status, 'CLOSED'); assert.equal(complete.stops[0].active, false); assert.equal(complete.stops[0].items[0].delivered, 2);
