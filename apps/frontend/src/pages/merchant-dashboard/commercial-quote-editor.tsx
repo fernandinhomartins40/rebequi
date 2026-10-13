@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { apiFetch } from '@/services/api/client';
+import { apiFetch, ApiError } from '@/services/api/client';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,7 +34,12 @@ export function CommercialQuoteEditor({ onClose }: { onClose: () => void }) {
     try {
       const result = await apiFetch<{ data: { id: string } }>('/commercial/quotes', { method: 'POST', body: JSON.stringify({ ...values, requestKey: intent.current.key, expectedCustomerVersion: customer.assignmentVersion, confirmed: true }) });
       navigate(`${ADMIN_BASE_PATH}/${encodeURIComponent('orçamentos')}?quoteId=${encodeURIComponent(result.data.id)}`);
-    } catch (failure) { setError(failure instanceof Error ? failure.message : 'Não foi possível criar o orçamento.'); } finally { setSaving(false); }
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'Não foi possível criar o orçamento.');
+      if (failure instanceof ApiError && [404, 409].includes(failure.status)) {
+        setCustomer(undefined); setStep(1); await customers.refetch();
+      }
+    } finally { setSaving(false); }
   }
   return <section aria-label="Criar orçamento para cliente" className="space-y-4 rounded-xl border bg-white p-4">
     <div className="flex items-center justify-between gap-3"><h2 className="font-bold">Novo orçamento</h2><Button variant="ghost" disabled={saving} onClick={onClose}>Fechar</Button></div>

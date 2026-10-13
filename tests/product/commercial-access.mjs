@@ -31,6 +31,8 @@ export async function validateCommercialAccess({ owner, admin, sellerA, sellerB,
   const savedAssisted = JSON.parse(db(`console.log(JSON.stringify(await prisma.quoteRequest.findUniqueOrThrow({where:{id:${JSON.stringify(assisted.id)}},include:{items:{orderBy:{position:'asc'}}}})));`).trim());
   assert.equal(savedAssisted.userId, customer.id); assert.equal(savedAssisted.assignedSellerId, profiles[0].id); assert.equal(savedAssisted.createdById, profiles[0].id);
   assert.equal(savedAssisted.status, 'SUBMITTED'); assert.equal(savedAssisted.ocrStatus, 'SKIPPED'); assert.equal(savedAssisted.ocrAttempts, 0); assert.equal(savedAssisted.items[0].name, product.name); assert.equal(savedAssisted.items[1].quantity, 1.5);
+  const creatorImmutable = JSON.parse(db(`let blocked=false;try{await prisma.quoteRequest.update({where:{id:${JSON.stringify(assisted.id)}},data:{createdById:${JSON.stringify(profiles[1].id)}}});}catch{blocked=true;}console.log(JSON.stringify({blocked}));`).trim().split('\n').at(-1));
+  assert.equal(creatorImmutable.blocked, true, 'The creation audit cannot be rewritten by another code path');
   assert.equal((await data(await owner.get('/api/quotes/me'))).some(value => value.id === assisted.id), true);
   assert.equal((await sellerB.get(`/api/quotes/admin/detail/${assisted.id}`)).status(), 404);
   await assign('order', order.id, profiles[0].id);
@@ -94,6 +96,15 @@ export async function validateCommercialAccess({ owner, admin, sellerA, sellerB,
     await editor.getByRole('button', { name: 'Adicionar material', exact: true }).click();
     await editor.getByRole('button', { name: 'Conferir', exact: true }).click();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await assign('customer', customer.id, profiles[1].id, 2);
+    const staleRequest = page.waitForResponse(response => response.url().endsWith('/api/commercial/quotes') && response.request().method() === 'POST');
+    await editor.getByRole('button', { name: 'Confirmar orçamento', exact: true }).click();
+    assert.equal((await staleRequest).status(), 409);
+    await editor.getByRole('alert').filter({ hasText: 'O responsável pelo cliente mudou' }).waitFor();
+    await editor.getByRole('button').filter({ hasText: customer.name }).click();
+    await editor.getByRole('button', { name: 'Continuar', exact: true }).click();
+    await editor.getByLabel('Título do orçamento', { exact: true }).fill('Orçamento criado no celular');
+    await editor.getByRole('button', { name: 'Conferir', exact: true }).click();
     const createdRequest = page.waitForResponse(response => response.url().endsWith('/api/commercial/quotes') && response.request().method() === 'POST');
     await editor.getByRole('button', { name: 'Confirmar orçamento', exact: true }).click();
     assert.equal((await createdRequest).status(), 201);

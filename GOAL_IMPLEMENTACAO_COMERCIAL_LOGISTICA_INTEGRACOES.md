@@ -2,13 +2,13 @@
 
 ## Estado atual e tarefas restantes — atualização de 12/10/2026
 
-Workflow 38313327790, commit d9697ec: concluído com sucesso, incluindo banco/API/navegador reais e deploy. Estão publicados atribuição/proteção comercial, Meus atendimentos, consulta de catálogo, separação/conferência, acompanhamento inicial pelo cliente e API externa somente de leitura. O plano completo ainda não está concluído.
+Workflows 38326558378 e 38327147537: concluídos com sucesso, incluindo banco/API/navegador reais e deploy. Estão publicados atribuição/proteção comercial, Meus atendimentos, catálogo, separação/conferência, perfis de depósito/motorista, frota, romaneio, carregamento/saída/retorno, prioridade operacional, acompanhamento inicial pelo cliente e API externa somente de leitura. Orçamento assistido está no gate do workflow 38328469217. O plano completo ainda não está concluído.
 
 Próximas tarefas, na ordem de execução:
 
-- [ ] Concluir a validação integrada do perfil WAREHOUSE, sem acesso comercial/financeiro; implementação pronta, deploy ainda bloqueado pelo gate.
-- [ ] Cadastro de motoristas/veículos e permissões por tarefa, dados físicos de capacidade conferidos.
-- [ ] Romaneio, atribuição, agendamento e ordem manual das paradas; capacidade/massa/volume desconhecidos explícitos.
+- [x] Validação integrada do perfil WAREHOUSE, sem acesso comercial/financeiro — workflow 38326558378 aprovado e publicado.
+- [x] Cadastro de motoristas/veículos e permissões por tarefa, dados físicos de capacidade conferidos — validado e publicado no workflow 38326558378.
+- [x] Romaneio, atribuição, agendamento e ordem manual das paradas; capacidade/massa/volume desconhecidos explícitos — validado e publicado no workflow 38326558378.
 - [ ] Carregamento, saída, entrega/retirada parcial por item, recebedor, ocorrência/reagendamento e reentrega.
 - [ ] Evidências privadas com consentimento/crop/compressão/quota e UI mobile/PWA operacional do motorista.
 - [ ] Evoluir unidade comercial e conversões para decimais/granel sem quebrar estoque, pedidos e devoluções existentes.
@@ -139,6 +139,8 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 ## Progresso e retomada
 
 ### Orçamento assistido pela carteira — 12/10/2026
+
+Conflito de versão ou acesso revogado devolve o wizard à escolha do cliente com consulta atualizada, preservando materiais/título e a intenção de envio. Evita prender o usuário na confirmação com uma seleção desatualizada. Teste mobile força redistribuição enquanto a confirmação está aberta e confere recuperação/reenvio. Teste de banco também exige que o autor original da criação não possa ser sobrescrito por outro caminho de escrita. Carteira/consentimento são novamente conferidos antes de criar; recuperação não libera autorização revogada.
 
 Novo fluxo em Meus atendimentos: cliente → materiais → conferência. Busca paginada de clientes respeita a carteira; itens podem vir do catálogo ou ser descritos manualmente, sem consumo de IA. Solicitação identificada entra no fluxo existente de propostas e aparece na conta do cliente. Não aceita preço, responsável ou estoque fornecidos pelo navegador. Produtos são conferidos novamente no envio e nomes do catálogo prevalecem. Origem confiável, operador ativo, versão da carteira, idempotência concorrente e auditoria na mesma transação impedem duplicações e acesso revogado. Migração aditiva 20261012140000_commercial_quote_creation. Estágio NEW avança para QUOTING somente quando não foi travado manualmente.
 
