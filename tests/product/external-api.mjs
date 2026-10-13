@@ -32,12 +32,19 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
   assert.equal((await admin.post(categoryLinksPath, { data: categoryLinkInput })).status(), 403);
   const categoryLink = await data(await admin.post(categoryLinksPath, { headers, data: categoryLinkInput }), 201);
   assert.equal(categoryLink.categoryId, category.id);
+  const linkedProductInput = { source: categoryInput.source, rows: [{ externalId: 'mapped-category-preview', sku: `MAPPED-${randomUUID()}`,
+    name: 'Material com categoria vinculada', externalCategoryId: categoryRows[0].externalId, priceCents: '1000', stockQuantity: '5' }] };
+  const linkedProductPreview = await data(await admin.post(importPath, { headers, data: linkedProductInput }));
+  assert.equal(linkedProductPreview.rows[0].resolvedCategoryId, category.id);
+  assert.equal(linkedProductPreview.rows[0].status, 'READY_FOR_REVIEW');
   assert.deepEqual(await data(await admin.post(categoryLinksPath, { headers, data: categoryLinkInput }), 201), categoryLink);
   assert.equal((await admin.post(categoryLinksPath, { headers, data: { ...categoryLinkInput, requestKey: randomUUID() } })).status(), 409);
   assert.equal((await data(await admin.post(categoryPreviewPath, { headers, data: categoryInput }))).rows[0].status, 'LINKED_REVIEW');
   const listedCategories = await data(await admin.get(`${categoryLinksPath}?page=1`));
   assert.equal(listedCategories.links.some(row => row.id === categoryLink.id && row.category.slug === category.slug), true);
   await data(await admin.post(`${categoryLinksPath}/${categoryLink.id}/revoke`, { headers, data: { confirmed: true, reason: 'Revisão isolada do runner' } }));
+  const revokedProductPreview = await data(await admin.post(importPath, { headers, data: linkedProductInput }));
+  assert.deepEqual(revokedProductPreview.rows[0].conflicts, ['EXTERNAL_CATEGORY_NOT_LINKED']);
   assert.deepEqual((await data(await admin.post(categoryPreviewPath, { headers, data: categoryInput }))).rows[0].conflicts, ['SLUG_ALREADY_LOCAL']);
   const blockedCategoryMutation = JSON.parse(db(`let blocked=false;try{await prisma.externalCategoryLink.delete({where:{id:${JSON.stringify(categoryLink.id)}}});}catch{blocked=true;}console.log(JSON.stringify({blocked}));`).trim().split('\n').at(-1));
   assert.equal(blockedCategoryMutation.blocked, true);

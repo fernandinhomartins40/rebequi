@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PartnerSteps } from '@/pages/partners/steps';
 
-type PreviewRow = { row: number; externalId: string; sku: string; localProductId: string | null; conflicts: string[]; status: string };
+type PreviewRow = { row: number; externalId: string; sku: string; localProductId: string | null; resolvedCategoryId: string | null; conflicts: string[]; status: string };
 type Preview = { source: string; rows: PreviewRow[]; summary: { total: number; conflicts: number; readyForReview: number }; applied: false };
 type ProductLink = { id: string; source: string; externalId: string; revokedAt: string | null; product: { sku: string | null; name: string } };
 type ImportBatch = { id: string; source: string; createdAt: string; applied: false; summary: { total: number; conflicts: number } };
@@ -15,6 +15,7 @@ type BatchReview = { savedPreview: Preview; currentPreview: Preview; changedRows
 const conflictNames: Record<string, string> = {
   DUPLICATE_EXTERNAL_ID: 'ID externo repetido', DUPLICATE_SKU: 'SKU repetido no arquivo',
   SKU_ALREADY_LOCAL: 'SKU já cadastrado', CATEGORY_NOT_FOUND: 'Categoria não encontrada',
+  EXTERNAL_CATEGORY_NOT_LINKED: 'Categoria externa sem vínculo ativo',
   LINK_SKU_MISMATCH: 'Vínculo existente com outro SKU',
   PRODUCT_LINKED_TO_OTHER_ID: 'Produto já vinculado a outro ID desta origem',
   SKU_ARCHIVED_LOCAL: 'SKU pertence a um produto arquivado na loja',
@@ -97,13 +98,14 @@ export function ProductImportPanel() {
         <div><Label htmlFor="import-source">Identificação do sistema</Label><Input id="import-source" maxLength={120} value={source} onChange={event => { setSource(event.target.value); preview.reset(); }} placeholder="Ex.: meu-pdv" /></div>
         <div><Label htmlFor="import-products-file">Arquivo de produtos (.json)</Label><Input id="import-products-file" type="file" accept="application/json,.json" onChange={event => void chooseFile(event.target.files?.[0])} /></div>
         {fileName ? <p className="text-sm">{fileName} · {rows.length} produtos</p> : null}
-        <p className="text-xs text-muted-foreground">Cada produto precisa de externalId, sku, name, categoryId, priceCents e stockQuantity. Máximo de 100 por arquivo.</p>
+        <p className="text-xs text-muted-foreground">Cada produto precisa de externalId, sku, name, priceCents e stockQuantity. Informe categoryId da loja ou externalCategoryId já vinculado em Categorias. Máximo de 100 por arquivo.</p>
         <Button type="button" disabled={!source.trim() || !rows.length || preview.isPending} onClick={runPreview}>{preview.isPending ? 'Conferindo…' : 'Conferir arquivo'}</Button>
       </div> : null}
       {step >= 2 && preview.data ? <div className="space-y-3">
         <p role="status" className="text-sm">{preview.data.summary.total} produtos · {preview.data.summary.conflicts} com conflito. Nenhum produto foi importado.</p>
         <ul className="max-h-96 space-y-2 overflow-auto">{preview.data.rows.map(row => <li key={row.row} className="rounded-lg border p-3 text-sm">
           <p className="font-semibold">{row.row}. {row.sku}</p><p className="break-all text-xs text-muted-foreground">ID externo: {row.externalId}</p>
+          {row.resolvedCategoryId ? <p className="break-all text-xs text-muted-foreground">Categoria da loja: {row.resolvedCategoryId}</p> : null}
           <p>{row.status === 'LINKED_REVIEW' ? 'Vínculo registrado para revisão' : row.conflicts.length ? row.conflicts.map(code => conflictNames[code] ?? 'Conflito').join(' · ') : 'Pronto para revisão'}</p>
           {row.conflicts.length === 1 && row.conflicts[0] === 'SKU_ALREADY_LOCAL' && row.localProductId ? <Button type="button" size="sm" variant="outline" className="mt-2" onClick={() => { setSelected(row); setStep(3); setError(''); }}>Conferir vínculo</Button> : null}
         </li>)}</ul>

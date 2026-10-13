@@ -7,10 +7,13 @@ export const previewProductImportSchema = z.object({
     externalId: code,
     sku: code,
     name: z.string().trim().min(2).max(180),
-    categoryId: z.string().min(1).max(128),
+    categoryId: z.string().min(1).max(128).optional(),
+    externalCategoryId: code.optional(),
     priceCents: z.string().regex(/^\d{1,12}$/),
     stockQuantity: z.string().regex(/^\d{1,9}$/),
-  }).strict()).min(1).max(100),
+  }).strict().refine(row => Boolean(row.categoryId) !== Boolean(row.externalCategoryId), {
+    message: 'Informe apenas categoryId ou externalCategoryId',
+  })).min(1).max(100),
 }).strict();
 export type PreviewProductImportInput = z.infer<typeof previewProductImportSchema>;
 export const stageProductImportSchema = previewProductImportSchema.extend({

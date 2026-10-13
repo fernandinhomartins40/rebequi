@@ -24,6 +24,8 @@ Cabeçalho: Authorization: Bearer TOKEN_DO_COFRE. Usar HTTPS em produção. Não
 
 ## Contrato, paginação e reconciliação
 
+Na prévia administrativa de produtos, cada linha informa `categoryId` local **ou** `externalCategoryId` do sistema de origem, nunca ambos. O segundo só é resolvido por vínculo ativo da mesma origem para uma categoria local ativa. Vínculo ausente ou revogado gera `EXTERNAL_CATEGORY_NOT_LINKED`; categoria local inativa gera `CATEGORY_NOT_FOUND`. A resposta inclui `resolvedCategoryId` para conferência. Salvar a análise não aplica produtos, preços nem estoque; rever um lote salvo recalcula conflitos com os vínculos atuais.
+
 OpenAPI 3.1.1 disponível em GET /api/external/v1/openapi.json, sem segredos; explorador interativo no painel faz somente GET com até dois registros por consulta e mantém credencial somente em memória até limpar/sair. Credenciais do integrador nunca são enviadas para um ERP pelo explorador.
 
 page padrão 1 (máximo 100000), limit padrão 20 (máximo 100), updatedSince opcional ISO 8601 UTC inclusivo. Exemplo de caminho sem segredo: /api/external/v1/products?page=1&limit=20&updatedSince=2026-10-12T00%3A00%3A00.000Z. Ordenação updatedAt/id ascendente. Resposta success=true/data inclui coleção, page/limit/total/totalPages e requestId. X-Request-ID identifica a consulta no servidor; não é chave de idempotência. Falhas padrão: success=false/error string/timestamp e errors de validação quando aplicável. 400 contrato inválido, 401 token ausente/inválido/expirado/revogado, 403 escopo insuficiente, 429 limite, 500 falha interna. Não tratar falha como coleção vazia.

@@ -41,3 +41,16 @@ test('Verified external links resolve known products and expose changed SKUs', (
   const archived = [{ id: 'product-1', sku: 'SKU-1', deletedAt: new Date() }];
   assert.deepEqual(classifyProductImport(input, archived, categories).rows[0].conflicts, ['SKU_ARCHIVED_LOCAL']);
 });
+
+test('External category IDs require an active link to an active local category', () => {
+  const row = { externalId: 'A', sku: 'SKU-1', name: 'Material novo', externalCategoryId: 'EXT-CAT', priceCents: '100', stockQuantity: '2' };
+  const input = previewProductImportSchema.parse({ source: 'pdv-test', rows: [row] });
+  const link = [{ source: 'pdv-test', externalId: 'EXT-CAT', categoryId: 'cat-1' }];
+  assert.equal(previewProductImportSchema.safeParse({ source: 'pdv-test', rows: [{ ...row, categoryId: 'cat-1' }] }).success, false);
+  assert.equal(previewProductImportSchema.safeParse({ source: 'pdv-test', rows: [{ ...row, externalCategoryId: undefined }] }).success, false);
+  assert.deepEqual(classifyProductImport(input, [], [{ id: 'cat-1' }]).rows[0].conflicts, ['EXTERNAL_CATEGORY_NOT_LINKED']);
+  assert.deepEqual(classifyProductImport(input, [], [], [], link).rows[0].conflicts, ['CATEGORY_NOT_FOUND']);
+  const result = classifyProductImport(input, [], [{ id: 'cat-1' }], [], link);
+  assert.equal(result.rows[0].resolvedCategoryId, 'cat-1');
+  assert.equal(result.rows[0].status, 'READY_FOR_REVIEW');
+});
