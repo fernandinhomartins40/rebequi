@@ -13,6 +13,9 @@ export const previewProductImportSchema = z.object({
   }).strict()).min(1).max(100),
 }).strict();
 export type PreviewProductImportInput = z.infer<typeof previewProductImportSchema>;
+export const stageProductImportSchema = previewProductImportSchema.extend({
+  requestKey: z.string().uuid(), confirmed: z.literal(true),
+});
 export const linkExternalProductSchema = z.object({
   requestKey: z.string().uuid(), source: code, externalId: code,
   productId: z.string().min(1).max(128), expectedSku: code, confirmed: z.literal(true),

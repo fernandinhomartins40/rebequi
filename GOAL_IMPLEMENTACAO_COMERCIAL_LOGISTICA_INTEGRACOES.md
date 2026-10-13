@@ -142,6 +142,10 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Lotes de importação revisáveis — 13/10/2026
+
+A prévia de produtos externos agora detecta produto local já vinculado a outro ID da mesma origem e SKU arquivado. O painel permite prévia de arquivo JSON, vínculo/revogação manual e registro idempotente da análise como lote imutável. O servidor recalcula a análise ao salvar; nenhuma linha, preço ou saldo é aplicado. Testes locais de contrato, tipos e textos aprovados; gate integrado e deploy deste lote ainda pendentes. Autoridade por domínio, aplicação controlada, inbox/outbox e ERP real continuam no objetivo.
+
 ### Formulário de política de unidades no produto — 13/10/2026
 
 Editor existente recebe painel expansível “Unidades e conversão”, consulta somente quando aberto e wizard Unidades → Conversão → Confirmar. Não escolhe valores físicos por padrão; mostra versão registrada, fator/passos e motivo de conferência, aceita vírgula decimal na UI e envia decimal canônico validado. Confirmação explícita, intenção estável em retry e expectedVersion; atualização remonta formulário com política atual. Registro apresenta aviso de preparação sem ativação de estoque/venda decimal. Política antiga permanece imutável no backend.

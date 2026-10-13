@@ -28,6 +28,22 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
   assert.deepEqual(importPreview.rows[0].conflicts, ['SKU_ALREADY_LOCAL']);
   assert.equal(importPreview.rows[0].localProductId, catalog.id);
   assert.equal(importPreview.rows[1].status, 'READY_FOR_REVIEW');
+  const batchesPath = '/api/integrations/external-api/imports/products/batches';
+  const stageInput = { ...importInput, requestKey: randomUUID(), confirmed: true };
+  assert.equal((await owner.post(batchesPath, { headers, data: stageInput })).status(), 403);
+  assert.equal((await admin.post(batchesPath, { data: stageInput })).status(), 403);
+  const staged = await data(await admin.post(batchesPath, { headers, data: stageInput }), 201);
+  assert.equal(staged.applied, false);
+  assert.deepEqual(await data(await admin.post(batchesPath, { headers, data: stageInput }), 201), staged);
+  assert.equal((await admin.post(batchesPath, { headers, data: { ...stageInput, rows: [importRows[0]] } })).status(), 409);
+  const saved = await data(await admin.get(`${batchesPath}?page=1`));
+  assert.equal(saved.batches.some(value => value.id === staged.id && value.summary.total === 2 && value.applied === false), true);
+  assert.equal(JSON.stringify(saved).includes('priceCents'), false);
+  const stagedInDb = JSON.parse(db(`console.log(JSON.stringify(await prisma.externalProductImportBatch.findUniqueOrThrow({where:{id:${JSON.stringify(staged.id)}},select:{rows:true,preview:true,requestKey:true}})));`).trim());
+  assert.equal(stagedInDb.rows.length, 2); assert.equal(stagedInDb.preview.applied, false);
+  assert.notEqual(stagedInDb.requestKey, stageInput.requestKey);
+  const immutableBatch = JSON.parse(db(`let blocked=false;try{await prisma.externalProductImportBatch.delete({where:{id:${JSON.stringify(staged.id)}}});}catch{blocked=true;}console.log(JSON.stringify({blocked}));`).trim().split('\n').at(-1));
+  assert.equal(immutableBatch.blocked, true);
   const linksPath = '/api/integrations/external-api/imports/products/links';
   const linkInput = { requestKey: randomUUID(), source: importInput.source, externalId: importRows[0].externalId,
     productId: catalog.id, expectedSku: catalog.sku, confirmed: true };
@@ -108,6 +124,8 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
     });
     await importPanel.getByRole('button', { name: 'Conferir arquivo', exact: true }).click();
     await importPanel.getByText('2 produtos · 1 com conflito. Nenhum produto foi importado.', { exact: true }).waitFor();
+    await importPanel.getByRole('button', { name: 'Salvar análise', exact: true }).click();
+    await importPanel.getByText('Análise registrada. Os preços e o estoque não foram alterados.', { exact: true }).waitFor();
     await importPanel.getByRole('button', { name: 'Conferir vínculo', exact: true }).click();
     await importPanel.getByRole('button', { name: 'Confirmar vínculo', exact: true }).click();
     await importPanel.getByText('Vínculo registrado. Confira os demais conflitos antes de importar.', { exact: true }).waitFor();

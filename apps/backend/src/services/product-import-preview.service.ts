@@ -1,4 +1,5 @@
 import { previewProductImportSchema, type PreviewProductImportInput } from '@rebequi/shared/schemas';
+import type { Prisma } from '@prisma/client';
 
 type ExistingProduct = { id: string; sku: string | null; deletedAt?: Date | null };
 type ExistingCategory = { id: string };
@@ -33,10 +34,10 @@ export function classifyProductImport(input: PreviewProductImportInput, products
     applied: false };
 }
 
-export async function previewProductImport(raw: PreviewProductImportInput) {
+export async function previewProductImport(raw: PreviewProductImportInput, transaction?: Prisma.TransactionClient) {
   const input = previewProductImportSchema.parse(raw);
   const { prisma } = await import('../lib/prisma.js');
-  return prisma.$transaction(async tx => {
+  const read = async (tx: Prisma.TransactionClient) => {
     const [products, categories] = await Promise.all([
       tx.product.findMany({ where: { sku: { in: input.rows.map(row => row.sku) } }, select: { id: true, sku: true, deletedAt: true } }),
       tx.category.findMany({ where: { id: { in: input.rows.map(row => row.categoryId) }, isActive: true, deletedAt: null }, select: { id: true } }),
@@ -45,5 +46,6 @@ export async function previewProductImport(raw: PreviewProductImportInput) {
       OR: [{ externalId: { in: input.rows.map(row => row.externalId) } }, { productId: { in: products.map(product => product.id) } }] },
       select: { source: true, externalId: true, productId: true } });
     return classifyProductImport(input, products, categories, links);
-  }, { isolationLevel: 'RepeatableRead' });
+  };
+  return transaction ? read(transaction) : prisma.$transaction(read, { isolationLevel: 'RepeatableRead' });
 }
