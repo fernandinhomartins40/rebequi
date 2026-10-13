@@ -198,7 +198,7 @@ export async function validateCommercialAccess({ owner, admin, sellerA, sellerB,
     await sellerContext.addCookies((await sellerA.storageState()).cookies); const page = await sellerContext.newPage(); await page.setViewportSize({ width: 320, height: 844 });
     await page.goto(`${baseURL}/painel-lojista/painel/atendimentos`); await page.getByRole('heading', { name: 'Meus atendimentos', exact: true, level: 2 }).waitFor();
     await page.getByText(/Encaminhamentos/).click();
-    await page.getByText('Pedido encaminhado para você', { exact: true }).waitFor();
+    await page.getByText('Pedido encaminhado para você', { exact: true }).first().waitFor();
     await page.getByRole('button', { name: 'Marcar como lido', exact: true }).first().click();
     await page.getByLabel('Digite o nome ou SKU', { exact: true }).fill(product.sku);
     await page.getByText(product.name, { exact: true }).waitFor();
