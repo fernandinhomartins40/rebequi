@@ -18,6 +18,7 @@ Próximas tarefas, na ordem de execução:
 - [ ] Evoluir unidade comercial e conversões para decimais/granel sem quebrar estoque, pedidos e devoluções existentes.
 - [ ] Acompanhamento completo pelo cliente com privacidade e histórico público controlado; sem localização/ETA presumidos.
 - [ ] Vendedor criar orçamento/pedido para carteira autorizada, distribuição de solicitações e notificações persistentes.
+- [ ] Pedido assistido: schema, transação com bloqueio de cliente/produto, preço e saldo recalculados, confirmação do preço exibido, idempotência, atribuição e fluxo de três passos implementados; validar PostgreSQL/API/navegador no workflow antes de marcar publicado. Não reserva saldo, registra pagamento nem envia WhatsApp automaticamente.
 - [ ] Metas, desempenho e regras/ledger de comissão próprios dos vendedores, configuração prospectiva e conciliação.
 - [ ] Importação estruturada com prévia, vínculos externos únicos, fonte oficial por domínio, inbox/outbox e conflito/replay.
 - [ ] Histórico de reprocessamento dos lotes de produtos: registro imutável e idempotente de revisões implementado; validar migração, API e interface no workflow. Outbox externa segue pendente.

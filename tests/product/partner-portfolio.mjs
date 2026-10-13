@@ -37,7 +37,14 @@ export async function validatePartnerPortfolio({ owner, guest, admin, browser, b
     await page.getByRole('button', { name: 'Usar imagem recortada', exact: true }).click();
     await page.getByText('Trabalho pelo celular', { exact: true }).waitFor();
     await page.getByRole('dialog').waitFor({ state: 'hidden' });
-    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    const mobileLayout = await page.evaluate(() => ({ viewport: innerWidth,
+      page: document.documentElement.scrollWidth,
+      overflowing: [...document.querySelectorAll('body *')].filter(element => {
+        const bounds = element.getBoundingClientRect();
+        return bounds.width && bounds.right > innerWidth + 1 && getComputedStyle(element).visibility !== 'hidden';
+      }).slice(0, 8).map(element => ({ tag: element.tagName, className: String(element.className).slice(0, 120),
+        right: Math.round(element.getBoundingClientRect().right) })) }));
+    assert.ok(mobileLayout.page <= mobileLayout.viewport, JSON.stringify(mobileLayout));
     const saved = await data(await owner.get('/api/partners/portfolio'));
     assert.equal(saved.length, 8); assert.ok(saved.every(photo => photo.size <= 250 * 1024));
   } finally { await context.close(); }

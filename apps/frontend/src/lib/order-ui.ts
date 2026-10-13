@@ -1,7 +1,8 @@
 import { normalizeWhatsapp } from '@rebequi/shared/utils';
 import type { CustomerOrder, OrderStatus } from '@/types';
 
-export function getOrderStatusLabel(status: OrderStatus) {
+export function getOrderStatusLabel(status: OrderStatus, source?: string) {
+  if (source === 'seller_assisted' && status === 'IN_RECOVERY') return 'Em atendimento';
   switch (status) {
     case 'PENDING_WHATSAPP':
       return 'Aguardando WhatsApp';

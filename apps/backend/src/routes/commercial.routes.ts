@@ -1,8 +1,9 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { getRolesForMerchantPermission } from '@rebequi/shared/constants';
-import { commercialKindSchema, commercialAssignmentSchema, commercialQuoteSchema, sellerGoalSchema, sellerCommissionDraftSchema } from '@rebequi/shared/schemas';
+import { commercialKindSchema, commercialAssignmentSchema, commercialQuoteSchema, commercialOrderSchema, sellerGoalSchema, sellerCommissionDraftSchema } from '@rebequi/shared/schemas';
 import { commercialQuoteCustomers, createCommercialQuote } from '../services/commercial-quote.service.js';
+import { createCommercialOrder } from '../services/commercial-order.service.js';
 import { prisma } from '../lib/prisma.js';
 import { authenticate, authorize } from '../middleware/auth.middleware.js';
 import { requireTrustedOrigin } from '../middleware/trusted-origin.middleware.js';
@@ -45,6 +46,11 @@ router.get('/performance/me', authorize(...getRolesForMerchantPermission('commer
   });
 router.get('/quote-customers', authorize(...getRolesForMerchantPermission('commercial:work')), validateQuery(z.object({ page: z.coerce.number().int().min(1).max(100000).default(1), search: z.string().trim().max(100).default('') })), async (req, res, next) => { try { successResponse(res, await commercialQuoteCustomers(req.user!, Number(req.query.page), req.query.search as string)); } catch (error) { next(error); } });
 router.post('/quotes', authorize(...getRolesForMerchantPermission('commercial:work')), requireTrustedOrigin, validateBody(commercialQuoteSchema), async (req, res, next) => { try { successResponse(res, await createCommercialQuote(req.user!, req.body), 201); } catch (error) { next(error); } });
+router.post('/orders', authorize(...getRolesForMerchantPermission('commercial:work')), requireTrustedOrigin,
+  validateBody(commercialOrderSchema), async (req, res, next) => {
+    try { successResponse(res, await createCommercialOrder(req.user!, req.body), 201); }
+    catch (error) { next(error); }
+  });
 const params = z.object({ kind: commercialKindSchema, id: z.string().min(1).max(128) });
 router.get('/workbench', authorize(...getRolesForMerchantPermission('commercial:work')), async (req, res, next) => {
   try {

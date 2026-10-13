@@ -1,7 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { canAccessCommercialRecord, assignedScope, saleScope } from './commercial-access-policy.js';
-import { commercialQuoteSchema } from '@rebequi/shared/schemas';
+import { commercialOrderSchema, commercialQuoteSchema } from '@rebequi/shared/schemas';
+test('Assisted orders accept only confirmed catalog quantities without client prices', () => {
+  const input = { requestKey: 'c8a4d4ad-a1cb-44c6-88f2-64a1ab55c41c', confirmed: true,
+    customerId: 'customer', expectedCustomerVersion: 1,
+    items: [{ productId: 'product', quantity: 2, expectedUnitPriceCents: '1000' }] };
+  assert.equal(commercialOrderSchema.safeParse(input).success, true);
+  assert.equal(commercialOrderSchema.safeParse({ ...input, confirmed: false }).success, false);
+  assert.equal(commercialOrderSchema.safeParse({ ...input, items: [...input.items, ...input.items] }).success, false);
+  assert.equal(commercialOrderSchema.safeParse({ ...input, items: [{ ...input.items[0], unitPrice: 0.01 }] }).success, false);
+  assert.equal(commercialOrderSchema.safeParse({ ...input, items: [{ ...input.items[0], expectedUnitPriceCents: '10.00' }] }).success, false);
+  for (const quantity of [0, -1, 0.5, 100])
+    assert.equal(commercialOrderSchema.safeParse({ ...input, items: [{ productId: 'product', quantity }] }).success, false);
+});
 test('Assisted quotes require confirmation, bounded quantities and unique catalog products', () => {
   const input = { requestKey: 'c8a4d4ad-a1cb-44c6-88f2-64a1ab55c41c', confirmed: true, customerId: 'customer', expectedCustomerVersion: 1, title: 'Materiais', items: [{ productId: 'product', name: 'Cimento', quantity: 1.5, unit: 'kg' }] };
   assert.equal(commercialQuoteSchema.safeParse(input).success, true);

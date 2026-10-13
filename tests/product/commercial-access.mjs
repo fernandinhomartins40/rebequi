@@ -35,6 +35,32 @@ export async function validateCommercialAccess({ owner, admin, sellerA, sellerB,
   assert.equal(creatorImmutable.blocked, true, 'The creation audit cannot be rewritten by another code path');
   assert.equal((await data(await owner.get('/api/quotes/me'))).some(value => value.id === assisted.id), true);
   assert.equal((await sellerB.get(`/api/quotes/admin/detail/${assisted.id}`)).status(), 404);
+  const assistedOrderInput = { requestKey: randomUUID(), confirmed: true, customerId: customer.id,
+    expectedCustomerVersion: 1, note: 'Pedido criado no atendimento',
+    items: [{ productId: product.id, quantity: 2, expectedUnitPriceCents: String(Math.round(product.price * 100)) }] };
+  assert.equal((await sellerB.post('/api/commercial/orders', { headers, data: assistedOrderInput })).status(), 404);
+  assert.equal((await sellerA.post('/api/commercial/orders', { data: assistedOrderInput })).status(), 403);
+  assert.equal((await sellerA.post('/api/commercial/orders', { headers,
+    data: { ...assistedOrderInput, requestKey: randomUUID(), expectedCustomerVersion: 0 } })).status(), 409);
+  assert.equal((await sellerA.post('/api/commercial/orders', { headers,
+    data: { ...assistedOrderInput, requestKey: randomUUID(), items: [assistedOrderInput.items[0], assistedOrderInput.items[0]] } })).status(), 400);
+  assert.equal((await sellerA.post('/api/commercial/orders', { headers,
+    data: { ...assistedOrderInput, requestKey: randomUUID(), items: [{ ...assistedOrderInput.items[0], expectedUnitPriceCents: '1' }] } })).status(), 409);
+  const stockBeforeOrder = Number(db(`console.log((await prisma.product.findUniqueOrThrow({where:{id:${JSON.stringify(product.id)}}})).stock);`).trim());
+  const orderResponses = await Promise.all([sellerA.post('/api/commercial/orders', { headers, data: assistedOrderInput }),
+    sellerA.post('/api/commercial/orders', { headers, data: assistedOrderInput })]);
+  const assistedOrder = await data(orderResponses[0], 201);
+  assert.equal((await data(orderResponses[1], 201)).id, assistedOrder.id);
+  assert.equal((await sellerA.post('/api/commercial/orders', { headers,
+    data: { ...assistedOrderInput, note: 'Outro pedido' } })).status(), 409);
+  const savedOrder = JSON.parse(db(`console.log(JSON.stringify(await prisma.customerOrder.findUniqueOrThrow({where:{id:${JSON.stringify(assistedOrder.id)}},include:{items:true,reservations:true}})));`).trim());
+  assert.equal(savedOrder.userId, customer.id); assert.equal(savedOrder.assignedSellerId, profiles[0].id);
+  assert.equal(savedOrder.status, 'IN_RECOVERY'); assert.equal(savedOrder.source, 'seller_assisted');
+  assert.equal(savedOrder.items[0].productNameSnapshot, product.name);
+  assert.equal(savedOrder.reservations.length, 0);
+  assert.equal(Number(db(`console.log((await prisma.product.findUniqueOrThrow({where:{id:${JSON.stringify(product.id)}}})).stock);`).trim()), stockBeforeOrder);
+  assert.equal((await data(await owner.get('/api/orders/me'))).some(value => value.id === assistedOrder.id), true);
+  assert.equal((await sellerB.get(`/api/orders/admin/${assistedOrder.id}`)).status(), 404);
   await assign('order', order.id, profiles[0].id);
   const workA = await data(await sellerA.get('/api/commercial/workbench')); const workB = await data(await sellerB.get('/api/commercial/workbench'));
   assert.equal(workA.orders.some(item => item.id === order.id), true);
@@ -131,6 +157,8 @@ export async function validateCommercialAccess({ owner, admin, sellerA, sellerB,
   assert.equal((await sellerB.get(`/api/sales/admin/${sale.id}`)).status(), 200);
   await assign('customer', customer.id, profiles[1].id, 1);
   assert.equal((await sellerA.post('/api/commercial/quotes', { headers, data: assistedInput })).status(), 404, 'A replay must not bypass revoked customer access');
+  assert.equal((await sellerA.post('/api/commercial/orders', { headers, data: assistedOrderInput })).status(), 404,
+    'An order replay must not bypass revoked customer access');
   assert.equal((await sellerA.get(`/api/customers/admin/${customer.id}`)).status(), 404);
   const otherDetail = await data(await sellerB.get(`/api/customers/admin/${customer.id}`)); assert.equal(otherDetail.notes.some(item => item.id === note.id), false);
   assert.equal((await sellerB.delete(`/api/customers/admin/${customer.id}/notes/${note.id}`, { headers })).status(), 404);
@@ -193,6 +221,25 @@ export async function validateCommercialAccess({ owner, admin, sellerA, sellerB,
     assert.equal((await createdRequest).status(), 201);
     await page.waitForURL(url => url.searchParams.has('quoteId'));
   } finally { await context.close(); }
+  const orderContext = await browser.newContext();
+  try {
+    await orderContext.addCookies((await sellerB.storageState()).cookies);
+    const page = await orderContext.newPage(); await page.setViewportSize({ width: 320, height: 844 });
+    await page.goto(`${baseURL}/painel-lojista/painel/atendimentos`);
+    await page.getByRole('button', { name: 'Criar pedido para cliente', exact: true }).click();
+    const editor = page.getByRole('region', { name: 'Criar pedido para cliente' });
+    await editor.getByLabel('Buscar cliente', { exact: true }).fill(customer.name);
+    await editor.getByRole('button').filter({ hasText: customer.name }).click();
+    await editor.getByRole('button', { name: 'Continuar', exact: true }).click();
+    await editor.getByLabel('Buscar produto', { exact: true }).fill(product.sku);
+    await editor.getByRole('button', { name: 'Selecionar', exact: true }).click();
+    await editor.getByRole('button', { name: 'Conferir', exact: true }).click();
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    const created = page.waitForResponse(response => response.url().endsWith('/api/commercial/orders') && response.request().method() === 'POST');
+    await editor.getByRole('button', { name: 'Confirmar pedido', exact: true }).click();
+    assert.equal((await created).status(), 201);
+    await page.waitForURL(url => url.pathname.includes('/pedidos/'));
+  } finally { await orderContext.close(); }
   const sellerContext = await browser.newContext();
   try {
     await sellerContext.addCookies((await sellerA.storageState()).cookies); const page = await sellerContext.newPage(); await page.setViewportSize({ width: 320, height: 844 });

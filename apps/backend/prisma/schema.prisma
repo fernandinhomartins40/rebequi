@@ -588,6 +588,8 @@ model QuoteItem {
 }
 
 model CustomerOrder {
+  commercialCreationKey String? @unique
+  commercialCreationFingerprint String?
   assignedSellerId String?
   assignedSeller User? @relation("OrderSeller", fields: [assignedSellerId], references: [id], onDelete: SetNull)
   assignmentVersion Int @default(0)
