@@ -65,9 +65,18 @@ export async function validateCommercialAccess({ owner, admin, sellerA, sellerB,
   assert.equal((await sellerB.post(`/api/sales/admin/${sale.id}/status`, { headers, data: { status: 'CANCELED' } })).status(), 404);
   const actual = JSON.parse(db(`console.log(JSON.stringify(await prisma.sale.findUniqueOrThrow({where:{id:${JSON.stringify(sale.id)}},select:{assignedSellerId:true,registeredById:true,creditedSellerId:true}})));`).trim());
   assert.deepEqual(actual, { assignedSellerId: profiles[0].id, registeredById: profiles[0].id, creditedSellerId: profiles[0].id });
+  const month = db(`console.log((await prisma.sale.findUniqueOrThrow({where:{id:${JSON.stringify(sale.id)}},select:{paidAt:true}})).paidAt.toISOString().slice(0,7));`).trim();
+  const performance = await data(await sellerA.get(`/api/commercial/performance/me?month=${month}`));
+  assert.equal(performance.paidSales, 1); assert.equal(performance.grossCents, String(Math.round(sale.total * 100)));
+  assert.equal(performance.refundCents, '0'); assert.equal(performance.netCents, performance.grossCents);
+  assert.equal(performance.commissionCalculated, false);
+  assert.equal((await data(await sellerB.get(`/api/commercial/performance/me?month=${month}`))).paidSales, 0);
+  assert.equal((await sellerA.get('/api/commercial/performance/me?month=2026-13')).status(), 400);
   await assign('sale', sale.id, profiles[1].id);
   const creditedAfterAssignment = db(`console.log((await prisma.sale.findUniqueOrThrow({where:{id:${JSON.stringify(sale.id)}},select:{creditedSellerId:true}})).creditedSellerId);`).trim();
   assert.equal(creditedAfterAssignment, profiles[0].id);
+  assert.equal((await data(await sellerA.get(`/api/commercial/performance/me?month=${month}`))).paidSales, 1);
+  assert.equal((await data(await sellerB.get(`/api/commercial/performance/me?month=${month}`))).paidSales, 0);
   const blockedCreditChange = JSON.parse(db(`let blocked=false;try{await prisma.sale.update({where:{id:${JSON.stringify(sale.id)}},data:{creditedSellerId:${JSON.stringify(profiles[1].id)}}});}catch{blocked=true;}console.log(JSON.stringify({blocked}));`).trim().split('\n').at(-1));
   assert.equal(blockedCreditChange.blocked, true);
   assert.equal((await sellerA.get(`/api/sales/admin/${sale.id}`)).status(), 404, 'Reassignment revokes access even for the original operator');

@@ -10,9 +10,14 @@ import { validateBody, validateParams, validateQuery } from '../middleware/valid
 import { successResponse } from '../utils/response.util.js';
 import { assignCommercialRecord, commercialAssignmentState } from '../services/commercial-assignment.service.js';
 import { saleScope } from '../services/commercial-access-policy.js';
+import { sellerMonthlyPerformance } from '../services/commercial-performance.service.js';
 const router: Router = Router();
 router.use(authenticate, (_req, res, next) => { res.setHeader('Cache-Control', 'private, no-store'); next(); });
 const assignmentRoles = getRolesForMerchantPermission('commercial:assign');
+router.get('/performance/me', authorize(...getRolesForMerchantPermission('commercial:work')),
+  validateQuery(z.object({ month: z.string().regex(/^(?:20\d{2})-(?:0[1-9]|1[0-2])$/) }).strict()), async (req, res, next) => {
+    try { successResponse(res, await sellerMonthlyPerformance(req.user!.userId, req.query.month as string)); } catch (error) { next(error); }
+  });
 router.get('/quote-customers', authorize(...getRolesForMerchantPermission('commercial:work')), validateQuery(z.object({ page: z.coerce.number().int().min(1).max(100000).default(1), search: z.string().trim().max(100).default('') })), async (req, res, next) => { try { successResponse(res, await commercialQuoteCustomers(req.user!, Number(req.query.page), req.query.search as string)); } catch (error) { next(error); } });
 router.post('/quotes', authorize(...getRolesForMerchantPermission('commercial:work')), requireTrustedOrigin, validateBody(commercialQuoteSchema), async (req, res, next) => { try { successResponse(res, await createCommercialQuote(req.user!, req.body), 201); } catch (error) { next(error); } });
 const params = z.object({ kind: commercialKindSchema, id: z.string().min(1).max(128) });
