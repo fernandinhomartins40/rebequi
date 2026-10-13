@@ -1,8 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { fulfillmentDetailsSchema, fulfillmentOperationSchema, driverAssignmentSchema, pickupReceiptSchema } from '@rebequi/shared/schemas';
+import { fulfillmentDetailsSchema, fulfillmentOperationSchema, driverAssignmentSchema, pickupReceiptSchema, deliveryReceiptSchema } from '@rebequi/shared/schemas';
 import { getMerchantPermissionsForRole } from '@rebequi/shared/constants';
 const intent = { requestKey: '72768860-08e9-44e8-b464-59ef46de820a', expectedVersion: 1, confirmed: true };
+test('Delivery receipt requires one stop, a receiver and positive distinct material deltas', () => {
+  const input = { ...intent, stopId: 'stop', receiverName: 'Recebedor', items: [{ id: 'allocation', quantity: 1 }] };
+  assert.equal(deliveryReceiptSchema.safeParse(input).success, true);
+  for (const quantity of [0, -1, 1.5, 1000001]) assert.equal(deliveryReceiptSchema.safeParse({ ...input, items: [{ id: 'allocation', quantity }] }).success, false);
+  assert.equal(deliveryReceiptSchema.safeParse({ ...input, confirmed: false }).success, false);
+  assert.equal(deliveryReceiptSchema.safeParse({ ...input, stopId: '' }).success, false);
+  assert.equal(deliveryReceiptSchema.safeParse({ ...input, receiverName: '' }).success, false);
+  assert.equal(deliveryReceiptSchema.safeParse({ ...input, items: [...input.items, ...input.items] }).success, false);
+  assert.equal(deliveryReceiptSchema.safeParse({ ...input, userId: 'another-driver' }).success, false);
+});
 test('Pickup requires identified receipt, positive whole quantities and a single occurrence per material', () => {
   const input = { ...intent, receiverName: 'Recebedor isolado', items: [{ id: 'material', quantity: 1 }] };
   assert.equal(pickupReceiptSchema.safeParse(input).success, true);

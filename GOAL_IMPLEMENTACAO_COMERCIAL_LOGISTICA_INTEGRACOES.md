@@ -2,7 +2,7 @@
 
 ## Estado atual e tarefas restantes — atualização de 13/10/2026
 
-Workflows até 38332596582 concluídos com sucesso, incluindo banco/API/navegador reais e deploy. Estão publicados atribuição/proteção comercial, Meus atendimentos, orçamento assistido, catálogo, separação/conferência, perfis de depósito/motorista, frota, romaneio, carregamento/saída/retorno, prioridade operacional, retirada parcial com recebedor, histórico privado por papel e API externa somente de leitura com exportação de orçamentos. O plano completo ainda não está concluído.
+Workflows até 38341886372 concluídos com sucesso, incluindo banco/API/navegador reais e deploy. Estão publicados atribuição/proteção comercial, Meus atendimentos, orçamento assistido, catálogo, separação/conferência, perfis de depósito/motorista, frota, romaneio, carregamento/saída/retorno, prioridade operacional, retirada parcial com recebedor, histórico privado por papel e API externa somente de leitura com exportação de orçamentos. O plano completo ainda não está concluído.
 
 Próximas tarefas, na ordem de execução:
 
@@ -139,9 +139,16 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Recebimento parcial em rota — 13/10/2026
+
+Registro por parada em três passos: materiais entregues agora → recebedor → confirmação física. Somente motorista do romaneio ou gestão, conta ativa e venda paga, após saída IN_TRANSIT. Saldo limitado ao carregado ainda não entregue/retornado, com validação da conferência e saldo vendido líquido. Lock ordenado venda/tarefa/romaneio e intenção idempotente, versão esperada e evento imutável evitam corrida com retorno ao depósito. Alocação registra entrega bruta da viagem; tarefa conserva saldo físico líquido com o cliente. Sem nova baixa de estoque ou alteração financeira. Guardas do banco mantêm configuração/carga imutáveis e permitem somente os deltas exatos registrados por evento da próxima versão.
+
+Rota encerra automaticamente após recebimento de toda a carga; retorno ao depósito continua conferindo todos os materiais ainda em carga e preserva o saldo já recebido. Nova conferência permite reentrega somente do saldo restante. Cliente recebe evento próprio mínimo e saldo por material; nome do recebedor continua privado. Motorista pode consultar a conclusão de seu romaneio, mas não os de colegas. Foto/evidência, ocorrência/reagendamento, piloto em dispositivos e demais módulos ainda pendentes. Teste integrado acrescentado para envio concorrente, versão/quantidade indevidas, bloqueio do guard direto, saldo parcial, retorno/reconferência/reentrega, conclusão mobile, fechamento e estoque preservado. Validação com banco real e deploy deste incremento pendentes.
+
+
 ### Saldo de materiais no painel do cliente — 13/10/2026
 
-Consulta própria paginada em 20 materiais, sem notas internas, endereço, recebedor ou dados de outros clientes. Snapshot RepeatableRead calcula saldo físico atual recebido, saldo ainda a receber e quantidade removida por devolução/cancelamento parcial; não usa venda paga como prova de recebimento. Painel consulta somente ao abrir “O que recebi e o que falta?”, com atualização manual e paginação. Consulta não movimenta estoque nem registra entrega. Testes integrados acrescentam isolamento por proprietário/papel, no-store, pedido sem preparação, versão da consulta após retiradas/devoluções e navegador mobile de 320px. Validação integrada deste incremento pendente após publicação pela main. Entrega parcial em rota e demais requisitos permanecem no goal ativo.
+Consulta própria paginada em 20 materiais, sem notas internas, endereço, recebedor ou dados de outros clientes. Snapshot RepeatableRead calcula saldo físico atual recebido, saldo ainda a receber e quantidade removida por devolução/cancelamento parcial; não usa venda paga como prova de recebimento. Painel consulta somente ao abrir “O que recebi e o que falta?”, com atualização manual e paginação. Consulta não movimenta estoque nem registra entrega. Testes integrados acrescentam isolamento por proprietário/papel, no-store, pedido sem preparação, versão da consulta após retiradas/devoluções e navegador mobile de 320px. Validação integrada e deploy aprovados no workflow 38341886372. Entrega parcial em rota e demais requisitos permanecem no goal ativo.
 
 
 ### Retirada parcial com recebedor — 13/10/2026

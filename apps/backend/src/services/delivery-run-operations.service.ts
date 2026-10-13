@@ -21,7 +21,7 @@ export async function operateDeliveryRun(id: string, actor: { userId: string; ro
     if (repeated) { if (repeated.fingerprint !== fingerprint) throw new ConflictError('Este envio já foi usado para outra operação.'); return { id, version: repeated.version }; }
     const run = await tx.deliveryRun.findUniqueOrThrow({ where: { id }, include: { stops: { include: { items: true, fulfillment: { select: { driverId: true, mode: true, status: true, sale: { select: { status: true } } } } } } } });
     if (run.version !== input.expectedVersion) throw new ConflictError('O romaneio mudou. Recarregue antes de confirmar.');
-    if (!run.stops.length || run.stops.some(stop => !stop.active || stop.fulfillment.driverId !== run.driverId || stop.fulfillment.mode !== 'DELIVERY' || stop.fulfillment.status !== 'READY' || stop.fulfillment.sale.status !== 'PAID')) throw new ConflictError('Confira o vínculo, pagamento e liberação das entregas.');
+    if (!run.stops.length || run.stops.some(stop => !stop.active || stop.fulfillment.driverId !== run.driverId || stop.fulfillment.mode !== 'DELIVERY' || !(input.action === 'RETURN_TO_WAREHOUSE' ? ['READY', 'PARTIALLY_RECEIVED', 'RECEIVED'] : ['READY']).includes(stop.fulfillment.status) || stop.fulfillment.sale.status !== 'PAID')) throw new ConflictError('Confira o vínculo, pagamento e liberação das entregas.');
     const items = run.stops.flatMap(stop => stop.items); const now = new Date();
     const submitted = new Map(input.items.map(item => [item.id, item.quantity]));
     let status: string; let loadSnapshot: Prisma.InputJsonValue | typeof Prisma.DbNull = Prisma.DbNull;
@@ -63,6 +63,7 @@ export async function operateDeliveryRun(id: string, actor: { userId: string; ro
     if (input.action === 'RETURN_TO_WAREHOUSE') {
       await tx.deliveryRunStop.updateMany({ where: { runId: id, active: true }, data: { active: false } });
       for (const stop of run.stops) {
+        if (stop.fulfillment.status === 'RECEIVED') continue;
         const materials = await tx.fulfillmentItem.findMany({ where: { fulfillmentId: stop.fulfillmentId }, select: { id: true, delivered: true } });
         for (const material of materials) await tx.fulfillmentItem.update({ where: { id: material.id }, data: { checked: material.delivered } });
         const fulfillment = await tx.fulfillment.update({ where: { id: stop.fulfillmentId }, data: { status: 'CHECKING', version: { increment: 1 } } });

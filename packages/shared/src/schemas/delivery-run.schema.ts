@@ -17,3 +17,9 @@ export const deliveryRunOperationSchema = z.object({
   .refine(value => value.action === 'LOAD' ? value.items.length > 0 && value.measurements.length > 0 : value.action === 'RETURN_TO_WAREHOUSE' ? value.items.length > 0 && value.measurements.length === 0 : value.items.length === 0 && value.measurements.length === 0, 'Confira os dados da operação.')
   .refine(value => !['UNLOAD', 'RETURN_TO_WAREHOUSE'].includes(value.action) || value.note.length >= 3, 'Informe o motivo da descarga ou retorno.');
 export type DeliveryRunOperationInput = z.infer<typeof deliveryRunOperationSchema>;
+export const deliveryReceiptSchema = z.object({
+  requestKey: z.string().uuid(), expectedVersion: z.number().int().min(1), confirmed: z.literal(true),
+  stopId: z.string().min(1).max(128), receiverName: z.string().trim().min(2).max(100), note: z.string().trim().max(300).default(''),
+  items: z.array(z.object({ id: z.string().min(1).max(128), quantity: z.number().int().min(1).max(1000000) }).strict()).min(1).max(100),
+}).strict().refine(value => new Set(value.items.map(item => item.id)).size === value.items.length, 'Material repetido na entrega.');
+export type DeliveryReceiptInput = z.infer<typeof deliveryReceiptSchema>;

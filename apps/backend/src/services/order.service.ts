@@ -451,7 +451,7 @@ export class OrderService {
     const transport = preparation?.deliveryStops[0]?.run;
 
     return {
-      fulfillment: preparation ? { status: order.sale?.status === 'PENDING_PAYMENT' ? 'PAYMENT_PENDING' : transport && ['LOADED', 'IN_TRANSIT'].includes(transport.status) ? transport.status : preparation.status, mode: preparation.mode, scheduledAt: preparation.scheduledAt, updatedAt: transport?.departedAt ?? transport?.loadedAt ?? preparation.updatedAt } : null,
+      fulfillment: preparation ? { status: order.sale?.status === 'PENDING_PAYMENT' ? 'PAYMENT_PENDING' : ['RECEIVED', 'PARTIALLY_RECEIVED'].includes(preparation.status) ? preparation.status : transport && ['LOADED', 'IN_TRANSIT'].includes(transport.status) ? transport.status : preparation.status, mode: preparation.mode, scheduledAt: preparation.scheduledAt, updatedAt: new Date(Math.max(preparation.updatedAt.getTime(), transport?.departedAt?.getTime() ?? 0, transport?.loadedAt?.getTime() ?? 0)) } : null,
       referral: order.partnerReferral ? { code: order.partnerReferral.codeSnapshot, confirmedAt: order.partnerReferral.consentedAt } : null,
       canceledAt: order.canceledAt,
       completedAt: order.completedAt,

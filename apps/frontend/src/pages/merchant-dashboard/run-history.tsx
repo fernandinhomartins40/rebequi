@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/services/api/client';
 import { Button } from '@/components/ui/button';
 import { DashboardError, DashboardLoading } from '@/components/dashboard/DashboardList';
-const LABELS: Record<string, string> = { PLANNED: 'Romaneio planejado', CREATED: 'Romaneio planejado', CANCELED: 'Planejamento cancelado', LOAD: 'Carregamento conferido', UNLOAD: 'Descarga antes da saída', DEPART: 'Saída confirmada', RETURN_TO_WAREHOUSE: 'Retorno ao depósito' };
+const LABELS: Record<string, string> = { DELIVERY_RECEIVED: 'Entrega registrada', PLANNED: 'Romaneio planejado', CREATED: 'Romaneio planejado', CANCELED: 'Planejamento cancelado', LOAD: 'Carregamento conferido', UNLOAD: 'Descarga antes da saída', DEPART: 'Saída confirmada', RETURN_TO_WAREHOUSE: 'Retorno ao depósito' };
 type History = { events: { id: string; version: number; kind: string; createdAt: string; note?: string | null }[]; total: number; page: number; totalPages: number };
 export function RunHistory({ id, driver }: { id: string; driver: boolean }) {
   const [open, setOpen] = useState(false); const [page, setPage] = useState(1);

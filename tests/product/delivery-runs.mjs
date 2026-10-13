@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import { validateDeliveryReceipts } from './delivery-receipts.mjs';
 export async function validateDeliveryRuns({ admin, guest, owner, browser, baseURL, data, db, id, sale, product, orderId }) {
   const headers = { Origin: baseURL };
   const driver = await data(await admin.post('/api/users', { headers, data: { email: 'run-driver@example.invalid', password: 'Isolated-Run-2026!', name: 'Motorista do romaneio', role: 'DRIVER', mustChangePassword: false } }), 201);
@@ -125,4 +126,5 @@ export async function validateDeliveryRuns({ admin, guest, owner, browser, baseU
   assert.equal((await data(await admin.get(`/api/delivery-runs/${trip.id}`))).status, 'CLOSED');
   assert.equal((await data(await owner.get('/api/orders/me'))).find(order => order.id === orderId).fulfillment.status, 'CHECKING');
   assert.equal(Number(db(`console.log((await prisma.product.findUniqueOrThrow({where:{id:${JSON.stringify(product.id)}}})).stock);`).trim()), stockBefore, 'Planning/canceling a route must not move stock');
+  await validateDeliveryReceipts({ owner, admin, guest, browser, baseURL, data, db, product, driver, vehicle });
 }

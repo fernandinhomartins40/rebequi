@@ -4,7 +4,7 @@ import { ForbiddenError, NotFoundError } from '../utils/errors.util.js';
 export async function deliveryRunHistory(id: string, page: number, actor: { userId: string; role: string }) {
   if (actor.role !== 'DRIVER' && !hasMerchantPermission(actor.role, 'logistics:manage')) throw new ForbiddenError('Acesso não autorizado.');
   return prisma.$transaction(async tx => {
-    const run = await tx.deliveryRun.findFirst({ where: { id, ...(actor.role === 'DRIVER' ? { driverId: actor.userId, status: { in: ['PLANNED', 'LOADED', 'IN_TRANSIT'] } } : {}) }, select: { id: true } });
+    const run = await tx.deliveryRun.findFirst({ where: { id, ...(actor.role === 'DRIVER' ? { driverId: actor.userId, status: { in: ['PLANNED', 'LOADED', 'IN_TRANSIT', 'CLOSED'] } } : {}) }, select: { id: true } });
     if (!run) throw new NotFoundError('Romaneio não encontrado.');
     const where = { runId: id };
     const [events, total] = await Promise.all([tx.deliveryRunEvent.findMany({ where, orderBy: { version: 'desc' }, skip: (page - 1) * 20, take: 20, select: { id: true, version: true, kind: true, createdAt: true, details: true } }), tx.deliveryRunEvent.count({ where })]);
