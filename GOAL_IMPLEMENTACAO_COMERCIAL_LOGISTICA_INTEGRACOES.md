@@ -1,5 +1,13 @@
 # Gestão comercial, logística e integrações — roteiro de execução
 
+## Plano simples de entrega
+
+1. **Usar a loja de ponta a ponta.** Vendedor atende e cria orçamento/pedido; cliente acompanha; depósito e motorista concluem entrega. Corrigir falhas reais desses caminhos antes de abrir funções paralelas. O pedido assistido já foi publicado no workflow 38472106770. O PWA do motorista está publicado; piloto em Android/iPhone depende de operação em aparelhos reais.
+2. **Fechar unidades e estoque.** Definir e aplicar quantidades fracionadas nas linhas, reservas, vendas, devoluções e entregas como uma mudança coordenada. A prévia por medida é apenas conferência e não deve ser apresentada como venda fracionada pronta.
+3. **Conectar sistemas externos quando houver dados reais.** Manter prévia/importação manual e API atual utilizáveis. Conector ERP/PDV específico, webhooks, comissão ativa e homologação externa dependem respectivamente do fornecedor identificado, destino/credenciais, regra financeira aprovada e contas/aparelhos reais. Não criar infraestrutura adicional antes de um fluxo concreto que a utilize.
+
+Para cada entrega: mostrar a função utilizável, testar o fluxo completo, corrigir o gate e publicar pela `main` via GitHub Actions. O histórico detalhado abaixo permanece como registro técnico, não como lista de tarefas para o usuário acompanhar.
+
 ## Estado atual e tarefas restantes — atualização de 13/10/2026
 
 Workflows até 38424364723 concluídos com sucesso, incluindo banco/API/navegador reais e deploy. Estão publicados atribuição/proteção comercial, Meus atendimentos, orçamento assistido, catálogo, separação/conferência, perfis de depósito/motorista, frota, romaneio, carregamento/saída/retorno, prioridade operacional, retirada parcial com recebedor, histórico privado por papel e API externa somente de leitura com exportação de orçamentos. O plano completo ainda não está concluído.
