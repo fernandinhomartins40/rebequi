@@ -14,6 +14,7 @@ datasource db {
 // USER MODEL - Authentication & Authorization
 // ============================================================================
 model User {
+  sellerGoals SellerGoalRevision[] @relation("SellerGoalOwner")
   deliveryRuns DeliveryRun[] @relation("DeliveryRunDriver")
   driverFulfillments Fulfillment[] @relation("FulfillmentDriver")
   assignedSellerId String?
@@ -633,6 +634,23 @@ model CommercialAssignmentAudit {
   @@unique([resourceKind, resourceId, version])
   @@index([resourceKind, resourceId, createdAt])
   @@map("commercial_assignment_audits")
+}
+
+model SellerGoalRevision {
+  id String @id @default(cuid())
+  sellerId String
+  seller User @relation("SellerGoalOwner", fields: [sellerId], references: [id], onDelete: Restrict)
+  month String
+  version Int
+  targetCents BigInt
+  requestKey String @unique
+  fingerprint String
+  actorId String
+  reason String
+  createdAt DateTime @default(now())
+  @@unique([sellerId, month, version], map: "seller_goal_revision_version")
+  @@index([sellerId, month], map: "seller_goal_revision_seller_month")
+  @@map("seller_goal_revisions")
 }
 
 model LogisticsVehicle {

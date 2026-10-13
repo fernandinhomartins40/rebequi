@@ -142,6 +142,10 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Metas comerciais prospectivas — 13/10/2026
+
+Gestão pode registrar metas mensais para colaboradores comerciais ativos apenas em meses futuros, com valor em centavos, motivo, confirmação, chave idempotente e versão esperada. Cada revisão é imutável e auditada; conflito de versão exige recarregar. O próprio vendedor vê sua meta no desempenho, sem acesso à meta de outros colaboradores. Nenhuma meta gera comissão ou pagamento. Teste integrado cobre permissão, origem, replay, revisão, período passado, imutabilidade e formulário mobile. Gate/deploy deste incremento ainda pendentes; regras financeiras/ledger de comissão e conciliação continuam no objetivo.
+
 ### Identidade histórica do vendedor na venda — 13/10/2026
 
 Novas vendas registram `creditedSellerId` no ato transacional, usando o responsável conferido do pedido ou operador comercial. O campo é imutável mesmo quando o atendimento da venda é redistribuído; vendas antigas permanecem sem atribuição presumida. Este snapshot prepara indicadores e regras prospectivas de comissão sem calcular ou ativar pagamentos. Teste integrado acrescentado para criação, redistribuição e bloqueio de alteração direta; gate/deploy ainda pendentes.

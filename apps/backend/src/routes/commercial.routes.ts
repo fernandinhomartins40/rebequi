@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { getRolesForMerchantPermission } from '@rebequi/shared/constants';
-import { commercialKindSchema, commercialAssignmentSchema, commercialQuoteSchema } from '@rebequi/shared/schemas';
+import { commercialKindSchema, commercialAssignmentSchema, commercialQuoteSchema, sellerGoalSchema } from '@rebequi/shared/schemas';
 import { commercialQuoteCustomers, createCommercialQuote } from '../services/commercial-quote.service.js';
 import { prisma } from '../lib/prisma.js';
 import { authenticate, authorize } from '../middleware/auth.middleware.js';
@@ -11,11 +11,20 @@ import { successResponse } from '../utils/response.util.js';
 import { assignCommercialRecord, commercialAssignmentState } from '../services/commercial-assignment.service.js';
 import { saleScope } from '../services/commercial-access-policy.js';
 import { sellerMonthlyPerformance } from '../services/commercial-performance.service.js';
+import { currentSellerGoal, setSellerGoal } from '../services/seller-goal.service.js';
 const router: Router = Router();
 router.use(authenticate, (_req, res, next) => { res.setHeader('Cache-Control', 'private, no-store'); next(); });
 const assignmentRoles = getRolesForMerchantPermission('commercial:assign');
+const goalMonthQuery = z.object({ month: z.string().regex(/^20\d{2}-(?:0[1-9]|1[0-2])$/) }).strict();
+router.get('/goals/:sellerId', authorize(...assignmentRoles), validateParams(z.object({ sellerId: z.string().min(1).max(128) }).strict()),
+  validateQuery(goalMonthQuery), async (req, res, next) => {
+    try { successResponse(res, { goal: await currentSellerGoal(req.params.sellerId, req.query.month as string) }); } catch (error) { next(error); }
+  });
+router.post('/goals', authorize(...assignmentRoles), requireTrustedOrigin, validateBody(sellerGoalSchema), async (req, res, next) => {
+  try { successResponse(res, await setSellerGoal(req.user!, req.body), 201); } catch (error) { next(error); }
+});
 router.get('/performance/me', authorize(...getRolesForMerchantPermission('commercial:work')),
-  validateQuery(z.object({ month: z.string().regex(/^(?:20\d{2})-(?:0[1-9]|1[0-2])$/) }).strict()), async (req, res, next) => {
+  validateQuery(goalMonthQuery), async (req, res, next) => {
     try { successResponse(res, await sellerMonthlyPerformance(req.user!.userId, req.query.month as string)); } catch (error) { next(error); }
   });
 router.get('/quote-customers', authorize(...getRolesForMerchantPermission('commercial:work')), validateQuery(z.object({ page: z.coerce.number().int().min(1).max(100000).default(1), search: z.string().trim().max(100).default('') })), async (req, res, next) => { try { successResponse(res, await commercialQuoteCustomers(req.user!, Number(req.query.page), req.query.search as string)); } catch (error) { next(error); } });

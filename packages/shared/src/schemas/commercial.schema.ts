@@ -3,6 +3,14 @@ export const commercialKindSchema = z.enum(['customer', 'lead', 'quote', 'order'
 export const commercialAssignmentSchema = z.object({ sellerId: z.string().min(1).max(128).nullable(), expectedVersion: z.number().int().min(0), reason: z.string().trim().min(3).max(500), confirmed: z.literal(true) }).strict();
 export type CommercialAssignmentInput = z.infer<typeof commercialAssignmentSchema>;
 export type CommercialKind = z.infer<typeof commercialKindSchema>;
+export const sellerGoalSchema = z.object({
+  requestKey: z.string().uuid(), sellerId: z.string().min(1).max(128),
+  month: z.string().regex(/^20\d{2}-(?:0[1-9]|1[0-2])$/),
+  targetCents: z.string().regex(/^\d{1,12}$/).refine(value => BigInt(value) > 0n),
+  expectedVersion: z.number().int().min(0).max(10000),
+  reason: z.string().trim().min(3).max(500), confirmed: z.literal(true),
+}).strict();
+export type SellerGoalInput = z.infer<typeof sellerGoalSchema>;
 export const commercialQuoteSchema = z.object({
   requestKey: z.string().uuid(), confirmed: z.literal(true), customerId: z.string().min(1).max(128), expectedCustomerVersion: z.number().int().min(0),
   title: z.string().trim().min(3).max(255), note: z.string().trim().max(1500).default(''),
