@@ -141,6 +141,11 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Gate integrado dos PWAs e reconexão aprovado — 13/10/2026
+
+Workflow 38424364723, commit c2d1770: testes/infra, builds e gate PostgreSQL/API/navegador concluídos com sucesso. Confirma PWA do motorista, manifesto/cabeçalhos/controlador, cache apenas do aviso público, offline/reconexão, formulário preservado e nenhuma entrega antes de confirmação online, 401 de motorista desativado revogando dados, além do bootstrap offline/reconexão do PWA de parceiros e demais jornadas existentes. As falhas anteriores foram corrigidas sem remover verificações. Deploy desse workflow confirmado em execução; não presumir publicação antes da conclusão. Piloto em Android/iPhone e requisitos restantes de unidades/granel/comercial/integração continuam pendentes; objetivo completo permanece ativo.
+
+
 ### Reconexão de sessão ainda desconhecida — 13/10/2026
 
 Gate 38422295134 aprovou a jornada do depósito/motorista, inclusive PWA, formulário ao reconectar e revogação de conta; falhou no retorno online de parceiros após reload offline, antes de Cadastro aprovado. Nesse bootstrap não existe identidade autenticada em memória. Listener agora mantém loading somente quando sessionUserId ainda é nulo, aguardando verificação do cookie antes do guard de login. Contas já conhecidas continuam verificadas em segundo plano sem desmontar formulário. 401 e mudança de identidade continuam limpando sessão/cache; não se presume autenticação offline. Mantidos ambos os testes reais, sem reduzir asserções, e nenhum deploy ocorreu com gate reprovado. Verificar novo gate/deploy; objetivo completo permanece ativo.
