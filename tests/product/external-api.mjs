@@ -10,6 +10,24 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
   const clients = await data(await admin.get('/api/integrations/external-api/clients')); assert.equal(clients.clients.filter(item => item.id === credential.id).length, 1); assert.equal(JSON.stringify(clients).includes(credential.token), false); assert.equal(JSON.stringify(clients).includes('tokenHash'), false);
   const persisted = JSON.parse(db(`console.log(JSON.stringify(await prisma.externalApiClient.findUniqueOrThrow({where:{id:${JSON.stringify(credential.id)}},select:{tokenHash:true}})));`).trim());
   assert.equal(persisted.tokenHash, createHash('sha256').update(credential.token).digest('hex')); assert.notEqual(persisted.tokenHash, credential.token);
+  const existingCustomer = JSON.parse(db(`console.log(JSON.stringify(await prisma.user.findFirstOrThrow({where:{role:'CUSTOMER',email:{contains:'@'}},select:{id:true,email:true,whatsapp:true}})));`).trim());
+  const customerRows = [
+    { externalId: 'known-customer', name: 'Cliente existente', email: existingCustomer.email },
+    { externalId: 'new-customer', name: 'Cliente novo', email: `import-${randomUUID()}@example.invalid` },
+  ];
+  const customerInput = { source: 'pdv-runner', rows: customerRows };
+  const customerPath = '/api/integrations/external-api/imports/customers/preview';
+  assert.equal((await owner.post(customerPath, { headers, data: customerInput })).status(), 403);
+  assert.equal((await admin.post(customerPath, { data: customerInput })).status(), 403);
+  assert.equal((await admin.post(customerPath, { headers, data: { ...customerInput, apply: true } })).status(), 400);
+  const customerResponse = await admin.post(customerPath, { headers, data: customerInput });
+  const customerPreview = await data(customerResponse);
+  assert.match(customerResponse.headers()['cache-control'], /no-store/);
+  assert.deepEqual(customerPreview.rows[0].conflicts, ['LOCAL_CUSTOMER_EXISTS']);
+  assert.equal(customerPreview.rows[0].localCustomerId, existingCustomer.id);
+  assert.equal(customerPreview.rows[1].status, 'READY_FOR_REVIEW');
+  assert.equal(JSON.stringify(customerPreview).includes(existingCustomer.email), false);
+  assert.equal(Number(db(`console.log(await prisma.user.count({where:{email:${JSON.stringify(customerRows[1].email)}}}));`).trim()), 0);
   const importPath = '/api/integrations/external-api/imports/products/preview';
   const batchesPath = '/api/integrations/external-api/imports/products/batches';
   const catalog = JSON.parse(db(`console.log(JSON.stringify(await prisma.product.findFirstOrThrow({where:{sku:{not:null},deletedAt:null,category:{isActive:true,deletedAt:null}},select:{id:true,sku:true,categoryId:true,stock:true,reservedStock:true,price:true}})));`).trim());
@@ -162,6 +180,15 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
     await page.getByRole('checkbox', { name: 'Autorizo este sistema a consultar os dados nas permissões selecionadas.' }).check(); await page.getByRole('button', { name: 'Emitir credencial', exact: true }).click();
     await page.getByLabel('Credencial exibida somente nesta emissão', { exact: true }).waitFor(); assert.match(await page.getByLabel('Credencial exibida somente nesta emissão', { exact: true }).inputValue(), /^rb_api_/);
     await page.getByRole('button', { name: 'Fechar credencial', exact: true }).click(); await page.reload(); assert.equal(await page.getByLabel('Credencial exibida somente nesta emissão', { exact: true }).count(), 0);
+    await page.getByText('Conferir clientes de outro sistema', { exact: true }).click();
+    const customerPanel = page.getByRole('region', { name: 'Prévia de clientes externos', exact: true });
+    await customerPanel.getByLabel('Identificação do sistema', { exact: true }).fill(customerInput.source);
+    await customerPanel.getByLabel('Arquivo de clientes (.json)', { exact: true }).setInputFiles({
+      name: 'clientes.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(customerRows)),
+    });
+    await customerPanel.getByRole('button', { name: 'Conferir clientes', exact: true }).click();
+    await customerPanel.getByText('2 clientes · 1 com conflito. Nenhuma conta foi alterada.', { exact: true }).waitFor();
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await page.getByText('Conferir categorias de outro sistema', { exact: true }).click();
     const categoryPanel = page.getByRole('region', { name: 'Prévia de categorias externas', exact: true });
     await categoryPanel.getByLabel('Identificação do sistema', { exact: true }).fill(categoryInput.source);

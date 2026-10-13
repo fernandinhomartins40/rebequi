@@ -27,3 +27,4 @@ export * from './delivery-run.schema.js';
 export * from './commercial-unit.schema.js';
 export * from './product-import.schema.js';
 export * from './category-import.schema.js';
+export * from './customer-import.schema.js';

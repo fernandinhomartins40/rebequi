@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import { getRolesForMerchantPermission } from '@rebequi/shared/constants';
-import { createExternalClientSchema, previewProductImportSchema, stageProductImportSchema, linkExternalProductSchema, revokeExternalProductLinkSchema, previewCategoryImportSchema, linkExternalCategorySchema, revokeExternalCategoryLinkSchema } from '@rebequi/shared/schemas';
+import { createExternalClientSchema, previewProductImportSchema, stageProductImportSchema, linkExternalProductSchema, revokeExternalProductLinkSchema, previewCategoryImportSchema, linkExternalCategorySchema, revokeExternalCategoryLinkSchema, previewCustomerImportSchema } from '@rebequi/shared/schemas';
 import { prisma } from '../lib/prisma.js';
 import { authenticate, authorize } from '../middleware/auth.middleware.js';
 import { requireTrustedOrigin } from '../middleware/trusted-origin.middleware.js';
@@ -17,10 +17,14 @@ import { createExternalProductLink, revokeExternalProductLink } from '../service
 import { stageExternalProductImport } from '../services/external-product-import-batch.service.js';
 import { previewCategoryImport } from '../services/category-import-preview.service.js';
 import { createExternalCategoryLink, revokeExternalCategoryLink } from '../services/external-category-link.service.js';
+import { previewCustomerImport } from '../services/customer-import-preview.service.js';
 
 export const externalAdminRoutes: Router = Router();
 externalAdminRoutes.use(authenticate, authorize(...getRolesForMerchantPermission('integrations:manage')), requireTrustedOrigin, (_req, res, next) => { res.setHeader('Cache-Control', 'private, no-store'); next(); });
 const paging = z.object({ page: z.coerce.number().int().min(1).max(100000).default(1), limit: z.coerce.number().int().min(1).max(100).default(20), updatedSince: z.string().datetime().optional() });
+externalAdminRoutes.post('/imports/customers/preview', validateBody(previewCustomerImportSchema), async (req, res, next) => {
+  try { successResponse(res, await previewCustomerImport(req.body)); } catch (error) { next(error); }
+});
 externalAdminRoutes.post('/imports/categories/preview', validateBody(previewCategoryImportSchema), async (req, res, next) => {
   try { successResponse(res, await previewCategoryImport(req.body)); } catch (error) { next(error); }
 });
