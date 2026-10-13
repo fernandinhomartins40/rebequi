@@ -11,7 +11,7 @@ Próximas tarefas, na ordem de execução:
 - [x] Romaneio, atribuição, agendamento e ordem manual das paradas; capacidade/massa/volume desconhecidos explícitos — validado e publicado no workflow 38326558378.
 - [x] Carregamento, saída e retorno ao depósito — validados e publicados até o workflow 38329771847.
 - [x] Entrega/retirada parcial por item, recebedor, impedimentos por parada e reentrega — workflow 38343635783 aprovado e publicado.
-- [ ] Histórico explícito de reagendamento/retirada de horário — workflow 38343878418 em execução; acompanhar gate/deploy.
+- [ ] Histórico explícito de reagendamento/retirada de horário — gate 38343878418 aprovado; deploy em execução.
 - [ ] Evidências privadas com consentimento/crop/compressão/quota e UI mobile/PWA operacional do motorista.
 - [ ] Evoluir unidade comercial e conversões para decimais/granel sem quebrar estoque, pedidos e devoluções existentes.
 - [ ] Acompanhamento completo pelo cliente com privacidade e histórico público controlado; sem localização/ETA presumidos.
@@ -139,6 +139,11 @@ Prisma schema/migrations; matriz de acesso e schemas/tipos compartilhados; auth/
 ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloqueia base comercial/logística/API genérica. Conector específico depende de nome/versão, documentação/capacidades, credenciais cadastradas apenas no painel, autoridade por domínio e homologação. Metas/taxas/exceções de liberação dependem de configuração da loja, não bloquear formulários. Veículos/endereço/capacidade e teste físico dependem de dados reais. Custos de API/mapas, integração ativa, pagamentos, migração retroativa e multiempresa exigem escopo/validação próprios.
 
 ## Progresso e retomada
+
+### Reagendamento validado com banco e navegador — 13/10/2026
+
+Workflow 38343878418, commit 9cb8fe3: testes/infra, três imagens e gate PostgreSQL/API/navegador concluídos com sucesso. Além dos recebimentos/impedimentos já publicados, confirma sequência de horário inicial → novo horário → retirada do horário, DTO atualizado do cliente, somente um RESCHEDULED/SCHEDULE_CLEARED e notas internas ausentes do histórico público. Deploy confirmado em execução, conclusão ainda não presumida. Navegação/fila do motorista (5fd9c2f, workflow 38344560850) aguarda execução posterior. Evidências privadas/PWA, unidades/granel, atendimento/metas/comissões, importações/escrita/webhooks/conector ERP e homologação/piloto continuam pendentes no objetivo completo.
+
 
 ### Navegação por ação do motorista e fila de pendências — 13/10/2026
 
