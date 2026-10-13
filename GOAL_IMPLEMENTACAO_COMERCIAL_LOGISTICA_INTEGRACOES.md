@@ -138,6 +138,12 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Orçamento assistido pela carteira — 12/10/2026
+
+Novo fluxo em Meus atendimentos: cliente → materiais → conferência. Busca paginada de clientes respeita a carteira; itens podem vir do catálogo ou ser descritos manualmente, sem consumo de IA. Solicitação identificada entra no fluxo existente de propostas e aparece na conta do cliente. Não aceita preço, responsável ou estoque fornecidos pelo navegador. Produtos são conferidos novamente no envio e nomes do catálogo prevalecem. Origem confiável, operador ativo, versão da carteira, idempotência concorrente e auditoria na mesma transação impedem duplicações e acesso revogado. Migração aditiva 20261012140000_commercial_quote_creation. Estágio NEW avança para QUOTING somente quando não foi travado manualmente.
+
+Testes acrescentados para concorrência, isolamento entre vendedores, reenvio após redistribuição, associação ao cliente, ausência de chamadas OCR e wizard mobile. Validação integrada deste incremento ainda será feita no workflow. Workflows 38326558378 e 38327147537 concluídos com sucesso, incluindo deploy: carregamento/saída/retorno e prioridade já publicados. Entrega/retirada parcial, evidências, desempenho/comissões, integrações e demais tarefas do plano permanecem pendentes; goal continua ativo.
+
 ### Prioridade da fila do depósito — 12/10/2026
 
 Prioridade manual na etapa de dados operacionais: prioritária, padrão ou baixa. Fila e seleção de entregas para romaneio ordenam primeiro pela prioridade e depois pelo tempo de criação/ID, preservando FIFO nas tarefas de mesma prioridade. Indicador aparece nos cards somente quando diferente do padrão. Migração aditiva 20261012130000_fulfillment_priority, com índice para a ordenação e limite 0–2 no banco. Registros existentes permanecem na prioridade padrão; não atribui urgência automaticamente, não altera pagamento, estoque ou agendamento.

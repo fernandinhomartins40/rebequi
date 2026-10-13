@@ -18,6 +18,21 @@ export async function validateCommercialAccess({ owner, admin, sellerA, sellerB,
   assert.equal((await sellerA.get('/api/products/admin/list')).status(), 200);
   assert.equal((await sellerA.put(`/api/products/${product.id}`, { headers, data: { name: 'Não autorizado' } })).status(), 403);
   await assign('customer', customer.id, profiles[0].id);
+  const quoteCustomers = await data(await sellerA.get('/api/commercial/quote-customers'));
+  assert.equal(quoteCustomers.customers.some(value => value.id === customer.id), true);
+  assert.equal((await data(await sellerB.get('/api/commercial/quote-customers'))).customers.some(value => value.id === customer.id), false);
+  const assistedInput = { requestKey: randomUUID(), confirmed: true, customerId: customer.id, expectedCustomerVersion: 1, title: 'Orçamento assistido isolado', note: 'Sem processamento por IA', items: [{ productId: product.id, name: 'Nome fornecido que não deve substituir o catálogo', quantity: 2, unit: 'un' }, { productId: null, name: 'Material solicitado fora do catálogo', quantity: 1.5, unit: 'kg' }] };
+  assert.equal((await sellerB.post('/api/commercial/quotes', { headers, data: assistedInput })).status(), 404);
+  assert.equal((await sellerA.post('/api/commercial/quotes', { data: assistedInput })).status(), 403);
+  assert.equal((await sellerA.post('/api/commercial/quotes', { headers, data: { ...assistedInput, requestKey: randomUUID(), expectedCustomerVersion: 0 } })).status(), 409);
+  const assistedResponses = await Promise.all([sellerA.post('/api/commercial/quotes', { headers, data: assistedInput }), sellerA.post('/api/commercial/quotes', { headers, data: assistedInput })]);
+  const assisted = await data(assistedResponses[0], 201); assert.equal((await data(assistedResponses[1], 201)).id, assisted.id);
+  assert.equal((await sellerA.post('/api/commercial/quotes', { headers, data: { ...assistedInput, title: 'Outro envio' } })).status(), 409);
+  const savedAssisted = JSON.parse(db(`console.log(JSON.stringify(await prisma.quoteRequest.findUniqueOrThrow({where:{id:${JSON.stringify(assisted.id)}},include:{items:{orderBy:{position:'asc'}}}})));`).trim());
+  assert.equal(savedAssisted.userId, customer.id); assert.equal(savedAssisted.assignedSellerId, profiles[0].id); assert.equal(savedAssisted.createdById, profiles[0].id);
+  assert.equal(savedAssisted.status, 'SUBMITTED'); assert.equal(savedAssisted.ocrStatus, 'SKIPPED'); assert.equal(savedAssisted.ocrAttempts, 0); assert.equal(savedAssisted.items[0].name, product.name); assert.equal(savedAssisted.items[1].quantity, 1.5);
+  assert.equal((await data(await owner.get('/api/quotes/me'))).some(value => value.id === assisted.id), true);
+  assert.equal((await sellerB.get(`/api/quotes/admin/detail/${assisted.id}`)).status(), 404);
   await assign('order', order.id, profiles[0].id);
   const workA = await data(await sellerA.get('/api/commercial/workbench')); const workB = await data(await sellerB.get('/api/commercial/workbench'));
   assert.equal(workA.orders.some(item => item.id === order.id), true);
@@ -27,7 +42,7 @@ export async function validateCommercialAccess({ owner, admin, sellerA, sellerB,
   assert.equal((await sellerB.post(`/api/orders/admin/${order.id}/reserve`, { headers })).status(), 404);
   assert.equal((await sellerB.get(`/api/customers/admin/${customer.id}`)).status(), 404);
   const ownDetail = await data(await sellerA.get(`/api/customers/admin/${customer.id}`));
-  assert.ok(ownDetail.timeline.every(item => item.id === order.id), 'Customer access must not reveal unrelated commercial history');
+  assert.ok(ownDetail.timeline.every(item => item.id === order.id || item.id === assisted.id), 'Customer access must not reveal unrelated commercial history');
   const note = await data(await sellerA.post(`/api/customers/admin/${customer.id}/notes`, { headers, data: { body: 'Nota privada do vendedor A' } }), 201);
   const draft = await data(await owner.post('/api/quotes/public/manual', { headers, data: { text: `1 ${product.name}` } }), 201);
   const quoteId = draft.quote.id;
@@ -52,6 +67,7 @@ export async function validateCommercialAccess({ owner, admin, sellerA, sellerB,
   assert.equal((await sellerA.get(`/api/sales/admin/${sale.id}`)).status(), 404, 'Reassignment revokes access even for the original operator');
   assert.equal((await sellerB.get(`/api/sales/admin/${sale.id}`)).status(), 200);
   await assign('customer', customer.id, profiles[1].id, 1);
+  assert.equal((await sellerA.post('/api/commercial/quotes', { headers, data: assistedInput })).status(), 404, 'A replay must not bypass revoked customer access');
   assert.equal((await sellerA.get(`/api/customers/admin/${customer.id}`)).status(), 404);
   const otherDetail = await data(await sellerB.get(`/api/customers/admin/${customer.id}`)); assert.equal(otherDetail.notes.some(item => item.id === note.id), false);
   assert.equal((await sellerB.delete(`/api/customers/admin/${customer.id}/notes/${note.id}`, { headers })).status(), 404);
@@ -67,6 +83,21 @@ export async function validateCommercialAccess({ owner, admin, sellerA, sellerB,
     await page.getByRole('button', { name: 'Continuar', exact: true }).click(); await page.getByRole('checkbox', { name: 'Conferi o responsável e autorizo a distribuição.' }).check();
     await page.getByRole('button', { name: 'Confirmar distribuição', exact: true }).click(); await page.getByText('Responsável atualizado.', { exact: true }).waitFor();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.goto(`${baseURL}/painel-lojista/painel/atendimentos`);
+    await page.getByRole('button', { name: 'Criar orçamento para cliente', exact: true }).click();
+    const editor = page.getByRole('region', { name: 'Criar orçamento para cliente' });
+    await editor.getByLabel('Buscar cliente', { exact: true }).fill(customer.name);
+    await editor.getByRole('button').filter({ hasText: customer.name }).click();
+    await editor.getByRole('button', { name: 'Continuar', exact: true }).click();
+    await editor.getByLabel('Título do orçamento', { exact: true }).fill('Orçamento criado no celular');
+    await editor.getByLabel('Material', { exact: true }).fill('Material de demonstração isolado');
+    await editor.getByRole('button', { name: 'Adicionar material', exact: true }).click();
+    await editor.getByRole('button', { name: 'Conferir', exact: true }).click();
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    const createdRequest = page.waitForResponse(response => response.url().endsWith('/api/commercial/quotes') && response.request().method() === 'POST');
+    await editor.getByRole('button', { name: 'Confirmar orçamento', exact: true }).click();
+    assert.equal((await createdRequest).status(), 201);
+    await page.waitForURL(url => url.searchParams.has('quoteId'));
   } finally { await context.close(); }
   const sellerContext = await browser.newContext();
   try {

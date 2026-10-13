@@ -338,6 +338,9 @@ model LeadCapture {
 }
 
 model QuoteRequest {
+  commercialCreationKey String? @unique
+  commercialCreationFingerprint String?
+  createdById String?
   assignedSellerId String?
   assignedSeller User? @relation("QuoteSeller", fields: [assignedSellerId], references: [id], onDelete: SetNull)
   assignmentVersion Int @default(0)
