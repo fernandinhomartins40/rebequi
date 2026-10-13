@@ -39,6 +39,18 @@ export async function validateCommercialAccess({ owner, admin, sellerA, sellerB,
   const workA = await data(await sellerA.get('/api/commercial/workbench')); const workB = await data(await sellerB.get('/api/commercial/workbench'));
   assert.equal(workA.orders.some(item => item.id === order.id), true);
   assert.equal(workB.orders.some(item => item.id === order.id), false);
+  const notices = await data(await sellerA.get('/api/commercial/notifications?page=1'));
+  const orderNotice = notices.notifications.find(item => item.resourceKind === 'order' && item.resourceId === order.id);
+  assert.ok(orderNotice && !orderNotice.readAt && notices.unread >= 2);
+  assert.equal((await data(await sellerB.get('/api/commercial/notifications'))).unread, 0);
+  assert.equal((await sellerB.post(`/api/commercial/notifications/${orderNotice.id}/read`, { headers })).status(), 404);
+  assert.equal((await sellerA.post(`/api/commercial/notifications/${orderNotice.id}/read`)).status(), 403);
+  const readResponses = await Promise.all([sellerA.post(`/api/commercial/notifications/${orderNotice.id}/read`, { headers }), sellerA.post(`/api/commercial/notifications/${orderNotice.id}/read`, { headers })]);
+  assert.deepEqual(readResponses.map(response => response.status()), [200, 200]);
+  assert.equal((await data(await sellerA.get('/api/commercial/notifications'))).unread, notices.unread - 1);
+  assert.equal(Number(db(`console.log(await prisma.commercialAssignmentRead.count({where:{assignmentId:${JSON.stringify(orderNotice.id)},userId:${JSON.stringify(profiles[0].id)}}}));`).trim()), 1);
+  const blockedReadEdit = JSON.parse(db(`let blocked=false;try{await prisma.commercialAssignmentRead.deleteMany({where:{assignmentId:${JSON.stringify(orderNotice.id)}}});}catch{blocked=true;}console.log(JSON.stringify({blocked}));`).trim().split('\n').at(-1));
+  assert.equal(blockedReadEdit.blocked, true);
   assert.equal((await sellerA.get(`/api/orders/admin/${order.id}`)).status(), 200);
   assert.equal((await sellerB.get(`/api/orders/admin/${order.id}`)).status(), 404);
   assert.equal((await sellerB.post(`/api/orders/admin/${order.id}/reserve`, { headers })).status(), 404);
@@ -159,6 +171,9 @@ export async function validateCommercialAccess({ owner, admin, sellerA, sellerB,
   try {
     await sellerContext.addCookies((await sellerA.storageState()).cookies); const page = await sellerContext.newPage(); await page.setViewportSize({ width: 320, height: 844 });
     await page.goto(`${baseURL}/painel-lojista/painel/atendimentos`); await page.getByRole('heading', { name: 'Meus atendimentos', exact: true, level: 2 }).waitFor();
+    await page.getByText(/Encaminhamentos/).click();
+    await page.getByText('Pedido encaminhado para você', { exact: true }).waitFor();
+    await page.getByRole('button', { name: 'Marcar como lido', exact: true }).first().click();
     await page.getByLabel('Digite o nome ou SKU', { exact: true }).fill(product.sku);
     await page.getByText(product.name, { exact: true }).waitFor();
     assert.equal(await page.getByRole('button', { name: 'Distribuir atendimento', exact: true }).count(), 0);

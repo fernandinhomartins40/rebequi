@@ -12,9 +12,18 @@ import { assignCommercialRecord, commercialAssignmentState } from '../services/c
 import { saleScope } from '../services/commercial-access-policy.js';
 import { sellerMonthlyPerformance } from '../services/commercial-performance.service.js';
 import { currentSellerGoal, setSellerGoal } from '../services/seller-goal.service.js';
+import { listCommercialNotifications, readCommercialNotification } from '../services/commercial-notification.service.js';
 const router: Router = Router();
 router.use(authenticate, (_req, res, next) => { res.setHeader('Cache-Control', 'private, no-store'); next(); });
 const assignmentRoles = getRolesForMerchantPermission('commercial:assign');
+router.get('/notifications', authorize(...getRolesForMerchantPermission('commercial:work')),
+  validateQuery(z.object({ page: z.coerce.number().int().min(1).max(100000).default(1) }).strict()), async (req, res, next) => {
+    try { successResponse(res, await listCommercialNotifications(req.user!.userId, Number(req.query.page))); } catch (error) { next(error); }
+  });
+router.post('/notifications/:id/read', authorize(...getRolesForMerchantPermission('commercial:work')), requireTrustedOrigin,
+  validateParams(z.object({ id: z.string().min(1).max(128) }).strict()), async (req, res, next) => {
+    try { successResponse(res, await readCommercialNotification(req.user!.userId, req.params.id)); } catch (error) { next(error); }
+  });
 const goalMonthQuery = z.object({ month: z.string().regex(/^20\d{2}-(?:0[1-9]|1[0-2])$/) }).strict();
 router.get('/goals/:sellerId', authorize(...assignmentRoles), validateParams(z.object({ sellerId: z.string().min(1).max(128) }).strict()),
   validateQuery(goalMonthQuery), async (req, res, next) => {

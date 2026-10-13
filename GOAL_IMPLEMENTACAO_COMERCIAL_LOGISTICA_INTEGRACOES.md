@@ -142,6 +142,10 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Avisos comerciais persistentes — 13/10/2026
+
+O painel “Meus atendimentos” agora consulta encaminhamentos registrados na auditoria de distribuição e mostra contagem de novos avisos. O destinatário pode marcar cada aviso como lido; o recibo é persistente, imutável e idempotente, sem revelar motivo interno ou dados de outro vendedor. Avisos históricos permanecem mesmo após redistribuição, sem presumir acesso ao atendimento antigo. Teste integrado cobre destinatário, origem, leitura simultânea, imutabilidade e tela mobile. Gate/deploy ainda pendentes; distribuição automática e outros alertas comerciais continuam no objetivo.
+
 ### Metas comerciais prospectivas — 13/10/2026
 
 Gestão pode registrar metas mensais para colaboradores comerciais ativos apenas em meses futuros, com valor em centavos, motivo, confirmação, chave idempotente e versão esperada. Cada revisão é imutável e auditada; conflito de versão exige recarregar. O próprio vendedor vê sua meta no desempenho, sem acesso à meta de outros colaboradores. Nenhuma meta gera comissão ou pagamento. Teste integrado cobre permissão, origem, replay, revisão, período passado, imutabilidade e formulário mobile. Gate/deploy deste incremento ainda pendentes; regras financeiras/ledger de comissão e conciliação continuam no objetivo.

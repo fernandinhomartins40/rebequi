@@ -14,6 +14,7 @@ datasource db {
 // USER MODEL - Authentication & Authorization
 // ============================================================================
 model User {
+  commercialAssignmentReads CommercialAssignmentRead[]
   sellerGoals SellerGoalRevision[] @relation("SellerGoalOwner")
   deliveryRuns DeliveryRun[] @relation("DeliveryRunDriver")
   driverFulfillments Fulfillment[] @relation("FulfillmentDriver")
@@ -622,6 +623,7 @@ model Sale {
 }
 
 model CommercialAssignmentAudit {
+  reads CommercialAssignmentRead[]
   id String @id @default(cuid())
   resourceKind String
   resourceId String
@@ -633,7 +635,20 @@ model CommercialAssignmentAudit {
   createdAt DateTime @default(now())
   @@unique([resourceKind, resourceId, version])
   @@index([resourceKind, resourceId, createdAt])
+  @@index([nextSellerId, createdAt], map: "commercial_assignment_recipient_created")
   @@map("commercial_assignment_audits")
+}
+
+model CommercialAssignmentRead {
+  id String @id @default(cuid())
+  assignmentId String
+  assignment CommercialAssignmentAudit @relation(fields: [assignmentId], references: [id], onDelete: Restrict)
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  readAt DateTime @default(now())
+  @@unique([assignmentId, userId], map: "commercial_assignment_read_unique")
+  @@index([userId, readAt], map: "commercial_assignment_read_user")
+  @@map("commercial_assignment_reads")
 }
 
 model SellerGoalRevision {
