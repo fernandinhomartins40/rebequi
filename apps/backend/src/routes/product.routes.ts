@@ -14,6 +14,8 @@ import { getTechnicalSpec, saveTechnicalSpec } from '../services/partner-project
 import { successResponse } from '../utils/response.util.js';
 import { upload } from '../config/multer.js';
 import { uploadLimiter } from '../middleware/rate-limit.middleware.js';
+import { saveCommercialUnitPolicySchema } from '@rebequi/shared/schemas';
+import { getProductUnitPolicy, saveProductUnitPolicy } from '../services/product-unit-policy.service.js';
 
 const router: Router = Router();
 const productController = new ProductController();
@@ -30,6 +32,14 @@ router.get('/slug/:slug', productController.getBySlug);
 
 // Admin read routes
 router.get('/admin/list', authenticate, authorize(...catalogReadRoles), productController.getAdminAll);
+router.get('/admin/:id/unit-policy', authenticate, authorize(...catalogReadRoles), async (req, res, next) => {
+  res.setHeader('Cache-Control', 'private, no-store');
+  try { successResponse(res, await getProductUnitPolicy(req.params.id)); } catch (error) { next(error); }
+});
+router.put('/admin/:id/unit-policy', authenticate, authorize(...catalogRoles), requireTrustedOrigin, validateBody(saveCommercialUnitPolicySchema), async (req, res, next) => {
+  res.setHeader('Cache-Control', 'private, no-store');
+  try { successResponse(res, await saveProductUnitPolicy(req.params.id, req.user!, req.body)); } catch (error) { next(error); }
+});
 router.get('/admin/:id/technical-spec', authenticate, authorize(...catalogReadRoles), async (req, res, next) => {
   res.setHeader('Cache-Control', 'private, no-store');
   try { successResponse(res, await getTechnicalSpec(req.params.id)); } catch (error) { next(error); }

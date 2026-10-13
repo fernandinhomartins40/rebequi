@@ -142,6 +142,13 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Persistência versionada de políticas por produto — 13/10/2026
+
+Migração aditiva 20261013030000_product_unit_policies cria política por produto/versão, unidades, fator e passo Decimal(12,3), intenção/hash, ator/motivo/data. Não preenche produtos históricos automaticamente. Restrict preserva referência ao produto; alteração/exclusão da política bloqueadas e insert exige próxima versão com lock de produto. Bounds no banco replicam unidade/fator/precisão/passo de embalagem. Consulta retorna última política e operational:false; gravação autenticada em /products/admin/:id/unit-policy exige catalog:manage, origem confiável, operador ativo, expectedVersion e intenção idempotente canônica. Auditoria na mesma transação. Não altera estoque/reserva/preço nem ativa venda fracionada.
+
+74 testes locais, build compartilhado, TypeScript backend e textos aprovados. Cenário integrado acrescenta permissões/origem, gravação concorrente/replay, conflito de versão/conteúdo, segunda versão, replay da primeira, imutabilidade e saldos/preço preservados. Gate/deploy deste incremento pendentes. Formulário de cadastro da política, snapshots e migração decimal operacional ainda precisam ser implementados; não confundir registro preparatório com granel funcionando. Objetivo completo permanece ativo.
+
+
 ### Contrato de unidades validado — 13/10/2026
 
 Workflow 38426132519, commit 2be088f: testes/infra, imagens e gate integrado concluídos com sucesso. Deploy confirmado em execução; conclusão de publicação ainda não presumida. Evidência confirma compatibilidade da biblioteca/schema com jornadas atuais e testes específicos de precisão/passos, não prova uso decimal no fluxo real ainda não integrado. Persistência/versionamento/snapshot por produto e migração coordenada de estoque, reservas, pedidos, vendas, devoluções, logística e interfaces permanecem pendentes. Objetivo completo continua ativo.

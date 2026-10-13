@@ -22,6 +22,11 @@ export const commercialUnitPolicySchema = z.object({
   if (factor * step % 1000n !== 0n) context.addIssue({ code: 'custom', path: ['quantityStep'], message: 'O passo convertido exige mais de três casas no estoque.' });
 });
 export type CommercialUnitPolicy = z.infer<typeof commercialUnitPolicySchema>;
+export const saveCommercialUnitPolicySchema = z.object({
+  requestKey: z.string().uuid(), expectedVersion: z.number().int().min(0),
+  policy: commercialUnitPolicySchema, reason: z.string().trim().min(3).max(300),
+}).strict();
+export type SaveCommercialUnitPolicyInput = z.infer<typeof saveCommercialUnitPolicySchema>;
 
 export function validateCommercialUnitQuantity(policy: CommercialUnitPolicy, quantity: string): string {
   const verified = commercialUnitPolicySchema.parse(policy);

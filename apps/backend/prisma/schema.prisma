@@ -125,6 +125,7 @@ model Category {
 // PRODUCT MODEL - E-commerce Products
 // ============================================================================
 model Product {
+  unitPolicies ProductUnitPolicy[]
   id            String         @id @default(cuid())
   name          String
   slug          String         @unique
@@ -169,6 +170,24 @@ model Product {
   @@index([deletedAt])
   @@index([price])
   @@map("products")
+}
+
+model ProductUnitPolicy {
+  id String @id @default(cuid())
+  productId String
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+  version Int
+  requestKey String @unique
+  fingerprint String
+  commercialUnit String
+  stockUnit String
+  stockPerCommercialUnit Decimal @db.Decimal(12, 3)
+  quantityStep Decimal @db.Decimal(12, 3)
+  actorId String
+  reason String
+  createdAt DateTime @default(now())
+  @@unique([productId, version])
+  @@map("product_unit_policies")
 }
 
 // ============================================================================

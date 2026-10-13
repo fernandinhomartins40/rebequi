@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { validateReceiptEvidence } from './receipt-evidence.mjs';
+import { validateProductUnitPolicy } from './product-unit-policy.mjs';
 export async function validatePickupReceipts({ owner, admin, guest, browser, baseURL, data, db, product }) {
   const headers = { Origin: baseURL };
   const order = (await data(await owner.post('/api/orders/checkout', { headers, data: { items: [{ productId: product.id, quantity: 3 }] } }), 201)).order;
@@ -87,4 +88,5 @@ export async function validatePickupReceipts({ owner, admin, guest, browser, bas
   assert.equal(Number(db(`console.log((await prisma.product.findUniqueOrThrow({where:{id:${JSON.stringify(product.id)}}})).stock);`).trim()), stockBefore, 'Receipt and returns without restocking must not create another stock movement');
   assert.equal(Number(db(`console.log(await prisma.fulfillmentEvent.count({where:{fulfillmentId:${JSON.stringify(id)},kind:'PICKUP_RECEIVED'}}));`).trim()), 2);
   await validateReceiptEvidence({ owner, admin, guest, browser, baseURL, data, db, fulfillmentId: id });
+  await validateProductUnitPolicy({ owner, admin, guest, baseURL, data, db, product });
 }
