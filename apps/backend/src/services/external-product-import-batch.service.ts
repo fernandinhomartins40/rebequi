@@ -33,3 +33,28 @@ export async function stageExternalProductImport(actor: Actor, raw: Input) {
     return { id: staged.id, source: staged.source, createdAt: staged.createdAt, applied: false };
   }, { isolationLevel: 'RepeatableRead' satisfies Prisma.TransactionIsolationLevel });
 }
+
+export async function stageExternalProductImportFromApi(clientId: string, raw: Input) {
+  const input = stageProductImportSchema.parse(raw);
+  const batch = { source: input.source, rows: input.rows };
+  const key = hash(`external-product-import-api:${clientId}:${input.requestKey}`);
+  const fingerprint = hash(JSON.stringify(batch));
+  return prisma.$transaction(async tx => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`;
+    const client = await tx.externalApiClient.findUnique({ where: { id: clientId },
+      select: { source: true, scopes: true, revokedAt: true, expiresAt: true } });
+    if (!client || client.revokedAt || client.expiresAt <= new Date() || !client.scopes.includes('imports:write')
+      || client.source !== batch.source) throw new ForbiddenError('Credencial sem acesso a esta origem.');
+    const repeated = await tx.externalProductImportBatch.findUnique({ where: { requestKey: key } });
+    if (repeated) {
+      if (repeated.fingerprint !== fingerprint) throw new ConflictError('Esta chave de envio já foi usada para outro lote.');
+      return { id: repeated.id, source: repeated.source, createdAt: repeated.createdAt, applied: false };
+    }
+    const preview = await previewProductImport(batch, tx);
+    const staged = await tx.externalProductImportBatch.create({ data: { source: batch.source, requestKey: key,
+      fingerprint, actorId: `external-api:${clientId}`, rows: batch.rows, preview } });
+    await tx.integrationAudit.create({ data: { actorId: `external-api:${clientId}`, jobId: staged.id,
+      action: 'EXTERNAL_PRODUCT_IMPORT_STAGED_FROM_API' } });
+    return { id: staged.id, source: staged.source, createdAt: staged.createdAt, applied: false };
+  }, { isolationLevel: 'RepeatableRead' satisfies Prisma.TransactionIsolationLevel });
+}

@@ -938,6 +938,7 @@ model ExternalApiClient {
   requestKey String @unique
   id String @id @default(cuid())
   name String
+  source String?
   tokenHash String @unique
   scopes String[]
   expiresAt DateTime

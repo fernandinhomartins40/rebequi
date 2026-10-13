@@ -100,6 +100,28 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
     { externalId: 'new', sku: `IMPORT-${randomUUID()}`, name: 'Material novo', categoryId: catalog.categoryId, priceCents: '1000', stockQuantity: '5' },
   ];
   const importInput = { source: 'pdv-runner', rows: importRows };
+  const importClientRequest = { requestKey: randomUUID(), name: 'PDV sintético para lotes', source: 'pdv-api-runner',
+    scopes: ['imports:write'], validityDays: 1, confirmed: true };
+  assert.equal((await admin.post('/api/integrations/external-api/clients', { headers,
+    data: { ...importClientRequest, source: undefined } })).status(), 400);
+  const importCredential = await data(await admin.post('/api/integrations/external-api/clients', { headers,
+    data: importClientRequest }), 201);
+  const apiBatchPath = '/api/external/v1/imports/products/batches';
+  const apiBatchInput = { source: importClientRequest.source, rows: [{ ...importRows[1], externalId: 'api-new' }],
+    requestKey: randomUUID(), confirmed: true };
+  assert.equal((await guest.post(apiBatchPath, { data: apiBatchInput })).status(), 401);
+  assert.equal((await guest.post(apiBatchPath, { headers: { Authorization: `Bearer ${credential.token}` }, data: apiBatchInput })).status(), 403);
+  assert.equal((await guest.post(apiBatchPath, { headers: { Authorization: `Bearer ${importCredential.token}` },
+    data: { ...apiBatchInput, source: 'another-origin' } })).status(), 403);
+  const apiBatch = await data(await guest.post(apiBatchPath, { headers: { Authorization: `Bearer ${importCredential.token}` },
+    data: apiBatchInput }), 201);
+  assert.equal(apiBatch.applied, false);
+  assert.deepEqual(await data(await guest.post(apiBatchPath, { headers: { Authorization: `Bearer ${importCredential.token}` },
+    data: apiBatchInput }), 201), apiBatch);
+  assert.equal((await guest.post(apiBatchPath, { headers: { Authorization: `Bearer ${importCredential.token}` },
+    data: { ...apiBatchInput, rows: [{ ...apiBatchInput.rows[0], name: 'Outro material' }] } })).status(), 409);
+  assert.equal((await data(await admin.get(`/api/integrations/external-api/imports/products/batches/${apiBatch.id}`))).applied, false);
+  assert.equal(Number(db(`console.log(await prisma.product.count({where:{sku:${JSON.stringify(importRows[1].sku)}}}));`).trim()), 0);
   assert.equal((await owner.post(importPath, { headers, data: importInput })).status(), 403);
   assert.equal((await guest.post(importPath, { headers, data: importInput })).status(), 401);
   assert.equal((await admin.post(importPath, { data: importInput })).status(), 403);

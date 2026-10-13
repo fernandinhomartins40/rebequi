@@ -15,5 +15,8 @@ test('Integration tokens are independent of login, hash-only and require explici
   assert.equal(createExternalClientSchema.safeParse({ ...input, validityDays: 366 }).success, false);
   assert.equal(createExternalClientSchema.safeParse({ ...input, confirmed: false }).success, false);
   assert.equal(createExternalClientSchema.safeParse({ ...input, scopes: ['catalog:read', 'stock:read', 'orders:read', 'quotes:read'] }).success, true);
-  assert.equal(externalApiOpenApi.openapi, '3.1.1'); assert.deepEqual(Object.keys(externalApiOpenApi.paths).sort(), ['/orders', '/products', '/quotes', '/quotes/{id}/items', '/stock']);
+  assert.equal(createExternalClientSchema.safeParse({ ...input, scopes: ['imports:write'] }).success, false);
+  assert.equal(createExternalClientSchema.safeParse({ ...input, scopes: ['imports:write'], source: 'meu-pdv' }).success, true);
+  assert.equal(createExternalClientSchema.safeParse({ ...input, scopes: ['imports:write'], source: 'http://host' }).success, false);
+  assert.equal(externalApiOpenApi.openapi, '3.1.1'); assert.deepEqual(Object.keys(externalApiOpenApi.paths).sort(), ['/imports/products/batches', '/orders', '/products', '/quotes', '/quotes/{id}/items', '/stock']);
 });

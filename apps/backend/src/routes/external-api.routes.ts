@@ -14,7 +14,7 @@ import { createExternalToken, externalBearer, externalTokenHash } from '../servi
 import { externalApiOpenApi } from '../services/external-api-openapi.js';
 import { previewProductImport } from '../services/product-import-preview.service.js';
 import { createExternalProductLink, revokeExternalProductLink } from '../services/external-product-link.service.js';
-import { stageExternalProductImport } from '../services/external-product-import-batch.service.js';
+import { stageExternalProductImport, stageExternalProductImportFromApi } from '../services/external-product-import-batch.service.js';
 import { compareProductImportBatch, recordProductImportReview } from '../services/external-product-import-review.service.js';
 import { applyProductImportDrafts } from '../services/external-product-import-application.service.js';
 import { previewCategoryImport } from '../services/category-import-preview.service.js';
@@ -139,13 +139,13 @@ externalAdminRoutes.post('/imports/products/links/:id/revoke', validateBody(revo
   try { successResponse(res, await revokeExternalProductLink(req.user!, req.params.id, req.body)); } catch (error) { next(error); }
 });
 externalAdminRoutes.get('/clients', validateQuery(paging), async (req, res, next) => {
-  try { const page = Number(req.query.page); const [clients, total] = await Promise.all([prisma.externalApiClient.findMany({ orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: (page - 1) * 20, take: 20, select: { id: true, name: true, scopes: true, expiresAt: true, revokedAt: true, createdAt: true } }), prisma.externalApiClient.count()]); successResponse(res, { clients, page, total, totalPages: Math.ceil(total / 20) }); } catch (error) { next(error); }
+  try { const page = Number(req.query.page); const [clients, total] = await Promise.all([prisma.externalApiClient.findMany({ orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: (page - 1) * 20, take: 20, select: { id: true, name: true, source: true, scopes: true, expiresAt: true, revokedAt: true, createdAt: true } }), prisma.externalApiClient.count()]); successResponse(res, { clients, page, total, totalPages: Math.ceil(total / 20) }); } catch (error) { next(error); }
 });
 externalAdminRoutes.post('/clients', validateBody(createExternalClientSchema), async (req, res, next) => {
   try {
     const input = createExternalClientSchema.parse(req.body); const token = createExternalToken();
     const requestKey = externalTokenHash(`${req.user!.userId}:${input.requestKey}`);
-    const client = await prisma.$transaction(async tx => { await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${requestKey}))`; if (await tx.externalApiClient.findUnique({ where: { requestKey } })) throw new ConflictError('Esta credencial já foi emitida. Ela não pode ser exibida novamente; revogue e emita outra se necessário.'); const row = await tx.externalApiClient.create({ data: { requestKey, name: input.name, scopes: input.scopes, expiresAt: new Date(Date.now() + input.validityDays * 86400000), tokenHash: externalTokenHash(token), actorId: req.user!.userId }, select: { id: true, name: true, scopes: true, expiresAt: true } }); await tx.integrationAudit.create({ data: { actorId: req.user!.userId, jobId: row.id, action: 'EXTERNAL_API_CLIENT_ISSUED' } }); return row; });
+    const client = await prisma.$transaction(async tx => { await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${requestKey}))`; if (await tx.externalApiClient.findUnique({ where: { requestKey } })) throw new ConflictError('Esta credencial já foi emitida. Ela não pode ser exibida novamente; revogue e emita outra se necessário.'); const row = await tx.externalApiClient.create({ data: { requestKey, name: input.name, source: input.source, scopes: input.scopes, expiresAt: new Date(Date.now() + input.validityDays * 86400000), tokenHash: externalTokenHash(token), actorId: req.user!.userId }, select: { id: true, name: true, source: true, scopes: true, expiresAt: true } }); await tx.integrationAudit.create({ data: { actorId: req.user!.userId, jobId: row.id, action: 'EXTERNAL_API_CLIENT_ISSUED' } }); return row; });
     successResponse(res, { ...client, token }, 201);
   } catch (error) { next(error); }
 });
@@ -157,10 +157,14 @@ export const externalApiRoutes: Router = Router();
 externalApiRoutes.get('/openapi.json', (_req, res) => { res.setHeader('Cache-Control', 'no-store'); res.json(externalApiOpenApi); });
 externalApiRoutes.use((_req, res, next) => { const requestId = randomUUID(); res.locals.requestId = requestId; res.setHeader('X-Request-ID', requestId); res.setHeader('Cache-Control', 'private, no-store'); next(); });
 externalApiRoutes.use(async (req, res, next) => {
-  try { const token = externalBearer(req.headers.authorization); if (!token) throw new UnauthorizedError('Credencial de integração inválida'); const client = await prisma.externalApiClient.findUnique({ where: { tokenHash: externalTokenHash(token) }, select: { id: true, scopes: true, expiresAt: true, revokedAt: true } }); if (!client || client.revokedAt || client.expiresAt <= new Date()) throw new UnauthorizedError('Credencial de integração inválida'); res.locals.externalClient = client; next(); } catch (error) { next(error); }
+  try { const token = externalBearer(req.headers.authorization); if (!token) throw new UnauthorizedError('Credencial de integração inválida'); const client = await prisma.externalApiClient.findUnique({ where: { tokenHash: externalTokenHash(token) }, select: { id: true, source: true, scopes: true, expiresAt: true, revokedAt: true } }); if (!client || client.revokedAt || client.expiresAt <= new Date()) throw new UnauthorizedError('Credencial de integração inválida'); res.locals.externalClient = client; next(); } catch (error) { next(error); }
 });
 externalApiRoutes.use(rateLimit({ windowMs: 60000, max: 30, standardHeaders: true, legacyHeaders: false, keyGenerator: (_req, res) => res.locals.externalClient.id, message: { success: false, error: 'Limite da integração atingido. Aguarde e tente novamente.' } }));
 const scope = (name: string): RequestHandler => (_req, res, next) => res.locals.externalClient.scopes.includes(name) ? next() : next(new ForbiddenError('Permissão insuficiente para esta operação'));
+externalApiRoutes.post('/imports/products/batches', scope('imports:write'), validateBody(stageProductImportSchema), async (req, res, next) => {
+  try { successResponse(res, await stageExternalProductImportFromApi(res.locals.externalClient.id, req.body), 201); }
+  catch (error) { next(error); }
+});
 externalApiRoutes.get('/products', scope('catalog:read'), validateQuery(paging), async (req, res, next) => {
   try {
     const page = Number(req.query.page); const limit = Number(req.query.limit); const where = { ...(req.query.updatedSince ? { updatedAt: { gte: new Date(String(req.query.updatedSince)) } } : {}) };
