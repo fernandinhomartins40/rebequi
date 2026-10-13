@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { parseCommercialQuantity } from '../utils/commercial-quantity.js';
+import { parseCommercialQuantity, formatCommercialQuantity, convertCommercialQuantity, commercialLineCents } from '../utils/commercial-quantity.js';
 const decimal = z.string().regex(/^\d{1,9}(?:\.\d{1,3})?$/);
 const positive = decimal.refine(value => {
   try { return parseCommercialQuantity(value) > 0n; } catch { return false; }
@@ -35,4 +35,21 @@ export function validateCommercialUnitQuantity(policy: CommercialUnitPolicy, qua
   const scaled = parseCommercialQuantity(amount);
   if (scaled % parseCommercialQuantity(verified.quantityStep) !== 0n) throw new Error('Quantidade fora do passo permitido para este produto.');
   return amount;
+}
+
+/** Build from a server-selected confirmed policy and price, never client totals. */
+export function calculateCommercialUnitLine(policy: CommercialUnitPolicy, quantity: string, unitPriceCents: bigint) {
+  const verified = commercialUnitPolicySchema.parse(policy);
+  const commercialQuantity = formatCommercialQuantity(parseCommercialQuantity(validateCommercialUnitQuantity(verified, quantity)));
+  const stockQuantity = convertCommercialQuantity(commercialQuantity, verified.stockPerCommercialUnit);
+  return {
+    commercialUnit: verified.commercialUnit,
+    stockUnit: verified.stockUnit,
+    stockPerCommercialUnit: formatCommercialQuantity(parseCommercialQuantity(verified.stockPerCommercialUnit)),
+    quantityStep: formatCommercialQuantity(parseCommercialQuantity(verified.quantityStep)),
+    commercialQuantity,
+    stockQuantity,
+    unitPriceCents: unitPriceCents.toString(),
+    lineTotalCents: commercialLineCents(unitPriceCents, commercialQuantity).toString(),
+  };
 }

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { commercialUnitPolicySchema, validateCommercialUnitQuantity } from '@rebequi/shared/schemas';
+import { commercialUnitPolicySchema, validateCommercialUnitQuantity, calculateCommercialUnitLine } from '@rebequi/shared/schemas';
 test('Unit policies require explicit confirmation and preserve indivisible packages', () => {
   const input = { commercialUnit: 'BAG', stockUnit: 'KG', stockPerCommercialUnit: '50', quantityStep: '1', confirmed: true };
   const policy = commercialUnitPolicySchema.parse(input);
@@ -29,4 +29,16 @@ test('Measured sales cannot split indivisible stock packages', () => {
     assert.equal(validateCommercialUnitQuantity(policy, '100'), '100');
     assert.throws(() => validateCommercialUnitQuantity(policy, '75'));
   }
+});
+
+test('Commercial line prices the sale unit and consumes the explicit stock unit', () => {
+  const policy = commercialUnitPolicySchema.parse({ commercialUnit: 'TONNE', stockUnit: 'KG', stockPerCommercialUnit: '1000', quantityStep: '0.125', confirmed: true });
+  const line = calculateCommercialUnitLine(policy, '0.250', 12345n);
+  assert.deepEqual(line, { commercialUnit: 'TONNE', stockUnit: 'KG', stockPerCommercialUnit: '1000', quantityStep: '0.125', commercialQuantity: '0.25', stockQuantity: '250', unitPriceCents: '12345', lineTotalCents: '3086' });
+  assert.doesNotThrow(() => JSON.stringify(line));
+  assert.throws(() => calculateCommercialUnitLine(policy, '0.2', 12345n));
+  assert.throws(() => calculateCommercialUnitLine(policy, '0.25', -1n));
+  const changedPolicy = { ...policy, stockPerCommercialUnit: '999' };
+  assert.equal(calculateCommercialUnitLine(changedPolicy, '0.25', 12345n).stockQuantity, '249.75');
+  assert.equal(line.stockQuantity, '250');
 });
