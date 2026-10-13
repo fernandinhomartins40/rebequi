@@ -13,6 +13,12 @@ Emissão exige requestKey UUID e confirmação. Reenvio da mesma intenção não
 | catalog:read | GET /api/external/v1/products | ID, SKU, nome, categoria, preço em centavos string BRL, ativo/excluído e updatedAt |
 | stock:read | GET /api/external/v1/stock | ID, SKU, saldo comercial, reservado, disponível, ativo/excluído e updatedAt |
 | orders:read | GET /api/external/v1/orders | ID, referência, origem, estado comercial, itens/productId/quantidade/preço e updatedAt, sem nome/telefone/endereço do comprador |
+| quotes:read | GET /api/external/v1/quotes | Cabeçalhos de orçamentos identificados enviados, incluindo arquivados; exclui rascunhos. ID, referência, origem, estado, datas e itemCount |
+| quotes:read | GET /api/external/v1/quotes/{id}/items | Materiais agrupados pelo orçamento, em páginas: ID/productId/nome/quantidade/unidade/posição; quoteId e quoteUpdatedAt identificam a leitura |
+
+Materiais usam page/limit com os mesmos limites da coleção, sem updatedSince. Não exportam cadastro do cliente, título, observação, documento, resultado OCR, preço proposto ou auditoria interna. Nome e unidade do material podem ser texto informado pelo solicitante; não representam dados técnicos normalizados, reserva de estoque ou equivalência automática de unidade. Uma credencial anterior continua com os mesmos escopos: emita outra com quotes:read somente quando necessário. Nenhuma ampliação automática de acesso.
+
+Leia os cabeçalhos e todas as páginas de materiais de cada orçamento. Se updatedAt do cabeçalho mudar enquanto os materiais forem lidos, releia antes de concluir o checkpoint. Cada consulta é somente leitura; não se promete snapshot entre requisições ou conexão homologada com ERP.
 
 Cabeçalho: Authorization: Bearer TOKEN_DO_COFRE. Usar HTTPS em produção. Não enviar token em query string, não imprimir cabeçalhos com debug/verbose. Tokens são próprios desta instalação; não há seleção multiempresa/loja pelo cliente.
 

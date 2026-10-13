@@ -7,7 +7,7 @@ import { createExternalClientSchema } from '@rebequi/shared/schemas';
 import { prisma } from '../lib/prisma.js';
 import { authenticate, authorize } from '../middleware/auth.middleware.js';
 import { requireTrustedOrigin } from '../middleware/trusted-origin.middleware.js';
-import { validateBody, validateQuery } from '../middleware/validation.middleware.js';
+import { validateBody, validateQuery, validateParams } from '../middleware/validation.middleware.js';
 import { successResponse } from '../utils/response.util.js';
 import { ConflictError, ForbiddenError, NotFoundError, UnauthorizedError } from '../utils/errors.util.js';
 import { createExternalToken, externalBearer, externalTokenHash } from '../services/external-api-token.js';
@@ -51,4 +51,25 @@ externalApiRoutes.get('/stock', scope('stock:read'), validateQuery(paging), asyn
 });
 externalApiRoutes.get('/orders', scope('orders:read'), validateQuery(paging), async (req, res, next) => {
   try { const page = Number(req.query.page); const limit = Number(req.query.limit); const where = { ...(req.query.updatedSince ? { updatedAt: { gte: new Date(String(req.query.updatedSince)) } } : {}) }; const [orders, total] = await Promise.all([prisma.customerOrder.findMany({ where, orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }], skip: (page - 1) * limit, take: limit, select: { id: true, referenceCode: true, source: true, status: true, updatedAt: true, items: { select: { productId: true, quantity: true, unitPrice: true } } } }), prisma.customerOrder.count({ where })]); successResponse(res, { orders: orders.map(row => ({ ...row, items: row.items.map(({ unitPrice, ...item }) => ({ ...item, unitPriceCents: String(Math.round(unitPrice * 100)) })) })), total, page, limit, totalPages: Math.ceil(total / limit), requestId: res.locals.requestId }); } catch (error) { next(error); }
+});
+externalApiRoutes.get('/quotes', scope('quotes:read'), validateQuery(paging), async (req, res, next) => {
+  try {
+    const page = Number(req.query.page); const limit = Number(req.query.limit);
+    const where = { userId: { not: null }, status: { not: 'DRAFT' as const }, ...(req.query.updatedSince ? { updatedAt: { gte: new Date(String(req.query.updatedSince)) } } : {}) };
+    const [rows, total] = await Promise.all([prisma.quoteRequest.findMany({ where, orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }], skip: (page - 1) * limit, take: limit, select: { id: true, referenceCode: true, source: true, status: true, submittedAt: true, updatedAt: true, _count: { select: { items: true } } } }), prisma.quoteRequest.count({ where })]);
+    successResponse(res, { quotes: rows.map(({ _count, ...row }) => ({ ...row, itemCount: _count.items })), total, page, limit, totalPages: Math.ceil(total / limit), requestId: res.locals.requestId });
+  } catch (error) { next(error); }
+});
+externalApiRoutes.get('/quotes/:id/items', scope('quotes:read'), validateParams(z.object({ id: z.string().min(1).max(128) })), validateQuery(paging.omit({ updatedSince: true }).strict()), async (req, res, next) => {
+  try {
+    const page = Number(req.query.page); const limit = Number(req.query.limit);
+    const result = await prisma.$transaction(async tx => {
+      const quote = await tx.quoteRequest.findFirst({ where: { id: req.params.id, userId: { not: null }, status: { not: 'DRAFT' } }, select: { id: true, updatedAt: true } });
+      if (!quote) throw new NotFoundError('Orçamento não encontrado');
+      const where = { quoteRequestId: quote.id };
+      const [items, total] = await Promise.all([tx.quoteItem.findMany({ where, orderBy: [{ position: 'asc' }, { id: 'asc' }], skip: (page - 1) * limit, take: limit, select: { id: true, productId: true, name: true, quantity: true, unit: true, position: true } }), tx.quoteItem.count({ where })]);
+      return { quoteId: quote.id, quoteUpdatedAt: quote.updatedAt, items, total, page, limit, totalPages: Math.ceil(total / limit) };
+    }, { isolationLevel: 'RepeatableRead' });
+    successResponse(res, { ...result, requestId: res.locals.requestId });
+  } catch (error) { next(error); }
 });

@@ -138,6 +138,10 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Exportação de orçamentos pela API — 12/10/2026
+
+Escopo opcional quotes:read com cabeçalhos paginados de solicitações identificadas enviadas e materiais paginados por orçamento. Exclui rascunhos; campos selecionados impedem exportar cadastro/título/notas/documentos/OCR/auditoria. Quantidades e unidades preservam o pedido, sem conversão ou reserva presumida. Materiais têm limite de 100 por consulta e agrupamento explícito, evitando resposta aninhada ilimitada. Transação RepeatableRead mantém versão/cabeçalho, materiais e contagem consistentes na mesma requisição; não promete snapshot entre páginas. OpenAPI, guia e formulário/explorador do painel incluem a consulta. Credenciais existentes não recebem nova permissão; nenhuma emissão ou conexão automática em produção. Testes verificam paginação, campos exatos, agrupamento, quantidade fracionária relatada, rascunho inacessível, escopo e revogação. Tipos, lint, build, textos e 64 testes unitários aprovados; validação integrada deste incremento ainda pendente. Workflow 38328469217 aprovado e publicado para orçamento assistido; recuperação de seleção de cliente segue no incremento b4dbbf2, ainda sem gate confirmado.
+
 ### Orçamento assistido pela carteira — 12/10/2026
 
 Conflito de versão ou acesso revogado devolve o wizard à escolha do cliente com consulta atualizada, preservando materiais/título e a intenção de envio. Evita prender o usuário na confirmação com uma seleção desatualizada. Teste mobile força redistribuição enquanto a confirmação está aberta e confere recuperação/reenvio. Teste de banco também exige que o autor original da criação não possa ser sobrescrito por outro caminho de escrita. Carteira/consentimento são novamente conferidos antes de criar; recuperação não libera autorização revogada.
