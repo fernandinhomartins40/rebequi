@@ -11,6 +11,7 @@ type PreviewRow = { row: number; externalId: string; sku: string; localProductId
 type Preview = { source: string; rows: PreviewRow[]; summary: { total: number; conflicts: number; readyForReview: number }; applied: false };
 type ProductLink = { id: string; source: string; externalId: string; revokedAt: string | null; product: { sku: string | null; name: string } };
 type ImportBatch = { id: string; source: string; createdAt: string; applied: false; summary: { total: number; conflicts: number } };
+type BatchReview = { savedPreview: Preview; currentPreview: Preview; changedRows: number[]; applied: false };
 const conflictNames: Record<string, string> = {
   DUPLICATE_EXTERNAL_ID: 'ID externo repetido', DUPLICATE_SKU: 'SKU repetido no arquivo',
   SKU_ALREADY_LOCAL: 'SKU já cadastrado', CATEGORY_NOT_FOUND: 'Categoria não encontrada',
@@ -29,8 +30,11 @@ export function ProductImportPanel() {
   const [linkedId, setLinkedId] = useState('');
   const [linkPage, setLinkPage] = useState(1); const [revoking, setRevoking] = useState<string | null>(null); const [revokeReason, setRevokeReason] = useState('');
   const [batchPage, setBatchPage] = useState(1); const [savedBatch, setSavedBatch] = useState('');
+  const [reviewBatchId, setReviewBatchId] = useState('');
   const batches = useQuery({ queryKey: ['external-product-import-batches', batchPage], retry: false,
     queryFn: async () => (await apiFetch<{ data: { batches: ImportBatch[]; totalPages: number } }>(`${endpoint}/batches?page=${batchPage}`)).data });
+  const batchReview = useQuery({ queryKey: ['external-product-import-batch-review', reviewBatchId], enabled: Boolean(reviewBatchId), retry: false,
+    queryFn: async () => (await apiFetch<{ data: BatchReview }>(`${endpoint}/batches/${encodeURIComponent(reviewBatchId)}`)).data });
   const links = useQuery({ queryKey: ['external-product-links', linkPage], retry: false,
     queryFn: async () => (await apiFetch<{ data: { links: ProductLink[]; totalPages: number } }>(`${endpoint}/links?page=${linkPage}`)).data });
   const intent = useRef<{ fingerprint: string; key: string }>();
@@ -116,7 +120,10 @@ export function ProductImportPanel() {
       </div> : null}
       {linkedId ? <p role="status" className="text-sm text-green-800">Vínculo registrado. Confira os demais conflitos antes de importar.</p> : null}
       <details className="rounded-lg border p-3"><summary className="cursor-pointer font-medium">Análises salvas</summary>
-        {batches.isLoading ? <p className="mt-2 text-sm">Carregando análises…</p> : batches.isError ? <p role="alert" className="mt-2 text-sm text-red-700">{batches.error.message}</p> : !batches.data?.batches.length ? <p className="mt-2 text-sm">Nenhuma análise salva.</p> : <ul className="mt-3 space-y-2">{batches.data.batches.map(item => <li key={item.id} className="rounded-lg border p-3 text-sm"><p className="font-semibold">{item.source} · {item.summary.total} produtos</p><p className="text-xs text-muted-foreground">{item.summary.conflicts} conflitos · {new Date(item.createdAt).toLocaleString('pt-BR')}</p></li>)}</ul>}
+        {batches.isLoading ? <p className="mt-2 text-sm">Carregando análises…</p> : batches.isError ? <p role="alert" className="mt-2 text-sm text-red-700">{batches.error.message}</p> : !batches.data?.batches.length ? <p className="mt-2 text-sm">Nenhuma análise salva.</p> : <ul className="mt-3 space-y-2">{batches.data.batches.map(item => <li key={item.id} className="rounded-lg border p-3 text-sm"><p className="font-semibold">{item.source} · {item.summary.total} produtos</p><p className="text-xs text-muted-foreground">{item.summary.conflicts} conflitos · {new Date(item.createdAt).toLocaleString('pt-BR')}</p><Button type="button" size="sm" variant="outline" className="mt-2" onClick={() => setReviewBatchId(item.id)}>Rever análise</Button></li>)}</ul>}
+        {reviewBatchId ? <div className="mt-3 rounded-lg bg-slate-50 p-3 text-sm"><div className="flex items-center justify-between gap-2"><p className="font-semibold">Revisão atual</p><Button type="button" size="sm" variant="ghost" onClick={() => setReviewBatchId('')}>Fechar</Button></div>
+          {batchReview.isLoading ? <p>Conferindo catálogo…</p> : batchReview.isError ? <p role="alert" className="text-red-700">{batchReview.error.message}</p> : batchReview.data ? <><p className="mt-1">{batchReview.data.changedRows.length ? `${batchReview.data.changedRows.length} itens mudaram desde o registro.` : 'Os conflitos permanecem iguais ao registro.'} Nenhum produto foi importado.</p><ul className="mt-2 max-h-64 space-y-2 overflow-auto">{batchReview.data.currentPreview.rows.map(row => <li key={row.row} className="rounded border bg-white p-2"><p className="font-medium">{row.row}. {row.sku}</p><p className="break-all text-xs">ID: {row.externalId}</p><p className="text-xs">{row.conflicts.length ? row.conflicts.map(code => conflictNames[code] ?? 'Conflito').join(' · ') : 'Pronto para revisão'}{batchReview.data.changedRows.includes(row.row) ? ' · Alterado desde o registro' : ''}</p></li>)}</ul></> : null}
+        </div> : null}
         {batches.data && batches.data.totalPages > 1 ? <div className="mt-3 flex justify-between gap-2"><Button type="button" variant="outline" disabled={batchPage === 1} onClick={() => setBatchPage(value => value - 1)}>Anterior</Button><Button type="button" variant="outline" disabled={batchPage >= batches.data.totalPages} onClick={() => setBatchPage(value => value + 1)}>Próxima</Button></div> : null}
       </details>
       <details className="rounded-lg border p-3"><summary className="cursor-pointer font-medium">Vínculos registrados</summary>

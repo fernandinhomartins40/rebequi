@@ -33,6 +33,21 @@ externalAdminRoutes.get('/imports/products/batches', validateQuery(z.object({ pa
 externalAdminRoutes.post('/imports/products/batches', validateBody(stageProductImportSchema), async (req, res, next) => {
   try { successResponse(res, await stageExternalProductImport(req.user!, req.body), 201); } catch (error) { next(error); }
 });
+externalAdminRoutes.get('/imports/products/batches/:id', validateParams(z.object({ id: z.string().cuid() }).strict()), async (req, res, next) => {
+  try {
+    const batch = await prisma.externalProductImportBatch.findUnique({ where: { id: req.params.id }, select: { id: true, source: true, rows: true, preview: true, createdAt: true } });
+    if (!batch) throw new NotFoundError('Análise de importação não encontrada.');
+    const current = await previewProductImport({ source: batch.source, rows: batch.rows as z.infer<typeof previewProductImportSchema>['rows'] });
+    const saved = batch.preview as { rows: { status: string; conflicts: string[]; localProductId: string | null }[] };
+    const changedRows = current.rows.filter((row, index) => {
+      const before = saved.rows[index];
+      return !before || before.status !== row.status || before.localProductId !== row.localProductId
+        || JSON.stringify(before.conflicts) !== JSON.stringify(row.conflicts);
+    }).map(row => row.row);
+    successResponse(res, { id: batch.id, source: batch.source, createdAt: batch.createdAt, savedPreview: batch.preview,
+      currentPreview: current, changedRows, applied: false });
+  } catch (error) { next(error); }
+});
 externalAdminRoutes.get('/imports/products/links', validateQuery(z.object({ page: z.coerce.number().int().min(1).max(100000).default(1) }).strict()), async (req, res, next) => {
   try {
     const page = Number(req.query.page); const [links, total] = await Promise.all([

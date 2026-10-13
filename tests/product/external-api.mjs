@@ -39,6 +39,9 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
   const saved = await data(await admin.get(`${batchesPath}?page=1`));
   assert.equal(saved.batches.some(value => value.id === staged.id && value.summary.total === 2 && value.applied === false), true);
   assert.equal(JSON.stringify(saved).includes('priceCents'), false);
+  const initialReview = await data(await admin.get(`${batchesPath}/${staged.id}`));
+  assert.equal(initialReview.changedRows.length, 0);
+  assert.deepEqual(initialReview.savedPreview.rows, initialReview.currentPreview.rows);
   const stagedInDb = JSON.parse(db(`console.log(JSON.stringify(await prisma.externalProductImportBatch.findUniqueOrThrow({where:{id:${JSON.stringify(staged.id)}},select:{rows:true,preview:true,requestKey:true}})));`).trim());
   assert.equal(stagedInDb.rows.length, 2); assert.equal(stagedInDb.preview.applied, false);
   assert.notEqual(stagedInDb.requestKey, stageInput.requestKey);
@@ -59,6 +62,9 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
   const linkedPreview = await data(await admin.post(importPath, { headers, data: importInput }));
   assert.equal(linkedPreview.rows[0].status, 'LINKED_REVIEW');
   assert.deepEqual(linkedPreview.rows[0].conflicts, []);
+  const updatedReview = await data(await admin.get(`${batchesPath}/${staged.id}`));
+  assert.deepEqual(updatedReview.changedRows, [1]);
+  assert.equal(updatedReview.currentPreview.rows[0].status, 'LINKED_REVIEW');
   const reusedProduct = await data(await admin.post(importPath, { headers, data: { ...importInput,
     rows: [{ ...importRows[0], externalId: 'second-external-id' }] } }));
   assert.deepEqual(reusedProduct.rows[0].conflicts, ['PRODUCT_LINKED_TO_OTHER_ID']);
@@ -126,6 +132,9 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
     await importPanel.getByText('2 produtos · 1 com conflito. Nenhum produto foi importado.', { exact: true }).waitFor();
     await importPanel.getByRole('button', { name: 'Salvar análise', exact: true }).click();
     await importPanel.getByText('Análise registrada. Os preços e o estoque não foram alterados.', { exact: true }).waitFor();
+    await importPanel.getByText('Análises salvas', { exact: true }).click();
+    await importPanel.getByRole('button', { name: 'Rever análise', exact: true }).first().click();
+    await importPanel.getByText('Os conflitos permanecem iguais ao registro. Nenhum produto foi importado.', { exact: true }).waitFor();
     await importPanel.getByRole('button', { name: 'Conferir vínculo', exact: true }).click();
     await importPanel.getByRole('button', { name: 'Confirmar vínculo', exact: true }).click();
     await importPanel.getByText('Vínculo registrado. Confira os demais conflitos antes de importar.', { exact: true }).waitFor();
