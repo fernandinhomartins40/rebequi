@@ -8,6 +8,10 @@ export async function validateProductUnitPolicy({ admin, owner, guest, browser, 
   assert.equal((await owner.put(path, { headers, data: input })).status(), 403);
   assert.equal((await guest.put(path, { headers, data: input })).status(), 403);
   assert.equal((await admin.put(path, { data: input })).status(), 403);
+  const indivisible = { ...input, policy: { commercialUnit: 'KG', stockUnit: 'BAG', stockPerCommercialUnit: '0.02', quantityStep: '1', confirmed: true } };
+  assert.equal((await admin.put(path, { headers, data: indivisible })).status(), 400);
+  const guarded = JSON.parse(db(`let blocked=false;try{await prisma.productUnitPolicy.create({data:{id:'invalid-stock-policy',productId:${JSON.stringify(product.id)},version:1,requestKey:'invalid-stock-policy',fingerprint:'invalid-stock-policy',commercialUnit:'KG',stockUnit:'BAG',stockPerCommercialUnit:'0.02',quantityStep:'1',actorId:'isolated-test',reason:'Invalid indivisible stock step'}});}catch(error){blocked=String(error).includes('product_unit_policy_indivisible_stock');}console.log(JSON.stringify({blocked}));`).trim().split('\n').at(-1));
+  assert.equal(guarded.blocked, true);
   const replies = await Promise.all([admin.put(path, { headers, data: input }), admin.put(path, { headers, data: input })]);
   const first = await data(replies[0]); assert.deepEqual(await data(replies[1]), first); assert.equal(first.policy.version, 1); assert.equal(first.operational, false);
   assert.equal((await admin.put(path, { headers, data: { ...input, reason: 'Outra intenção com a mesma chave' } })).status(), 409);

@@ -20,6 +20,7 @@ export const commercialUnitPolicySchema = z.object({
   if (value.commercialUnit === value.stockUnit && factor !== 1000n) context.addIssue({ code: 'custom', path: ['stockPerCommercialUnit'], message: 'Na mesma unidade, o fator precisa ser 1.' });
   if (['UNIT', 'PACKAGE', 'BAG', 'BOX'].includes(value.commercialUnit) && step % 1000n !== 0n) context.addIssue({ code: 'custom', path: ['quantityStep'], message: 'Unidades e embalagens exigem passo inteiro.' });
   if (factor * step % 1000n !== 0n) context.addIssue({ code: 'custom', path: ['quantityStep'], message: 'O passo convertido exige mais de três casas no estoque.' });
+  if (['UNIT', 'PACKAGE', 'BAG', 'BOX'].includes(value.stockUnit) && factor * step % 1000000n !== 0n) context.addIssue({ code: 'custom', path: ['quantityStep'], message: 'O passo de venda precisa consumir unidades inteiras da embalagem no estoque.' });
 });
 export type CommercialUnitPolicy = z.infer<typeof commercialUnitPolicySchema>;
 export const saveCommercialUnitPolicySchema = z.object({

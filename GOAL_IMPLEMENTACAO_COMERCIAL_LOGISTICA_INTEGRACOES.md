@@ -446,3 +446,8 @@ Acrescentadas operações exatas de disponibilidade e parcela de devolução, em
 ### Publicação dos cálculos fracionados — 13/10/2026
 
 A execução 38433268622 aprovou builds, verificações e validação integrada (115421398132). O deploy 115423328314 terminou com sucesso, publicando a9cc822 via GitHub Actions/GHCR. Os cálculos de disponibilidade e parcelas de devolução estão disponíveis no pacote compartilhado, mas a venda fracionada operacional permanece pendente: os serviços e campos inteiros ainda precisam de migração coordenada.
+
+
+### Embalagens indivisíveis no estoque — 13/10/2026
+
+A auditoria identificou que o passo comercial poderia consumir frações de UNIT/PACKAGE/BAG/BOX no estoque. A validação compartilhada agora exige que fator vezes passo resulte em embalagens inteiras, sem arredondamento. Exemplo: venda em KG de saco de 50 kg exige passo de 50 kg quando o estoque é em BAG; passo de 1 kg é rejeitado. Migração 20261013040000 acrescenta a mesma guarda para novas versões no PostgreSQL, com NOT VALID para preservar snapshots históricos imutáveis; não reinterpretar nem ativar registros antigos. 77 testes unitários passaram; testes integrados acrescentam rejeição pela API e inserção direta bloqueada pela restrição específica. Validação de banco e publicação deste incremento ainda dependem do workflow. Venda fracionada operacional e demais etapas permanecem pendentes.

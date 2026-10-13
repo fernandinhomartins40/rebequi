@@ -20,3 +20,13 @@ test('Measured quantities obey exact steps and reject lossy stock conversion', (
   assert.equal(commercialUnitPolicySchema.safeParse({ ...policy, stockPerCommercialUnit: '2' }).success, false);
   assert.equal(commercialUnitPolicySchema.safeParse({ ...policy, commercialUnit: 'TONNE', stockPerCommercialUnit: '0.001', quantityStep: '0.001' }).success, false);
 });
+
+test('Measured sales cannot split indivisible stock packages', () => {
+  for (const stockUnit of ['UNIT', 'PACKAGE', 'BAG', 'BOX']) {
+    const input = { commercialUnit: 'KG', stockUnit, stockPerCommercialUnit: '0.02', quantityStep: '1', confirmed: true };
+    assert.equal(commercialUnitPolicySchema.safeParse(input).success, false);
+    const policy = commercialUnitPolicySchema.parse({ ...input, quantityStep: '50' });
+    assert.equal(validateCommercialUnitQuantity(policy, '100'), '100');
+    assert.throws(() => validateCommercialUnitQuantity(policy, '75'));
+  }
+});
