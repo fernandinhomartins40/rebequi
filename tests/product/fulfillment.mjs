@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { validateDrivers } from './drivers.mjs';
 import { validateDeliveryRuns } from './delivery-runs.mjs';
+import { validatePickupReceipts } from './pickup-receipts.mjs';
 export async function validateFulfillment({ owner, guest, admin, browser, baseURL, data, db, product }) {
   const headers = { Origin: baseURL };
   const warehouseLogin = { identifier: 'warehouse@example.invalid', password: 'Isolated-Warehouse-2026!' };
@@ -157,4 +158,5 @@ export async function validateFulfillment({ owner, guest, admin, browser, baseUR
   assert.equal((await guest.get(`/api/fulfillments/${id}/history?page=0`)).status(), 400);
   assert.equal((await owner.get(`/api/fulfillments/${id}/history`)).status(), 403);
   assert.equal(Number(db(`console.log(await prisma.fulfillment.count({where:{saleId:${JSON.stringify(sale.id)}}}));`).trim()), 1);
+  await validatePickupReceipts({ owner, admin, guest, browser, baseURL, data, db, product });
 }

@@ -6,3 +6,5 @@ export type FulfillmentDetailsInput = z.infer<typeof fulfillmentDetailsSchema>;
 export type FulfillmentOperationInput = z.infer<typeof fulfillmentOperationSchema>;
 export const driverAssignmentSchema = z.object({ ...base, driverId: z.string().min(1).max(128).nullable(), reason: z.string().trim().min(3).max(300) }).strict();
 export type DriverAssignmentInput = z.infer<typeof driverAssignmentSchema>;
+export const pickupReceiptSchema = z.object({ ...base, receiverName: z.string().trim().min(2).max(100), note: z.string().trim().max(300).default(''), items: z.array(z.object({ id: z.string().min(1).max(128), quantity: z.number().int().min(1).max(1000000) }).strict()).min(1).max(100) }).strict().refine(value => new Set(value.items.map(item => item.id)).size === value.items.length, 'Material repetido.');
+export type PickupReceiptInput = z.infer<typeof pickupReceiptSchema>;

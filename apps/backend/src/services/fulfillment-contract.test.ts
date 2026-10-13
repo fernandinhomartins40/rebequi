@@ -1,8 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { fulfillmentDetailsSchema, fulfillmentOperationSchema, driverAssignmentSchema } from '@rebequi/shared/schemas';
+import { fulfillmentDetailsSchema, fulfillmentOperationSchema, driverAssignmentSchema, pickupReceiptSchema } from '@rebequi/shared/schemas';
 import { getMerchantPermissionsForRole } from '@rebequi/shared/constants';
 const intent = { requestKey: '72768860-08e9-44e8-b464-59ef46de820a', expectedVersion: 1, confirmed: true };
+test('Pickup requires identified receipt, positive whole quantities and a single occurrence per material', () => {
+  const input = { ...intent, receiverName: 'Recebedor isolado', items: [{ id: 'material', quantity: 1 }] };
+  assert.equal(pickupReceiptSchema.safeParse(input).success, true);
+  for (const quantity of [0, -1, 1.5, 1000001]) assert.equal(pickupReceiptSchema.safeParse({ ...input, items: [{ id: 'material', quantity }] }).success, false);
+  assert.equal(pickupReceiptSchema.safeParse({ ...input, receiverName: '' }).success, false);
+  assert.equal(pickupReceiptSchema.safeParse({ ...input, confirmed: false }).success, false);
+  assert.equal(pickupReceiptSchema.safeParse({ ...input, items: [...input.items, ...input.items] }).success, false);
+});
 test('Delivery requires a verified address; warehouse rejects fractional units, duplicates and unconfirmed writes', () => {
   assert.deepEqual(getMerchantPermissionsForRole('WAREHOUSE'), ['logistics:manage']);
   assert.deepEqual(getMerchantPermissionsForRole('DRIVER'), ['logistics:drive']);

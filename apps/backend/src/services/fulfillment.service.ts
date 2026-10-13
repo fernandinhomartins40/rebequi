@@ -34,11 +34,15 @@ export async function reviseFulfillmentAfterReturn(tx: Prisma.TransactionClient,
     if (received < 0) throw new ConflictError('Saldo recebido mudou. Confira novamente os materiais devolvidos.');
     await tx.fulfillmentItem.update({ where: { id: material.id }, data: { delivered: received, checked: received } });
   }
-  const updated = await tx.fulfillment.update({ where: { id: row.id }, data: { status: row.mode === 'UNDEFINED' ? 'AWAITING_DETAILS' : 'CHECKING', version: { increment: 1 } } });
-  await tx.fulfillmentEvent.create({ data: { fulfillmentId: row.id, version: updated.version, requestKey: `fulfillment-return:${returnId}`, fingerprint: returnId, kind: 'RETURN_REQUIRES_RECHECK', actorId, details: { returnId, status: updated.status } } });
+  const balances = await tx.saleReturnItem.groupBy({ by: ['saleItemId'], where: { return: { saleId } }, _sum: { quantity: true } });
+  const refunds = new Map(balances.map(item => [item.saleItemId, item._sum.quantity ?? 0]));
+  const remaining = materials.map(item => ({ remaining: item.quantity - (refunds.get(item.saleItemId) ?? 0), received: item.delivered - (returnedByItem.get(item.saleItemId) ?? 0) }));
+  const status = remaining.every(item => item.remaining === 0) ? 'CANCELED' : remaining.every(item => item.received === item.remaining) ? 'RECEIVED' : row.mode === 'UNDEFINED' ? 'AWAITING_DETAILS' : 'CHECKING';
+  const updated = await tx.fulfillment.update({ where: { id: row.id }, data: { status, version: { increment: 1 } } });
+  await tx.fulfillmentEvent.create({ data: { fulfillmentId: row.id, version: updated.version, requestKey: `fulfillment-return:${returnId}`, fingerprint: returnId, kind: ['CANCELED', 'RECEIVED'].includes(status) ? 'RETURN_RECONCILED' : 'RETURN_REQUIRES_RECHECK', actorId, details: { returnId, status: updated.status } } });
 }
 export async function listFulfillments(page: number, status?: string) {
-  const where = status ? { status } : { status: { not: 'CANCELED' } };
+  const where = status ? { status } : { status: { notIn: ['CANCELED', 'RECEIVED'] } };
   const [rows, total] = await Promise.all([prisma.fulfillment.findMany({ where, orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }, { id: 'asc' }], skip: (page - 1) * 20, take: 20, select: { id: true, priority: true, saleId: true, status: true, mode: true, version: true, region: true, scheduledAt: true, createdAt: true, sale: { select: { referenceCode: true, status: true, customerNameSnapshot: true } }, _count: { select: { items: true } } } }), prisma.fulfillment.count({ where })]);
   return { fulfillments: rows, total, page, totalPages: Math.ceil(total / 20) };
 }

@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import { recordPickupReceipt } from '../services/pickup-receipt.service.js';
+import { pickupReceiptSchema } from '@rebequi/shared/schemas';
 import { z } from 'zod';
 import { getRolesForMerchantPermission } from '@rebequi/shared/constants';
 import { fulfillmentDetailsSchema, fulfillmentOperationSchema, driverAssignmentSchema } from '@rebequi/shared/schemas';
@@ -10,7 +12,7 @@ import { successResponse } from '../utils/response.util.js';
 import { listFulfillments, getFulfillment, listFulfillmentHistory, configureFulfillment, operateFulfillment } from '../services/fulfillment.service.js';
 const router: Router = Router();
 router.use(authenticate, authorize(...getRolesForMerchantPermission('logistics:manage')), requireTrustedOrigin, (_req, res, next) => { res.setHeader('Cache-Control', 'private, no-store'); next(); });
-router.get('/', validateQuery(z.object({ page: z.coerce.number().int().min(1).max(100000).default(1), status: z.enum(['AWAITING_DETAILS', 'PICKING', 'CHECKING', 'READY', 'CANCELED']).optional() })), async (req, res, next) => { try { successResponse(res, await listFulfillments(Number(req.query.page), req.query.status as string | undefined)); } catch (error) { next(error); } });
+router.get('/', validateQuery(z.object({ page: z.coerce.number().int().min(1).max(100000).default(1), status: z.enum(['AWAITING_DETAILS', 'PICKING', 'CHECKING', 'READY', 'CANCELED', 'PARTIALLY_RECEIVED', 'RECEIVED']).optional() })), async (req, res, next) => { try { successResponse(res, await listFulfillments(Number(req.query.page), req.query.status as string | undefined)); } catch (error) { next(error); } });
 router.get('/drivers', authorize(...getRolesForMerchantPermission('logistics:fleet')), validateQuery(z.object({ page: z.coerce.number().int().min(1).max(100000).default(1) })), async (req, res, next) => { try { successResponse(res, await listActiveDrivers(Number(req.query.page))); } catch (error) { next(error); } });
 router.put('/:id/driver', authorize(...getRolesForMerchantPermission('logistics:fleet')), validateBody(driverAssignmentSchema), async (req, res, next) => { try { successResponse(res, await assignDriver(req.params.id, req.user!.userId, req.body)); } catch (error) { next(error); } });
 router.get('/:id', async (req, res, next) => { try { successResponse(res, await getFulfillment(req.params.id)); } catch (error) { next(error); } });
@@ -18,3 +20,4 @@ router.get('/:id/history', validateQuery(z.object({ page: z.coerce.number().int(
 router.put('/:id/details', validateBody(fulfillmentDetailsSchema), async (req, res, next) => { try { successResponse(res, await configureFulfillment(req.params.id, req.user!.userId, req.body)); } catch (error) { next(error); } });
 router.post('/:id/operations', validateBody(fulfillmentOperationSchema), async (req, res, next) => { try { successResponse(res, await operateFulfillment(req.params.id, req.user!.userId, req.body)); } catch (error) { next(error); } });
 export default router;
+router.post('/:id/pickup-receipts', validateBody(pickupReceiptSchema), async (req, res, next) => { try { successResponse(res, await recordPickupReceipt(req.params.id, req.user!, req.body), 201); } catch (error) { next(error); } });

@@ -139,6 +139,14 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Retirada parcial com recebedor — 13/10/2026
+
+Novo registro de retirada em três passos: quantidades entregues agora → nome do recebedor → confirmação física. Restringe a retirada paga, em modo PICKUP e liberada; quantidades inteiras positivas não podem superar saldo conferido menos recebido e devoluções. Lock venda/tarefa, versão esperada, revalidação de operador ativo e intenção idempotente impedem duplicações e preservam concorrência com devoluções. Evento imutável guarda recebedor, materiais/nome/quantidade, horário e ator. Não exige CPF/telefone, não representa assinatura eletrônica e não movimenta estoque novamente. Upload de evidência permanece pendente.
+
+PARTIALLY_RECEIVED conserva materiais ainda pendentes; RECEIVED sai da fila padrão e permanece consultável por etapa. Cliente recebe etapa e histórico mínimo, sem nome do recebedor. Preparação pronta para retirada fica resumida, com revisão sob botão; parcial não oferece edição que apagaria recebimentos. Rechecagem após devolução preserva saldo recebido: materiais ainda não recebidos não reduzem esse saldo, recebidos do cliente reduzem somente quantidades conferidas. Obrigações totalmente recebidas permanecem RECEIVED; devolução de todos os materiais encerra tarefa CANCELED, sem presumir entrega ou reposição de estoque. Cálculos financeiros são os existentes.
+
+Migração aditiva 20261012160000_pickup_receipts amplia estados operacionais. 66 testes locais, tipos, lint, textos e build passaram. Integração acrescenta fluxo real com banco/API/navegador: pago/liberado, retirada parcial concorrente/idempotente, versão/quantidade/origem, cancelamento bloqueado enquanto há material recebido, rechecagem sem apagar recebimento, conclusão mobile, devolução física parcial/total, privacidade e estoque sem movimento duplicado. Validação integrada deste incremento ainda pendente. Workflows 38331168790 e 38331498243 aprovados e publicados confirmaram o acompanhamento do cliente e a origem física das devoluções. Recebimento em rota, ocorrências/reagendamento/reentrega, evidência/PWA, métricas/comissões e integrações restantes continuam no goal ativo.
+
 ### Origem física das devoluções — preparação do recebimento parcial
 
 Migração aditiva 20261012150000_sale_return_physical_origin registra NOT_RECEIVED ou RECEIVED_FROM_CUSTOMER por item. Históricos anteriores mantêm origem nula/desconhecida; não se inventa recebimento antigo. Venda sem acompanhamento físico continua devolvível pelo fluxo anterior, com origem desconhecida. Quando há controle físico, origem pendente é limitada ao saldo vendido não recebido; origem recebida do cliente exige quantidade efetivamente registrada como recebida. Havendo saldo recebido, omissão de origem é rejeitada com mensagem específica. Prévia confere também vínculo a romaneio ativo antes de mostrar confirmação.
