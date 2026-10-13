@@ -8,6 +8,7 @@ import { operateDeliveryRun } from '../services/delivery-run-operations.service.
 import { successResponse } from '../utils/response.util.js';
 import { NotFoundError } from '../utils/errors.util.js';
 import { prisma } from '../lib/prisma.js';
+import { deliveryRunHistory } from '../services/delivery-run-history.service.js';
 const router: Router = Router();
 router.use(authenticate, authorize('DRIVER'), requireTrustedOrigin, (_req, res, next) => { res.setHeader('Cache-Control', 'private, no-store'); next(); });
 router.get('/', validateQuery(z.object({ page: z.coerce.number().int().min(1).max(100000).default(1) })), async (req, res, next) => {
@@ -24,4 +25,5 @@ router.get('/:id', async (req, res, next) => {
   } catch (error) { next(error); }
 });
 export default router;
+router.get('/:id/history', validateQuery(z.object({ page: z.coerce.number().int().min(1).max(100000).default(1) })), async (req, res, next) => { try { successResponse(res, await deliveryRunHistory(req.params.id, Number(req.query.page), req.user!)); } catch (error) { next(error); } });
 router.post('/:id/operations', validateBody(deliveryRunOperationSchema), async (req, res, next) => { try { successResponse(res, await operateDeliveryRun(req.params.id, { userId: req.user!.userId, role: req.user!.role }, req.body)); } catch (error) { next(error); } });

@@ -25,9 +25,13 @@ export async function validateDeliveryRuns({ admin, guest, owner, browser, baseU
     const ownRun = await data(await driverContext.request.get(`/api/driver/runs/${first.id}`));
     assert.deepEqual(Object.keys(ownRun).sort(), ['departedAt', 'id', 'label', 'loadSnapshot', 'loadedAt', 'scheduledAt', 'snapshot', 'status', 'stops', 'version']);
     assert.equal((await otherDriver.request.get(`/api/driver/runs/${first.id}`)).status(), 404);
+    assert.equal((await otherDriver.request.get(`/api/driver/runs/${first.id}/history`)).status(), 404);
+    const ownHistory = await data(await driverContext.request.get(`/api/driver/runs/${first.id}/history`)); assert.equal(ownHistory.total, 1); assert.deepEqual(Object.keys(ownHistory.events[0]).sort(), ['createdAt', 'id', 'kind', 'version']);
     const page = await driverContext.newPage(); await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`${baseURL}/painel-lojista/painel/entregas`); await page.getByRole('button', { name: /^Romaneio do runner/ }).click();
     await page.getByText(`1. ${sale.referenceCode}`, { exact: true }).waitFor();
+    await page.getByText('Histórico do romaneio', { exact: true }).click();
+    await page.getByText('Romaneio planejado', { exact: true }).waitFor();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   } finally { await driverContext.close(); await otherDriver.close(); }
   assert.equal((await data(await admin.get('/api/delivery-runs/candidates'))).deliveries.some(item => item.id === id), false);
@@ -49,9 +53,22 @@ export async function validateDeliveryRuns({ admin, guest, owner, browser, baseU
   assert.equal((await admin.post(`/api/delivery-runs/${run.id}/cancel`, { headers, data: { requestKey: randomUUID(), expectedVersion: loaded.version, confirmed: true, reason: 'Carga precisa ser retirada primeiro' } })).status(), 409);
   const unload = await data(await guest.post(`/api/dispatch/runs/${run.id}/operations`, { headers, data: { requestKey: randomUUID(), expectedVersion: loaded.version, confirmed: true, action: 'UNLOAD', note: 'Materiais retirados do veículo para replanejar' } }));
   assert.equal((await data(await admin.get(`/api/delivery-runs/${run.id}`))).status, 'PLANNED');
-  const cancellation = { requestKey: randomUUID(), expectedVersion: unload.version, confirmed: true, reason: 'Replanejamento autorizado no runner' };
+  let cycleVersion = unload.version;
+  for (let index = 0; index < 10; index += 1) {
+    const cycleLoad = await data(await admin.post(`/api/dispatch/runs/${run.id}/operations`, { headers, data: { ...loadInput, requestKey: randomUUID(), expectedVersion: cycleVersion } }));
+    const cycleUnload = await data(await admin.post(`/api/dispatch/runs/${run.id}/operations`, { headers, data: { requestKey: randomUUID(), expectedVersion: cycleLoad.version, confirmed: true, action: 'UNLOAD', note: 'Conferência repetida no ambiente isolado' } }));
+    cycleVersion = cycleUnload.version;
+  }
+  const recent = await data(await guest.get(`/api/dispatch/runs/${run.id}/history`)); const older = await data(await guest.get(`/api/dispatch/runs/${run.id}/history?page=2`));
+  assert.equal(recent.total, 23); assert.equal(recent.events.length, 20); assert.equal(older.events.length, 3);
+  assert.equal(recent.total, older.total); assert.ok(older.events.every(event => event.version < recent.events.at(-1).version));
+  assert.ok(recent.events.every(event => !('details' in event) && !('actorId' in event) && !('fingerprint' in event) && !('requestKey' in event)));
+  assert.equal((await guest.get(`/api/dispatch/runs/${run.id}/history?page=0`)).status(), 400);
+  assert.equal((await owner.get(`/api/dispatch/runs/${run.id}/history`)).status(), 403);
+  const cancellation = { requestKey: randomUUID(), expectedVersion: cycleVersion, confirmed: true, reason: 'Replanejamento autorizado no runner' };
   const canceled = await data(await admin.post(`/api/delivery-runs/${first.id}/cancel`, { headers, data: cancellation }));
   assert.deepEqual(await data(await admin.post(`/api/delivery-runs/${first.id}/cancel`, { headers, data: cancellation })), canceled);
+  const canceledHistory = await data(await guest.get(`/api/dispatch/runs/${run.id}/history`)); assert.equal(canceledHistory.total, 24); assert.equal(canceledHistory.events[0].note, cancellation.reason);
   assert.equal((await data(await admin.get(`/api/delivery-runs/${first.id}`))).stops[0].active, false);
   const context = await browser.newContext({ timezoneId: 'America/Sao_Paulo' });
   try {
