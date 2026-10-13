@@ -44,6 +44,8 @@ Referência: [OpenAPI 3.1.1](https://spec.openapis.org/oas/v3.1.1.html). Conecto
 
 ## Prévia e vínculo de produtos externos
 
+Categorias podem ser conferidas antes dos produtos: `POST /api/integrations/external-api/imports/categories/preview` recebe `source` e até 100 registros `{externalId,name,slug}`. Detecta duplicação, colisão de nome/endereço, categoria inativa e vínculo divergente; não cria nem altera categorias. A gestão pode registrar `POST /imports/categories/links` com chave idempotente, ID/slug local conferidos e `confirmed=true`; listar em `GET /imports/categories/links?page=1`; e revogar com motivo em `POST /imports/categories/links/{id}/revoke`. Os vínculos ativos são únicos por ID externo e por categoria dentro da origem, e o histórico é imutável. O painel aceita JSON local e mostra o ID da categoria local para a revisão do arquivo de produtos. Aplicação de lote, resolução automática de categoria externa e autoridade externa continuam pendentes.
+
 Uma sessão administrativa com permissão de gestão de integrações pode enviar até 100 registros estruturados para `POST /api/integrations/external-api/imports/products/preview`. Cada registro informa `externalId`, `sku`, `name`, `categoryId`, `priceCents` e `stockQuantity`, além de `source` no lote. A resposta identifica IDs e SKUs repetidos, SKU local já existente, categoria ausente e vínculo cujo SKU diverge. A autoridade continua local para catálogo, preço e estoque. `applied=false` significa que a prévia não importou nem atualizou dados.
 
 Se um produto local já estiver vinculado a outro ID externo na mesma origem, a prévia retorna `PRODUCT_LINKED_TO_OTHER_ID` antes da confirmação. A loja deve conferir e, se necessário, revogar o vínculo antigo com motivo antes de registrar outro ID.

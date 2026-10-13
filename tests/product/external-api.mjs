@@ -12,6 +12,35 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
   assert.equal(persisted.tokenHash, createHash('sha256').update(credential.token).digest('hex')); assert.notEqual(persisted.tokenHash, credential.token);
   const importPath = '/api/integrations/external-api/imports/products/preview';
   const catalog = JSON.parse(db(`console.log(JSON.stringify(await prisma.product.findFirstOrThrow({where:{sku:{not:null},deletedAt:null,category:{isActive:true,deletedAt:null}},select:{id:true,sku:true,categoryId:true,stock:true,reservedStock:true,price:true}})));`).trim());
+  const category = JSON.parse(db(`console.log(JSON.stringify(await prisma.category.findUniqueOrThrow({where:{id:${JSON.stringify(catalog.categoryId)}},select:{id:true,slug:true,name:true}})));`).trim());
+  const categoryRows = [
+    { externalId: 'existing-category', slug: category.slug, name: category.name },
+    { externalId: 'new-category', slug: `runner-${randomUUID()}`, name: `Categoria runner ${randomUUID()}` },
+  ];
+  const categoryInput = { source: 'pdv-runner', rows: categoryRows };
+  const categoryPreviewPath = '/api/integrations/external-api/imports/categories/preview';
+  const categoryLinksPath = '/api/integrations/external-api/imports/categories/links';
+  assert.equal((await owner.post(categoryPreviewPath, { headers, data: categoryInput })).status(), 403);
+  assert.equal((await admin.post(categoryPreviewPath, { data: categoryInput })).status(), 403);
+  const categoryPreview = await data(await admin.post(categoryPreviewPath, { headers, data: categoryInput }));
+  assert.equal(categoryPreview.applied, false); assert.equal(categoryPreview.rows[0].localCategoryId, category.id);
+  assert.deepEqual(categoryPreview.rows[0].conflicts, ['SLUG_ALREADY_LOCAL']);
+  assert.equal(categoryPreview.rows[1].status, 'READY_FOR_REVIEW');
+  const categoryLinkInput = { requestKey: randomUUID(), source: categoryInput.source, externalId: categoryRows[0].externalId,
+    categoryId: category.id, expectedSlug: category.slug, confirmed: true };
+  assert.equal((await owner.post(categoryLinksPath, { headers, data: categoryLinkInput })).status(), 403);
+  assert.equal((await admin.post(categoryLinksPath, { data: categoryLinkInput })).status(), 403);
+  const categoryLink = await data(await admin.post(categoryLinksPath, { headers, data: categoryLinkInput }), 201);
+  assert.equal(categoryLink.categoryId, category.id);
+  assert.deepEqual(await data(await admin.post(categoryLinksPath, { headers, data: categoryLinkInput }), 201), categoryLink);
+  assert.equal((await admin.post(categoryLinksPath, { headers, data: { ...categoryLinkInput, requestKey: randomUUID() } })).status(), 409);
+  assert.equal((await data(await admin.post(categoryPreviewPath, { headers, data: categoryInput }))).rows[0].status, 'LINKED_REVIEW');
+  const listedCategories = await data(await admin.get(`${categoryLinksPath}?page=1`));
+  assert.equal(listedCategories.links.some(row => row.id === categoryLink.id && row.category.slug === category.slug), true);
+  await data(await admin.post(`${categoryLinksPath}/${categoryLink.id}/revoke`, { headers, data: { confirmed: true, reason: 'Revisão isolada do runner' } }));
+  assert.deepEqual((await data(await admin.post(categoryPreviewPath, { headers, data: categoryInput }))).rows[0].conflicts, ['SLUG_ALREADY_LOCAL']);
+  const blockedCategoryMutation = JSON.parse(db(`let blocked=false;try{await prisma.externalCategoryLink.delete({where:{id:${JSON.stringify(categoryLink.id)}}});}catch{blocked=true;}console.log(JSON.stringify({blocked}));`).trim().split('\n').at(-1));
+  assert.equal(blockedCategoryMutation.blocked, true);
   const importRows = [
     { externalId: 'existing', sku: catalog.sku, name: 'Material existente', categoryId: catalog.categoryId, priceCents: '1000', stockQuantity: '5' },
     { externalId: 'new', sku: `IMPORT-${randomUUID()}`, name: 'Material novo', categoryId: catalog.categoryId, priceCents: '1000', stockQuantity: '5' },
@@ -122,6 +151,15 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
     await page.getByRole('checkbox', { name: 'Autorizo este sistema a consultar os dados nas permissões selecionadas.' }).check(); await page.getByRole('button', { name: 'Emitir credencial', exact: true }).click();
     await page.getByLabel('Credencial exibida somente nesta emissão', { exact: true }).waitFor(); assert.match(await page.getByLabel('Credencial exibida somente nesta emissão', { exact: true }).inputValue(), /^rb_api_/);
     await page.getByRole('button', { name: 'Fechar credencial', exact: true }).click(); await page.reload(); assert.equal(await page.getByLabel('Credencial exibida somente nesta emissão', { exact: true }).count(), 0);
+    await page.getByText('Conferir categorias de outro sistema', { exact: true }).click();
+    const categoryPanel = page.getByRole('region', { name: 'Prévia de categorias externas', exact: true });
+    await categoryPanel.getByLabel('Identificação do sistema', { exact: true }).fill(categoryInput.source);
+    await categoryPanel.getByLabel('Arquivo de categorias (.json)', { exact: true }).setInputFiles({ name: 'categorias.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(categoryRows)) });
+    await categoryPanel.getByRole('button', { name: 'Conferir categorias', exact: true }).click();
+    await categoryPanel.getByText('2 categorias · 1 com conflito. Nenhuma categoria foi importada.', { exact: true }).waitFor();
+    await categoryPanel.getByRole('button', { name: 'Conferir vínculo da categoria', exact: true }).click();
+    await categoryPanel.getByRole('button', { name: 'Confirmar vínculo da categoria', exact: true }).click();
+    await categoryPanel.getByText('Vínculo de categoria registrado.', { exact: true }).waitFor();
     await page.getByText('Conferir produtos de outro sistema', { exact: true }).click();
     const importPanel = page.getByRole('region', { name: 'Prévia de importação de produtos', exact: true });
     await importPanel.getByLabel('Identificação do sistema', { exact: true }).fill(importInput.source);

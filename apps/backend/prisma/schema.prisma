@@ -105,6 +105,7 @@ model CustomerNote {
 // CATEGORY MODEL - Product Categories
 // ============================================================================
 model Category {
+  externalLinks ExternalCategoryLink[]
   id          String    @id @default(cuid())
   name        String    @unique
   slug        String    @unique
@@ -121,6 +122,24 @@ model Category {
   @@index([isActive])
   @@index([deletedAt])
   @@map("categories")
+}
+
+model ExternalCategoryLink {
+  id String @id @default(cuid())
+  source String
+  externalId String
+  categoryId String
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  requestKey String @unique
+  fingerprint String
+  actorId String
+  createdAt DateTime @default(now())
+  revokedAt DateTime?
+  revokedById String?
+  revokedReason String?
+  @@index([categoryId])
+  @@index([source, externalId])
+  @@map("external_category_links")
 }
 
 // ============================================================================

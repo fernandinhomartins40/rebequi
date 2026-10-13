@@ -142,6 +142,10 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Prévia e vínculo de categorias externas — 13/10/2026
+
+Categorias de um sistema externo agora têm prévia estruturada, identificação de colisões de nome/endereço, duplicação, inatividade e vínculo divergente. A gestão pode conferir e registrar/revogar vínculo exclusivo por origem, com idempotência, motivo, auditoria e histórico imutável; a interface mostra o ID local necessário para revisar produtos. Nenhuma categoria é criada ou alterada automaticamente. Testes locais e cenário PostgreSQL/API/navegador mobile acrescentados; gate/deploy pendentes. Falta resolver categoria externa automaticamente nos produtos, aplicar importações conforme autoridade e importar clientes.
+
 ### Rascunho de comissão separado de ativação — 13/10/2026
 
 Gestão pode registrar versões imutáveis de uma política proposta para vendedores SALES: base explícita de vendas pagas líquidas de devoluções, percentual em pontos-base, primeiro mês futuro, prazo de conciliação, motivo e confirmação. A rota é administrativa, idempotente e auditada; não há ativação, ledger de vendedor, saldo ou pagamento nesta etapa. Teste integrado cobre permissão, origem, reenvio, conflito de versão, mês passado, imutabilidade e formulário mobile. Gate/deploy pendentes. Antes de calcular créditos reais, falta validar a política financeira, implementar eventos prospectivos de venda/estorno/hold, conciliação e autorização explícita de ativação.
