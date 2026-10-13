@@ -141,6 +141,11 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Reconexão de sessão ainda desconhecida — 13/10/2026
+
+Gate 38422295134 aprovou a jornada do depósito/motorista, inclusive PWA, formulário ao reconectar e revogação de conta; falhou no retorno online de parceiros após reload offline, antes de Cadastro aprovado. Nesse bootstrap não existe identidade autenticada em memória. Listener agora mantém loading somente quando sessionUserId ainda é nulo, aguardando verificação do cookie antes do guard de login. Contas já conhecidas continuam verificadas em segundo plano sem desmontar formulário. 401 e mudança de identidade continuam limpando sessão/cache; não se presume autenticação offline. Mantidos ambos os testes reais, sem reduzir asserções, e nenhum deploy ocorreu com gate reprovado. Verificar novo gate/deploy; objetivo completo permanece ativo.
+
+
 ### Reconexão sem desmontar formulário autenticado — 13/10/2026
 
 Gate 38420031291 superou a navegação offline/retorno, mas encontrou perda do wizard ao reconectar durante confirmação de entrega. Evidência de código: listener online do AuthProvider mudava status para loading, desmontando a rota inteira mesmo para a mesma conta autenticada. Agora a verificação de reconexão ocorre em segundo plano; a mesma identidade preserva formulário em memória. Erro transitório da verificação preserva sessão conhecida; bootstrap sem identidade continua sem autenticação presumida. 401 continua limpando sessão/cache privado e revogando acesso; mudança real de conta também limpa cache. Autorização ativa no servidor de cada consulta/mutação permanece obrigatória e inalterada. Não cria login offline, fila ou envio automático.

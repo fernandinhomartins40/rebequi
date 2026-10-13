@@ -87,6 +87,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const reconnect = () => {
       // Keep the authenticated workspace mounted while revalidating its identity.
+      // An offline bootstrap has no known identity: hold login guards until the
+      // cookie is checked, instead of redirecting before the probe completes.
+      if (!sessionUserId.current) setStatus('loading');
       void refreshSession(true).catch(() => { /* Existing session remains only for transient failure. */ });
     };
     window.addEventListener('online', reconnect);
