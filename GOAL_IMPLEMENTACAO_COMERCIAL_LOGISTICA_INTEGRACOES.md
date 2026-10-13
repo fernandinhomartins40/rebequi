@@ -2,7 +2,7 @@
 
 ## Estado atual e tarefas restantes — atualização de 13/10/2026
 
-Workflows até 38345724561 concluídos com sucesso, incluindo banco/API/navegador reais e deploy. Estão publicados atribuição/proteção comercial, Meus atendimentos, orçamento assistido, catálogo, separação/conferência, perfis de depósito/motorista, frota, romaneio, carregamento/saída/retorno, prioridade operacional, retirada parcial com recebedor, histórico privado por papel e API externa somente de leitura com exportação de orçamentos. O plano completo ainda não está concluído.
+Workflows até 38424364723 concluídos com sucesso, incluindo banco/API/navegador reais e deploy. Estão publicados atribuição/proteção comercial, Meus atendimentos, orçamento assistido, catálogo, separação/conferência, perfis de depósito/motorista, frota, romaneio, carregamento/saída/retorno, prioridade operacional, retirada parcial com recebedor, histórico privado por papel e API externa somente de leitura com exportação de orçamentos. O plano completo ainda não está concluído.
 
 Próximas tarefas, na ordem de execução:
 
@@ -13,7 +13,8 @@ Próximas tarefas, na ordem de execução:
 - [x] Entrega/retirada parcial por item, recebedor, impedimentos por parada e reentrega — workflow 38343635783 aprovado e publicado.
 - [x] Histórico explícito de reagendamento/retirada de horário — workflow 38343878418 aprovado e publicado.
 - [x] Evidências privadas com consentimento, recorte/compressão/quota e UI mobile — workflow 38345724561 aprovado e publicado.
-- [ ] PWA operacional do motorista e piloto em dispositivos — implementação retomada no novo goal de 13/10/2026.
+- [x] PWA operacional do motorista, cache privado excluído e reconexão — workflow 38424364723 aprovado e publicado.
+- [ ] Piloto Android/iPhone conforme docs/PILOTO_MOTORISTA_PWA.md — precisa de resultados em aparelhos reais.
 - [ ] Evoluir unidade comercial e conversões para decimais/granel sem quebrar estoque, pedidos e devoluções existentes.
 - [ ] Acompanhamento completo pelo cliente com privacidade e histórico público controlado; sem localização/ETA presumidos.
 - [ ] Vendedor criar orçamento/pedido para carteira autorizada, distribuição de solicitações e notificações persistentes.
@@ -140,6 +141,11 @@ Prisma schema/migrations; matriz de acesso e schemas/tipos compartilhados; auth/
 ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloqueia base comercial/logística/API genérica. Conector específico depende de nome/versão, documentação/capacidades, credenciais cadastradas apenas no painel, autoridade por domínio e homologação. Metas/taxas/exceções de liberação dependem de configuração da loja, não bloquear formulários. Veículos/endereço/capacidade e teste físico dependem de dados reais. Custos de API/mapas, integração ativa, pagamentos, migração retroativa e multiempresa exigem escopo/validação próprios.
 
 ## Progresso e retomada
+
+### PWA publicado e roteiro de piloto — 13/10/2026
+
+Workflow 38424364723 concluído com sucesso incluindo deploy; PWA/reconexão publicados. Criado docs/PILOTO_MOTORISTA_PWA.md com três etapas de instalação, operação e reconexão; critérios específicos de Android/Chrome e iPhone/Safari, privacidade de foto, recebimento parcial/reentrega, saldo, revogação e atualização. Matriz de aparelhos permanece explicitamente pendente. Não cria vendas de teste em produção nem declara piloto real executado. Quantidades fracionadas/granel e demais módulos continuam pendentes no objetivo completo.
+
 
 ### Gate integrado dos PWAs e reconexão aprovado — 13/10/2026
 
