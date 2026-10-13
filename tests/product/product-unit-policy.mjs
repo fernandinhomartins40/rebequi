@@ -45,6 +45,15 @@ export async function validateProductUnitPolicy({ admin, owner, guest, browser, 
     const response = page.waitForResponse(value => new URL(value.url()).pathname === path && value.request().method() === 'PUT');
     await wizard.getByRole('button', { name: 'Registrar política', exact: true }).click(); assert.equal((await response).status(), 200);
     await wizard.getByText('Política registrada · versão 3', { exact: true }).waitFor();
+    await page.getByText('Conferir uma quantidade', { exact: true }).click();
+    const linePreview = page.getByRole('region', { name: 'Prévia por medida', exact: true });
+    await linePreview.getByLabel('Quantidade em Metro cúbico', { exact: true }).fill('0,5');
+    await linePreview.getByLabel('Preço por Metro cúbico (R$)', { exact: true }).fill('123,45');
+    await linePreview.getByRole('checkbox', { name: 'Conferi o preço para esta unidade de venda.', exact: true }).check();
+    await linePreview.getByRole('button', { name: 'Calcular prévia', exact: true }).click();
+    await linePreview.getByText('Total da prévia: R$ 61,73', { exact: true }).waitFor();
+    await linePreview.getByLabel('Quantidade em Metro cúbico', { exact: true }).fill('1');
+    assert.equal(await linePreview.getByText('Total da prévia: R$ 61,73', { exact: true }).count(), 0);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   } finally { await context.close(); }
   assert.deepEqual(JSON.parse(db(`console.log(JSON.stringify(await prisma.product.findUniqueOrThrow({where:{id:${JSON.stringify(product.id)}},select:{stock:true,reservedStock:true,price:true}})));`).trim()), before);

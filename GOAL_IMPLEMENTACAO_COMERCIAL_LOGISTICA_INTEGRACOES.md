@@ -466,3 +466,8 @@ O deploy 115432931201 confirmou a publicação de e12f34e. Acrescentado POST /ap
 ### Publicação da prévia por medida — 13/10/2026
 
 A validação integrada 115435563877 e o deploy 115437494650 concluíram com sucesso na execução 38437365330, publicando c3bab37 via GitHub Actions/GHCR. A API de prévia está disponível para colaboradores autorizados; interface e integração operacional com pedidos, reservas, estoque, logística e devoluções seguem pendentes. Nenhuma política financeira nova ou conexão externa foi ativada.
+
+
+### Interface da prévia por medida — 13/10/2026
+
+Editor do produto oferece seção recolhível Conferir uma quantidade, disponível após registrar política. Quantidade e preço são digitados explicitamente; troca do preço retira a confirmação, troca de qualquer campo oculta resultado antigo. A chamada usa a versão persistida e não envia totais nem presume disponibilidade do estoque legado. Resultado mostra quantidade comercial, consumo convertido e total com formatação por inteiros, sem perda de centavos grandes. Textos esclarecem que é simulação, sem venda ou reserva. Tipos, lint, build e textos aprovados. Teste integrado mobile acrescenta entrada com vírgula, total 61,73 e descarte do resultado ao editar; validação de navegador e publicação ainda pendentes. Venda fracionada operacional e demais requisitos continuam abertos.
