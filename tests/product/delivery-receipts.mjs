@@ -53,6 +53,13 @@ export async function validateDeliveryReceipts({ owner, admin, guest, browser, b
     await wizard.getByLabel('Quantidade entregue agora', { exact: true }).fill('2'); await wizard.getByRole('button', { name: 'Continuar', exact: true }).click();
     await wizard.getByLabel('Nome do recebedor', { exact: true }).fill('Recebedor final privado'); await wizard.getByRole('button', { name: 'Continuar', exact: true }).click();
     await wizard.getByRole('checkbox', { name: 'Conferi o recebedor e entreguei fisicamente estes materiais.', exact: true }).check();
+    await context.setOffline(true);
+    await page.getByText('Sem conexão. Mantenha esta tela aberta e reconecte-se para confirmar operações. Nada será enviado automaticamente.', { exact: true }).waitFor();
+    assert.equal(await wizard.getByRole('button', { name: 'Confirmar entrega', exact: true }).isDisabled(), true);
+    assert.equal(await wizard.getByRole('checkbox', { name: 'Conferi o recebedor e entreguei fisicamente estes materiais.', exact: true }).isChecked(), true);
+    assert.equal((await data(await admin.get(`/api/fulfillments/${fulfillmentId}`))).items[0].delivered, 1);
+    await context.setOffline(false);
+    await wizard.getByRole('button', { name: 'Confirmar entrega', exact: true }).waitFor();
     const saved = page.waitForResponse(response => response.url().endsWith(`/driver/runs/${next.id}/receipts`) && response.request().method() === 'POST');
     await wizard.getByRole('button', { name: 'Confirmar entrega', exact: true }).click(); assert.equal((await saved).status(), 201);
     await page.getByText('Rota encerrada', { exact: false }).waitFor(); assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);

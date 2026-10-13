@@ -141,6 +141,13 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Proteção de confirmação quando offline — 13/10/2026
+
+Hook compartilhado existente de conexão escuta eventos online/offline sem polling. Painel do motorista avisa ao perder conexão e orienta manter tela aberta; confirmação de carga/saída/retorno, entrega, impedimento e anexo de evidência ficam desabilitadas enquanto navegador está offline. Dados de formulário permanecem apenas na memória da tela; não há fila, envio automático ou persistência de fotos/endereços. Atualização do PWA também bloqueada offline. Reconectar permite confirmar explicitamente, mantendo checks de pagamento, saldo, versão/idempotência do servidor; navigator.onLine não substitui resposta real da API quando a conexão parece disponível mas falha.
+
+Testes integrados acrescentam aviso dinâmico, confirmação desabilitada durante entrega, checkbox preservado e saldo no banco inalterado antes de reconectar/enviar. TypeScript/lint/build/textos/sintaxe locais aprovados; gate/deploy deste incremento ainda pendentes. Workflow 38418748103 do PWA inicial confirmou testes/infra/builds e iniciou gate real PostgreSQL/API/navegador. PWA/piloto, unidades/granel, comercial/desempenho/integrações e objetivo completo permanecem ativos.
+
+
 ### Novo goal atualizado e PWA do motorista — 13/10/2026
 
 O usuário removeu o goal anterior e solicitou um novo. Novo goal criado com o escopo completo remanescente: PWA/piloto do motorista, unidades/granel, acompanhamento completo, pedidos/notificações comerciais, metas/comissões prospectivas, importação/autoridade/conflitos, escrita/inbox/outbox/webhooks/reprocessamento, conector ERP quando identificado, homologação e pendências de parceiros registradas neste roteiro. Não ativa novas integrações/regras financeiras/gastos. Main somente, commit/push e deploy pelo workflow existente. Evidências privadas f681a39 confirmadas publicadas no workflow 38345724561; navegação/fila e reagendamento também publicados.

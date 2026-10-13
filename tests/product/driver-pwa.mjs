@@ -18,6 +18,7 @@ export async function validateDriverPwa({ context, page, baseURL }) {
   assert.deepEqual(paths, ['/motoristas/offline.html'], 'Driver cache contains only the public offline notice');
   await context.setOffline(true);
   try {
+    await page.getByText('Sem conexão. Mantenha esta tela aberta e reconecte-se para confirmar operações. Nada será enviado automaticamente.', { exact: true }).waitFor();
     await page.goto(`${baseURL}/painel-lojista/painel/entregas`);
     await page.getByRole('heading', { name: 'Você está sem conexão', exact: true }).waitFor();
     await page.getByText('Nenhum recebimento foi registrado por esta tela.', { exact: true }).waitFor();

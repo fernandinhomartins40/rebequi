@@ -1,3 +1,4 @@
+import { useOnlineStatus } from '@/hooks/use-online-status';
 import { lazy, Suspense, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/services/api/client';
@@ -7,7 +8,7 @@ import { DashboardError, DashboardLoading } from './DashboardList';
 const CropDialog = lazy(async () => ({ default: (await import('@/components/ui/image-crop-dialog')).ImageCropDialog }));
 type Image = { id: string; url: string; width: number; height: number };
 export function ReceiptEvidence({ receiptId, writable = false }: { receiptId: string; writable?: boolean }) {
-  const client = useQueryClient(); const [open, setOpen] = useState(false);
+  const online = useOnlineStatus(); const client = useQueryClient(); const [open, setOpen] = useState(false);
   const [source, setSource] = useState<string>(); const [fileName, setFileName] = useState('recebimento');
   const [draft, setDraft] = useState<File>(); const [authorized, setAuthorized] = useState(false); const [error, setError] = useState('');
   const intent = useRef<{ file: File; key: string }>();
@@ -31,7 +32,7 @@ export function ReceiptEvidence({ receiptId, writable = false }: { receiptId: st
       {!query.data.length ? <p className="mt-2 text-xs text-muted-foreground">Nenhuma foto anexada.</p> : null}
       {writable && query.data.length < 3 ? <div className="mt-3 space-y-3">
         <label className="block text-sm font-medium">1. Escolher e recortar foto<input className="mt-2 block max-w-full text-sm" type="file" accept={IMAGE_UPLOAD_ACCEPT} disabled={save.isPending} onChange={event => { void select(event.target.files?.[0]); event.target.value = ''; }} /></label>
-        {draft ? <><p className="text-xs text-muted-foreground">Imagem preparada · {Math.ceil(draft.size / 1024)} KB</p><label className="flex gap-2 text-sm"><input type="checkbox" checked={authorized} disabled={save.isPending} onChange={event => setAuthorized(event.target.checked)} />2. O recebedor autorizou esta foto como evidência do recebimento.</label><Button size="sm" disabled={!authorized || save.isPending} onClick={() => save.mutate()}>{save.isPending ? 'Anexando…' : '3. Anexar foto'}</Button></> : null}
+        {draft ? <><p className="text-xs text-muted-foreground">Imagem preparada · {Math.ceil(draft.size / 1024)} KB</p><label className="flex gap-2 text-sm"><input type="checkbox" checked={authorized} disabled={save.isPending} onChange={event => setAuthorized(event.target.checked)} />2. O recebedor autorizou esta foto como evidência do recebimento.</label><Button size="sm" disabled={!online || !authorized || save.isPending} onClick={() => save.mutate()}>{save.isPending ? 'Anexando…' : '3. Anexar foto'}</Button></> : null}
       </div> : null}
     </> : null}
     {error ? <p role="alert" className="mt-2 text-sm text-red-700">{error}</p> : null}

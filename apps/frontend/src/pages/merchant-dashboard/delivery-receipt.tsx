@@ -1,3 +1,4 @@
+import { useOnlineStatus } from '@/hooks/use-online-status';
 import { useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { deliveryReceiptSchema } from '@rebequi/shared/schemas';
@@ -9,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { PartnerSteps } from '@/pages/partners/steps';
 
 export function DeliveryReceipt({ run, driver }: { run: RunOperationView; driver: boolean }) {
-  const client = useQueryClient();
+  const online = useOnlineStatus(); const client = useQueryClient();
   const [open, setOpen] = useState(false); const [step, setStep] = useState(1);
   const available = run.stops.filter(stop => stop.items.some(item => item.loaded > item.delivered + item.returnedToWarehouse));
   const [stopId, setStopId] = useState(available[0]?.id ?? '');
@@ -53,7 +54,7 @@ export function DeliveryReceipt({ run, driver }: { run: RunOperationView; driver
         <label className="flex gap-2 text-sm"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} />Conferi o recebedor e entreguei fisicamente estes materiais.</label>
       </div>}
       <div className="flex justify-between gap-2"><Button variant="outline" disabled={step === 1 || save.isPending} onClick={() => { setStep(value => value - 1); setConfirmed(false); }}>Voltar</Button>
-        {step < 3 ? <Button onClick={advance}>Continuar</Button> : <Button disabled={!confirmed || save.isPending} onClick={() => save.mutate()}>{save.isPending ? 'Registrando…' : 'Confirmar entrega'}</Button>}
+        {step < 3 ? <Button onClick={advance}>Continuar</Button> : <Button disabled={!online || !confirmed || save.isPending} onClick={() => save.mutate()}>{save.isPending ? 'Registrando…' : 'Confirmar entrega'}</Button>}
       </div>{error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}
     </> : null}
   </section>;

@@ -1,3 +1,4 @@
+import { useOnlineStatus } from '@/hooks/use-online-status';
 import { useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { deliveryOccurrenceSchema, type DeliveryOccurrenceInput } from '@rebequi/shared/schemas';
@@ -9,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { PartnerSteps } from '@/pages/partners/steps';
 const KINDS: Record<DeliveryOccurrenceInput['kind'], string> = { CUSTOMER_ABSENT: 'Cliente ausente', ADDRESS_REVIEW: 'Endereço precisa de conferência', ACCESS_BLOCKED: 'Acesso bloqueado', DAMAGED_MATERIAL: 'Material danificado', REFUSED_RECEIPT: 'Recebimento recusado', OTHER: 'Outro impedimento' };
 export function DeliveryOccurrence({ run, driver }: { run: RunOperationView; driver: boolean }) {
-  const client = useQueryClient(); const stops = run.stops.filter(stop => stop.items.some(item => item.loaded > item.delivered + item.returnedToWarehouse));
+  const online = useOnlineStatus(); const client = useQueryClient(); const stops = run.stops.filter(stop => stop.items.some(item => item.loaded > item.delivered + item.returnedToWarehouse));
   const [open, setOpen] = useState(false); const [step, setStep] = useState(1); const [stopId, setStopId] = useState(stops[0]?.id ?? '');
   const [kind, setKind] = useState<DeliveryOccurrenceInput['kind']>('CUSTOMER_ABSENT'); const [note, setNote] = useState('');
   const [confirmed, setConfirmed] = useState(false); const [error, setError] = useState(''); const intent = useRef<{ fingerprint: string; key: string }>();
@@ -33,7 +34,7 @@ export function DeliveryOccurrence({ run, driver }: { run: RunOperationView; dri
       {step === 1 ? <div><Label htmlFor={`occurrence-stop-${run.id}`}>Parada com impedimento</Label><select id={`occurrence-stop-${run.id}`} className="min-h-11 w-full rounded-lg border bg-white px-3" value={stopId} onChange={event => setStopId(event.target.value)}>{stops.map(value => <option key={value.id} value={value.id}>{value.position}. {value.snapshot.referenceCode}</option>)}</select><p className="mt-2 break-words text-sm">{stop?.snapshot.address}</p></div>
         : step === 2 ? <div className="space-y-2"><Label htmlFor={`occurrence-kind-${run.id}`}>O que aconteceu?</Label><select id={`occurrence-kind-${run.id}`} className="min-h-11 w-full rounded-lg border bg-white px-3" value={kind} onChange={event => setKind(event.target.value as typeof kind)}>{Object.entries(KINDS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><Label htmlFor={`occurrence-note-${run.id}`}>Detalhes para a equipe</Label><Textarea id={`occurrence-note-${run.id}`} maxLength={300} value={note} onChange={event => setNote(event.target.value)} /><p className="text-xs text-muted-foreground">Informe só o necessário para resolver a entrega.</p></div>
           : <div className="space-y-3"><p className="text-sm font-semibold">{stop?.snapshot.referenceCode} · {KINDS[kind]}</p><p className="break-words text-sm">{note}</p><label className="flex gap-2 text-sm"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} />Conferi a parada e o ocorrido.</label></div>}
-      <div className="flex justify-between gap-2"><Button variant="outline" disabled={step === 1 || save.isPending} onClick={() => { setStep(value => value - 1); setConfirmed(false); }}>Voltar</Button>{step < 3 ? <Button onClick={advance}>Continuar</Button> : <Button disabled={!confirmed || save.isPending} onClick={() => save.mutate()}>{save.isPending ? 'Registrando…' : 'Confirmar impedimento'}</Button>}</div>
+      <div className="flex justify-between gap-2"><Button variant="outline" disabled={step === 1 || save.isPending} onClick={() => { setStep(value => value - 1); setConfirmed(false); }}>Voltar</Button>{step < 3 ? <Button onClick={advance}>Continuar</Button> : <Button disabled={!online || !confirmed || save.isPending} onClick={() => save.mutate()}>{save.isPending ? 'Registrando…' : 'Confirmar impedimento'}</Button>}</div>
       {error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}
     </> : null}
   </section>;
