@@ -2,6 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { commercialOrderSchema, type CommercialOrderInput } from '@rebequi/shared/schemas';
 import { isValidWhatsapp, normalizeWhatsapp } from '@rebequi/shared/utils';
 import { prisma } from '../lib/prisma.js';
+import { env } from '../config/env.js';
 import { requireCommercialAccess, type CommercialActor } from './commercial-access.service.js';
 import { ConflictError, ForbiddenError, ValidationError } from '../utils/errors.util.js';
 
@@ -55,12 +56,17 @@ export async function createCommercialOrder(actor: CommercialActor, raw: Commerc
         productImageUrlSnapshot: product.images[0]?.url ?? null, quantity: item.quantity,
         unitPrice: product.price, originalPrice: product.originalPrice };
     });
+    const referenceCode = `PED-${randomBytes(10).toString('hex').toUpperCase()}`;
+    const storeWhatsapp = normalizeWhatsapp(env.STORE_WHATSAPP);
+    const whatsappMessage = `Olá, quero falar com a Rebequi sobre o pedido ${referenceCode}.`;
+    const whatsappUrl = isValidWhatsapp(storeWhatsapp)
+      ? `https://wa.me/55${storeWhatsapp}?text=${encodeURIComponent(whatsappMessage)}` : null;
     const order = await tx.customerOrder.create({ data: {
       commercialCreationKey: key, commercialCreationFingerprint: fingerprint,
-      referenceCode: `PED-${randomBytes(10).toString('hex').toUpperCase()}`,
+      referenceCode,
       userId: customer.id, assignedSellerId: actor.userId, assignmentVersion: 1,
       customerNameSnapshot: customer.name, customerWhatsapp: whatsapp, customerNote: input.note || null,
-      source: 'seller_assisted', status: 'IN_RECOVERY', items: { create: items },
+      source: 'seller_assisted', status: 'IN_RECOVERY', whatsappMessage, whatsappUrl, items: { create: items },
     }, select: { id: true, referenceCode: true } });
     await tx.commercialAssignmentAudit.create({ data: { resourceKind: 'order', resourceId: order.id,
       previousSellerId: null, nextSellerId: actor.userId, version: 1, actorId: actor.userId,

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/contexts/CartContext';
 import { useToast } from '@/components/ui/use-toast';
-import { getOrderStatusBadgeClass, getOrderStatusLabel } from '@/lib/order-ui';
+import { getCustomerOrderNextStep, getOrderStatusBadgeClass, getOrderStatusLabel } from '@/lib/order-ui';
 import { formatCurrency } from '@/lib/sale-ui';
 import { fetchMyOrders } from '@/services/api/orders';
 import { fetchProductById } from '@/services/api/products';
@@ -47,12 +47,13 @@ export function OrdersTab() {
         if (!item.productId) { unavailable.push(item.productNameSnapshot); continue; }
         try {
           const product = await fetchProductById(item.productId);
-          if (!product.isActive || product.stock <= 0) {
+          const available = Math.max(0, product.stock - (product.reservedStock ?? 0));
+          if (!product.isActive || available <= 0) {
             unavailable.push(item.productNameSnapshot); continue;
           }
-          addItem(product, Math.min(item.quantity, product.stock));
+          addItem(product, Math.min(item.quantity, available));
           added++;
-          if (product.stock < item.quantity) unavailable.push(`${product.name} (quantidade reduzida ao estoque)`);
+          if (available < item.quantity) unavailable.push(`${product.name} (quantidade reduzida ao estoque disponível)`);
         } catch { unavailable.push(item.productNameSnapshot); }
       }
       toast({
@@ -82,6 +83,7 @@ export function OrdersTab() {
           </div>
           <Badge variant="outline" className={getOrderStatusBadgeClass(order.status)}>{getOrderStatusLabel(order.status, order.source)}</Badge>
         </div>
+        {getCustomerOrderNextStep(order) ? <p className="rounded-lg bg-blue-50 p-3 text-sm text-slate-700">{getCustomerOrderNextStep(order)}</p> : null}
         {order.fulfillment ? <div className="rounded-lg bg-blue-50 p-3"><p className="text-sm font-semibold">{({ RECEIVED: 'Materiais recebidos', PARTIALLY_RECEIVED: 'Materiais recebidos parcialmente', LOADED: 'Materiais carregados', IN_TRANSIT: 'Entrega em andamento', AWAITING_DETAILS: 'Confirmando retirada ou entrega', PICKING: 'Em separação', CHECKING: 'Conferindo os materiais', READY: order.fulfillment.mode === 'PICKUP' ? 'Materiais preparados para retirada' : 'Preparando entrega', CANCELED: 'Operação cancelada', PAYMENT_PENDING: 'Aguardando confirmação de pagamento' } as Record<string, string>)[order.fulfillment.status] ?? 'Andamento em conferência'}</p><p className="mt-1 text-xs text-muted-foreground">Atualizado em {formatDateTime(order.fulfillment.updatedAt)}</p>{order.fulfillment.scheduledAt ? <p className="mt-1 text-xs">Agendamento confirmado: {formatDateTime(order.fulfillment.scheduledAt)}</p> : null}</div> : null}
         <p className="text-sm">{order.itemCount} itens · <strong>{formatCurrency(order.subtotal)}</strong></p>
         {order.fulfillment ? <><OrderMaterials orderId={order.id} /><OrderHistory orderId={order.id} /></> : null}
@@ -97,7 +99,7 @@ export function OrdersTab() {
         </details>
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           {order.whatsappUrl ? <Button asChild variant="outline"><a href={order.whatsappUrl} target="_blank" rel="noreferrer">
-            <MessageCircle className="mr-2 h-4 w-4" /> Retomar no WhatsApp
+            <MessageCircle className="mr-2 h-4 w-4" /> {order.source === 'seller_assisted' ? 'Falar com a loja' : 'Retomar no WhatsApp'}
           </a></Button> : null}
           <Button variant="outline" disabled={Boolean(repeating)} onClick={() => void repeatOrder(order)}>
             {repeating === order.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShoppingCart className="mr-2 h-4 w-4" />}

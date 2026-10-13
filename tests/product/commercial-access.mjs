@@ -56,6 +56,8 @@ export async function validateCommercialAccess({ owner, admin, sellerA, sellerB,
   const savedOrder = JSON.parse(db(`console.log(JSON.stringify(await prisma.customerOrder.findUniqueOrThrow({where:{id:${JSON.stringify(assistedOrder.id)}},include:{items:true,reservations:true}})));`).trim());
   assert.equal(savedOrder.userId, customer.id); assert.equal(savedOrder.assignedSellerId, profiles[0].id);
   assert.equal(savedOrder.status, 'IN_RECOVERY'); assert.equal(savedOrder.source, 'seller_assisted');
+  assert.match(savedOrder.whatsappUrl, /^https:\/\/wa\.me\/55\d+\?text=/);
+  assert.match(decodeURIComponent(savedOrder.whatsappUrl), new RegExp(savedOrder.referenceCode));
   assert.equal(savedOrder.items[0].productNameSnapshot, product.name);
   assert.equal(savedOrder.reservations.length, 0);
   assert.equal(Number(db(`console.log((await prisma.product.findUniqueOrThrow({where:{id:${JSON.stringify(product.id)}}})).stock);`).trim()), stockBeforeOrder);

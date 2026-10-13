@@ -36,6 +36,13 @@ export function getOrderStatusBadgeClass(status: OrderStatus) {
   }
 }
 
+export function getCustomerOrderNextStep(order: Pick<CustomerOrder, 'status' | 'source' | 'fulfillment'>) {
+  if (order.fulfillment || order.status === 'CANCELED' || order.status === 'COMPLETED') return null;
+  if (order.source === 'seller_assisted') return 'A loja registrou seu pedido e vai confirmar os próximos passos com você.';
+  if (order.status === 'PENDING_WHATSAPP') return 'Envie a mensagem pelo WhatsApp para a loja começar o atendimento.';
+  return 'A loja está conferindo seu pedido. A preparação aparece aqui depois da confirmação.';
+}
+
 export function buildCustomerWhatsappUrl(order: Pick<CustomerOrder, 'customerNameSnapshot' | 'customerWhatsapp' | 'referenceCode'>) {
   const normalizedWhatsapp = normalizeWhatsapp(order.customerWhatsapp);
 
