@@ -37,3 +37,17 @@ export function commercialReturnCents(lineNetCents: bigint, sold: string, return
   if (lineNetCents < 0n || total === 0n || part > total) throw new Error('Quantidade devolvida ou valor inválido.');
   return (lineNetCents * part + total / 2n) / total;
 }
+
+/** Stock and reservations share an explicit unit; negative availability is an error. */
+export function commercialAvailableQuantity(stock: string, reserved: string): string {
+  return formatCommercialQuantity(parseCommercialQuantity(stock) - parseCommercialQuantity(reserved));
+}
+
+/** Refund the next part against the original line, preserving cumulative rounding. */
+export function commercialReturnDeltaCents(lineNetCents: bigint, sold: string, previouslyReturned: string, returning: string): bigint {
+  const previous = parseCommercialQuantity(previouslyReturned);
+  const increment = parseCommercialQuantity(returning);
+  if (increment === 0n) throw new Error('Informe quantidade positiva para devolver.');
+  const cumulative = formatCommercialQuantity(previous + increment);
+  return commercialReturnCents(lineNetCents, sold, cumulative) - commercialReturnCents(lineNetCents, sold, previouslyReturned);
+}

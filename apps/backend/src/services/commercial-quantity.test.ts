@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { commercialAvailableQuantity, commercialReturnDeltaCents } from '@rebequi/shared/utils';
 import { parseCommercialQuantity, formatCommercialQuantity, convertCommercialQuantity, commercialLineCents, commercialReturnCents } from '@rebequi/shared/utils';
 
 test('Decimal commercial quantities preserve exact thousandths and reject ambiguity', () => {
@@ -31,4 +32,18 @@ test('Fractional line and cumulative refund rounding conserve cents', () => {
   assert.throws(() => commercialReturnCents(total, '1.5', '1.501'));
   assert.throws(() => commercialReturnCents(total, '0', '0'));
   assert.throws(() => commercialLineCents(-1n, '1'));
+});
+
+test('Fractional availability rejects overreservation without floating-point drift', () => {
+  assert.equal(commercialAvailableQuantity('0.3', '0.2'), '0.1');
+  assert.equal(commercialAvailableQuantity('1.125', '1.125'), '0');
+  assert.throws(() => commercialAvailableQuantity('1.125', '1.126'));
+});
+
+test('Successive fractional refunds allocate the original cents exactly once', () => {
+  assert.equal(commercialReturnDeltaCents(1n, '0.003', '0', '0.001'), 0n);
+  assert.equal(commercialReturnDeltaCents(1n, '0.003', '0.001', '0.001'), 1n);
+  assert.equal(commercialReturnDeltaCents(1n, '0.003', '0.002', '0.001'), 0n);
+  assert.throws(() => commercialReturnDeltaCents(1n, '0.003', '0.002', '0.002'));
+  assert.throws(() => commercialReturnDeltaCents(1n, '0.003', '0', '0'));
 });

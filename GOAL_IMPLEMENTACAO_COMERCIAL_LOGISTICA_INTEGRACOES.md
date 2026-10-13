@@ -436,3 +436,8 @@ O commit 3870101 passou nos builds, verificações e validação integrada com P
 ### Publicação confirmada do editor — 13/10/2026
 
 O job de deploy 115419190568 terminou com sucesso após a repetição autorizada pelo GitHub Actions da execução 38428630117. O editor de unidades do commit 3870101 está publicado. A configuração continua preparatória e não libera venda fracionada; a integração operacional com estoque, pedidos, valores e devoluções permanece pendente.
+
+
+### Precisão de saldos e devoluções fracionadas — 13/10/2026
+
+Acrescentadas operações exatas de disponibilidade e parcela de devolução, em milésimos e centavos inteiros. A disponibilidade rejeita reserva superior ao saldo. Devoluções sucessivas calculam a diferença do valor acumulado contra a linha original: três parcelas de 0,001 de uma linha de um centavo devolvem exatamente um centavo no total. 76 testes passaram. Estas funções ainda não ativam estoque decimal nem alteram vendas existentes; a migração coordenada dos campos inteiros e uso nos serviços seguem pendentes.
