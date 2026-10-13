@@ -22,6 +22,7 @@ export async function createExternalCustomerLink(actor: Actor, raw: z.infer<type
     customerId: input.customerId, expectedEmail: input.expectedEmail, expectedWhatsapp: input.expectedWhatsapp }));
   return prisma.$transaction(async tx => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`external-customer-link:${input.source}:${input.externalId}`}))`;
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`external-customer-local:${input.source}:${input.customerId}`}))`;
     await tx.$queryRaw`SELECT id FROM users WHERE id=${input.customerId} FOR UPDATE`;
     await requireManager(tx, actor);
     const repeated = await tx.externalCustomerLink.findUnique({ where: { requestKey } });

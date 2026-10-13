@@ -42,6 +42,14 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
   assert.equal((await data(await admin.get(`${customerLinksPath}?page=1`))).links.some(row => row.id === customerLink.id), true);
   await data(await admin.post(`${customerLinksPath}/${customerLink.id}/revoke`, { headers, data: { confirmed: true, reason: 'Revisão isolada do runner' } }));
   assert.deepEqual((await data(await admin.post(customerPath, { headers, data: customerInput }))).rows[0].conflicts, ['LOCAL_CUSTOMER_EXISTS']);
+  const concurrentLinks = await Promise.all([
+    admin.post(customerLinksPath, { headers, data: { ...customerLinkInput, requestKey: randomUUID(), externalId: 'concurrent-a' } }),
+    admin.post(customerLinksPath, { headers, data: { ...customerLinkInput, requestKey: randomUUID(), externalId: 'concurrent-b' } }),
+  ]);
+  assert.deepEqual(concurrentLinks.map(response => response.status()).sort(), [201, 409]);
+  const concurrentWinner = await data(concurrentLinks.find(response => response.status() === 201), 201);
+  await data(await admin.post(`${customerLinksPath}/${concurrentWinner.id}/revoke`, { headers,
+    data: { confirmed: true, reason: 'Limpeza do teste concorrente' } }));
   const blockedCustomerMutation = JSON.parse(db(`let blocked=false;try{await prisma.externalCustomerLink.delete({where:{id:${JSON.stringify(customerLink.id)}}});}catch{blocked=true;}console.log(JSON.stringify({blocked}));`).trim().split('\n').at(-1));
   assert.equal(blockedCustomerMutation.blocked, true);
   const importPath = '/api/integrations/external-api/imports/products/preview';
