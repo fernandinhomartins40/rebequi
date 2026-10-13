@@ -50,7 +50,7 @@ export class SaleRepository {
         await requireCommercialAccess('customer', customerId, params.actor, tx);
       }
       const sale = await tx.sale.create({
-        data: { ...params.sale, ...(assignedSellerId ? { assignedSeller: { connect: { id: assignedSellerId } } } : {}), accountingVersion: 1 },
+        data: { ...params.sale, ...(assignedSellerId ? { assignedSeller: { connect: { id: assignedSellerId } } } : {}), creditedSellerId: assignedSellerId ?? null, accountingVersion: 1 },
         include: saleInclude,
       });
 

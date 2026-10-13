@@ -573,6 +573,7 @@ enum SaleStatus {
 model Sale {
   fulfillment Fulfillment?
   assignedSellerId String?
+  creditedSellerId String?
   assignedSeller User? @relation("SaleSeller", fields: [assignedSellerId], references: [id], onDelete: SetNull)
   assignmentVersion Int @default(0)
   accountingVersion Int @default(0)
@@ -614,6 +615,7 @@ model Sale {
   @@index([paymentMethod])
   @@index([customerId])
   @@index([registeredById])
+  @@index([creditedSellerId, paidAt], map: "sales_credited_seller_paid_at_idx")
   @@index([createdAt])
   @@map("sales")
 }

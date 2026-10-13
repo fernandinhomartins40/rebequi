@@ -142,6 +142,10 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Identidade histórica do vendedor na venda — 13/10/2026
+
+Novas vendas registram `creditedSellerId` no ato transacional, usando o responsável conferido do pedido ou operador comercial. O campo é imutável mesmo quando o atendimento da venda é redistribuído; vendas antigas permanecem sem atribuição presumida. Este snapshot prepara indicadores e regras prospectivas de comissão sem calcular ou ativar pagamentos. Teste integrado acrescentado para criação, redistribuição e bloqueio de alteração direta; gate/deploy ainda pendentes.
+
 ### Lotes de importação revisáveis — 13/10/2026
 
 A prévia de produtos externos agora detecta produto local já vinculado a outro ID da mesma origem e SKU arquivado. O painel permite prévia de arquivo JSON, vínculo/revogação manual e registro idempotente da análise como lote imutável. O servidor recalcula a análise ao salvar; nenhuma linha, preço ou saldo é aplicado. Testes locais de contrato, tipos e textos aprovados; gate integrado e deploy deste lote ainda pendentes. Autoridade por domínio, aplicação controlada, inbox/outbox e ERP real continuam no objetivo.

@@ -63,9 +63,13 @@ export async function validateCommercialAccess({ owner, admin, sellerA, sellerB,
   assert.equal((await sellerB.get(`/api/sales/admin/${sale.id}`)).status(), 404);
   assert.equal((await sellerB.get(`/api/sales/admin/${sale.id}/returns`)).status(), 404);
   assert.equal((await sellerB.post(`/api/sales/admin/${sale.id}/status`, { headers, data: { status: 'CANCELED' } })).status(), 404);
-  const actual = JSON.parse(db(`console.log(JSON.stringify(await prisma.sale.findUniqueOrThrow({where:{id:${JSON.stringify(sale.id)}},select:{assignedSellerId:true,registeredById:true}})));`).trim());
-  assert.deepEqual(actual, { assignedSellerId: profiles[0].id, registeredById: profiles[0].id });
+  const actual = JSON.parse(db(`console.log(JSON.stringify(await prisma.sale.findUniqueOrThrow({where:{id:${JSON.stringify(sale.id)}},select:{assignedSellerId:true,registeredById:true,creditedSellerId:true}})));`).trim());
+  assert.deepEqual(actual, { assignedSellerId: profiles[0].id, registeredById: profiles[0].id, creditedSellerId: profiles[0].id });
   await assign('sale', sale.id, profiles[1].id);
+  const creditedAfterAssignment = db(`console.log((await prisma.sale.findUniqueOrThrow({where:{id:${JSON.stringify(sale.id)}},select:{creditedSellerId:true}})).creditedSellerId);`).trim();
+  assert.equal(creditedAfterAssignment, profiles[0].id);
+  const blockedCreditChange = JSON.parse(db(`let blocked=false;try{await prisma.sale.update({where:{id:${JSON.stringify(sale.id)}},data:{creditedSellerId:${JSON.stringify(profiles[1].id)}}});}catch{blocked=true;}console.log(JSON.stringify({blocked}));`).trim().split('\n').at(-1));
+  assert.equal(blockedCreditChange.blocked, true);
   assert.equal((await sellerA.get(`/api/sales/admin/${sale.id}`)).status(), 404, 'Reassignment revokes access even for the original operator');
   assert.equal((await sellerB.get(`/api/sales/admin/${sale.id}`)).status(), 200);
   await assign('customer', customer.id, profiles[1].id, 1);
