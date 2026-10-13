@@ -141,6 +141,11 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Cabeçalhos e escopo do PWA — 13/10/2026
+
+Configuração Nginx da própria aplicação agora serve /driver-sw.js com no-cache e Service-Worker-Allowed limitado ao prefixo de entregas, evitando tratar o worker de URL fixa como um asset imutável de um ano. Manifesto do motorista usa application/manifest+json e no-cache, como o manifesto de parceiros. Nenhum serviço compartilhado da VPS é alterado. Teste integrado verifica cabeçalhos, manifesto e escopo, além do controlador/offline/cache privado. Sintaxe do cenário e configuração de produção verificadas localmente; Nginx/runtime/browser serão exercitados pelo gate antes de deploy. Workflow 38418748103 do PWA inicial ainda em gate integrado no momento deste registro; proteção offline 2d5c50c aguarda o workflow seguinte. Objetivo completo permanece ativo.
+
+
 ### Proteção de confirmação quando offline — 13/10/2026
 
 Hook compartilhado existente de conexão escuta eventos online/offline sem polling. Painel do motorista avisa ao perder conexão e orienta manter tela aberta; confirmação de carga/saída/retorno, entrega, impedimento e anexo de evidência ficam desabilitadas enquanto navegador está offline. Dados de formulário permanecem apenas na memória da tela; não há fila, envio automático ou persistência de fotos/endereços. Atualização do PWA também bloqueada offline. Reconectar permite confirmar explicitamente, mantendo checks de pagamento, saldo, versão/idempotência do servidor; navigator.onLine não substitui resposta real da API quando a conexão parece disponível mas falha.

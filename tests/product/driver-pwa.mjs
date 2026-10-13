@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 export async function validateDriverPwa({ context, page, baseURL }) {
   const manifest = await context.request.get('/motoristas/manifest.webmanifest'); assert.equal(manifest.status(), 200);
+  assert.match(manifest.headers()['content-type'], /application\/manifest\+json/);
+  const worker = await context.request.get('/driver-sw.js'); assert.equal(worker.status(), 200);
+  assert.match(worker.headers()['cache-control'], /no-cache/); assert.equal(worker.headers()['service-worker-allowed'], '/painel-lojista/painel/entregas');
   const config = await manifest.json(); assert.equal(config.start_url, '/painel-lojista/painel/entregas'); assert.equal(config.display, 'standalone');
   await page.goto(`${baseURL}/painel-lojista/painel/entregas`);
   await page.getByRole('button', { name: 'Instalar aplicativo', exact: true }).waitFor();
