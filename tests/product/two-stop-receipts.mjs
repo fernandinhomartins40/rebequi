@@ -84,6 +84,16 @@ export async function validateTwoStopReceipts({ owner, admin, guest, browser, ba
     assert.equal(second.status, 'CHECKING'); assert.equal(second.items[0].delivered, 0); assert.equal(second.items[0].checked, 0);
     assert.equal((await data(await owner.get(`/api/orders/me/${deliveries[0].order.id}/fulfillment-history`))).events.some(event => event.kind === 'RUN_RETURNED_TO_WAREHOUSE'), false);
     assert.equal((await data(await other.request.get(`/api/orders/me/${deliveries[1].order.id}/fulfillment-history`))).events.some(event => event.kind === 'RUN_RETURNED_TO_WAREHOUSE'), true);
+    for (const scheduledAt of ['2026-11-18T13:30:00.000Z', '2026-11-19T13:30:00.000Z', null]) {
+      const result = await data(await admin.put(`/api/fulfillments/${second.id}/details`, { headers, data: { requestKey: randomUUID(), expectedVersion: second.version, confirmed: true, mode: 'DELIVERY', address: second.address, region: second.region, notes: 'Orientação de reagendamento privada', scheduledAt } }));
+      second.version = result.version;
+      const customerOrder = (await data(await other.request.get('/api/orders/me'))).find(order => order.id === deliveries[1].order.id);
+      assert.equal(customerOrder.fulfillment.scheduledAt, scheduledAt);
+    }
+    const scheduleHistory = await data(await other.request.get(`/api/orders/me/${deliveries[1].order.id}/fulfillment-history`));
+    assert.equal(scheduleHistory.events.filter(event => event.kind === 'RESCHEDULED').length, 1);
+    assert.equal(scheduleHistory.events.filter(event => event.kind === 'SCHEDULE_CLEARED').length, 1);
+    assert.equal(JSON.stringify(scheduleHistory).includes('Orientação de reagendamento privada'), false);
     assert.equal(Number(db(`console.log((await prisma.product.findUniqueOrThrow({where:{id:${JSON.stringify(product.id)}}})).stock);`).trim()), stock);
   } finally { await other.close(); }
 }

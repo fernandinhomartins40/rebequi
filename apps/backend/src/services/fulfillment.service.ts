@@ -1,3 +1,4 @@
+import { fulfillmentScheduleEvent } from './fulfillment-schedule-policy.js';
 import { createHash } from 'node:crypto';
 import type { Prisma } from '@prisma/client';
 import { fulfillmentDetailsSchema, fulfillmentOperationSchema, type FulfillmentDetailsInput, type FulfillmentOperationInput } from '@rebequi/shared/schemas';
@@ -114,7 +115,7 @@ async function mutateFulfillment(id: string, actorId: string, input: Fulfillment
       }
     }
     const updated = await tx.fulfillment.update({ where: { id }, data: { status: nextStatus, version: { increment: 1 } } });
-    await tx.fulfillmentEvent.create({ data: { fulfillmentId: id, version: updated.version, requestKey: key, fingerprint, actorId, kind: details ? 'DETAILS_CONFIRMED' : (input as FulfillmentOperationInput).action, details: values } });
+    await tx.fulfillmentEvent.create({ data: { fulfillmentId: id, version: updated.version, requestKey: key, fingerprint, actorId, kind: details ? fulfillmentScheduleEvent(row.scheduledAt, (input as FulfillmentDetailsInput).scheduledAt) : (input as FulfillmentOperationInput).action, details: details ? { ...values, previousScheduledAt: row.scheduledAt?.toISOString() ?? null } : values } });
     await tx.integrationAudit.create({ data: { actorId, jobId: id, action: details ? 'FULFILLMENT_CONFIGURED' : `FULFILLMENT_${(input as FulfillmentOperationInput).action}` } });
     return { id, version: updated.version };
   });

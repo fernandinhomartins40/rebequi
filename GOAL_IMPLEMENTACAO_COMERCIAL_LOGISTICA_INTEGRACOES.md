@@ -139,6 +139,13 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Histórico explícito de reagendamento — 13/10/2026
+
+Alteração de um horário previamente definido registra RESCHEDULED; retirada de horário antigo registra SCHEDULE_CLEARED. Primeiro agendamento e alterações sem mudar o instante mantêm DETAILS_CONFIRMED. Evento único por versão preserva intenção/replay existentes, data anterior privada e nova data do formulário confirmado. Cliente consulta etapa específica e agendamento atual, sem notas internas; nenhuma data é escolhida automaticamente. Mutação continua bloqueada em romaneio ativo e tarefas encerradas, liberada após retorno físico para nova conferência. Teste com dois clientes acrescenta agendamento → novo horário → retirada do horário e confere DTO/histórico/privacidade. 69 testes locais, TypeScript, lint e textos passaram; gate integrado deste incremento pendente.
+
+Workflow 38342968161 também falhou na mesma tela de conclusão anterior à correção a12505f, confirmado por logs. Workflow 38343635783 inclui a correção e impedimentos, em execução. Deploy de ambos os workflows antigos com falha foi bloqueado; não se afirma publicação das entregas parciais antes de gate aprovado.
+
+
 ### Impedimentos por parada e conclusão visível — 13/10/2026
 
 Gate 38342715274 falhou no navegador após recebimento bem-sucedido: DriverRuns ocultava o detalhe selecionado ao esvaziar lista de viagens ativas. Correção a12505f mantém detalhe/conclusão enquanto selecionado; nenhuma entrega ou guard de quantidade foi removido. Nova validação continua exigindo “Rota encerrada” após confirmação real.
