@@ -142,6 +142,11 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Aritmética decimal publicada — 13/10/2026
+
+Workflow 38425867098, commit b8674c9: concluído com sucesso, incluindo testes, imagens, gate integrado e deploy. Publicada a biblioteca exata de quantidades/conversão/centavos; não está conectada à venda ou estoque decimal e não habilita granel por si só. Contrato de unidades/passos 2be088f aguarda workflow 38426132519. Próxima integração deve conservar registros antigos como unidades comerciais legadas sem inferir unidade física, persistir políticas verificadas/versionadas e snapshots antes de permitir conversões. Goal completo continua ativo e as caixas de unidades/granel permanecem incompletas.
+
+
 ### Contrato explícito de unidades e passo mínimo — 13/10/2026
 
 Schema compartilhado commercial-unit.schema.ts exige unidade comercial/estoque, fator positivo confirmado e passo mínimo, sem defaults ou inferência por nome. Mesma unidade exige fator 1; unidades/embalagens/sacos/caixas usam passo inteiro; conversão do passo não pode exigir precisão superior a milésimos. Quantidade positiva precisa ser múltiplo exato do passo. Unidade/fator desconhecidos e campos extras são rejeitados. Conversões dimensionais diferentes continuam dependendo de configuração física específica verificada; enum não homologa fator por si só.
