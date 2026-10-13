@@ -139,6 +139,11 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Validação de várias paradas e clientes — 13/10/2026
+
+Cenário real adicional com dois clientes distintos no mesmo romaneio: materiais planejados/carregados sem saída não podem ser recebidos; IDs de material de outra parada são rejeitados. A primeira entrega fica RECEIVED enquanto o romaneio permanece IN_TRANSIT pela segunda; o painel do primeiro cliente não volta a indicar trânsito. Evento de recebimento é vinculado somente à tarefa do cliente atendido, sem recebedor ou dados do outro cliente. Ao retornar somente a carga da segunda parada, preserva recebimento/conferência da primeira e reabre conferência somente da segunda, encerrando romaneio e liberando vínculos. Reenvio do retorno não repete evento/quantidade. Guardas, isolamento e estoque serão exercitados no banco/API reais pelo próximo workflow. Sintaxe dos cenários validada localmente; não marca o módulo completo nem presume resultado integrado. Workflow 38342715274 do recebimento parcial continua em validação no momento deste registro.
+
+
 ### Recebimento parcial em rota — 13/10/2026
 
 Registro por parada em três passos: materiais entregues agora → recebedor → confirmação física. Somente motorista do romaneio ou gestão, conta ativa e venda paga, após saída IN_TRANSIT. Saldo limitado ao carregado ainda não entregue/retornado, com validação da conferência e saldo vendido líquido. Lock ordenado venda/tarefa/romaneio e intenção idempotente, versão esperada e evento imutável evitam corrida com retorno ao depósito. Alocação registra entrega bruta da viagem; tarefa conserva saldo físico líquido com o cliente. Sem nova baixa de estoque ou alteração financeira. Guardas do banco mantêm configuração/carga imutáveis e permitem somente os deltas exatos registrados por evento da próxima versão.

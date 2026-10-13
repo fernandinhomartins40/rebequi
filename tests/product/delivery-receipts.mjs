@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import { validateTwoStopReceipts } from './two-stop-receipts.mjs';
 export async function validateDeliveryReceipts({ owner, admin, guest, browser, baseURL, data, db, product, driver, vehicle }) {
   const headers = { Origin: baseURL };
   const order = (await data(await owner.post('/api/orders/checkout', { headers, data: { items: [{ productId: product.id, quantity: 3 }] } }), 201)).order;
@@ -61,4 +62,5 @@ export async function validateDeliveryReceipts({ owner, admin, guest, browser, b
   const publicHistory = await data(await owner.get(`/api/orders/me/${order.id}/fulfillment-history`)); assert.equal(publicHistory.events.filter(event => event.kind === 'DELIVERY_RECEIVED').length, 2); assert.equal(JSON.stringify(publicHistory).includes('recebedor'), false);
   assert.deepEqual(await data(await admin.post(`/api/dispatch/runs/${run.id}/receipts`, { headers, data: input }), 201), partial);
   assert.equal(Number(db(`console.log((await prisma.product.findUniqueOrThrow({where:{id:${JSON.stringify(product.id)}}})).stock);`).trim()), stock);
+  await validateTwoStopReceipts({ owner, admin, guest, browser, baseURL, data, db, product, driver, vehicle });
 }
