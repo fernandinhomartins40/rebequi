@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import { getRolesForMerchantPermission } from '@rebequi/shared/constants';
-import { createExternalClientSchema, previewProductImportSchema, stageProductImportSchema, recordProductImportReviewSchema, linkExternalProductSchema, revokeExternalProductLinkSchema, previewCategoryImportSchema, linkExternalCategorySchema, revokeExternalCategoryLinkSchema, previewCustomerImportSchema, linkExternalCustomerSchema, revokeExternalCustomerLinkSchema } from '@rebequi/shared/schemas';
+import { createExternalClientSchema, previewProductImportSchema, stageProductImportSchema, recordProductImportReviewSchema, applyProductImportDraftSchema, linkExternalProductSchema, revokeExternalProductLinkSchema, previewCategoryImportSchema, linkExternalCategorySchema, revokeExternalCategoryLinkSchema, previewCustomerImportSchema, linkExternalCustomerSchema, revokeExternalCustomerLinkSchema } from '@rebequi/shared/schemas';
 import { prisma } from '../lib/prisma.js';
 import { authenticate, authorize } from '../middleware/auth.middleware.js';
 import { requireTrustedOrigin } from '../middleware/trusted-origin.middleware.js';
@@ -16,6 +16,7 @@ import { previewProductImport } from '../services/product-import-preview.service
 import { createExternalProductLink, revokeExternalProductLink } from '../services/external-product-link.service.js';
 import { stageExternalProductImport } from '../services/external-product-import-batch.service.js';
 import { compareProductImportBatch, recordProductImportReview } from '../services/external-product-import-review.service.js';
+import { applyProductImportDrafts } from '../services/external-product-import-application.service.js';
 import { previewCategoryImport } from '../services/category-import-preview.service.js';
 import { createExternalCategoryLink, revokeExternalCategoryLink } from '../services/external-category-link.service.js';
 import { previewCustomerImport } from '../services/customer-import-preview.service.js';
@@ -104,6 +105,18 @@ externalAdminRoutes.get('/imports/products/batches/:id/reviews', validateParams(
 externalAdminRoutes.post('/imports/products/batches/:id/reviews', validateParams(z.object({ id: z.string().cuid() }).strict()),
   validateBody(recordProductImportReviewSchema), async (req, res, next) => {
     try { successResponse(res, await recordProductImportReview(req.user!, req.params.id, req.body), 201); }
+    catch (error) { next(error); }
+  });
+externalAdminRoutes.get('/imports/products/batches/:id/application', validateParams(z.object({ id: z.string().cuid() }).strict()), async (req, res, next) => {
+  try {
+    const application = await prisma.externalProductImportApplication.findUnique({ where: { batchId: req.params.id },
+      select: { id: true, batchId: true, products: true, skippedRows: true, createdAt: true } });
+    successResponse(res, { application: application ? { ...application, applied: true } : null });
+  } catch (error) { next(error); }
+});
+externalAdminRoutes.post('/imports/products/batches/:id/apply-drafts', validateParams(z.object({ id: z.string().cuid() }).strict()),
+  validateBody(applyProductImportDraftSchema), async (req, res, next) => {
+    try { successResponse(res, await applyProductImportDrafts(req.user!, req.params.id, req.body), 201); }
     catch (error) { next(error); }
   });
 externalAdminRoutes.get('/imports/products/links', validateQuery(z.object({ page: z.coerce.number().int().min(1).max(100000).default(1) }).strict()), async (req, res, next) => {

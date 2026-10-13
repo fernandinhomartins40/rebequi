@@ -233,6 +233,7 @@ model ExternalProductLink {
 
 model ExternalProductImportBatch {
   reviews ExternalProductImportReview[]
+  application ExternalProductImportApplication?
   id String @id @default(cuid())
   source String
   requestKey String @unique
@@ -243,6 +244,20 @@ model ExternalProductImportBatch {
   createdAt DateTime @default(now())
   @@index([source, createdAt])
   @@map("external_product_import_batches")
+}
+
+model ExternalProductImportApplication {
+  id String @id
+  batchId String @unique
+  batch ExternalProductImportBatch @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  reviewId String
+  requestKey String @unique
+  fingerprint String
+  actorId String
+  products Json
+  skippedRows Int[]
+  createdAt DateTime @default(now())
+  @@map("external_product_import_applications")
 }
 
 model ExternalProductImportReview {

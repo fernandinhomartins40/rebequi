@@ -20,6 +20,10 @@ export const stageProductImportSchema = previewProductImportSchema.extend({
   requestKey: z.string().uuid(), confirmed: z.literal(true),
 });
 export const recordProductImportReviewSchema = z.object({ requestKey: z.string().uuid(), confirmed: z.literal(true) }).strict();
+export const applyProductImportDraftSchema = z.object({
+  requestKey: z.string().uuid(), reviewId: z.string().cuid(), expectedReadyRows: z.number().int().min(1).max(100),
+  confirmed: z.literal(true),
+}).strict();
 export const linkExternalProductSchema = z.object({
   requestKey: z.string().uuid(), source: code, externalId: code,
   productId: z.string().min(1).max(128), expectedSku: code, confirmed: z.literal(true),

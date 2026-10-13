@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { linkExternalProductSchema, previewProductImportSchema, recordProductImportReviewSchema, revokeExternalProductLinkSchema, stageProductImportSchema, type PreviewProductImportInput } from '@rebequi/shared/schemas';
+import { applyProductImportDraftSchema, linkExternalProductSchema, previewProductImportSchema, recordProductImportReviewSchema, revokeExternalProductLinkSchema, stageProductImportSchema, type PreviewProductImportInput } from '@rebequi/shared/schemas';
 import { apiFetch } from '@/services/api/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,11 +39,15 @@ export function ProductImportPanel() {
   const reviewHistory = useQuery({ queryKey: ['external-product-import-review-history', reviewBatchId, reviewPage], enabled: Boolean(reviewBatchId), retry: false,
     queryFn: async () => (await apiFetch<{ data: { reviews: { id: string; createdAt: string; changedRows: number[]; summary: { conflicts: number } }[]; totalPages: number } }>(
       `${endpoint}/batches/${encodeURIComponent(reviewBatchId)}/reviews?page=${reviewPage}`)).data });
+  const application = useQuery({ queryKey: ['external-product-import-application', reviewBatchId], enabled: Boolean(reviewBatchId), retry: false,
+    queryFn: async () => (await apiFetch<{ data: { application: { products: { row: number; sku: string }[]; skippedRows: number[] } | null } }>(
+      `${endpoint}/batches/${encodeURIComponent(reviewBatchId)}/application`)).data });
   const links = useQuery({ queryKey: ['external-product-links', linkPage], retry: false,
     queryFn: async () => (await apiFetch<{ data: { links: ProductLink[]; totalPages: number } }>(`${endpoint}/links?page=${linkPage}`)).data });
   const intent = useRef<{ fingerprint: string; key: string }>();
   const batchIntent = useRef<{ fingerprint: string; key: string }>();
   const reviewIntent = useRef<{ batchId: string; key: string }>();
+  const applyIntent = useRef<{ batchId: string; reviewId: string; key: string }>();
   const preview = useMutation({ mutationFn: async (input: PreviewProductImportInput) =>
     (await apiFetch<{ data: Preview }>(`${endpoint}/preview`, { method: 'POST', body: JSON.stringify(input) })).data,
     onSuccess: () => { setStep(2); setError(''); }, onError: failure => setError(failure.message) });
@@ -62,6 +66,22 @@ export function ProductImportPanel() {
   }, onSuccess: async () => {
     reviewIntent.current = undefined; setError('');
     await queryClient.invalidateQueries({ queryKey: ['external-product-import-review-history', reviewBatchId] });
+    await queryClient.invalidateQueries({ queryKey: ['external-product-import-batch-review', reviewBatchId] });
+  }, onError: failure => setError(failure.message) });
+  const applyDrafts = useMutation({ mutationFn: async () => {
+    const reviewId = reviewHistory.data?.reviews[0]?.id;
+    const ready = batchReview.data?.currentPreview.rows.filter(row => row.status === 'READY_FOR_REVIEW').length ?? 0;
+    if (!reviewId || !ready) throw new Error('Registre uma revisão com produtos prontos antes de criar rascunhos.');
+    if (applyIntent.current?.batchId !== reviewBatchId || applyIntent.current.reviewId !== reviewId) {
+      applyIntent.current = { batchId: reviewBatchId, reviewId, key: crypto.randomUUID() };
+    }
+    const input = applyProductImportDraftSchema.parse({ requestKey: applyIntent.current.key, reviewId,
+      expectedReadyRows: ready, confirmed: true });
+    return apiFetch(`${endpoint}/batches/${encodeURIComponent(reviewBatchId)}/apply-drafts`, { method: 'POST', body: JSON.stringify(input) });
+  }, onSuccess: async () => {
+    applyIntent.current = undefined; setError('');
+    await queryClient.invalidateQueries({ queryKey: ['external-product-import-application', reviewBatchId] });
+    await queryClient.invalidateQueries({ queryKey: ['external-product-links'] });
     await queryClient.invalidateQueries({ queryKey: ['external-product-import-batch-review', reviewBatchId] });
   }, onError: failure => setError(failure.message) });
   const link = useMutation({ mutationFn: async (row: PreviewRow) => {
@@ -143,6 +163,12 @@ export function ProductImportPanel() {
             {reviewHistory.data.totalPages > 1 ? <div className="mt-2 flex justify-between gap-2"><Button type="button" size="sm" variant="outline" disabled={reviewPage === 1} onClick={() => setReviewPage(value => value - 1)}>Anterior</Button>
               <Button type="button" size="sm" variant="outline" disabled={reviewPage >= reviewHistory.data.totalPages} onClick={() => setReviewPage(value => value + 1)}>Próxima</Button></div> : null}
           </div> : null}
+          {application.data?.application ? <p role="status" className="mt-3">{application.data.application.products.length} {application.data.application.products.length === 1 ? 'produto criado' : 'produtos criados'} como {application.data.application.products.length === 1 ? 'rascunho inativo' : 'rascunhos inativos'}. {application.data.application.skippedRows.length} {application.data.application.skippedRows.length === 1 ? 'linha não foi aplicada' : 'linhas não foram aplicadas'}. Configure preço e estoque no cadastro antes de publicar.</p> :
+            batchReview.data && reviewHistory.data?.reviews.length && reviewPage === 1 ? <div className="mt-3 rounded border border-amber-200 bg-amber-50 p-3">
+              <p>Produtos prontos podem ser criados como rascunhos inativos. Preços e saldos externos serão ignorados; linhas com conflito serão puladas. Confira a revisão registrada antes de continuar.</p>
+              <Button type="button" size="sm" className="mt-2" disabled={applyDrafts.isPending || !batchReview.data.currentPreview.rows.some(row => row.status === 'READY_FOR_REVIEW')}
+                onClick={() => applyDrafts.mutate()}>{applyDrafts.isPending ? 'Criando rascunhos…' : `Criar ${batchReview.data.currentPreview.rows.filter(row => row.status === 'READY_FOR_REVIEW').length} ${batchReview.data.currentPreview.rows.filter(row => row.status === 'READY_FOR_REVIEW').length === 1 ? 'rascunho inativo' : 'rascunhos inativos'}`}</Button>
+            </div> : null}
         </div> : null}
         {batches.data && batches.data.totalPages > 1 ? <div className="mt-3 flex justify-between gap-2"><Button type="button" variant="outline" disabled={batchPage === 1} onClick={() => setBatchPage(value => value - 1)}>Anterior</Button><Button type="button" variant="outline" disabled={batchPage >= batches.data.totalPages} onClick={() => setBatchPage(value => value + 1)}>Próxima</Button></div> : null}
       </details>

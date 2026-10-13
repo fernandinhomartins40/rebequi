@@ -39,7 +39,7 @@ export class ProductService {
 
   async getById(id: string) {
     const product = await this.productRepository.findById(id);
-    if (!product) {
+    if (!product || !product.isActive || !product.category.isActive || product.category.deletedAt) {
       throw new NotFoundError('Product not found');
     }
 
@@ -48,7 +48,7 @@ export class ProductService {
 
   async getBySlug(slug: string) {
     const product = await this.productRepository.findBySlug(slug);
-    if (!product) {
+    if (!product || !product.isActive || !product.category.isActive || product.category.deletedAt) {
       throw new NotFoundError('Product not found');
     }
 

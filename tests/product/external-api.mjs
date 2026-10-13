@@ -255,8 +255,40 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
     await importPanel.getByRole('button', { name: 'Conferir vínculo', exact: true }).click();
     await importPanel.getByRole('button', { name: 'Confirmar vínculo', exact: true }).click();
     await importPanel.getByText('Vínculo registrado. Confira os demais conflitos antes de importar.', { exact: true }).waitFor();
+    await importPanel.getByRole('button', { name: 'Registrar esta revisão', exact: true }).click();
+    await importPanel.getByRole('button', { name: 'Criar 1 rascunho inativo', exact: true }).click();
+    await importPanel.getByText('1 produto criado como rascunho inativo. 1 linha não foi aplicada. Configure preço e estoque no cadastro antes de publicar.', { exact: true }).waitFor();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   } finally { await context.close(); }
+  const draftSource = `draft-${randomUUID()}`;
+  const draftSku = `DRAFT-${randomUUID()}`;
+  const draftRows = [{ externalId: 'draft-one', sku: draftSku, name: 'Produto importado para conferência',
+    categoryId: catalog.categoryId, priceCents: '99999', stockQuantity: '999' }];
+  const draftBatch = await data(await admin.post(batchesPath, { headers,
+    data: { source: draftSource, rows: draftRows, requestKey: randomUUID(), confirmed: true } }), 201);
+  const draftReview = await data(await admin.post(`${batchesPath}/${draftBatch.id}/reviews`, { headers,
+    data: { requestKey: randomUUID(), confirmed: true } }), 201);
+  const draftApplyPath = `${batchesPath}/${draftBatch.id}/apply-drafts`;
+  const draftApplyInput = { requestKey: randomUUID(), reviewId: draftReview.id, expectedReadyRows: 1, confirmed: true };
+  assert.equal((await admin.post(draftApplyPath, { headers, data: { ...draftApplyInput, reviewId: recordedReview.id } })).status(), 409);
+  assert.equal((await admin.post(draftApplyPath, { headers, data: { ...draftApplyInput, expectedReadyRows: 2 } })).status(), 409);
+  assert.equal((await owner.post(draftApplyPath, { headers, data: draftApplyInput })).status(), 403);
+  const appliedDraft = await data(await admin.post(draftApplyPath, { headers, data: draftApplyInput }), 201);
+  assert.equal(appliedDraft.products.length, 1); assert.deepEqual(appliedDraft.skippedRows, []);
+  assert.deepEqual(await data(await admin.post(draftApplyPath, { headers, data: draftApplyInput }), 201), appliedDraft);
+  assert.equal((await admin.post(draftApplyPath, { headers, data: { ...draftApplyInput, requestKey: randomUUID() } })).status(), 409);
+  const storedDraft = JSON.parse(db(`console.log(JSON.stringify(await prisma.product.findUniqueOrThrow({where:{id:${JSON.stringify(appliedDraft.products[0].productId)}},select:{sku:true,name:true,price:true,stock:true,isActive:true,categoryId:true,slug:true}})));`).trim());
+  assert.equal(storedDraft.sku, draftSku); assert.equal(storedDraft.name, draftRows[0].name);
+  assert.equal(storedDraft.price, 0); assert.equal(storedDraft.stock, 0);
+  assert.equal(storedDraft.isActive, false); assert.equal(storedDraft.categoryId, catalog.categoryId);
+  assert.equal((await guest.get(`/api/products/${appliedDraft.products[0].productId}`)).status(), 404);
+  assert.equal((await guest.get(`/api/products/slug/${storedDraft.slug}`)).status(), 404);
+  assert.equal((await data(await admin.get(`${batchesPath}/${draftBatch.id}/application`))).application.products[0].productId,
+    appliedDraft.products[0].productId);
+  const storedDraftLink = JSON.parse(db(`console.log(JSON.stringify(await prisma.externalProductLink.findFirstOrThrow({where:{source:${JSON.stringify(draftSource)},externalId:'draft-one',revokedAt:null},select:{productId:true}})));`).trim());
+  assert.equal(storedDraftLink.productId, appliedDraft.products[0].productId);
+  const blockedApplicationMutation = JSON.parse(db(`let blocked=false;try{await prisma.externalProductImportApplication.delete({where:{id:${JSON.stringify(appliedDraft.id)}}});}catch{blocked=true;}console.log(JSON.stringify({blocked}));`).trim().split('\n').at(-1));
+  assert.equal(blockedApplicationMutation.blocked, true);
   const final = await data(await admin.get('/api/integrations/external-api/clients'));
   for (const client of final.clients.filter(item => !item.revokedAt)) await data(await admin.post(`/api/integrations/external-api/clients/${client.id}/revoke`, { headers, data: { confirmed: true } }));
 }
