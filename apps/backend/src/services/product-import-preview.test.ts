@@ -36,4 +36,6 @@ test('Verified external links resolve known products and expose changed SKUs', (
   assert.equal(classifyProductImport(input, products, categories, links).rows[0].status, 'LINKED_REVIEW');
   const changedSku = previewProductImportSchema.parse({ ...base, rows: [{ ...base.rows[0], sku: 'SKU-2' }] });
   assert.deepEqual(classifyProductImport(changedSku, products, categories, links).rows[0].conflicts, ['LINK_SKU_MISMATCH']);
+  const duplicatedIdentity = previewProductImportSchema.parse({ ...base, rows: [{ ...base.rows[0], externalId: 'B' }] });
+  assert.deepEqual(classifyProductImport(duplicatedIdentity, products, categories, links).rows[0].conflicts, ['PRODUCT_LINKED_TO_OTHER_ID']);
 });

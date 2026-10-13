@@ -8,6 +8,7 @@ export function classifyProductImport(input: PreviewProductImportInput, products
   const knownSku = new Map(products.filter(product => product.sku).map(product => [product.sku!, product.id]));
   const knownCategory = new Set(categories.map(category => category.id));
   const knownLink = new Map(links.filter(link => link.source === input.source).map(link => [link.externalId, link.productId]));
+  const linkedProduct = new Map(links.filter(link => link.source === input.source).map(link => [link.productId, link.externalId]));
   const skuCount = new Map<string, number>(); const idCount = new Map<string, number>();
   for (const row of input.rows) {
     skuCount.set(row.sku, (skuCount.get(row.sku) ?? 0) + 1);
@@ -19,9 +20,11 @@ export function classifyProductImport(input: PreviewProductImportInput, products
     if ((skuCount.get(row.sku) ?? 0) > 1) conflicts.push('DUPLICATE_SKU');
     const linkedProductId = knownLink.get(row.externalId);
     if (linkedProductId && linkedProductId !== knownSku.get(row.sku)) conflicts.push('LINK_SKU_MISMATCH');
-    if (!linkedProductId && knownSku.has(row.sku)) conflicts.push('SKU_ALREADY_LOCAL');
+    const localProductId = knownSku.get(row.sku);
+    if (!linkedProductId && localProductId && linkedProduct.has(localProductId)) conflicts.push('PRODUCT_LINKED_TO_OTHER_ID');
+    if (!linkedProductId && localProductId && !linkedProduct.has(localProductId)) conflicts.push('SKU_ALREADY_LOCAL');
     if (!knownCategory.has(row.categoryId)) conflicts.push('CATEGORY_NOT_FOUND');
-    return { row: index + 1, externalId: row.externalId, sku: row.sku, localProductId: linkedProductId ?? knownSku.get(row.sku) ?? null, conflicts, status: conflicts.length ? 'CONFLICT' : linkedProductId ? 'LINKED_REVIEW' : 'READY_FOR_REVIEW' };
+    return { row: index + 1, externalId: row.externalId, sku: row.sku, localProductId: linkedProductId ?? localProductId ?? null, conflicts, status: conflicts.length ? 'CONFLICT' : linkedProductId ? 'LINKED_REVIEW' : 'READY_FOR_REVIEW' };
   });
   return { source: input.source, authority: { catalog: 'LOCAL', price: 'LOCAL', stock: 'LOCAL' }, rows,
     summary: { total: rows.length, conflicts: rows.filter(row => row.conflicts.length).length, readyForReview: rows.filter(row => !row.conflicts.length).length },
@@ -32,11 +35,13 @@ export async function previewProductImport(raw: PreviewProductImportInput) {
   const input = previewProductImportSchema.parse(raw);
   const { prisma } = await import('../lib/prisma.js');
   return prisma.$transaction(async tx => {
-    const [products, categories, links] = await Promise.all([
+    const [products, categories] = await Promise.all([
       tx.product.findMany({ where: { sku: { in: input.rows.map(row => row.sku) } }, select: { id: true, sku: true } }),
       tx.category.findMany({ where: { id: { in: input.rows.map(row => row.categoryId) }, isActive: true, deletedAt: null }, select: { id: true } }),
-      tx.externalProductLink.findMany({ where: { source: input.source, externalId: { in: input.rows.map(row => row.externalId) }, revokedAt: null }, select: { source: true, externalId: true, productId: true } }),
     ]);
+    const links = await tx.externalProductLink.findMany({ where: { source: input.source, revokedAt: null,
+      OR: [{ externalId: { in: input.rows.map(row => row.externalId) } }, { productId: { in: products.map(product => product.id) } }] },
+      select: { source: true, externalId: true, productId: true } });
     return classifyProductImport(input, products, categories, links);
   }, { isolationLevel: 'RepeatableRead' });
 }

@@ -43,6 +43,9 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
   const linkedPreview = await data(await admin.post(importPath, { headers, data: importInput }));
   assert.equal(linkedPreview.rows[0].status, 'LINKED_REVIEW');
   assert.deepEqual(linkedPreview.rows[0].conflicts, []);
+  const reusedProduct = await data(await admin.post(importPath, { headers, data: { ...importInput,
+    rows: [{ ...importRows[0], externalId: 'second-external-id' }] } }));
+  assert.deepEqual(reusedProduct.rows[0].conflicts, ['PRODUCT_LINKED_TO_OTHER_ID']);
   const revocation = { confirmed: true, reason: 'Vínculo revogado no teste isolado' };
   const revokePath = `${linksPath}/${linked.id}/revoke`;
   assert.equal((await owner.post(revokePath, { headers, data: revocation })).status(), 403);
