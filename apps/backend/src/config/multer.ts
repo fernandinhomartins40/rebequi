@@ -37,3 +37,5 @@ export const upload = multer({
 });
 export const partnerPortfolioUpload = multer({ storage: multer.memoryStorage(), fileFilter,
   limits: { fileSize: 2 * 1024 * 1024, files: 1, fields: 3, fieldSize: 1000 } });
+export const receiptEvidenceUpload = multer({ storage: multer.memoryStorage(), fileFilter,
+  limits: { fileSize: 2 * 1024 * 1024, files: 1, fields: 2, fieldSize: 1000 } });

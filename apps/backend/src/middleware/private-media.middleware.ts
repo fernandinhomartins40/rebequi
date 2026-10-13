@@ -5,12 +5,13 @@ import { prisma } from '../lib/prisma.js';
 import { env } from '../config/env.js';
 import { NotFoundError } from '../utils/errors.util.js';
 import { authenticate } from './auth.middleware.js';
+import { requireReceiptEvidenceAccess } from '../services/receipt-evidence.service.js';
 
 export function protectPrivateMedia(req: Request, res: Response, next: NextFunction) {
   try {
     const decoded = decodeURIComponent(req.path);
     if (decoded.includes('\\') || decoded.includes('\0')) throw new NotFoundError('Documento não encontrado');
-    if (['/quotes/', '/partners/'].some(prefix => path.posix.normalize(decoded).startsWith(prefix))) {
+    if (['/quotes/', '/partners/', '/receipts/'].some(prefix => path.posix.normalize(decoded).startsWith(prefix))) {
       res.setHeader('Cache-Control', 'private, no-store');
       authenticate(req, res, error => { if (error) next(error); else void servePrivateQuoteDocument(req, res, next); });
       return;
@@ -28,9 +29,13 @@ export async function servePrivateQuoteDocument(req: Request, res: Response, nex
     const storageKey = path.posix.normalize(suffix).replace(/^\//, '');
     const root = path.resolve(env.UPLOAD_DIR);
     const absolute = path.resolve(root, storageKey);
-    const folder = storageKey.startsWith('quotes/') ? 'quotes' : 'partners';
+    const folder = storageKey.startsWith('quotes/') ? 'quotes' : storageKey.startsWith('receipts/') ? 'receipts' : 'partners';
     if (!absolute.startsWith(`${path.join(root, folder)}${path.sep}`) || storageKey.includes('\\') || suffix.split('/').some(part => part === '..' || part === '.')) throw new NotFoundError('Documento não encontrado');
-    if (folder === 'quotes') {
+    if (folder === 'receipts') {
+      const evidence = await prisma.fulfillmentEvidence.findUnique({ where: { storageKey }, select: { receiptId: true } });
+      if (!evidence) throw new NotFoundError('Documento não encontrado');
+      await prisma.$transaction(tx => requireReceiptEvidenceAccess(tx, evidence.receiptId, req.user!));
+    } else if (folder === 'quotes') {
       const quote = await prisma.quoteRequest.findFirst({ where: { documentStorageKey: storageKey }, select: { userId: true, assignedSellerId: true } });
       if (!quote || (quote.userId !== req.user!.userId && !hasMerchantPermission(req.user!.role, 'quotes:manage'))) throw new NotFoundError('Documento não encontrado');
       if (req.user!.role === 'SALES' && quote.assignedSellerId !== req.user!.userId) throw new NotFoundError('Documento não encontrado');

@@ -1,0 +1,14 @@
+import { Router } from 'express';
+import { z } from 'zod';
+import { authenticate, authorize } from '../middleware/auth.middleware.js';
+import { requireTrustedOrigin } from '../middleware/trusted-origin.middleware.js';
+import { uploadLimiter } from '../middleware/rate-limit.middleware.js';
+import { validateBody, validateParams } from '../middleware/validation.middleware.js';
+import { receiptEvidenceUpload } from '../config/multer.js';
+import { addReceiptEvidence, listReceiptEvidence } from '../services/receipt-evidence.service.js';
+import { successResponse } from '../utils/response.util.js';
+const router: Router = Router();
+router.use(authenticate, authorize('ADMIN', 'MANAGER', 'WAREHOUSE', 'DRIVER', 'CUSTOMER'), (_req, res, next) => { res.setHeader('Cache-Control', 'private, no-store'); next(); });
+router.get('/:receiptId', validateParams(z.object({ receiptId: z.string().min(1).max(128) })), async (req, res, next) => { try { successResponse(res, await listReceiptEvidence(req.params.receiptId, req.user!)); } catch (error) { next(error); } });
+router.post('/:receiptId', authorize('ADMIN', 'MANAGER', 'WAREHOUSE', 'DRIVER'), requireTrustedOrigin, uploadLimiter, validateParams(z.object({ receiptId: z.string().min(1).max(128) })), receiptEvidenceUpload.single('image'), validateBody(z.object({ requestKey: z.string().uuid(), authorized: z.literal('true') }).strict()), async (req, res, next) => { try { successResponse(res, await addReceiptEvidence(req.params.receiptId, req.user!, req.file!, req.body.requestKey), 201); } catch (error) { next(error); } });
+export default router;

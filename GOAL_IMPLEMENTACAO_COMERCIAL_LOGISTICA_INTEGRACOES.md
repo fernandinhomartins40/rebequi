@@ -140,6 +140,15 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Evidências privadas de recebimento — 13/10/2026
+
+Migração aditiva 20261013020000_receipt_evidence cria registros imutáveis ligados somente a evento físico PICKUP_RECEIVED/DELIVERY_RECEIVED; não altera a entrega, quantidades ou dinheiro. Foto opcional pelo histórico, com recorte reutilizável 1000×750, compressão/conversão WebP, consentimento explícito do recebedor e revisão antes de anexar. Backend decodifica os bytes, remove metadados, limita saída a 250 KiB, entrada a 2 MiB e aproveita processamento limitado existente. Até três imagens por recebimento e 256 MiB de evidências desta aplicação; locks/checks e guard de INSERT no banco defendem concorrência. Não há remoção automática de auditoria. Falha confirmada de transação limpa apenas o arquivo novo não referenciado; resultado incerto preserva arquivo em vez de apagar evidência possivelmente confirmada.
+
+Pasta /uploads/receipts protegida antes do static; consulta exige equipe operacional, motorista do romaneio que registrou ou dono do pedido. Cliente só consulta; upload restrito a equipe/motorista ativo. Intenção com hash dos bytes e referência de recebimento evita reenvio/alteração silenciosa. Retorno ou fechamento posteriores preservam a prova histórica. Documento não é assinatura eletrônica/validação de identidade. UI compartilhada em histórico de depósito, motorista e cliente; consulta sob demanda, máximo três fotos. Histórico do motorista recebe somente referência opaca de seu recebimento, nunca requestKey/hash/nota privada. PWA existente não armazena APIs nem uploads privados; PWA operacional do motorista permanece pendente.
+
+Tipos, lint, build, textos e 69 testes locais aprovados, incluindo formato/dimensões/limite/EXIF da imagem. Cenário integrado acrescenta consentimento, invalidade de bytes, reenvio, isolamento entre clientes/anônimo, download no-store, imutabilidade/limite e recorte/anexo mobile. Gate e deploy deste incremento pendentes; teste piloto em aparelhos reais, PWA/unidades/comercial/ERP e objetivo completo ainda não concluídos. Gate da navegação/fila 38344560850 aprovado; conferir conclusão de seu deploy antes de declarar publicação.
+
+
 ### Reagendamento validado com banco e navegador — 13/10/2026
 
 Workflow 38343878418, commit 9cb8fe3: testes/infra, três imagens e gate PostgreSQL/API/navegador concluídos com sucesso. Além dos recebimentos/impedimentos já publicados, confirma sequência de horário inicial → novo horário → retirada do horário, DTO atualizado do cliente, somente um RESCHEDULED/SCHEDULE_CLEARED e notas internas ausentes do histórico público. Deploy confirmado em execução, conclusão ainda não presumida. Navegação/fila do motorista (5fd9c2f, workflow 38344560850) aguarda execução posterior. Evidências privadas/PWA, unidades/granel, atendimento/metas/comissões, importações/escrita/webhooks/conector ERP e homologação/piloto continuam pendentes no objetivo completo.

@@ -731,6 +731,7 @@ model FulfillmentItem {
 }
 
 model FulfillmentEvent {
+  evidence FulfillmentEvidence[]
   id String @id @default(cuid())
   fulfillmentId String
   fulfillment Fulfillment @relation(fields: [fulfillmentId], references: [id], onDelete: Restrict)
@@ -744,6 +745,23 @@ model FulfillmentEvent {
   @@unique([fulfillmentId, version])
   @@index([fulfillmentId, createdAt])
   @@map("fulfillment_events")
+}
+
+model FulfillmentEvidence {
+  id String @id @default(cuid())
+  receiptId String
+  receipt FulfillmentEvent @relation(fields: [receiptId], references: [id], onDelete: Restrict)
+  requestKey String @unique
+  fingerprint String
+  actorId String
+  storageKey String @unique
+  size Int
+  width Int
+  height Int
+  consentVersion String
+  createdAt DateTime @default(now())
+  @@index([receiptId, createdAt])
+  @@map("fulfillment_evidence")
 }
 
 model ExternalApiClient {

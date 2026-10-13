@@ -32,6 +32,10 @@ test('Managed uploads decode bytes, enforce dimensions and store lightweight Web
     assert.equal(portfolio.width, 1000); assert.equal(portfolio.height, 750);
     assert.ok(portfolio.size <= 250 * 1024); assert.ok(portfolio.url.startsWith('/uploads/partners/'));
     assert.equal((await sharp(await readFile(path.join(temporaryRoot, portfolio.storageKey))).metadata()).format, 'webp');
+    const receipt = await storage.storeReceiptEvidenceImage(file(input));
+    const receiptMetadata = await sharp(await readFile(path.join(temporaryRoot, receipt.storageKey))).metadata();
+    assert.equal(receiptMetadata.format, 'webp'); assert.equal(receiptMetadata.width, 1000); assert.equal(receiptMetadata.height, 750);
+    assert.ok(receipt.size <= 250 * 1024); assert.ok(receipt.url.startsWith('/uploads/receipts/')); assert.equal(receiptMetadata.exif, undefined);
     await assert.rejects(storage.storeProductImage({ file: file(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"></svg>')) }), /Imagem inválida/);
     await assert.rejects(storage.deleteStoredImages([{ storageKey: '../outside-file' }]), /Invalid storage key/);
   } finally {
