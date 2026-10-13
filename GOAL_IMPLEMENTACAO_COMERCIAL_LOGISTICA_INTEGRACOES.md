@@ -138,6 +138,12 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Prioridade da fila do depósito — 12/10/2026
+
+Prioridade manual na etapa de dados operacionais: prioritária, padrão ou baixa. Fila e seleção de entregas para romaneio ordenam primeiro pela prioridade e depois pelo tempo de criação/ID, preservando FIFO nas tarefas de mesma prioridade. Indicador aparece nos cards somente quando diferente do padrão. Migração aditiva 20261012130000_fulfillment_priority, com índice para a ordenação e limite 0–2 no banco. Registros existentes permanecem na prioridade padrão; não atribui urgência automaticamente, não altera pagamento, estoque ou agendamento.
+
+Campo opcional no contrato preserva a prioridade quando clientes anteriores enviam dados sem esse campo. Mudança usa versão, confirmação e histórico operacional existentes; tarefa em romaneio ativo continua protegida. Integração acrescenta prioridade na frente das tarefas padrão e preservação após requisição antiga. 63 testes unitários, tipos, lint, textos e build passaram localmente. Execução 38326558378 do incremento anterior ainda estava em validação integrada nesta consulta; publicação dos incrementos atuais não confirmada. Goal completo continua ativo, incluindo recebimento/entregas parciais, evidências, evolução de unidades, atendimento/desempenho e API/ERP restantes.
+
 ### Carregamento, saída e retorno ao depósito — 12/10/2026
 
 Acrescentados itens de romaneio com alocação imutável e contadores limitados; migração 20261012120000_delivery_run_operations deriva alocações anteriores exclusivamente dos snapshots já registrados, sem inventar entrega/carregamento histórico. LOAD exige conferência física de todas as quantidades, peso/volume de cada parada e capacidades conhecidas de veículo/motorista ativos. Carregamento em uma atualização SQL parametrizada e comparação por Map limitam consultas e trabalho por material. UNLOAD exige motivo e confirmação física antes da saída. DEPART exige carga completa e nova verificação de veículo/motorista/capacidades; somente gestão ou motorista atribuído confirma saída. Intenção idempotente, versão esperada, locks e eventos imutáveis preservam auditoria, sem movimentar estoque novamente.

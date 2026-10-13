@@ -78,7 +78,7 @@ export async function getDeliveryRun(id: string) {
 export async function deliveryCandidates(page: number) {
   const where = { mode: 'DELIVERY', status: 'READY', sale: { status: 'PAID' as const }, deliveryStops: { none: { active: true } } };
   const [deliveries, total] = await Promise.all([
-    prisma.fulfillment.findMany({ where, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], skip: (page - 1) * 20, take: 20, select: { id: true, version: true, address: true, region: true, sale: { select: { referenceCode: true, customerNameSnapshot: true } } } }),
+    prisma.fulfillment.findMany({ where, orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }, { id: 'asc' }], skip: (page - 1) * 20, take: 20, select: { id: true, version: true, address: true, region: true, sale: { select: { referenceCode: true, customerNameSnapshot: true } } } }),
     prisma.fulfillment.count({ where }),
   ]);
   return { deliveries, page, totalPages: Math.ceil(total / 20) };

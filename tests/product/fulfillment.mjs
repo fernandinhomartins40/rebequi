@@ -36,9 +36,11 @@ export async function validateFulfillment({ owner, guest, admin, browser, baseUR
   assert.ok(vehicleEvents.events.every(event => !('requestKey' in event) && !('fingerprint' in event)));
   const vehicleAuditGuard = JSON.parse(db(`let blocked=false;try{await prisma.logisticsVehicleEvent.updateMany({where:{vehicleId:${JSON.stringify(vehicle.id)}},data:{reason:'Mutação indevida'}});}catch{blocked=true;}console.log(JSON.stringify({blocked}));`).trim().split('\n').at(-1));
   assert.equal(vehicleAuditGuard.blocked, true, 'Fleet audit cannot be rewritten');
-  const details = { requestKey: randomUUID(), expectedVersion: row.version, confirmed: true, mode: 'PICKUP', address: null, region: null, scheduledAt: null, notes: 'Retirada conferida no runner' };
+  const details = { requestKey: randomUUID(), expectedVersion: row.version, confirmed: true, priority: 'HIGH', mode: 'PICKUP', address: null, region: null, scheduledAt: null, notes: 'Retirada conferida no runner' };
   assert.equal((await admin.put(`/api/fulfillments/${id}/details`, { data: details })).status(), 403);
   const configured = await data(await admin.put(`/api/fulfillments/${id}/details`, { headers, data: details }));
+  assert.equal((await data(await admin.get('/api/fulfillments'))).fulfillments[0].id, id, 'Priority must place this newer task ahead of standard tasks');
+  assert.equal((await data(await admin.get(`/api/fulfillments/${id}`))).priority, 2);
   await data(await guest.post(`/api/fulfillments/${id}/operations`, { headers, data: { requestKey: randomUUID(), expectedVersion: configured.version, confirmed: true, action: 'ISSUE', note: 'Equipe do depósito conferindo disponibilidade', items: [] } }));
   const afterWarehouseIssue = await data(await admin.get(`/api/fulfillments/${id}`));
   const stockBefore = Number(db(`console.log((await prisma.product.findUniqueOrThrow({where:{id:${JSON.stringify(product.id)}}})).stock);`).trim());
@@ -85,6 +87,7 @@ export async function validateFulfillment({ owner, guest, admin, browser, baseUR
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   } finally { await context.close(); }
   await validateDrivers({ admin, guest, browser, baseURL, data, db, id });
+  assert.equal((await data(await admin.get(`/api/fulfillments/${id}`))).priority, 2, 'Older request bodies without priority must preserve the stored value');
   const scheduling = await browser.newContext({ timezoneId: 'America/Sao_Paulo' });
   try {
     await scheduling.addCookies((await admin.storageState()).cookies);

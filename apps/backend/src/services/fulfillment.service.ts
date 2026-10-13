@@ -31,7 +31,7 @@ export async function reviseFulfillmentAfterReturn(tx: Prisma.TransactionClient,
 }
 export async function listFulfillments(page: number, status?: string) {
   const where = status ? { status } : { status: { not: 'CANCELED' } };
-  const [rows, total] = await Promise.all([prisma.fulfillment.findMany({ where, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], skip: (page - 1) * 20, take: 20, select: { id: true, saleId: true, status: true, mode: true, version: true, region: true, scheduledAt: true, createdAt: true, sale: { select: { referenceCode: true, status: true, customerNameSnapshot: true } }, _count: { select: { items: true } } } }), prisma.fulfillment.count({ where })]);
+  const [rows, total] = await Promise.all([prisma.fulfillment.findMany({ where, orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }, { id: 'asc' }], skip: (page - 1) * 20, take: 20, select: { id: true, priority: true, saleId: true, status: true, mode: true, version: true, region: true, scheduledAt: true, createdAt: true, sale: { select: { referenceCode: true, status: true, customerNameSnapshot: true } }, _count: { select: { items: true } } } }), prisma.fulfillment.count({ where })]);
   return { fulfillments: rows, total, page, totalPages: Math.ceil(total / 20) };
 }
 export async function getFulfillment(id: string) {
@@ -75,7 +75,7 @@ async function mutateFulfillment(id: string, actorId: string, input: Fulfillment
       if (!['AWAITING_DETAILS', 'PICKING', 'CHECKING', 'READY'].includes(row.status)) throw new ConflictError('Esta etapa não permite alterar os dados de retirada/entrega.');
       const configuration = input as FulfillmentDetailsInput;
       if (row.driverId && configuration.mode !== row.mode) throw new ConflictError('Remova a atribuição do motorista antes de mudar para retirada.');
-      await tx.fulfillment.update({ where: { id }, data: { mode: configuration.mode, address: configuration.mode === 'DELIVERY' ? configuration.address : null, region: configuration.region, scheduledAt: configuration.scheduledAt ? new Date(configuration.scheduledAt) : null, notes: configuration.notes } });
+      await tx.fulfillment.update({ where: { id }, data: { ...(configuration.priority ? { priority: { LOW: 0, NORMAL: 1, HIGH: 2 }[configuration.priority] } : {}), mode: configuration.mode, address: configuration.mode === 'DELIVERY' ? configuration.address : null, region: configuration.region, scheduledAt: configuration.scheduledAt ? new Date(configuration.scheduledAt) : null, notes: configuration.notes } });
       if (row.status === 'AWAITING_DETAILS') nextStatus = 'PICKING';
     } else {
       if (row.status === 'AWAITING_DETAILS') throw new ConflictError('Confira primeiro se o cliente retira ou recebe os materiais.');
