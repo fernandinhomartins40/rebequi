@@ -17,7 +17,8 @@ export async function validateFulfillment({ owner, guest, admin, browser, baseUR
   assert.match(historyResponse.headers()['cache-control'], /no-store/); assert.equal(ownStages.events[0].kind, 'CREATED'); assert.deepEqual(Object.keys(ownStages.events[0]).sort(), ['createdAt', 'id', 'kind']);
   assert.equal((await owner.get(`/api/orders/me/${checkout.order.id}/fulfillment-history?page=0`)).status(), 400);
   assert.equal((await owner.get('/api/orders/me/unknown-order/fulfillment-history')).status(), 404);
-  const otherCustomer = await data(await admin.post('/api/users', { headers, data: { email: 'history-other@example.invalid', password: 'Isolated-History-2026!', name: 'Outro cliente isolado', role: 'CUSTOMER', mustChangePassword: false } }), 201);
+  const otherRegistration = await browser.newContext({ baseURL }); let otherCustomer;
+  try { otherCustomer = (await data(await otherRegistration.request.post('/api/auth/register', { headers, data: { name: 'Outro cliente isolado', whatsapp: '11999998888' } }), 201)).user; } finally { await otherRegistration.close(); }
   const foreignOrderId = `foreign_history_${randomUUID()}`;
   db(`await prisma.customerOrder.create({data:{id:${JSON.stringify(foreignOrderId)},referenceCode:${JSON.stringify(foreignOrderId)},userId:${JSON.stringify(otherCustomer.id)},customerNameSnapshot:'Outro cliente isolado',customerWhatsapp:'11999998888'}});`);
   assert.equal((await owner.get(`/api/orders/me/${foreignOrderId}/fulfillment-history`)).status(), 404, 'Knowing another customer order ID cannot reveal its history');
