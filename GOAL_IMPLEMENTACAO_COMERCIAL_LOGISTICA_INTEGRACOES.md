@@ -2,7 +2,7 @@
 
 ## Estado atual e tarefas restantes — atualização de 13/10/2026
 
-Workflows até 38343635783 concluídos com sucesso, incluindo banco/API/navegador reais e deploy. Estão publicados atribuição/proteção comercial, Meus atendimentos, orçamento assistido, catálogo, separação/conferência, perfis de depósito/motorista, frota, romaneio, carregamento/saída/retorno, prioridade operacional, retirada parcial com recebedor, histórico privado por papel e API externa somente de leitura com exportação de orçamentos. O plano completo ainda não está concluído.
+Workflows até 38345724561 concluídos com sucesso, incluindo banco/API/navegador reais e deploy. Estão publicados atribuição/proteção comercial, Meus atendimentos, orçamento assistido, catálogo, separação/conferência, perfis de depósito/motorista, frota, romaneio, carregamento/saída/retorno, prioridade operacional, retirada parcial com recebedor, histórico privado por papel e API externa somente de leitura com exportação de orçamentos. O plano completo ainda não está concluído.
 
 Próximas tarefas, na ordem de execução:
 
@@ -11,8 +11,9 @@ Próximas tarefas, na ordem de execução:
 - [x] Romaneio, atribuição, agendamento e ordem manual das paradas; capacidade/massa/volume desconhecidos explícitos — validado e publicado no workflow 38326558378.
 - [x] Carregamento, saída e retorno ao depósito — validados e publicados até o workflow 38329771847.
 - [x] Entrega/retirada parcial por item, recebedor, impedimentos por parada e reentrega — workflow 38343635783 aprovado e publicado.
-- [ ] Histórico explícito de reagendamento/retirada de horário — gate 38343878418 aprovado; deploy em execução.
-- [ ] Evidências privadas com consentimento/crop/compressão/quota e UI mobile/PWA operacional do motorista.
+- [x] Histórico explícito de reagendamento/retirada de horário — workflow 38343878418 aprovado e publicado.
+- [x] Evidências privadas com consentimento, recorte/compressão/quota e UI mobile — workflow 38345724561 aprovado e publicado.
+- [ ] PWA operacional do motorista e piloto em dispositivos — implementação retomada no novo goal de 13/10/2026.
 - [ ] Evoluir unidade comercial e conversões para decimais/granel sem quebrar estoque, pedidos e devoluções existentes.
 - [ ] Acompanhamento completo pelo cliente com privacidade e histórico público controlado; sem localização/ETA presumidos.
 - [ ] Vendedor criar orçamento/pedido para carteira autorizada, distribuição de solicitações e notificações persistentes.
@@ -139,6 +140,13 @@ Prisma schema/migrations; matriz de acesso e schemas/tipos compartilhados; auth/
 ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloqueia base comercial/logística/API genérica. Conector específico depende de nome/versão, documentação/capacidades, credenciais cadastradas apenas no painel, autoridade por domínio e homologação. Metas/taxas/exceções de liberação dependem de configuração da loja, não bloquear formulários. Veículos/endereço/capacidade e teste físico dependem de dados reais. Custos de API/mapas, integração ativa, pagamentos, migração retroativa e multiempresa exigem escopo/validação próprios.
 
 ## Progresso e retomada
+
+### Novo goal atualizado e PWA do motorista — 13/10/2026
+
+O usuário removeu o goal anterior e solicitou um novo. Novo goal criado com o escopo completo remanescente: PWA/piloto do motorista, unidades/granel, acompanhamento completo, pedidos/notificações comerciais, metas/comissões prospectivas, importação/autoridade/conflitos, escrita/inbox/outbox/webhooks/reprocessamento, conector ERP quando identificado, homologação e pendências de parceiros registradas neste roteiro. Não ativa novas integrações/regras financeiras/gastos. Main somente, commit/push e deploy pelo workflow existente. Evidências privadas f681a39 confirmadas publicadas no workflow 38345724561; navegação/fila e reagendamento também publicados.
+
+PWA do motorista: manifesto/ícones existentes, instalação pelo painel, controles reutilizados com parceiros e atualização explícita bloqueada enquanto detalhe de tarefa/romaneio ou mutação está em andamento. Worker limitado à navegação de entregas; cache contém somente aviso público de ausência de conexão. Não guarda HTML autenticado, API, fotos, pedidos, posição ou mutações; recebimentos continuam online. Offline apresenta orientação e tentativa de retorno, sem confirmar operação. Build gera versão do aviso/worker e preserva cache de outros módulos. Teste integrado acrescenta manifesto, registro/controlador, cache restrito, navegação offline e retorno autenticado. Tipo/lint/build/textos/sintaxe locais aprovados; gate integrado/deploy e piloto em Android/iPhone permanecem pendentes. Objetivo completo ainda não concluído.
+
 
 ### Evidências privadas de recebimento — 13/10/2026
 

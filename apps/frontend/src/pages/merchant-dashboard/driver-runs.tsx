@@ -1,12 +1,13 @@
 import { DeliveryNavigation } from './delivery-navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getOwnDeliveryRuns, getOwnDeliveryRun } from '@/services/api/delivery-runs';
 import { Button } from '@/components/ui/button';
 import { DashboardError, DashboardLoading } from '@/components/dashboard/DashboardList';
 import { RunOperations } from './run-operations';
-export function DriverRuns() {
+export function DriverRuns({ onEditingChange }: { onEditingChange?: (editing: boolean) => void }) {
   const [page, setPage] = useState(1); const [id, setId] = useState<string>();
+  useEffect(() => { onEditingChange?.(Boolean(id)); return () => onEditingChange?.(false); }, [id, onEditingChange]);
   const query = useQuery({ queryKey: ['driver', 'runs', page], queryFn: () => getOwnDeliveryRuns(page), retry: false });
   const detail = useQuery({ queryKey: ['driver', 'run', id], queryFn: () => getOwnDeliveryRun(id!), enabled: Boolean(id), retry: false });
   if (!id && query.isLoading) return <DashboardLoading />;

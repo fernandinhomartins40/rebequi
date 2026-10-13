@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import { validateDriverPwa } from './driver-pwa.mjs';
 export async function validateDrivers({ admin, guest, browser, baseURL, data, db, id }) {
   const headers = { Origin: baseURL };
   const contextA = await browser.newContext({ baseURL }); const contextB = await browser.newContext({ baseURL });
@@ -42,6 +43,7 @@ export async function validateDrivers({ admin, guest, browser, baseURL, data, db
     assert.deepEqual(Object.fromEntries(navigationUrl.searchParams), { api: '1', destination: 'Rua do runner, 100, bairro de teste', travelmode: 'driving' });
     assert.equal(await navigation.getAttribute('rel'), 'noopener noreferrer'); assert.equal(await navigation.getAttribute('referrerpolicy'), 'no-referrer');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await validateDriverPwa({ context: contextA, page, baseURL });
     const management = await browser.newContext();
     try {
       await management.addCookies((await admin.storageState()).cookies);
