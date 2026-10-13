@@ -23,3 +23,9 @@ export const deliveryReceiptSchema = z.object({
   items: z.array(z.object({ id: z.string().min(1).max(128), quantity: z.number().int().min(1).max(1000000) }).strict()).min(1).max(100),
 }).strict().refine(value => new Set(value.items.map(item => item.id)).size === value.items.length, 'Material repetido na entrega.');
 export type DeliveryReceiptInput = z.infer<typeof deliveryReceiptSchema>;
+export const deliveryOccurrenceSchema = z.object({
+  requestKey: z.string().uuid(), expectedVersion: z.number().int().min(1), confirmed: z.literal(true),
+  stopId: z.string().min(1).max(128), kind: z.enum(['CUSTOMER_ABSENT', 'ADDRESS_REVIEW', 'ACCESS_BLOCKED', 'DAMAGED_MATERIAL', 'REFUSED_RECEIPT', 'OTHER']),
+  note: z.string().trim().min(3).max(300),
+}).strict();
+export type DeliveryOccurrenceInput = z.infer<typeof deliveryOccurrenceSchema>;

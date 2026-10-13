@@ -1,8 +1,9 @@
+import { recordDeliveryOccurrence } from '../services/delivery-occurrence.service.js';
 import { Router } from 'express';
 import { deliveryRunHistory } from '../services/delivery-run-history.service.js';
 import { z } from 'zod';
 import { getRolesForMerchantPermission } from '@rebequi/shared/constants';
-import { deliveryRunOperationSchema, deliveryReceiptSchema } from '@rebequi/shared/schemas';
+import { deliveryRunOperationSchema, deliveryReceiptSchema, deliveryOccurrenceSchema } from '@rebequi/shared/schemas';
 import { recordDeliveryReceipt } from '../services/delivery-receipt.service.js';
 import { authenticate, authorize } from '../middleware/auth.middleware.js';
 import { requireTrustedOrigin } from '../middleware/trusted-origin.middleware.js';
@@ -18,3 +19,5 @@ router.post('/:id/operations', validateBody(deliveryRunOperationSchema), async (
 export default router;
 router.post('/:id/receipts', validateBody(deliveryReceiptSchema), async (req, res, next) => { try { successResponse(res, await recordDeliveryReceipt(req.params.id, req.user!, req.body), 201); } catch (error) { next(error); } });
 router.get('/:id/history', validateQuery(z.object({ page: z.coerce.number().int().min(1).max(100000).default(1) })), async (req, res, next) => { try { successResponse(res, await deliveryRunHistory(req.params.id, Number(req.query.page), req.user!)); } catch (error) { next(error); } });
+
+router.post('/:id/occurrences', validateBody(deliveryOccurrenceSchema), async (req, res, next) => { try { successResponse(res, await recordDeliveryOccurrence(req.params.id, req.user!, req.body), 201); } catch (error) { next(error); } });

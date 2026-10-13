@@ -1,8 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { fulfillmentDetailsSchema, fulfillmentOperationSchema, driverAssignmentSchema, pickupReceiptSchema, deliveryReceiptSchema } from '@rebequi/shared/schemas';
+import { fulfillmentDetailsSchema, fulfillmentOperationSchema, driverAssignmentSchema, pickupReceiptSchema, deliveryReceiptSchema, deliveryOccurrenceSchema } from '@rebequi/shared/schemas';
 import { getMerchantPermissionsForRole } from '@rebequi/shared/constants';
 const intent = { requestKey: '72768860-08e9-44e8-b464-59ef46de820a', expectedVersion: 1, confirmed: true };
+test('Delivery impediments are confirmed notes for one stop, never a quantity or implicit reschedule', () => {
+  const input = { ...intent, stopId: 'stop', kind: 'CUSTOMER_ABSENT', note: 'Cliente não estava no endereço' };
+  assert.equal(deliveryOccurrenceSchema.safeParse(input).success, true);
+  for (const change of [{ stopId: '' }, { kind: 'DELIVERED' }, { note: '' }, { confirmed: false }, { scheduledAt: '2026-11-17T00:00:00Z' }, { quantity: 1 }]) assert.equal(deliveryOccurrenceSchema.safeParse({ ...input, ...change }).success, false);
+});
 test('Delivery receipt requires one stop, a receiver and positive distinct material deltas', () => {
   const input = { ...intent, stopId: 'stop', receiverName: 'Recebedor', items: [{ id: 'allocation', quantity: 1 }] };
   assert.equal(deliveryReceiptSchema.safeParse(input).success, true);

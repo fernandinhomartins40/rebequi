@@ -4,7 +4,7 @@ import { formatDateTime } from '@rebequi/shared/utils';
 import { apiFetch } from '@/services/api/client';
 import { Button } from '@/components/ui/button';
 import { DashboardError, DashboardLoading } from '@/components/dashboard/DashboardList';
-const LABELS: Record<string, string> = { DELIVERY_RECEIVED: 'Entrega registrada', PICKUP_RECEIVED: 'Retirada registrada', RETURN_RECONCILED: 'Devolução registrada', CREATED: 'Preparação iniciada', DETAILS_CONFIRMED: 'Retirada ou entrega confirmada', PICK: 'Materiais separados', CHECK: 'Quantidades conferidas', READY: 'Preparação concluída', SALE_CANCELED: 'Operação cancelada', RETURN_REQUIRES_RECHECK: 'Materiais em nova conferência', RUN_RETURNED_TO_WAREHOUSE: 'Materiais retornaram à loja', LOAD: 'Materiais carregados', UNLOAD: 'Carga em nova conferência', DEPART: 'Veículo saiu para entrega' };
+const LABELS: Record<string, string> = { DELIVERY_RECEIVED: 'Entrega registrada', DELIVERY_ISSUE: 'Entrega em verificação', PICKUP_RECEIVED: 'Retirada registrada', RETURN_RECONCILED: 'Devolução registrada', CREATED: 'Preparação iniciada', DETAILS_CONFIRMED: 'Retirada ou entrega confirmada', PICK: 'Materiais separados', CHECK: 'Quantidades conferidas', READY: 'Preparação concluída', SALE_CANCELED: 'Operação cancelada', RETURN_REQUIRES_RECHECK: 'Materiais em nova conferência', RUN_RETURNED_TO_WAREHOUSE: 'Materiais retornaram à loja', LOAD: 'Materiais carregados', UNLOAD: 'Carga em nova conferência', DEPART: 'Veículo saiu para entrega' };
 type History = { events: { id: string; kind: string; createdAt: string }[]; total: number; page: number; totalPages: number };
 export function OrderHistory({ orderId }: { orderId: string }) {
   const [open, setOpen] = useState(false); const [page, setPage] = useState(1);

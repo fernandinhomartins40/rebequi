@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
 import { NotFoundError } from '../utils/errors.util.js';
-const PUBLIC_PREPARATION = ['CREATED', 'DETAILS_CONFIRMED', 'PICK', 'CHECK', 'READY', 'SALE_CANCELED', 'RETURN_REQUIRES_RECHECK', 'RUN_RETURNED_TO_WAREHOUSE', 'PICKUP_RECEIVED', 'RETURN_RECONCILED', 'DELIVERY_RECEIVED'];
+const PUBLIC_PREPARATION = ['CREATED', 'DETAILS_CONFIRMED', 'PICK', 'CHECK', 'READY', 'SALE_CANCELED', 'RETURN_REQUIRES_RECHECK', 'RUN_RETURNED_TO_WAREHOUSE', 'PICKUP_RECEIVED', 'RETURN_RECONCILED', 'DELIVERY_RECEIVED', 'DELIVERY_ISSUE'];
 const PUBLIC_TRANSPORT = ['LOAD', 'UNLOAD', 'DEPART'];
 export async function customerFulfillmentHistory(orderId: string, customerId: string, page: number) {
   return prisma.$transaction(async tx => {

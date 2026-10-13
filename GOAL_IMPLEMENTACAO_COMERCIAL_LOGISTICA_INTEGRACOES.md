@@ -139,6 +139,15 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Impedimentos por parada e conclusão visível — 13/10/2026
+
+Gate 38342715274 falhou no navegador após recebimento bem-sucedido: DriverRuns ocultava o detalhe selecionado ao esvaziar lista de viagens ativas. Correção a12505f mantém detalhe/conclusão enquanto selecionado; nenhuma entrega ou guard de quantidade foi removido. Nova validação continua exigindo “Rota encerrada” após confirmação real.
+
+Registro de impedimentos em três passos, limitado a motorista próprio ou gestão e parada paga em trânsito ainda pendente. Motivo tipado e nota mínima para equipe, sem quantidade, recebimento, devolução financeira ou agendamento implícito. Lock venda/tarefa/romaneio, operador ativo, versão esperada e intenção idempotente; eventos imutáveis incrementam versões operacional/romaneio. Cliente recebe somente evento genérico da própria tarefa; notas/motivos internos não são selecionados no histórico público. Materiais e viagem continuam nas etapas reais anteriores. Retorno físico ao depósito e novo horário combinado continuam operações explícitas existentes; confirmação com cliente e tratamento de evidência permanecem pendentes.
+
+68 testes locais, TypeScript, lint e build aprovados. Cenário integrado de duas paradas foi ampliado com duplicação/versão/privacidade, quantidade preservada e formulário do motorista em 320px. Gate integrado e deploy deste incremento pendentes. Objetivo completo permanece ativo.
+
+
 ### Validação de várias paradas e clientes — 13/10/2026
 
 Cenário real adicional com dois clientes distintos no mesmo romaneio: materiais planejados/carregados sem saída não podem ser recebidos; IDs de material de outra parada são rejeitados. A primeira entrega fica RECEIVED enquanto o romaneio permanece IN_TRANSIT pela segunda; o painel do primeiro cliente não volta a indicar trânsito. Evento de recebimento é vinculado somente à tarefa do cliente atendido, sem recebedor ou dados do outro cliente. Ao retornar somente a carga da segunda parada, preserva recebimento/conferência da primeira e reabre conferência somente da segunda, encerrando romaneio e liberando vínculos. Reenvio do retorno não repete evento/quantidade. Guardas, isolamento e estoque serão exercitados no banco/API reais pelo próximo workflow. Sintaxe dos cenários validada localmente; não marca o módulo completo nem presume resultado integrado. Workflow 38342715274 do recebimento parcial continua em validação no momento deste registro.
