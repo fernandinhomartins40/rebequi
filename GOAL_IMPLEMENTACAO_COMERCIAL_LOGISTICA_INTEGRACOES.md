@@ -431,3 +431,8 @@ Wizard de ocorrência do depósito corrigido: valida motivo apenas depois que a 
 ### Validação do editor de unidades — 13/10/2026
 
 O commit 3870101 passou nos builds, verificações e validação integrada com PostgreSQL/API/navegador (job 115407981490). O teste cobre registro da terceira versão pelo wizard mobile, conversão de vírgula decimal, confirmação explícita e preservação de estoque, reserva e preço. O deploy 115410180850 falhou por timeout SSH, antes de transferir o pacote. A consulta local com chave dedicada e StrictHostKeyChecking=yes confirmou novamente o acesso à VPS. Solicitada repetição apenas dos jobs falhos da execução 38428630117 pelo GitHub Actions; publicação ainda não confirmada. O formulário registra políticas preparatórias: quantidades fracionadas operacionais e demais pendências do objetivo permanecem abertas.
+
+
+### Publicação confirmada do editor — 13/10/2026
+
+O job de deploy 115419190568 terminou com sucesso após a repetição autorizada pelo GitHub Actions da execução 38428630117. O editor de unidades do commit 3870101 está publicado. A configuração continua preparatória e não libera venda fracionada; a integração operacional com estoque, pedidos, valores e devoluções permanece pendente.
