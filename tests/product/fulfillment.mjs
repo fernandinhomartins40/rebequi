@@ -9,9 +9,18 @@ export async function validateFulfillment({ owner, guest, admin, browser, baseUR
   const checkout = await data(await owner.post('/api/orders/checkout', { headers, data: { items: [{ productId: product.id, quantity: 3 }] } }), 201);
   const sale = await data(await admin.post('/api/sales/admin', { headers, data: { orderId: checkout.order.id, status: 'PENDING_PAYMENT', paymentMethod: 'PIX', idempotencyKey: randomUUID() } }), 201);
   assert.equal(Number(db(`console.log(await prisma.fulfillment.count({where:{saleId:${JSON.stringify(sale.id)}}}));`).trim()), 0);
+  const emptyHistory = await data(await owner.get(`/api/orders/me/${checkout.order.id}/fulfillment-history`)); assert.equal(emptyHistory.total, 0);
   await data(await admin.post(`/api/sales/admin/${sale.id}/status`, { headers, data: { status: 'PAID' } }));
   const id = db(`console.log((await prisma.fulfillment.findUniqueOrThrow({where:{saleId:${JSON.stringify(sale.id)}}})).id);`).trim();
   const row = await data(await admin.get(`/api/fulfillments/${id}`)); assert.equal(row.status, 'AWAITING_DETAILS'); assert.equal(row.items.length, 1);
+  const historyResponse = await owner.get(`/api/orders/me/${checkout.order.id}/fulfillment-history`); const ownStages = await data(historyResponse);
+  assert.match(historyResponse.headers()['cache-control'], /no-store/); assert.equal(ownStages.events[0].kind, 'CREATED'); assert.deepEqual(Object.keys(ownStages.events[0]).sort(), ['createdAt', 'id', 'kind']);
+  assert.equal((await owner.get(`/api/orders/me/${checkout.order.id}/fulfillment-history?page=0`)).status(), 400);
+  assert.equal((await owner.get('/api/orders/me/unknown-order/fulfillment-history')).status(), 404);
+  const otherCustomer = await data(await admin.post('/api/users', { headers, data: { email: 'history-other@example.invalid', password: 'Isolated-History-2026!', name: 'Outro cliente isolado', role: 'CUSTOMER', mustChangePassword: false } }), 201);
+  const foreignOrderId = `foreign_history_${randomUUID()}`;
+  db(`await prisma.customerOrder.create({data:{id:${JSON.stringify(foreignOrderId)},referenceCode:${JSON.stringify(foreignOrderId)},userId:${JSON.stringify(otherCustomer.id)},customerNameSnapshot:'Outro cliente isolado',customerWhatsapp:'11999998888'}});`);
+  assert.equal((await owner.get(`/api/orders/me/${foreignOrderId}/fulfillment-history`)).status(), 404, 'Knowing another customer order ID cannot reveal its history');
   assert.equal((await owner.get(`/api/fulfillments/${id}`)).status(), 403); assert.equal((await guest.get(`/api/fulfillments/${id}`)).status(), 401);
   await data(await guest.post('/api/auth/login', { data: warehouseLogin }));
   assert.equal((await guest.get(`/api/fulfillments/${id}`)).status(), 200);
@@ -113,6 +122,21 @@ export async function validateFulfillment({ owner, guest, admin, browser, baseUR
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   } finally { await scheduling.close(); }
   await validateDeliveryRuns({ admin, guest, owner, browser, baseURL, data, db, id, sale, product, orderId: checkout.order.id });
+  const customerHistory = await data(await owner.get(`/api/orders/me/${checkout.order.id}/fulfillment-history`)); const customerOlder = await data(await owner.get(`/api/orders/me/${checkout.order.id}/fulfillment-history?page=2`));
+  assert.ok(customerHistory.total > 20); assert.equal(customerHistory.events.length, 20); assert.ok(customerOlder.events.length > 0);
+  assert.equal(customerHistory.total, customerOlder.total); assert.ok(customerOlder.events.every(event => !customerHistory.events.some(recent => recent.id === event.id)));
+  const stages = [...customerHistory.events, ...customerOlder.events]; assert.ok(stages.some(event => event.kind === 'DEPART')); assert.ok(stages.some(event => event.kind === 'LOAD')); assert.ok(stages.every(event => Object.keys(event).sort().join(',') === 'createdAt,id,kind'));
+  const customerBrowser = await browser.newContext();
+  try {
+    await customerBrowser.addCookies((await owner.storageState()).cookies); const page = await customerBrowser.newPage(); await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`${baseURL}/painel-cliente?tab=orders&orderId=${checkout.order.id}`);
+    const card = page.locator(`#customer-order-${checkout.order.id}`);
+    await card.getByText('Acompanhar etapas do pedido', { exact: true }).click();
+    await card.getByText('Veículo saiu para entrega', { exact: true }).waitFor();
+    const nextPage = page.waitForResponse(response => response.url().includes(`/orders/me/${checkout.order.id}/fulfillment-history?page=2`));
+    await card.getByRole('button', { name: 'Mais antigas', exact: true }).click(); assert.equal((await nextPage).status(), 200);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  } finally { await customerBrowser.close(); }
   let historyVersion = (await data(await admin.get(`/api/fulfillments/${id}`))).version;
   for (let index = 0; index < 21; index += 1) {
     const updated = await data(await admin.post(`/api/fulfillments/${id}/operations`, { headers, data: { requestKey: randomUUID(), expectedVersion: historyVersion, confirmed: true, action: 'ISSUE', note: `Ocorrência de paginação ${index + 1}`, items: [] } }));

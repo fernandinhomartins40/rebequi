@@ -12,6 +12,10 @@ import { validateBody, validateQuery } from '../middleware/validation.middleware
 import { reserveOrderStock } from '../services/stock-reservation.service.js';
 import { resolvePartnerReferral } from '../services/partner-referral.service.js';
 import { requireTrustedOrigin } from '../middleware/trusted-origin.middleware.js';
+import { z } from 'zod';
+import { customerFulfillmentHistory } from '../services/customer-fulfillment-history.service.js';
+import { successResponse } from '../utils/response.util.js';
+import { validateParams } from '../middleware/validation.middleware.js';
 
 const router: Router = Router();
 const orderController = new OrderController();
@@ -25,6 +29,10 @@ router.post('/public/checkout', (req, res, next) => req.body?.referral ? require
 router.post('/public/:id/whatsapp-redirected', authenticate, authorize('CUSTOMER'), orderController.markWhatsappRedirected);
 
 router.get('/me', authenticate, authorize('CUSTOMER'), orderController.listCustomerOrders);
+router.get('/me/:id/fulfillment-history', authenticate, authorize('CUSTOMER'), validateParams(z.object({ id: z.string().min(1).max(128) })), validateQuery(z.object({ page: z.coerce.number().int().min(1).max(100000).default(1) })), async (req, res, next) => {
+  res.setHeader('Cache-Control', 'private, no-store');
+  try { successResponse(res, await customerFulfillmentHistory(req.params.id, req.user!.userId, Number(req.query.page))); } catch (error) { next(error); }
+});
 router.post('/checkout', authenticate, authorize('CUSTOMER'), (req, res, next) => req.body?.referral ? requireTrustedOrigin(req, res, next) : next(), validateBody(authenticatedCheckoutOrderSchema), orderController.authenticatedCheckout);
 
 router.get('/admin/list', authenticate, authorize(...orderRoles), validateQuery(orderFiltersSchema), orderController.listAdminOrders);

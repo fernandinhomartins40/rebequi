@@ -138,6 +138,12 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Histórico de etapas para o cliente — 12/10/2026
+
+Meus pedidos oferece acompanhamento expansível e paginado, consultado somente ao abrir. Consulta exige cliente autenticado e proprietário exato do pedido; pedido de outro cliente resulta em 404. Une eventos permitidos de preparação e transporte vinculados aos próprios materiais, ordenados por data/ID, com no máximo 20 por página. Seleção SQL e whitelist impedem enviar notas/ocorrências internas, ator, payload, endereço, snapshot ou dados de outras paradas. RepeatableRead mantém autorização/contagem/eventos coerentes na mesma consulta. Não presume localização, prazo ou entrega: registra somente etapas já realizadas. Histórico interno completo e DTO de status existente permanecem distintos.
+
+Integração acrescenta pedido de outro cliente, ausência de tarefa, campos exatos e paginação após ciclos reais de carga/descarga/saída. Tipos, textos, lint e build passaram localmente. Validação integrada e deploy deste incremento ainda pendentes. Workflows 38328469217 e 38328792975 aprovados e publicados; a validação integrada de f703291 foi aprovada, incluindo exportação de orçamentos e histórico completo de romaneios; seu deploy estava em execução nesta consulta. Recebimento parcial, prova, notificações/desempenho e API de escrita/conector continuam pendentes; goal ativo.
+
 ### Histórico completo do romaneio — 12/10/2026
 
 Consulta paginada de eventos operacionais na Expedição e no romaneio próprio do motorista. Componente único, consulta somente ao abrir e páginas de 20 eventos, ordenadas por versão. Resposta contém evento/etapa/data/versão; equipe operacional também vê somente o motivo/observação explícitos, preservando o histórico anterior. Motorista não recebe essa nota. Sem payloads, chave idempotente, fingerprint ou identificação interna do operador. Motorista continua limitado ao vínculo e etapas permitidas; operação do depósito consulta sob logistics:manage. RepeatableRead mantém autorização, eventos e total consistentes na requisição. Teste real de banco/API acrescenta dez ciclos de carregamento/descarga no ambiente isolado, conferindo eventos acima do limite, páginas sem repetição, campos mínimos, acesso cruzado negado e abertura mobile. Não opera nem altera romaneios reais em produção. Validação integrada deste incremento pendente; entrega/retirada parcial e demais pendências continuam abertas.
