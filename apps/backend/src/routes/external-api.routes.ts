@@ -59,10 +59,11 @@ externalAdminRoutes.get('/imports/products/batches/:id', validateParams(z.object
     const batch = await prisma.externalProductImportBatch.findUnique({ where: { id: req.params.id }, select: { id: true, source: true, rows: true, preview: true, createdAt: true } });
     if (!batch) throw new NotFoundError('Análise de importação não encontrada.');
     const current = await previewProductImport({ source: batch.source, rows: batch.rows as z.infer<typeof previewProductImportSchema>['rows'] });
-    const saved = batch.preview as { rows: { status: string; conflicts: string[]; localProductId: string | null }[] };
+    const saved = batch.preview as { rows: { status: string; conflicts: string[]; localProductId: string | null; resolvedCategoryId?: string | null }[] };
     const changedRows = current.rows.filter((row, index) => {
       const before = saved.rows[index];
       return !before || before.status !== row.status || before.localProductId !== row.localProductId
+        || (before.resolvedCategoryId ?? null) !== row.resolvedCategoryId
         || JSON.stringify(before.conflicts) !== JSON.stringify(row.conflicts);
     }).map(row => row.row);
     successResponse(res, { id: batch.id, source: batch.source, createdAt: batch.createdAt, savedPreview: batch.preview,

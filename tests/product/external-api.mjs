@@ -11,6 +11,7 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
   const persisted = JSON.parse(db(`console.log(JSON.stringify(await prisma.externalApiClient.findUniqueOrThrow({where:{id:${JSON.stringify(credential.id)}},select:{tokenHash:true}})));`).trim());
   assert.equal(persisted.tokenHash, createHash('sha256').update(credential.token).digest('hex')); assert.notEqual(persisted.tokenHash, credential.token);
   const importPath = '/api/integrations/external-api/imports/products/preview';
+  const batchesPath = '/api/integrations/external-api/imports/products/batches';
   const catalog = JSON.parse(db(`console.log(JSON.stringify(await prisma.product.findFirstOrThrow({where:{sku:{not:null},deletedAt:null,category:{isActive:true,deletedAt:null}},select:{id:true,sku:true,categoryId:true,stock:true,reservedStock:true,price:true}})));`).trim());
   const category = JSON.parse(db(`console.log(JSON.stringify(await prisma.category.findUniqueOrThrow({where:{id:${JSON.stringify(catalog.categoryId)}},select:{id:true,slug:true,name:true}})));`).trim());
   const categoryRows = [
@@ -37,6 +38,9 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
   const linkedProductPreview = await data(await admin.post(importPath, { headers, data: linkedProductInput }));
   assert.equal(linkedProductPreview.rows[0].resolvedCategoryId, category.id);
   assert.equal(linkedProductPreview.rows[0].status, 'READY_FOR_REVIEW');
+  const mappedBatch = await data(await admin.post(batchesPath, { headers,
+    data: { ...linkedProductInput, requestKey: randomUUID(), confirmed: true } }), 201);
+  assert.deepEqual((await data(await admin.get(`${batchesPath}/${mappedBatch.id}`))).changedRows, []);
   assert.deepEqual(await data(await admin.post(categoryLinksPath, { headers, data: categoryLinkInput }), 201), categoryLink);
   assert.equal((await admin.post(categoryLinksPath, { headers, data: { ...categoryLinkInput, requestKey: randomUUID() } })).status(), 409);
   assert.equal((await data(await admin.post(categoryPreviewPath, { headers, data: categoryInput }))).rows[0].status, 'LINKED_REVIEW');
@@ -45,6 +49,7 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
   await data(await admin.post(`${categoryLinksPath}/${categoryLink.id}/revoke`, { headers, data: { confirmed: true, reason: 'Revisão isolada do runner' } }));
   const revokedProductPreview = await data(await admin.post(importPath, { headers, data: linkedProductInput }));
   assert.deepEqual(revokedProductPreview.rows[0].conflicts, ['EXTERNAL_CATEGORY_NOT_LINKED']);
+  assert.deepEqual((await data(await admin.get(`${batchesPath}/${mappedBatch.id}`))).changedRows, [1]);
   assert.deepEqual((await data(await admin.post(categoryPreviewPath, { headers, data: categoryInput }))).rows[0].conflicts, ['SLUG_ALREADY_LOCAL']);
   const blockedCategoryMutation = JSON.parse(db(`let blocked=false;try{await prisma.externalCategoryLink.delete({where:{id:${JSON.stringify(categoryLink.id)}}});}catch{blocked=true;}console.log(JSON.stringify({blocked}));`).trim().split('\n').at(-1));
   assert.equal(blockedCategoryMutation.blocked, true);
@@ -64,7 +69,6 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
   assert.deepEqual(importPreview.rows[0].conflicts, ['SKU_ALREADY_LOCAL']);
   assert.equal(importPreview.rows[0].localProductId, catalog.id);
   assert.equal(importPreview.rows[1].status, 'READY_FOR_REVIEW');
-  const batchesPath = '/api/integrations/external-api/imports/products/batches';
   const stageInput = { ...importInput, requestKey: randomUUID(), confirmed: true };
   assert.equal((await owner.post(batchesPath, { headers, data: stageInput })).status(), 403);
   assert.equal((await admin.post(batchesPath, { data: stageInput })).status(), 403);
@@ -170,8 +174,10 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
     await page.getByText('Conferir produtos de outro sistema', { exact: true }).click();
     const importPanel = page.getByRole('region', { name: 'Prévia de importação de produtos', exact: true });
     await importPanel.getByLabel('Identificação do sistema', { exact: true }).fill(importInput.source);
+    const mappedBrowserRows = importRows.map(row => ({ externalId: row.externalId, sku: row.sku, name: row.name,
+      externalCategoryId: categoryRows[0].externalId, priceCents: row.priceCents, stockQuantity: row.stockQuantity }));
     await importPanel.getByLabel('Arquivo de produtos (.json)', { exact: true }).setInputFiles({
-      name: 'produtos.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(importRows)),
+      name: 'produtos.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(mappedBrowserRows)),
     });
     await importPanel.getByRole('button', { name: 'Conferir arquivo', exact: true }).click();
     await importPanel.getByText('2 produtos · 1 com conflito. Nenhum produto foi importado.', { exact: true }).waitFor();
