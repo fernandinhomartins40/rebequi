@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { previewCustomerImportSchema } from '@rebequi/shared/schemas';
+import { linkExternalCustomerSchema, previewCustomerImportSchema } from '@rebequi/shared/schemas';
 import { classifyCustomerImport } from './customer-import-preview.service.js';
 
 test('Customer import preview normalizes identifiers and rejects ambiguous rows', () => {
@@ -47,4 +47,21 @@ test('Customer preview does not merge email and WhatsApp belonging to different 
     { id: 'customer-2', email: 'two@example.com', whatsapp: '11987654321', role: 'CUSTOMER' as const },
   ];
   assert.deepEqual(classifyCustomerImport(input, users).rows[0].conflicts, ['IDENTITY_COLLISION']);
+});
+
+test('Verified customer links are recognized and conflicting identities require review', () => {
+  const input = previewCustomerImportSchema.parse({ source: 'pdv-test', rows: [
+    { externalId: 'A', name: 'Cliente Teste', email: 'one@example.com' },
+  ] });
+  const users = [{ id: 'customer-1', email: 'one@example.com', whatsapp: null, role: 'CUSTOMER' as const }];
+  const links = [{ source: 'pdv-test', externalId: 'A', customerId: 'customer-1' }];
+  assert.equal(classifyCustomerImport(input, users, links).rows[0].status, 'LINKED_REVIEW');
+  assert.deepEqual(classifyCustomerImport(input, users, [{ ...links[0], customerId: 'other' }]).rows[0].conflicts,
+    ['LINK_IDENTITY_MISMATCH']);
+  assert.deepEqual(classifyCustomerImport(input, users, [{ ...links[0], externalId: 'B' }]).rows[0].conflicts,
+    ['CUSTOMER_LINKED_TO_OTHER_ID']);
+  assert.deepEqual(classifyCustomerImport(input, [{ ...users[0], isActive: false }]).rows[0].conflicts,
+    ['CUSTOMER_INACTIVE']);
+  assert.equal(linkExternalCustomerSchema.safeParse({ requestKey: '00000000-0000-4000-8000-000000000000',
+    source: 'pdv-test', externalId: 'A', customerId: 'customer-1', confirmed: true }).success, false);
 });

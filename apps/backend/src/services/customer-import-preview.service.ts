@@ -2,9 +2,12 @@ import { previewCustomerImportSchema, type PreviewCustomerImportInput } from '@r
 import { normalizeWhatsapp } from '@rebequi/shared/utils';
 import type { Prisma, UserRole } from '@prisma/client';
 
-type ExistingUser = { id: string; email: string; whatsapp: string | null; role: UserRole };
+type ExistingUser = { id: string; email: string; whatsapp: string | null; role: UserRole; isActive?: boolean };
+type ExistingLink = { source: string; externalId: string; customerId: string };
 
-export function classifyCustomerImport(input: PreviewCustomerImportInput, users: ExistingUser[]) {
+export function classifyCustomerImport(input: PreviewCustomerImportInput, users: ExistingUser[], links: ExistingLink[] = []) {
+  const linkedByExternal = new Map(links.filter(link => link.source === input.source).map(link => [link.externalId, link.customerId]));
+  const linkedByCustomer = new Map(links.filter(link => link.source === input.source).map(link => [link.customerId, link.externalId]));
   const externalCounts = new Map<string, number>();
   const emailCounts = new Map<string, number>();
   const phoneCounts = new Map<string, number>();
@@ -21,12 +24,16 @@ export function classifyCustomerImport(input: PreviewCustomerImportInput, users:
     const matches = users.filter(user => (row.email && user.email.toLowerCase() === row.email)
       || (row.whatsapp && (normalizeWhatsapp(user.whatsapp ?? '') === row.whatsapp || normalizeWhatsapp(user.email) === row.whatsapp)));
     const uniqueMatches = [...new Map(matches.map(user => [user.id, user])).values()];
+    const linkedCustomerId = linkedByExternal.get(row.externalId);
     if (uniqueMatches.length > 1) conflicts.push('IDENTITY_COLLISION');
     else if (uniqueMatches[0]?.role !== undefined && uniqueMatches[0].role !== 'CUSTOMER') conflicts.push('USER_ROLE_CONFLICT');
-    else if (uniqueMatches[0]) conflicts.push('LOCAL_CUSTOMER_EXISTS');
+    else if (uniqueMatches[0]?.isActive === false) conflicts.push('CUSTOMER_INACTIVE');
+    else if (linkedCustomerId && linkedCustomerId !== uniqueMatches[0]?.id) conflicts.push('LINK_IDENTITY_MISMATCH');
+    else if (uniqueMatches[0] && linkedByCustomer.has(uniqueMatches[0].id) && !linkedCustomerId) conflicts.push('CUSTOMER_LINKED_TO_OTHER_ID');
+    else if (uniqueMatches[0] && !linkedCustomerId) conflicts.push('LOCAL_CUSTOMER_EXISTS');
     return { row: index + 1, externalId: row.externalId,
       localCustomerId: uniqueMatches.length === 1 && uniqueMatches[0].role === 'CUSTOMER' ? uniqueMatches[0].id : null,
-      conflicts, status: conflicts.length ? 'CONFLICT' : 'READY_FOR_REVIEW' };
+      conflicts, status: conflicts.length ? 'CONFLICT' : linkedCustomerId ? 'LINKED_REVIEW' : 'READY_FOR_REVIEW' };
   });
   return { source: input.source, authority: { customers: 'LOCAL' }, rows,
     summary: { total: rows.length, conflicts: rows.filter(row => row.conflicts.length).length }, applied: false };
@@ -42,7 +49,10 @@ export async function previewCustomerImport(raw: PreviewCustomerImportInput) {
       { email: { in: emails, mode: 'insensitive' } },
       { email: { in: phones } },
       { whatsapp: { in: phones } },
-    ] }, select: { id: true, email: true, whatsapp: true, role: true } });
-    return classifyCustomerImport(input, users);
+    ] }, select: { id: true, email: true, whatsapp: true, role: true, isActive: true } });
+    const links = await tx.externalCustomerLink.findMany({ where: { source: input.source, revokedAt: null,
+      OR: [{ externalId: { in: input.rows.map(row => row.externalId) } }, { customerId: { in: users.map(user => user.id) } }] },
+      select: { source: true, externalId: true, customerId: true } });
+    return classifyCustomerImport(input, users, links);
   }, { isolationLevel: 'RepeatableRead' });
 }

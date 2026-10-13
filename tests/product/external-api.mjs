@@ -10,7 +10,7 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
   const clients = await data(await admin.get('/api/integrations/external-api/clients')); assert.equal(clients.clients.filter(item => item.id === credential.id).length, 1); assert.equal(JSON.stringify(clients).includes(credential.token), false); assert.equal(JSON.stringify(clients).includes('tokenHash'), false);
   const persisted = JSON.parse(db(`console.log(JSON.stringify(await prisma.externalApiClient.findUniqueOrThrow({where:{id:${JSON.stringify(credential.id)}},select:{tokenHash:true}})));`).trim());
   assert.equal(persisted.tokenHash, createHash('sha256').update(credential.token).digest('hex')); assert.notEqual(persisted.tokenHash, credential.token);
-  const existingCustomer = JSON.parse(db(`console.log(JSON.stringify(await prisma.user.findFirstOrThrow({where:{role:'CUSTOMER',email:{contains:'@'}},select:{id:true,email:true,whatsapp:true}})));`).trim());
+  const existingCustomer = JSON.parse(db(`console.log(JSON.stringify(await prisma.user.findFirstOrThrow({where:{role:'CUSTOMER',isActive:true,email:{contains:'@'}},select:{id:true,email:true,whatsapp:true}})));`).trim());
   const customerRows = [
     { externalId: 'known-customer', name: 'Cliente existente', email: existingCustomer.email },
     { externalId: 'new-customer', name: 'Cliente novo', email: `import-${randomUUID()}@example.invalid` },
@@ -28,6 +28,22 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
   assert.equal(customerPreview.rows[1].status, 'READY_FOR_REVIEW');
   assert.equal(JSON.stringify(customerPreview).includes(existingCustomer.email), false);
   assert.equal(Number(db(`console.log(await prisma.user.count({where:{email:${JSON.stringify(customerRows[1].email)}}}));`).trim()), 0);
+  const customerLinksPath = '/api/integrations/external-api/imports/customers/links';
+  const customerLinkInput = { requestKey: randomUUID(), source: customerInput.source, externalId: customerRows[0].externalId,
+    customerId: existingCustomer.id, expectedEmail: existingCustomer.email, confirmed: true };
+  assert.equal((await owner.post(customerLinksPath, { headers, data: customerLinkInput })).status(), 403);
+  assert.equal((await admin.post(customerLinksPath, { data: customerLinkInput })).status(), 403);
+  const customerLink = await data(await admin.post(customerLinksPath, { headers, data: customerLinkInput }), 201);
+  assert.equal(customerLink.customerId, existingCustomer.id);
+  assert.deepEqual(await data(await admin.post(customerLinksPath, { headers, data: customerLinkInput }), 201), customerLink);
+  assert.equal((await admin.post(customerLinksPath, { headers, data: { ...customerLinkInput, requestKey: randomUUID() } })).status(), 409);
+  assert.equal((await admin.post(customerLinksPath, { headers, data: { ...customerLinkInput, requestKey: randomUUID(), expectedEmail: 'wrong@example.invalid' } })).status(), 409);
+  assert.equal((await data(await admin.post(customerPath, { headers, data: customerInput }))).rows[0].status, 'LINKED_REVIEW');
+  assert.equal((await data(await admin.get(`${customerLinksPath}?page=1`))).links.some(row => row.id === customerLink.id), true);
+  await data(await admin.post(`${customerLinksPath}/${customerLink.id}/revoke`, { headers, data: { confirmed: true, reason: 'Revisão isolada do runner' } }));
+  assert.deepEqual((await data(await admin.post(customerPath, { headers, data: customerInput }))).rows[0].conflicts, ['LOCAL_CUSTOMER_EXISTS']);
+  const blockedCustomerMutation = JSON.parse(db(`let blocked=false;try{await prisma.externalCustomerLink.delete({where:{id:${JSON.stringify(customerLink.id)}}});}catch{blocked=true;}console.log(JSON.stringify({blocked}));`).trim().split('\n').at(-1));
+  assert.equal(blockedCustomerMutation.blocked, true);
   const importPath = '/api/integrations/external-api/imports/products/preview';
   const batchesPath = '/api/integrations/external-api/imports/products/batches';
   const catalog = JSON.parse(db(`console.log(JSON.stringify(await prisma.product.findFirstOrThrow({where:{sku:{not:null},deletedAt:null,category:{isActive:true,deletedAt:null}},select:{id:true,sku:true,categoryId:true,stock:true,reservedStock:true,price:true}})));`).trim());
@@ -188,6 +204,9 @@ export async function validateExternalApi({ owner, admin, guest, browser, baseUR
     });
     await customerPanel.getByRole('button', { name: 'Conferir clientes', exact: true }).click();
     await customerPanel.getByText('2 clientes · 1 com conflito. Nenhuma conta foi alterada.', { exact: true }).waitFor();
+    await customerPanel.getByRole('button', { name: 'Conferir vínculo do cliente', exact: true }).click();
+    await customerPanel.getByRole('button', { name: 'Confirmar vínculo do cliente', exact: true }).click();
+    await customerPanel.getByText('Vínculo de cliente registrado.', { exact: true }).waitFor();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await page.getByText('Conferir categorias de outro sistema', { exact: true }).click();
     const categoryPanel = page.getByRole('region', { name: 'Prévia de categorias externas', exact: true });

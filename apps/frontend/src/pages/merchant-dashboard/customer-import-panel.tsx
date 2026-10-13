@@ -1,27 +1,44 @@
-import { useState } from 'react';
-import { previewCustomerImportSchema, type PreviewCustomerImportInput } from '@rebequi/shared/schemas';
+import { useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { linkExternalCustomerSchema, previewCustomerImportSchema, revokeExternalCustomerLinkSchema, type PreviewCustomerImportInput } from '@rebequi/shared/schemas';
 import { apiFetch } from '@/services/api/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-type Preview = { rows: { row: number; externalId: string; localCustomerId: string | null; conflicts: string[] }[];
+type PreviewRow = { row: number; externalId: string; localCustomerId: string | null; conflicts: string[]; status: string };
+type Preview = { rows: PreviewRow[];
   summary: { total: number; conflicts: number }; applied: false };
+type Link = { id: string; source: string; externalId: string; customerId: string; revokedAt: string | null };
+const endpoint = '/integrations/external-api/imports/customers';
 const conflictNames: Record<string, string> = {
   DUPLICATE_EXTERNAL_ID: 'ID externo repetido', DUPLICATE_EMAIL: 'E-mail repetido no arquivo',
   DUPLICATE_WHATSAPP: 'WhatsApp repetido no arquivo', IDENTITY_COLLISION: 'E-mail e WhatsApp pertencem a contas diferentes',
   USER_ROLE_CONFLICT: 'Identificador pertence a colaborador', LOCAL_CUSTOMER_EXISTS: 'Cliente já existe na loja',
+  CUSTOMER_INACTIVE: 'Conta de cliente inativa',
+  LINK_IDENTITY_MISMATCH: 'O vínculo registrado não corresponde aos contatos atuais',
+  CUSTOMER_LINKED_TO_OTHER_ID: 'Cliente já vinculado a outro ID nesta origem',
 };
 
 export function CustomerImportPanel() {
+  const client = useQueryClient();
   const [source, setSource] = useState('');
   const [rows, setRows] = useState<PreviewCustomerImportInput['rows']>([]);
   const [fileName, setFileName] = useState('');
   const [preview, setPreview] = useState<Preview | null>(null);
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
+  const [selected, setSelected] = useState<PreviewRow | null>(null);
+  const [linking, setLinking] = useState(false);
+  const [linked, setLinked] = useState(false);
+  const [page, setPage] = useState(1);
+  const [revoking, setRevoking] = useState('');
+  const [reason, setReason] = useState('');
+  const intent = useRef<{ fingerprint: string; key: string }>();
+  const links = useQuery({ queryKey: ['external-customer-links', page], retry: false,
+    queryFn: async () => (await apiFetch<{ data: { links: Link[]; totalPages: number } }>(`${endpoint}/links?page=${page}`)).data });
   const chooseFile = async (file?: File) => {
-    setRows([]); setFileName(''); setPreview(null); setError('');
+    setRows([]); setFileName(''); setPreview(null); setSelected(null); setLinked(false); setError('');
     if (!file) return;
     if (file.size > 256000) { setError('O arquivo deve ter até 256 KB.'); return; }
     try {
@@ -42,11 +59,39 @@ export function CustomerImportPanel() {
     } catch (failure) { setError(failure instanceof Error ? failure.message : 'Não foi possível conferir o arquivo.'); }
     finally { setPending(false); }
   };
+  const createLink = async () => {
+    if (!selected?.localCustomerId) return;
+    const row = rows[selected.row - 1];
+    if (!row || row.externalId !== selected.externalId) return;
+    const fingerprint = JSON.stringify({ source, externalId: row.externalId, customerId: selected.localCustomerId,
+      expectedEmail: row.email, expectedWhatsapp: row.whatsapp });
+    if (intent.current?.fingerprint !== fingerprint) intent.current = { fingerprint, key: crypto.randomUUID() };
+    const input = linkExternalCustomerSchema.parse({ requestKey: intent.current.key, source, externalId: row.externalId,
+      customerId: selected.localCustomerId, expectedEmail: row.email, expectedWhatsapp: row.whatsapp, confirmed: true });
+    setLinking(true); setError('');
+    try {
+      await apiFetch(`${endpoint}/links`, { method: 'POST', body: JSON.stringify(input) });
+      setSelected(null); setLinked(true); setPreview(null);
+      await client.invalidateQueries({ queryKey: ['external-customer-links'] });
+    } catch (failure) { setError(failure instanceof Error ? failure.message : 'Não foi possível registrar o vínculo.'); }
+    finally { setLinking(false); }
+  };
+  const revoke = async (id: string) => {
+    const input = revokeExternalCustomerLinkSchema.safeParse({ confirmed: true, reason });
+    if (!input.success) return;
+    setError(''); setLinking(true);
+    try {
+      await apiFetch(`${endpoint}/links/${encodeURIComponent(id)}/revoke`, { method: 'POST', body: JSON.stringify(input.data) });
+      setRevoking(''); setReason(''); setPreview(null);
+      await client.invalidateQueries({ queryKey: ['external-customer-links'] });
+    } catch (failure) { setError(failure instanceof Error ? failure.message : 'Não foi possível revogar o vínculo.'); }
+    finally { setLinking(false); }
+  };
   return <details className="rounded-xl border p-4">
     <summary className="cursor-pointer font-semibold">Conferir clientes de outro sistema</summary>
     <section aria-label="Prévia de clientes externos" className="mt-4 space-y-3">
       <p className="text-sm text-muted-foreground">Confira duplicidades antes de vincular contas. Esta etapa não cria clientes nem modifica cadastros.</p>
-      <div><Label htmlFor="import-customers-source">Identificação do sistema</Label><Input id="import-customers-source" maxLength={120} value={source} onChange={event => { setSource(event.target.value); setPreview(null); }} placeholder="Ex.: meu-pdv" /></div>
+      <div><Label htmlFor="import-customers-source">Identificação do sistema</Label><Input id="import-customers-source" maxLength={120} value={source} onChange={event => { setSource(event.target.value); setPreview(null); setSelected(null); setLinked(false); }} placeholder="Ex.: meu-pdv" /></div>
       <div><Label htmlFor="import-customers-file">Arquivo de clientes (.json)</Label><Input id="import-customers-file" type="file" accept="application/json,.json" onChange={event => void chooseFile(event.target.files?.[0])} /></div>
       {fileName ? <p className="text-sm">{fileName} · {rows.length} clientes</p> : null}
       <p className="text-xs text-muted-foreground">Cada linha precisa de externalId, name e pelo menos email ou whatsapp. Até 100 clientes. Os contatos não aparecem no resultado.</p>
@@ -55,8 +100,31 @@ export function CustomerImportPanel() {
       {preview ? <div className="space-y-2"><p role="status" className="text-sm">{preview.summary.total} clientes · {preview.summary.conflicts} com conflito. Nenhuma conta foi alterada.</p>
         <ul className="max-h-80 space-y-2 overflow-auto">{preview.rows.map(row => <li key={row.row} className="rounded-lg border p-3 text-sm">
           <p className="font-semibold">{row.row}. ID externo: {row.externalId}</p>
-          <p>{row.conflicts.length ? row.conflicts.map(code => conflictNames[code] ?? 'Conflito').join(' · ') : 'Pronto para revisão'}</p>
+          <p>{row.status === 'LINKED_REVIEW' ? 'Vínculo registrado para revisão' : row.conflicts.length ? row.conflicts.map(code => conflictNames[code] ?? 'Conflito').join(' · ') : 'Pronto para revisão'}</p>
+          {row.conflicts.length === 1 && row.conflicts[0] === 'LOCAL_CUSTOMER_EXISTS' && row.localCustomerId ?
+            <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => setSelected(row)}>Conferir vínculo do cliente</Button> : null}
         </li>)}</ul></div> : null}
+      {selected ? <div className="space-y-2 rounded-lg border bg-slate-50 p-3 text-sm">
+        <p>ID externo {selected.externalId} será vinculado ao cliente local {selected.localCustomerId}. Confira a linha {selected.row} do arquivo antes de confirmar. A conta não será alterada.</p>
+        <div className="flex gap-2"><Button type="button" variant="outline" onClick={() => setSelected(null)}>Voltar</Button>
+          <Button type="button" disabled={linking} onClick={() => void createLink()}>Confirmar vínculo do cliente</Button></div>
+      </div> : null}
+      {linked ? <p role="status" className="text-sm text-green-800">Vínculo de cliente registrado.</p> : null}
+      <details className="rounded-lg border p-3"><summary className="cursor-pointer font-medium">Clientes vinculados</summary>
+        {links.isLoading ? <p className="mt-2 text-sm">Carregando vínculos…</p> : links.isError ? <p role="alert" className="mt-2 text-sm text-red-700">{links.error.message}</p> :
+          !links.data?.links.length ? <p className="mt-2 text-sm">Nenhum vínculo registrado.</p> :
+          <ul className="mt-3 space-y-2">{links.data.links.map(item => <li key={item.id} className="rounded-lg border p-3 text-sm">
+            <p className="break-all font-semibold">{item.source}: {item.externalId}</p>
+            <p className="break-all text-xs">ID local: {item.customerId}</p>
+            {item.revokedAt ? <p className="text-xs">Revogado</p> : revoking === item.id ? <div className="mt-2 space-y-2">
+              <Label htmlFor={`customer-revoke-${item.id}`}>Motivo</Label><Input id={`customer-revoke-${item.id}`} maxLength={300} value={reason} onChange={event => setReason(event.target.value)} />
+              <div className="flex gap-2"><Button type="button" variant="outline" size="sm" onClick={() => setRevoking('')}>Voltar</Button>
+                <Button type="button" variant="destructive" size="sm" disabled={reason.trim().length < 3 || linking} onClick={() => void revoke(item.id)}>Confirmar revogação</Button></div>
+            </div> : <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => { setRevoking(item.id); setReason(''); }}>Revogar vínculo</Button>}
+          </li>)}</ul>}
+        {links.data && links.data.totalPages > 1 ? <div className="mt-3 flex justify-between gap-2"><Button type="button" variant="outline" disabled={page === 1} onClick={() => setPage(value => value - 1)}>Anterior</Button>
+          <Button type="button" variant="outline" disabled={page >= links.data.totalPages} onClick={() => setPage(value => value + 1)}>Próxima</Button></div> : null}
+      </details>
     </section>
   </details>;
 }

@@ -14,3 +14,12 @@ export const previewCustomerImportSchema = z.object({
   }).strict().refine(row => Boolean(row.email || row.whatsapp), { message: 'Informe email ou WhatsApp' })).min(1).max(100),
 }).strict();
 export type PreviewCustomerImportInput = z.infer<typeof previewCustomerImportSchema>;
+export const linkExternalCustomerSchema = z.object({
+  requestKey: z.string().uuid(), source: code, externalId: code,
+  customerId: z.string().min(1).max(128),
+  expectedEmail: email.optional(), expectedWhatsapp: whatsapp.optional(),
+  confirmed: z.literal(true),
+}).strict().refine(row => Boolean(row.expectedEmail || row.expectedWhatsapp), { message: 'Confirme email ou WhatsApp' });
+export const revokeExternalCustomerLinkSchema = z.object({
+  confirmed: z.literal(true), reason: z.string().trim().min(3).max(300),
+}).strict();

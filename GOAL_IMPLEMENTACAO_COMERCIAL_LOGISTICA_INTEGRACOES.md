@@ -20,6 +20,7 @@ Próximas tarefas, na ordem de execução:
 - [ ] Vendedor criar orçamento/pedido para carteira autorizada, distribuição de solicitações e notificações persistentes.
 - [ ] Metas, desempenho e regras/ledger de comissão próprios dos vendedores, configuração prospectiva e conciliação.
 - [ ] Importação estruturada com prévia, vínculos externos únicos, fonte oficial por domínio, inbox/outbox e conflito/replay.
+- [ ] Prévia e vínculos de clientes externos: painel/API, unicidade, confirmação dos contatos e revogação implementados; validar PostgreSQL/navegador e deploy no workflow antes de marcar publicado. Aplicação do lote continua pendente.
 - [ ] API externa de escrita autorizada, eventos/webhooks assinados, exportação ampliada, rastreabilidade persistente e reprocessamento.
 - [ ] Conector ERP/PDV específico após identificação/documentação; usuário ainda não sabe qual sistema usa. Continuar módulos independentes.
 - [ ] Homologação externa, fluxo orçamento→venda→depósito→entrega, testes concorrentes/reversões/indisponibilidade e piloto em aparelhos reais.

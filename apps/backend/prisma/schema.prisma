@@ -14,6 +14,7 @@ datasource db {
 // USER MODEL - Authentication & Authorization
 // ============================================================================
 model User {
+  externalCustomerLinks ExternalCustomerLink[]
   commercialAssignmentReads CommercialAssignmentRead[]
   sellerGoals SellerGoalRevision[] @relation("SellerGoalOwner")
   deliveryRuns DeliveryRun[] @relation("DeliveryRunDriver")
@@ -140,6 +141,24 @@ model ExternalCategoryLink {
   @@index([categoryId])
   @@index([source, externalId])
   @@map("external_category_links")
+}
+
+model ExternalCustomerLink {
+  id String @id @default(cuid())
+  source String
+  externalId String
+  customerId String
+  customer User @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  requestKey String @unique
+  fingerprint String
+  actorId String
+  createdAt DateTime @default(now())
+  revokedAt DateTime?
+  revokedById String?
+  revokedReason String?
+  @@index([customerId])
+  @@index([source, externalId])
+  @@map("external_customer_links")
 }
 
 // ============================================================================
