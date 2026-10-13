@@ -63,7 +63,16 @@ export async function validateDrivers({ admin, guest, browser, baseURL, data, db
     assert.equal((await contextA.request.get(`/api/driver/tasks/${id}`)).status(), 404);
     assert.equal((await data(await contextA.request.get('/api/driver/tasks'))).tasks.length, 0);
     assert.equal((await contextB.request.get(`/api/driver/tasks/${id}`)).status(), 200);
+    const revokedPage = await contextB.newPage();
+    await revokedPage.goto(`${baseURL}/painel-lojista/painel/entregas/${id}`);
+    await revokedPage.getByRole('heading', { name: 'Endereço', exact: true }).waitFor();
+    await contextB.setOffline(true);
+    await revokedPage.getByText('Sem conexão. Mantenha esta tela aberta e reconecte-se para confirmar operações. Nada será enviado automaticamente.', { exact: true }).waitFor();
     await data(await admin.patch(`/api/users/${b.id}`, { headers, data: { isActive: false } }));
+    const revalidation = revokedPage.waitForResponse(response => new URL(response.url()).pathname === '/api/auth/me');
+    await contextB.setOffline(false);
+    assert.equal((await revalidation).status(), 401);
+    await revokedPage.waitForFunction(() => !document.body.textContent.includes('Rua do runner, 100, bairro de teste'));
     assert.equal((await contextB.request.get(`/api/driver/tasks/${id}`)).status(), 401, 'Account deactivation revokes existing driver sessions');
     assert.equal((await admin.put(`/api/fulfillments/${id}/driver`, { headers, data: { ...assignment, driverId: b.id, expectedVersion: saved.version + 1, requestKey: randomUUID() } })).status(), 409);
   } finally { await contextA.close(); await contextB.close(); }

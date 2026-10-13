@@ -141,6 +141,13 @@ ERP/PDV ainda não identificado (usuário respondeu que não sabe). Não bloquei
 
 ## Progresso e retomada
 
+### Reconexão sem desmontar formulário autenticado — 13/10/2026
+
+Gate 38420031291 superou a navegação offline/retorno, mas encontrou perda do wizard ao reconectar durante confirmação de entrega. Evidência de código: listener online do AuthProvider mudava status para loading, desmontando a rota inteira mesmo para a mesma conta autenticada. Agora a verificação de reconexão ocorre em segundo plano; a mesma identidade preserva formulário em memória. Erro transitório da verificação preserva sessão conhecida; bootstrap sem identidade continua sem autenticação presumida. 401 continua limpando sessão/cache privado e revogando acesso; mudança real de conta também limpa cache. Autorização ativa no servidor de cada consulta/mutação permanece obrigatória e inalterada. Não cria login offline, fila ou envio automático.
+
+Teste de entrega continua exigindo bloqueio offline, checkbox preservado, saldo anterior no banco e confirmação real após conexão. Acrescentado teste de conta desativada enquanto offline: reconectar recebe 401 de /auth/me e retira endereço privado da tela. TypeScript/build/textos/sintaxe passaram; lint sem erros (aviso existente de Fast Refresh no AuthContext). Novo gate/deploy ainda pendentes, objetivo completo permanece ativo.
+
+
 ### Correção do seletor de retorno online — 13/10/2026
 
 Gate 38418748103 terminou com falha no seletor final do PWA: a página tem título h1 do painel e h2 do conteúdo “Minhas entregas”, e o seletor sem nível encontrou os dois. Etapas anteriores de manifesto, controlador, cache restrito e navegação offline passaram até esse ponto. Teste agora exige especificamente heading nível 2 do conteúdo, mantendo todas as verificações e sem retry/bypass de permissão ou enfraquecimento do gate. Workflow antigo não publicou por falha; validar o novo incremento antes de declarar PWA concluído. Demais requisitos do objetivo continuam pendentes.

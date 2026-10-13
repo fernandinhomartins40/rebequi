@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(nextUser);
   }, [queryClient]);
 
-  const refreshSession = useCallback(async (): Promise<User | null> => {
+  const refreshSession = useCallback(async (preserveOnTransientFailure = false): Promise<User | null> => {
     try {
       const currentUser = await getCurrentUser();
       setSessionUser(currentUser);
@@ -65,6 +65,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setStatus('unauthenticated');
         return null;
       }
+
+      // A reconnect probe must not erase a known session and its in-memory draft
+      // for a transient network/server failure. Every mutation still authenticates
+      // independently on the server; an actual 401 always revokes the session.
+      if (preserveOnTransientFailure && sessionResolved.current && sessionUserId.current) throw error;
 
       setSessionUser(null);
       setStatus('unauthenticated');
@@ -81,8 +86,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const reconnect = () => {
-      setStatus('loading');
-      void refreshSession().catch(() => { setStatus('unauthenticated'); });
+      // Keep the authenticated workspace mounted while revalidating its identity.
+      void refreshSession(true).catch(() => { /* Existing session remains only for transient failure. */ });
     };
     window.addEventListener('online', reconnect);
     return () => window.removeEventListener('online', reconnect);
