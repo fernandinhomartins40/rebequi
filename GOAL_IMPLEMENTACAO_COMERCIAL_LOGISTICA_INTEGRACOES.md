@@ -456,3 +456,8 @@ A auditoria identificou que o passo comercial poderia consumir frações de UNIT
 ### Linha comercial com conversão explícita — 13/10/2026
 
 Publicação de ce4403a confirmada pelo deploy 115428324005, após integração 115426035899 aprovada. Acrescentado calculateCommercialUnitLine no pacote compartilhado: valida confirmação e passo, normaliza os decimais, calcula consumo na unidade de estoque com fator explícito e totaliza em centavos na unidade comercial. Retorna apenas strings monetárias/decimais serializáveis; não recebe total do cliente nem infere preço ou unidade. Exemplo testado: 0,25 TONNE a 12.345 centavos/TONNE consome 250 KG e totaliza 3.086 centavos. O resultado conserva os valores originais se outra política for calculada depois. 78 testes passaram. Ainda é base de cálculo: persistência de snapshots nas linhas, migração decimal e integração operacional seguem pendentes; não confundir com venda fracionada já disponível.
+
+
+### Prévia autenticada de linha por medida — 13/10/2026
+
+O deploy 115432931201 confirmou a publicação de e12f34e. Acrescentado POST /api/products/admin/:id/unit-policy/preview, restrito a catalog:read, origem confiável e no-store. Consulta política atual em snapshot transacional, exige versão esperada e preço por unidade explicitamente confirmado. Não usa preço legado sem unidade, não recebe totais calculados pelo cliente, não reserva nem movimenta saldo. Calcula somente com política persistida; versão antiga retorna conflito e quantidade fora do passo é rejeitada. Testes integrados cobrem essas condições e preservação dos saldos; dependem do workflow. Interface de prévia e integração transacional com pedidos/estoque ainda pendentes.

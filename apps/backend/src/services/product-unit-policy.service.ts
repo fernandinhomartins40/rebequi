@@ -1,13 +1,28 @@
 import { createHash } from 'node:crypto';
-import { saveCommercialUnitPolicySchema, type SaveCommercialUnitPolicyInput } from '@rebequi/shared/schemas';
+import { saveCommercialUnitPolicySchema, commercialUnitPolicySchema, previewCommercialUnitLineSchema, calculateCommercialUnitLine, type PreviewCommercialUnitLineInput, type SaveCommercialUnitPolicyInput } from '@rebequi/shared/schemas';
 import { formatCommercialQuantity, parseCommercialQuantity } from '@rebequi/shared/utils';
 import { hasMerchantPermission } from '@rebequi/shared/constants';
 import type { ProductUnitPolicy } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
-import { ConflictError, ForbiddenError, NotFoundError } from '../utils/errors.util.js';
+import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../utils/errors.util.js';
 function serialize(row: ProductUnitPolicy) {
   return { id: row.id, version: row.version, commercialUnit: row.commercialUnit, stockUnit: row.stockUnit,
     stockPerCommercialUnit: row.stockPerCommercialUnit.toString(), quantityStep: row.quantityStep.toString(), reason: row.reason, createdAt: row.createdAt };
+}
+export async function previewProductUnitLine(productId: string, raw: PreviewCommercialUnitLineInput) {
+  const input = previewCommercialUnitLineSchema.parse(raw);
+  return prisma.$transaction(async tx => {
+    if (!await tx.product.count({ where: { id: productId, deletedAt: null } })) throw new NotFoundError('Produto não encontrado.');
+    const row = await tx.productUnitPolicy.findFirst({ where: { productId }, orderBy: { version: 'desc' } });
+    if (!row || row.version !== input.expectedVersion) throw new ConflictError('A política mudou ou não foi registrada. Recarregue antes de conferir.');
+    try {
+      const policy = commercialUnitPolicySchema.parse({ commercialUnit: row.commercialUnit, stockUnit: row.stockUnit, stockPerCommercialUnit: row.stockPerCommercialUnit.toString(), quantityStep: row.quantityStep.toString(), confirmed: true });
+      const line = calculateCommercialUnitLine(policy, input.quantity, BigInt(input.unitPriceCents));
+      return { policyId: row.id, policyVersion: row.version, line, operational: false, priceSource: 'EXPLICIT_PREVIEW' };
+    } catch {
+      throw new ValidationError('Confira o passo, as unidades e o preço confirmado da prévia.');
+    }
+  }, { isolationLevel: 'RepeatableRead' });
 }
 export async function getProductUnitPolicy(productId: string) {
   return prisma.$transaction(async tx => {

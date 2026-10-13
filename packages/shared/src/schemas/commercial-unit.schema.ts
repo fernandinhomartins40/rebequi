@@ -28,6 +28,13 @@ export const saveCommercialUnitPolicySchema = z.object({
   policy: commercialUnitPolicySchema, reason: z.string().trim().min(3).max(300),
 }).strict();
 export type SaveCommercialUnitPolicyInput = z.infer<typeof saveCommercialUnitPolicySchema>;
+export const previewCommercialUnitLineSchema = z.object({
+  expectedVersion: z.number().int().positive(),
+  quantity: positive,
+  unitPriceCents: z.string().regex(/^\d{1,16}$/).refine(value => /^\d{1,16}$/.test(value) && BigInt(value) <= 9007199254740991n, 'Preço acima do limite.'),
+  unitPriceConfirmed: z.literal(true),
+}).strict();
+export type PreviewCommercialUnitLineInput = z.infer<typeof previewCommercialUnitLineSchema>;
 
 export function validateCommercialUnitQuantity(policy: CommercialUnitPolicy, quantity: string): string {
   const verified = commercialUnitPolicySchema.parse(policy);

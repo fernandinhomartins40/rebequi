@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { commercialUnitPolicySchema, validateCommercialUnitQuantity, calculateCommercialUnitLine } from '@rebequi/shared/schemas';
+import { commercialUnitPolicySchema, validateCommercialUnitQuantity, calculateCommercialUnitLine, previewCommercialUnitLineSchema } from '@rebequi/shared/schemas';
 test('Unit policies require explicit confirmation and preserve indivisible packages', () => {
   const input = { commercialUnit: 'BAG', stockUnit: 'KG', stockPerCommercialUnit: '50', quantityStep: '1', confirmed: true };
   const policy = commercialUnitPolicySchema.parse(input);
@@ -41,4 +41,12 @@ test('Commercial line prices the sale unit and consumes the explicit stock unit'
   const changedPolicy = { ...policy, stockPerCommercialUnit: '999' };
   assert.equal(calculateCommercialUnitLine(changedPolicy, '0.25', 12345n).stockQuantity, '249.75');
   assert.equal(line.stockQuantity, '250');
+});
+
+test('Preview requires explicit price confirmation and rejects injected totals', () => {
+  const input = { expectedVersion: 1, quantity: '0.125', unitPriceCents: '9007199254740991', unitPriceConfirmed: true };
+  assert.equal(previewCommercialUnitLineSchema.safeParse(input).success, true);
+  for (const price of ['9007199254740992', '1.5', '-1', '', 'abc']) assert.equal(previewCommercialUnitLineSchema.safeParse({ ...input, unitPriceCents: price }).success, false);
+  assert.equal(previewCommercialUnitLineSchema.safeParse({ ...input, unitPriceConfirmed: false }).success, false);
+  assert.equal(previewCommercialUnitLineSchema.safeParse({ ...input, lineTotalCents: '1' }).success, false);
 });

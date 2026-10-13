@@ -18,6 +18,16 @@ export async function validateProductUnitPolicy({ admin, owner, guest, browser, 
   assert.equal((await admin.put(path, { headers, data: { ...input, requestKey: randomUUID() } })).status(), 409);
   const second = await data(await admin.put(path, { headers, data: { ...input, requestKey: randomUUID(), expectedVersion: 1, policy: { ...input.policy, quantityStep: '0.25' } } }));
   assert.equal(second.policy.version, 2); assert.equal((await data(await admin.get(path))).policy.id, second.policy.id);
+  const previewPath = `${path}/preview`;
+  const previewInput = { expectedVersion: 2, quantity: '0.5', unitPriceCents: '12345', unitPriceConfirmed: true };
+  assert.equal((await owner.post(previewPath, { headers, data: previewInput })).status(), 403);
+  assert.equal((await admin.post(previewPath, { data: previewInput })).status(), 403);
+  assert.equal((await admin.post(previewPath, { headers, data: { ...previewInput, expectedVersion: 1 } })).status(), 409);
+  assert.equal((await admin.post(previewPath, { headers, data: { ...previewInput, quantity: '0.3' } })).status(), 400);
+  assert.equal((await admin.post(previewPath, { headers, data: { ...previewInput, unitPriceConfirmed: false } })).status(), 400);
+  const preview = await data(await admin.post(previewPath, { headers, data: previewInput }));
+  assert.equal(preview.policyId, second.policy.id); assert.equal(preview.operational, false);
+  assert.equal(preview.priceSource, 'EXPLICIT_PREVIEW'); assert.equal(preview.line.stockQuantity, '0.5'); assert.equal(preview.line.lineTotalCents, '6173');
   assert.deepEqual(await data(await admin.put(path, { headers, data: input })), first);
   const immutable = JSON.parse(db(`let blocked=false;try{await prisma.productUnitPolicy.update({where:{id:${JSON.stringify(first.policy.id)}},data:{quantityStep:'0.5'}});}catch{blocked=true;}console.log(JSON.stringify({blocked}));`).trim().split('\n').at(-1)); assert.equal(immutable.blocked, true);
   assert.equal(Number(db(`console.log(await prisma.productUnitPolicy.count({where:{productId:${JSON.stringify(product.id)}}}));`).trim()), 2);
