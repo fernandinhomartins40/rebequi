@@ -21,7 +21,7 @@ import { OrderMaterials } from './order-materials';
 export function OrdersTab() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const { addItem } = useCart();
+  const { addItem, getItemQuantity } = useCart();
   const { toast } = useToast();
   const [repeating, setRepeating] = useState<string | null>(null);
   const ordersQuery = useQuery({
@@ -47,13 +47,14 @@ export function OrdersTab() {
         if (!item.productId) { unavailable.push(item.productNameSnapshot); continue; }
         try {
           const product = await fetchProductById(item.productId);
-          const available = Math.max(0, product.stock - (product.reservedStock ?? 0));
-          if (!product.isActive || available <= 0) {
+          const available = Math.max(0, product.availableStock ?? product.stock - (product.reservedStock ?? 0));
+          const remaining = Math.max(0, available - getItemQuantity(product.id));
+          if (!product.isActive || remaining <= 0) {
             unavailable.push(item.productNameSnapshot); continue;
           }
-          addItem(product, Math.min(item.quantity, available));
+          addItem(product, Math.min(item.quantity, remaining));
           added++;
-          if (available < item.quantity) unavailable.push(`${product.name} (quantidade reduzida ao estoque disponível)`);
+          if (remaining < item.quantity) unavailable.push(`${product.name} (quantidade reduzida ao estoque disponível)`);
         } catch { unavailable.push(item.productNameSnapshot); }
       }
       toast({
