@@ -6,8 +6,10 @@
 - [x] Criar identidades, manifestos e ícones distintos para Cliente, Vendas e Entregas, preservando o app Entregas instalado.
 - [x] Criar página pública `/aplicativos/` com seleção e instaladores individuais, botão Android quando disponível e instruções Safari/iOS.
 - [x] Reutilizar os painéis, autenticação e permissões existentes; manter cache restrito ao aviso público de falta de conexão.
-- [ ] Validar instalação, cancelamento do convite, manifestos, isolamento de workers/cache, acesso protegido e responsividade nos testes de navegador.
-- [ ] Validar build/lint/tipos e publicar pela main via GitHub Actions; conferir produção.
+- [x] Validar instalação, cancelamento do convite, manifestos, isolamento de workers/cache, acesso protegido e responsividade nos testes de navegador.
+- [x] Validar build/lint/tipos e publicar pela main via GitHub Actions; conferir produção.
+
+Resultado: commit `5b10f6f`, [workflow 38624384470](https://github.com/fernandinhomartins40/rebequi/actions/runs/38624384470) aprovado e publicado. 39 testes integrados passaram, incluindo a nova suíte dos três PWAs; build, lint e tipos aprovados. Versão confirmada por `/release.txt`, API saudável e testes públicos de navegador repetidos em `https://www.rebequi.com.br/aplicativos/`, sem mutações comerciais. Instalação nativa em aparelhos físicos Android/iOS não foi executada; manifesto, convite, instruções iOS e comportamento offline foram verificados em navegador automatizado. [Documentação dos PWAs](docs/PWAS_CLIENTE_VENDAS_ENTREGAS.md).
 
 Referências: [Google — instalação PWA](https://web.dev/learn/pwa/installation), [Apple — adicionar app web no iPhone](https://support.apple.com/guide/iphone/iphea86e5236/ios). A instalação nativa no iOS depende da confirmação manual no menu do navegador; testes automatizados validam o fluxo web, sem simular uma instalação real no sistema operacional.
 
