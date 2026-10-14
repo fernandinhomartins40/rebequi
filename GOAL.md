@@ -14,9 +14,9 @@ Reutilizar essas estruturas. Não criar painel paralelo, conector fictício, dad
 - [x] API: acrescentar escopos explícitos para escrita de produtos/preços, estoque, clientes e vendas, mantendo credenciais atuais sem novas permissões automáticas.
 - [x] API: reutilizar vínculos externos, movimentos de estoque, venda e logística; validar reenvio, versão, reserva de estoque e colisões de cadastro.
 - [x] Documentar contratos OpenAPI, exemplos de integração, limites e procedimentos de conciliação.
-- [ ] Testar contratos, autorização, transações, reenvios e interfaces responsivas; corrigir falhas.
-- [ ] Validar build/lint/tipos; commit e push diretamente na main; acompanhar testes isolados e deploy pelo GitHub Actions.
-- [ ] Conferir saúde da publicação e registrar resultado final.
+- [x] Testar contratos, autorização, transações, reenvios e interfaces responsivas; corrigir falhas.
+- [x] Validar build/lint/tipos; commit e push diretamente na main; acompanhar testes isolados e deploy pelo GitHub Actions.
+- [x] Conferir saúde da publicação e registrar resultado final.
 
 ## Dependências e limites
 
@@ -24,9 +24,13 @@ Reutilizar essas estruturas. Não criar painel paralelo, conector fictício, dad
 - Docker local não está em execução. Testes mutantes com PostgreSQL e navegador serão executados no banco descartável do workflow existente, antes do deploy. Produção será consultada apenas para verificação.
 - Preservar arquivos locais não rastreados anteriores ao trabalho.
 
-## Validação em andamento
+## Resultado final
 
 - 93 testes unitários/de contrato do backend aprovados; tipos e lint do frontend aprovados (somente avisos preexistentes).
 - Testes integrados adicionados ao workflow existente: isolamento do desempenho por papel; concorrência e rotação de credenciais; produtos/preços/clientes; reserva e movimentos reais de estoque; venda/pagamento/cancelamento sem duplicação; recebimento e acompanhamento de venda avulsa; interface mobile.
 - VPS consultada somente para leitura: contêineres rebequi-web, rebequi-api e rebequi-postgres identificados e saudáveis antes da publicação.
 - Gestão de permissões continua pelos perfis existentes; sem mecanismo paralelo de permissões. Clientes existentes devem ser vinculados antes da sincronização; a API não modifica credenciais de acesso.
+- Implementação publicada pelo commit `8863544` na main. [GitHub Actions 38501254995](https://github.com/fernandinhomartins40/rebequi/actions/runs/38501254995) concluído com sucesso: validação, imagens GHCR, integração e deploy.
+- 38 testes integrados aprovados no PostgreSQL descartável, incluindo concorrência, reserva, venda/pagamento/cancelamento, isolamento de vendedores, recebimento e interface mobile; zero falhas. Também aprovados os testes existentes de migração, persistência, backup/restauração e rollback do deploy.
+- Pós-publicação: API `status=ok`, frontend `healthy`, ambos os contêineres saudáveis; tabela aditiva de recibos confirmada via SELECT. OpenAPI 1.1.0 com 14 caminhos disponível; nova consulta de entregas sem sessão retorna 401.
+- Três objetivos atendidos na aplicação. Dependência externa remanescente: identificar/homologar o ERP/PDV real e configurar o integrador com credencial emitida pelo proprietário, usando [o contrato documentado](docs/API_SINCRONIZACAO.md). Nenhuma credencial de teste emitida em produção.
