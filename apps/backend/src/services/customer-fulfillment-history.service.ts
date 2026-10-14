@@ -17,7 +17,11 @@ export async function customerFulfillmentHistory(orderId: string, customerId: st
       UNION ALL
       SELECT 'transport:' || e.id AS id, e.kind, e."createdAt"
       FROM delivery_run_events e WHERE e.kind IN (${Prisma.join(PUBLIC_TRANSPORT)}) AND EXISTS (
-        SELECT 1 FROM delivery_run_stops s WHERE s."runId"=e."runId" AND s."fulfillmentId"=${fulfillmentId} AND s.active=true
+        SELECT 1 FROM delivery_run_stops s JOIN delivery_runs r ON r.id=s."runId"
+        WHERE s."runId"=e."runId" AND s."fulfillmentId"=${fulfillmentId} AND r.status<>'CANCELED'
+          AND (s.active=true OR (r.status='CLOSED' AND EXISTS (
+            SELECT 1 FROM delivery_run_items i WHERE i."stopId"=s.id AND i.loaded>0
+          )))
       )
     ) history`;
     const [events, counts] = await Promise.all([
