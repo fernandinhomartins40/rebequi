@@ -7,7 +7,9 @@
 - [x] Destacar nome e ícone do aplicativo selecionado, com prévia de identificação para conferir na confirmação do Safari.
 - [x] Unificar título HTML, título Apple e nomes do manifesto; preservar IDs e destinos existentes.
 - [x] Separar instruções por plataforma e orientar escolher outro app antes de adicionar à Tela de Início.
-- [ ] Testar troca entre os três apps, ícones/metadados/instruções e publicar a melhoria.
+- [x] Testar troca entre os três apps, ícones/metadados/instruções e publicar a melhoria.
+
+Publicado no commit `b1de40b`, [workflow 38627083692](https://github.com/fernandinhomartins40/rebequi/actions/runs/38627083692) aprovado, com 39 testes integrados sem falhas. Testes públicos repetidos em produção: nome/ícone/meta Apple, título HTML, manifesto, troca entre os três instaladores, instruções específicas de iPhone e detecção de iPad com identificação desktop. Instalação nativa em iPhone físico continua sem validação disponível nesta sessão.
 
 - [x] Conferir os PWAs existentes e os requisitos Android/iOS nas referências oficiais.
 - [x] Criar identidades, manifestos e ícones distintos para Cliente, Vendas e Entregas, preservando o app Entregas instalado.
