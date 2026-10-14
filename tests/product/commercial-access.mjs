@@ -9,6 +9,9 @@ export async function validateCommercialAccess({ owner, admin, sellerA, sellerB,
     await data(await client.post('/api/auth/login', { data: login })); profiles.push(profile);
   }
   const customer = await data(await owner.get('/api/auth/me'));
+  assert.equal((await sellerA.get('/api/commercial/performance/team?month=2026-10')).status(), 403);
+  assert.equal((await owner.get('/api/commercial/performance/team?month=2026-10')).status(), 403);
+  assert.equal((await admin.get('/api/commercial/performance/team?month=2026-13')).status(), 400);
   const checkout = await data(await owner.post('/api/orders/checkout', { headers, data: { items: [{ productId: product.id, quantity: 1 }] } }), 201);
   const order = checkout.order;
   const assign = async (kind, id, sellerId, expectedVersion = 0) => data(await admin.put(`/api/commercial/assignments/${kind}/${id}`, { headers, data: { sellerId, expectedVersion, reason: 'Distribuição controlada no runner', confirmed: true } }));
@@ -112,6 +115,9 @@ export async function validateCommercialAccess({ owner, admin, sellerA, sellerB,
   assert.equal(performance.refundCents, '0'); assert.equal(performance.netCents, performance.grossCents);
   assert.equal(performance.commissionCalculated, false);
   assert.equal((await data(await sellerB.get(`/api/commercial/performance/me?month=${month}`))).paidSales, 0);
+  const teamPerformance = await data(await admin.get(`/api/commercial/performance/team?month=${month}`));
+  assert.equal(teamPerformance.sellers.find(value => value.id === profiles[0].id).paidSales, 1);
+  assert.equal(teamPerformance.sellers.find(value => value.id === profiles[1].id).paidSales, 0);
   const brazilParts = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit' }).formatToParts(new Date());
   const brazilYear = Number(brazilParts.find(part => part.type === 'year').value);
   const brazilMonth = Number(brazilParts.find(part => part.type === 'month').value);
@@ -178,6 +184,8 @@ export async function validateCommercialAccess({ owner, admin, sellerA, sellerB,
     await page.getByRole('button', { name: 'Confirmar distribuição', exact: true }).click(); await page.getByText('Responsável atualizado.', { exact: true }).waitFor();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await page.goto(`${baseURL}/painel-lojista/painel/atendimentos`);
+    await page.getByRole('heading', { name: 'Desempenho da equipe', exact: true }).waitFor();
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await page.getByText('Definir meta futura', { exact: true }).click();
     await page.getByLabel('Colaborador', { exact: true }).selectOption(profiles[0].id);
     await page.getByText('Meta atual: versão 2.', { exact: false }).waitFor();
@@ -247,6 +255,7 @@ export async function validateCommercialAccess({ owner, admin, sellerA, sellerB,
   try {
     await sellerContext.addCookies((await sellerA.storageState()).cookies); const page = await sellerContext.newPage(); await page.setViewportSize({ width: 320, height: 844 });
     await page.goto(`${baseURL}/painel-lojista/painel/atendimentos`); await page.getByRole('heading', { name: 'Meus atendimentos', exact: true, level: 2 }).waitFor();
+    assert.equal(await page.getByRole('heading', { name: 'Desempenho da equipe', exact: true }).count(), 0);
     await page.getByText(/Encaminhamentos/).click();
     await page.getByText('Pedido encaminhado para você', { exact: true }).first().waitFor();
     await page.getByRole('button', { name: 'Marcar como lido', exact: true }).first().click();

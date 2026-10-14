@@ -21,8 +21,14 @@ const saleInclude = {
 } satisfies Prisma.SaleInclude;
 
 export class SaleRepository {
+  constructor(private readonly transaction?: Prisma.TransactionClient) {}
+  get isTransactional() { return Boolean(this.transaction); }
+  private get db() { return this.transaction ?? prisma; }
+  private transact<T>(work: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
+    return this.transaction ? work(this.transaction) : prisma.$transaction(work);
+  }
   async findByIdempotencyKey(idempotencyKey: string) {
-    return prisma.sale.findUnique({ where: { idempotencyKey }, include: saleInclude });
+    return this.db.sale.findUnique({ where: { idempotencyKey }, include: saleInclude });
   }
   /**
    * Creates a sale, its items and the corresponding stock movements, and
@@ -34,7 +40,7 @@ export class SaleRepository {
     sale: Prisma.SaleCreateInput;
     stockDecrements: Array<{ productId: string; quantity: number; stockBefore: number; reason: string }>;
   }) {
-    return prisma.$transaction(async (tx) => {
+    return this.transact(async (tx) => {
       let assignedSellerId = params.sale.registeredBy?.connect?.id;
       const orderId = params.sale.order?.connect?.id;
       if (orderId) {
@@ -45,6 +51,9 @@ export class SaleRepository {
         assignedSellerId = order.assignedSellerId ?? assignedSellerId;
       }
       const customerId = params.sale.customer?.connect?.id;
+      if (customerId && !await tx.user.findFirst({ where: { id: customerId, role: 'CUSTOMER', isActive: true }, select: { id: true } })) {
+        throw new ValidationError('Cliente ativo não encontrado.');
+      }
       if (customerId && params.actor?.role === 'SALES' && !orderId) {
         await tx.$queryRaw`SELECT id FROM users WHERE id=${customerId} FOR UPDATE`;
         await requireCommercialAccess('customer', customerId, params.actor, tx);
@@ -88,7 +97,7 @@ export class SaleRepository {
   }
 
   async transitionStatus(id: string, status: 'PAID' | 'PENDING_PAYMENT' | 'CANCELED', notes?: string | null, actorId?: string, actor?: CommercialActor) {
-    return prisma.$transaction(async tx => {
+    return this.transact(async tx => {
       // Serialize transitions so duplicate cancellations cannot restore twice.
       await tx.$queryRaw`SELECT id FROM sales WHERE id = ${id} FOR UPDATE`;
       await requireCommercialAccess('sale', id, actor, tx);

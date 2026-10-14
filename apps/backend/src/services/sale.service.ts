@@ -32,8 +32,8 @@ export class SaleService {
   private orderRepository: OrderRepository;
   private customerService: CustomerService;
 
-  constructor() {
-    this.saleRepository = new SaleRepository();
+  constructor(repository?: SaleRepository) {
+    this.saleRepository = repository ?? new SaleRepository();
     this.productRepository = new ProductRepository();
     this.orderRepository = new OrderRepository();
     this.customerService = new CustomerService();
@@ -42,7 +42,7 @@ export class SaleService {
   async createSale(registeredById: string | undefined, data: CreateSaleInput, actor?: CommercialActor) {
     try { return await this.createSaleOnce(registeredById, data, actor); }
     catch (error) {
-      if (data.idempotencyKey) {
+      if (data.idempotencyKey && !this.saleRepository.isTransactional) {
         const key = createHash('sha256').update(`${registeredById ?? ''}:${data.idempotencyKey}`).digest('hex');
         const existing = await this.saleRepository.findByIdempotencyKey(key);
         if (existing) {
@@ -159,7 +159,7 @@ export class SaleService {
         reason: `Venda ${item.productNameSnapshot}`,
       })),
     }).catch(async error => {
-      if (requestKey && error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      if (!this.saleRepository.isTransactional && requestKey && error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         const existing = await this.saleRepository.findByIdempotencyKey(requestKey);
         if (existing?.requestFingerprint === fingerprint) return existing;
       }
@@ -167,7 +167,7 @@ export class SaleService {
     });
 
     // CRM: uma venda paga promove o cliente no funil (cliente/recorrente).
-    if (customerId) {
+    if (customerId && !this.saleRepository.isTransactional) {
       try { await this.customerService.maybeAdvanceStage(customerId); }
       catch { logger.warn('CRM refresh deferred after committed sale', { saleId: sale.id }); }
     }

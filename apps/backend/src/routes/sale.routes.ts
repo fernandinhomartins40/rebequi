@@ -13,10 +13,15 @@ import { z } from 'zod';
 import { saleReturnSchema, saleReturnPreviewSchema } from '@rebequi/shared/schemas';
 import { requireTrustedOrigin } from '../middleware/trusted-origin.middleware.js';
 import { listSaleReturns, createSaleReturn, previewSaleReturn } from '../services/sale-return.service.js';
+import { customerSaleDeliveries } from '../services/customer-sale-deliveries.service.js';
 
 const router: Router = Router();
 const saleController = new SaleController();
 const saleRoles = getRolesForMerchantPermission('sales:manage');
+router.get('/me/deliveries', authenticate, authorize('CUSTOMER'), validateQuery(z.object({ page: z.coerce.number().int().min(1).max(100000).default(1) }).strict()), async (req, res, next) => {
+  res.setHeader('Cache-Control', 'private, no-store');
+  try { res.json({ success: true, data: await customerSaleDeliveries(req.user!.userId, Number(req.query.page)) }); } catch (error) { next(error); }
+});
 router.post('/admin/:id/returns/preview', authenticate, authorize(...saleRoles), requireTrustedOrigin, validateBody(saleReturnPreviewSchema), async (req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
   try { res.json({ success: true, data: await previewSaleReturn(req.params.id, req.body, req.user) }); } catch (error) { next(error); }

@@ -17,6 +17,7 @@ import { DashboardHeading } from '@/components/dashboard/DashboardElements';
 import { DashboardEmpty, DashboardError, DashboardLoading } from '@/components/dashboard/DashboardList';
 import { OrderHistory } from './order-history';
 import { OrderMaterials } from './order-materials';
+import { SaleDeliveries } from './sale-deliveries';
 
 export function OrdersTab() {
   const [params] = useSearchParams();
@@ -68,6 +69,7 @@ export function OrdersTab() {
   };
 
   return <div className="space-y-5">
+    <SaleDeliveries />
     <DashboardHeading title="Meus pedidos" description="Acompanhe seus pedidos e retome a conversa com a loja." actions={
       <Button variant="outline" size="sm" onClick={() => void ordersQuery.refetch()} disabled={ordersQuery.isFetching}>
         <RefreshCcw className="mr-2 h-4 w-4" /> Atualizar pedidos

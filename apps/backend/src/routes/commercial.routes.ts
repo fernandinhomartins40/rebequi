@@ -33,6 +33,18 @@ router.post('/notifications/:id/read', authorize(...getRolesForMerchantPermissio
     try { successResponse(res, await readCommercialNotification(req.user!.userId, req.params.id)); } catch (error) { next(error); }
   });
 const goalMonthQuery = z.object({ month: z.string().regex(/^20\d{2}-(?:0[1-9]|1[0-2])$/) }).strict();
+router.get('/performance/team', authorize(...assignmentRoles), validateQuery(goalMonthQuery.extend({ page: z.coerce.number().int().min(1).max(100000).default(1) })), async (req, res, next) => {
+  try {
+    const page = Number(req.query.page); const month = req.query.month as string;
+    const where = { role: { in: ['SALES', 'ADMIN', 'MANAGER'] as ('SALES' | 'ADMIN' | 'MANAGER')[] } };
+    const [sellers, total] = await Promise.all([
+      prisma.user.findMany({ where, orderBy: [{ name: 'asc' }, { id: 'asc' }], skip: (page - 1) * 20, take: 20, select: { id: true, name: true, isActive: true } }),
+      prisma.user.count({ where }),
+    ]);
+    const performance = await Promise.all(sellers.map(async seller => ({ ...seller, ...await sellerMonthlyPerformance(seller.id, month) })));
+    successResponse(res, { sellers: performance, total, page, totalPages: Math.ceil(total / 20) });
+  } catch (error) { next(error); }
+});
 router.get('/goals/:sellerId', authorize(...assignmentRoles), validateParams(z.object({ sellerId: z.string().min(1).max(128) }).strict()),
   validateQuery(goalMonthQuery), async (req, res, next) => {
     try { successResponse(res, { goal: await currentSellerGoal(req.params.sellerId, req.query.month as string) }); } catch (error) { next(error); }

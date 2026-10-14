@@ -22,6 +22,8 @@ import { createExternalCategoryLink, revokeExternalCategoryLink } from '../servi
 import { previewCustomerImport } from '../services/customer-import-preview.service.js';
 import { compareCustomerImportBatch, stageExternalCustomerImport } from '../services/external-customer-import-batch.service.js';
 import { createExternalCustomerLink, revokeExternalCustomerLink } from '../services/external-customer-link.service.js';
+import { externalIdSchema, syncProductSchema, syncStockSchema, syncCustomerSchema, syncSaleSchema, syncSaleStatusSchema } from '@rebequi/shared/schemas';
+import { syncExternalProduct, syncExternalStock, syncExternalCustomer, syncExternalSale, syncExternalSaleStatus } from '../services/external-sync.service.js';
 
 export const externalAdminRoutes: Router = Router();
 externalAdminRoutes.use(authenticate, authorize(...getRolesForMerchantPermission('integrations:manage')), requireTrustedOrigin, (_req, res, next) => { res.setHeader('Cache-Control', 'private, no-store'); next(); });
@@ -188,6 +190,42 @@ externalApiRoutes.use(async (req, res, next) => {
 });
 externalApiRoutes.use(rateLimit({ windowMs: 60000, max: 30, standardHeaders: true, legacyHeaders: false, keyGenerator: (_req, res) => res.locals.externalClient.id, message: { success: false, error: 'Limite da integração atingido. Aguarde e tente novamente.' } }));
 const scope = (name: string): RequestHandler => (_req, res, next) => res.locals.externalClient.scopes.includes(name) ? next() : next(new ForbiddenError('Permissão insuficiente para esta operação'));
+const externalParams = z.object({ externalId: externalIdSchema }).strict();
+externalApiRoutes.put('/products/:externalId', scope('catalog:write'), validateParams(externalParams), validateBody(syncProductSchema), async (req, res, next) => {
+  try { successResponse(res, await syncExternalProduct(res.locals.externalClient, req.params.externalId, req.body)); } catch (error) { next(error); }
+});
+externalApiRoutes.put('/stock/:externalId', scope('stock:write'), validateParams(externalParams), validateBody(syncStockSchema), async (req, res, next) => {
+  try { successResponse(res, await syncExternalStock(res.locals.externalClient, req.params.externalId, req.body)); } catch (error) { next(error); }
+});
+externalApiRoutes.put('/customers/:externalId', scope('customers:write'), validateParams(externalParams), validateBody(syncCustomerSchema), async (req, res, next) => {
+  try { successResponse(res, await syncExternalCustomer(res.locals.externalClient, req.params.externalId, req.body)); } catch (error) { next(error); }
+});
+externalApiRoutes.put('/sales/:externalId', scope('sales:write'), validateParams(externalParams), validateBody(syncSaleSchema), async (req, res, next) => {
+  try { successResponse(res, await syncExternalSale(res.locals.externalClient, req.params.externalId, req.body)); } catch (error) { next(error); }
+});
+externalApiRoutes.patch('/sales/:externalId/status', scope('sales:write'), validateParams(externalParams), validateBody(syncSaleStatusSchema), async (req, res, next) => {
+  try { successResponse(res, await syncExternalSaleStatus(res.locals.externalClient, req.params.externalId, req.body)); } catch (error) { next(error); }
+});
+externalApiRoutes.get('/customers', scope('customers:read'), validateQuery(paging), async (req, res, next) => {
+  try {
+    const page = Number(req.query.page); const limit = Number(req.query.limit);
+    const where = { role: 'CUSTOMER' as const, ...(req.query.updatedSince ? { updatedAt: { gte: new Date(String(req.query.updatedSince)) } } : {}) };
+    const [rows, total] = await Promise.all([prisma.user.findMany({ where, orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }], skip: (page - 1) * limit, take: limit,
+      select: { id: true, name: true, email: true, whatsapp: true, isActive: true, updatedAt: true } }), prisma.user.count({ where })]);
+    successResponse(res, { customers: rows.map(row => ({ ...row, email: row.email.includes('@') ? row.email : null })), total, page, limit, totalPages: Math.ceil(total / limit), requestId: res.locals.requestId });
+  } catch (error) { next(error); }
+});
+externalApiRoutes.get('/sales', scope('sales:read'), validateQuery(paging), async (req, res, next) => {
+  try {
+    const page = Number(req.query.page); const limit = Number(req.query.limit);
+    const where = req.query.updatedSince ? { updatedAt: { gte: new Date(String(req.query.updatedSince)) } } : {};
+    const [rows, total] = await Promise.all([prisma.sale.findMany({ where, orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }], skip: (page - 1) * limit, take: limit,
+      select: { id: true, referenceCode: true, customerId: true, orderId: true, status: true, paymentMethod: true, total: true, updatedAt: true,
+        items: { select: { productId: true, quantity: true, unitPrice: true } } } }), prisma.sale.count({ where })]);
+    successResponse(res, { sales: rows.map(({ total: amount, items, ...sale }) => ({ ...sale, totalCents: String(Math.round(amount * 100)),
+      items: items.map(({ unitPrice, ...item }) => ({ ...item, unitPriceCents: String(Math.round(unitPrice * 100)) })) })), total, page, limit, totalPages: Math.ceil(total / limit), requestId: res.locals.requestId });
+  } catch (error) { next(error); }
+});
 externalApiRoutes.post('/imports/products/batches', scope('imports:write'), validateBody(stageProductImportSchema), async (req, res, next) => {
   try { successResponse(res, await stageExternalProductImportFromApi(res.locals.externalClient.id, req.body), 201); }
   catch (error) { next(error); }

@@ -17,6 +17,7 @@ import { validatePartnerFinance } from './partner-finance.mjs';
 import { validateCommercialAccess } from './commercial-access.mjs';
 import { validateFulfillment } from './fulfillment.mjs';
 import { validateExternalApi } from './external-api.mjs';
+import { validateExternalSync } from './external-sync.mjs';
 import { validatePartnerRewards } from './partner-rewards.mjs';
 
 // Mutating validation is confined to a disposable, GitHub-hosted runner.
@@ -117,6 +118,12 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
       const admin = await client(); const guest = await client();
       await data(await admin.post('/api/auth/login', { data: { identifier: 'integration@example.invalid', password: 'integration-only-admin-password' } }));
       await validateExternalApi({ owner, admin, guest, browser, baseURL, data, db });
+    });
+    await restartIsolatedApi();
+    await t.test('ERP writes reuse real stock, customers, sales and customer delivery tracking with safe retries', async () => {
+      const admin = await client(); const guest = await client();
+      await data(await admin.post('/api/auth/login', { data: { identifier: 'integration@example.invalid', password: 'integration-only-admin-password' } }));
+      await validateExternalSync({ owner, admin, guest, browser, baseURL, data, db, product });
     });
     await restartIsolatedApi();
     await t.test('Private projects, verified calculations and grouped quote requests', async () => {

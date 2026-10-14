@@ -949,6 +949,19 @@ model FulfillmentEvidence {
   @@map("fulfillment_evidence")
 }
 
+model ExternalSyncReceipt {
+  id String @id
+  source String
+  kind String
+  externalId String
+  requestKey String
+  fingerprint String
+  result Json
+  createdAt DateTime @default(now())
+  @@index([source, kind, externalId])
+  @@map("external_sync_receipts")
+}
+
 model ExternalApiClient {
   requestKey String @unique
   id String @id @default(cuid())

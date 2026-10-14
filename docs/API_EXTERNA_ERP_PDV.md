@@ -1,4 +1,6 @@
-# API externa Rebequi v1 — consulta
+# API externa Rebequi v1 — consultas e revisão de lotes
+
+> Este documento descreve os fluxos de consulta e revisão de lotes preservados da versão inicial. A versão 1.1 também oferece escrita direta com escopos próprios, documentada em [API de sincronização](API_SINCRONIZACAO.md). As limitações de aplicação abaixo referem-se aos lotes de revisão, não às novas rotas PUT/PATCH. O contrato vigente completo está em `/api/external/v1/openapi.json`.
 
 Esta entrega permite consulta autenticada de catálogo/preços, saldos e pedidos desta instalação Rebequi e recebimento de lotes de produtos para revisão. O recebimento não aplica registros nem escreve catálogo, estoque ou pagamento; não conecta ERP, não envia webhook e não substitui homologação. O ERP/PDV da loja ainda não foi identificado. Outbox externa e autoridade configurável por domínio seguem pendentes.
 
