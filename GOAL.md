@@ -1,5 +1,16 @@
 # Melhorias integradas: vendedores, entregas e API
 
+## PWAs separados — solicitação adicional
+
+- [x] Conferir os PWAs existentes e os requisitos Android/iOS nas referências oficiais.
+- [x] Criar identidades, manifestos e ícones distintos para Cliente, Vendas e Entregas, preservando o app Entregas instalado.
+- [x] Criar página pública `/aplicativos/` com seleção e instaladores individuais, botão Android quando disponível e instruções Safari/iOS.
+- [x] Reutilizar os painéis, autenticação e permissões existentes; manter cache restrito ao aviso público de falta de conexão.
+- [ ] Validar instalação, cancelamento do convite, manifestos, isolamento de workers/cache, acesso protegido e responsividade nos testes de navegador.
+- [ ] Validar build/lint/tipos e publicar pela main via GitHub Actions; conferir produção.
+
+Referências: [Google — instalação PWA](https://web.dev/learn/pwa/installation), [Apple — adicionar app web no iPhone](https://support.apple.com/guide/iphone/iphea86e5236/ios). A instalação nativa no iOS depende da confirmação manual no menu do navegador; testes automatizados validam o fluxo web, sem simular uma instalação real no sistema operacional.
+
 ## Análise e escopo
 
 A base já possui perfis ADMIN/MANAGER/SALES/WAREHOUSE/DRIVER, carteiras e atribuições comerciais auditadas, pedidos/orçamentos assistidos, vendas transacionais com estoque, metas e desempenho individual. A logística já cria separação na venda paga, permite conferência, romaneios, motorista, ocorrências e comprovantes; o cliente acompanha pedidos do site. A API existente consulta catálogo/estoque/pedidos/orçamentos e recebe lotes para revisão, sem sincronização direta.

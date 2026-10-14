@@ -1,4 +1,5 @@
 import { DashboardToolbar } from "@/components/dashboard/DashboardElements";
+import { PanelAppAccess } from '@/components/dashboard/PanelAppAccess';
 import { type CSSProperties } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -62,6 +63,7 @@ export function MerchantDashboardLayout() {
           {/* Page content */}
           <div className="merchant-dashboard-scroll flex-1 overflow-y-auto">
             <div className="mx-auto w-full max-w-6xl px-4 py-6 md:px-6 md:py-8">
+              {dashboardData.userRole === 'SALES' ? <PanelAppAccess kind="vendedor" /> : null}
               <Outlet context={dashboardData} />
             </div>
           </div>

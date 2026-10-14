@@ -635,6 +635,7 @@ export function LandingFooter({
         { text: "Fale conosco", href: "/contato" },
         { text: "Solicitar orçamento", href: "/pedido" },
         { text: "Painel administrativo", href: "/painel-lojista" },
+        { text: "Instalar aplicativos", href: "/aplicativos/" },
         { text: "Profissionais parceiros", href: "/parceiros/" },
       ],
     },
@@ -664,7 +665,7 @@ export function LandingFooter({
             <div key={column.title}>
               <h3>{column.title}</h3>
               {column.links.map((link) => (
-                <Link key={link.text} to={link.href}>
+                <Link key={link.text} to={link.href} reloadDocument={link.href === '/aplicativos/'}>
                   {link.text}
                 </Link>
               ))}

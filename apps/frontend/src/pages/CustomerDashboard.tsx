@@ -5,6 +5,7 @@ import { OverviewTab } from "./customer-dashboard/overview-tab";
 import { ProfileTab } from "./customer-dashboard/profile-tab";
 import { SecurityTab } from "./customer-dashboard/security-tab";
 import { OrdersTab } from "./customer-dashboard/orders-tab";
+import { PanelAppAccess } from '@/components/dashboard/PanelAppAccess';
 
 const CustomerDashboard = () => {
   const dashboard = useCustomerDashboard();
@@ -38,6 +39,7 @@ const CustomerDashboard = () => {
 
   return (
     <CustomerDashboardLayout {...dashboard}>
+      <PanelAppAccess kind="cliente" />
       {activeTab === "orders" ? <OrdersTab /> : null}
       {activeTab === "overview" ? (
         <OverviewTab

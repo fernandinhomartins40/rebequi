@@ -19,6 +19,7 @@ import { validateFulfillment } from './fulfillment.mjs';
 import { validateExternalApi } from './external-api.mjs';
 import { validateExternalSync } from './external-sync.mjs';
 import { validatePartnerRewards } from './partner-rewards.mjs';
+import { validatePwaApps } from './pwa-apps.mjs';
 
 // Mutating validation is confined to a disposable, GitHub-hosted runner.
 if (process.env.CI !== 'true' || process.env.GITHUB_ACTIONS !== 'true' || process.env.RUNNER_ENVIRONMENT !== 'github-hosted') {
@@ -70,6 +71,9 @@ test('Real accounts, ownership, drafts, database rollback and responsive custome
       name: 'Cliente Produto', whatsapp: '11987654321', items: [{ productId: product.id, quantity: 2 }],
     } }), 201);
     order = account.order;
+    await t.test('Three separate installable app identities, mobile selection, iOS guidance and private-cache isolation', async () => {
+      await validatePwaApps({ browser, baseURL });
+    });
     await t.test('Real partner enrollment, review, concurrency, permissions and responsive wizard', async () => {
       const guest = await client(); const admin = await client();
       await data(await admin.post('/api/auth/login', { data: { identifier: 'integration@example.invalid', password: 'integration-only-admin-password' } }));
