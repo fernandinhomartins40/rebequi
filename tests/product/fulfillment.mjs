@@ -132,10 +132,16 @@ export async function validateFulfillment({ owner, guest, admin, browser, baseUR
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   } finally { await scheduling.close(); }
   await validateDeliveryRuns({ admin, guest, owner, browser, baseURL, data, db, id, sale, product, orderId: checkout.order.id });
-  const customerHistory = await data(await owner.get(`/api/orders/me/${checkout.order.id}/fulfillment-history`)); const customerOlder = await data(await owner.get(`/api/orders/me/${checkout.order.id}/fulfillment-history?page=2`));
-  assert.ok(customerHistory.total > 20); assert.equal(customerHistory.events.length, 20); assert.ok(customerOlder.events.length > 0);
-  assert.equal(customerHistory.total, customerOlder.total); assert.ok(customerOlder.events.every(event => !customerHistory.events.some(recent => recent.id === event.id)));
-  const stages = [...customerHistory.events, ...customerOlder.events]; assert.ok(stages.some(event => event.kind === 'DEPART')); assert.ok(stages.some(event => event.kind === 'LOAD')); assert.ok(stages.every(event => Object.keys(event).sort().join(',') === 'createdAt,id,kind'));
+  const customerHistory = await data(await owner.get(`/api/orders/me/${checkout.order.id}/fulfillment-history`));
+  assert.ok(customerHistory.total > 0); assert.equal(customerHistory.events.length, Math.min(customerHistory.total, 20));
+  const stages = [...customerHistory.events];
+  for (let page = 2; page <= customerHistory.totalPages; page += 1) {
+    const older = await data(await owner.get(`/api/orders/me/${checkout.order.id}/fulfillment-history?page=${page}`));
+    assert.equal(older.total, customerHistory.total);
+    assert.ok(older.events.every(event => !stages.some(recent => recent.id === event.id)));
+    stages.push(...older.events);
+  }
+  assert.ok(stages.some(event => event.kind === 'DEPART')); assert.ok(stages.some(event => event.kind === 'LOAD')); assert.ok(stages.every(event => Object.keys(event).sort().join(',') === 'createdAt,id,kind'));
   const customerBrowser = await browser.newContext();
   try {
     await customerBrowser.addCookies((await owner.storageState()).cookies); const page = await customerBrowser.newPage(); await page.setViewportSize({ width: 390, height: 844 });
@@ -143,8 +149,10 @@ export async function validateFulfillment({ owner, guest, admin, browser, baseUR
     const card = page.locator(`#customer-order-${checkout.order.id}`);
     await card.getByText('Acompanhar etapas do pedido', { exact: true }).click();
     await card.getByText('Veículo saiu para entrega', { exact: true }).waitFor();
-    const nextPage = page.waitForResponse(response => response.url().includes(`/orders/me/${checkout.order.id}/fulfillment-history?page=2`));
-    await card.getByRole('button', { name: 'Mais antigas', exact: true }).click(); assert.equal((await nextPage).status(), 200);
+    if (customerHistory.totalPages > 1) {
+      const nextPage = page.waitForResponse(response => response.url().includes(`/orders/me/${checkout.order.id}/fulfillment-history?page=2`));
+      await card.getByRole('button', { name: 'Mais antigas', exact: true }).click(); assert.equal((await nextPage).status(), 200);
+    }
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   } finally { await customerBrowser.close(); }
   let historyVersion = (await data(await admin.get(`/api/fulfillments/${id}`))).version;
