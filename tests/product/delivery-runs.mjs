@@ -66,6 +66,8 @@ export async function validateDeliveryRuns({ admin, guest, owner, browser, baseU
     cycleVersion = cycleUnload.version;
   }
   const recent = await data(await guest.get(`/api/dispatch/runs/${run.id}/history`)); const older = await data(await guest.get(`/api/dispatch/runs/${run.id}/history?page=2`));
+  const activeCustomerHistory = await data(await owner.get(`/api/orders/me/${orderId}/fulfillment-history`));
+  assert.ok(activeCustomerHistory.events.some(event => event.kind === 'LOAD'), 'Active route should appear in customer tracking');
   assert.equal(recent.total, 23); assert.equal(recent.events.length, 20); assert.equal(older.events.length, 3);
   assert.equal(recent.total, older.total); assert.ok(older.events.every(event => event.version < recent.events.at(-1).version));
   assert.ok(recent.events.every(event => !('details' in event) && !('actorId' in event) && !('fingerprint' in event) && !('requestKey' in event)));
@@ -76,6 +78,9 @@ export async function validateDeliveryRuns({ admin, guest, owner, browser, baseU
   assert.deepEqual(await data(await admin.post(`/api/delivery-runs/${first.id}/cancel`, { headers, data: cancellation })), canceled);
   const canceledHistory = await data(await guest.get(`/api/dispatch/runs/${run.id}/history`)); assert.equal(canceledHistory.total, 24); assert.equal(canceledHistory.events[0].note, cancellation.reason);
   assert.equal((await data(await admin.get(`/api/delivery-runs/${first.id}`))).stops[0].active, false);
+  const canceledCustomerHistory = await data(await owner.get(`/api/orders/me/${orderId}/fulfillment-history`));
+  assert.equal(canceledCustomerHistory.events.some(event => event.id.startsWith('transport:')), false,
+    'Canceled routes must not appear as the current customer transport');
   const context = await browser.newContext({ timezoneId: 'America/Sao_Paulo' });
   try {
     await context.addCookies((await admin.storageState()).cookies); const page = await context.newPage(); await page.setViewportSize({ width: 390, height: 844 });
