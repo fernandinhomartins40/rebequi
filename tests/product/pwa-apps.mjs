@@ -26,6 +26,8 @@ export async function validatePwaApps({ browser, baseURL }) {
       assert.match(response.headers()['content-type'], /application\/manifest\+json/);
       assert.match(response.headers()['cache-control'], /no-cache/);
       const manifest = await response.json(); ids.push(manifest.id);
+      assert.equal(manifest.name, app.name); assert.equal(manifest.short_name, app.name);
+      assert.equal(await page.title(), app.name);
       assert.equal(manifest.scope, app.scope); assert.equal(manifest.start_url, app.start); assert.equal(manifest.display, 'standalone');
       for (const icon of manifest.icons) assert.equal((await context.request.get(icon.src)).headers()['content-type'], 'image/png');
       const cdp = await context.newCDPSession(page);
@@ -46,7 +48,7 @@ export async function validatePwaApps({ browser, baseURL }) {
           Object.assign(event, { prompt: async () => {}, userChoice: Promise.resolve({ outcome }) });
           window.dispatchEvent(event);
         }, outcome);
-        await page.getByRole('button', { name: 'Instalar aplicativo', exact: true }).click();
+        await page.getByRole('button', { name: `Instalar ${app.name}`, exact: true }).click();
         await page.getByRole('status').filter({ hasText: outcome === 'accepted' ? 'Instalação solicitada' : 'Instalação cancelada' }).waitFor();
       }
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
@@ -75,11 +77,36 @@ export async function validatePwaApps({ browser, baseURL }) {
   try {
     const page = await ios.newPage();
     for (const app of apps) {
-      await page.goto(`${app.scope}/instalar/`);
-      await page.getByRole('button', { name: 'Instalar aplicativo', exact: true }).click();
+      await page.goto('/aplicativos/');
+      await page.getByText('No iPhone/iPad, primeiro escolha um aplicativo abaixo.', { exact: false }).waitFor();
+      await page.getByRole('link', { name: `Instalar ${app.name}`, exact: true }).click();
+      const preview = page.getByTestId('ios-app-preview');
+      await preview.getByText(app.name, { exact: true }).waitFor();
+      assert.equal(await preview.getByRole('img').getAttribute('src'), `/aplicativos/${app.key}/icon-180.png`);
+      assert.equal(await page.locator('link[rel="apple-touch-icon"]').getAttribute('href'), `/aplicativos/${app.key}/icon-180.png`);
+      assert.equal(await page.locator('meta[name="apple-mobile-web-app-title"]').getAttribute('content'), app.name);
+      assert.equal(await page.title(), app.name);
+      assert.equal(await page.locator('#android-instructions').isVisible(), false);
+      for (const other of apps.filter(other => other.key !== app.key)) assert.equal(await page.getByText(other.name, { exact: true }).count(), 0);
+      await page.getByRole('button', { name: `Como adicionar ${app.name} no iPhone/iPad`, exact: true }).click();
       await page.getByRole('status').filter({ hasText: 'No Safari, use Compartilhar' }).waitFor();
+      assert.match(await page.getByRole('status').innerText(), new RegExp(app.name));
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+      await page.screenshot({ path: `tests/product/artifacts/pwa-ios-${app.key}.png`, fullPage: true });
+      await page.locator('a.back').click();
+      await page.getByRole('heading', { name: 'Escolha seu aplicativo' }).waitFor();
     }
-    await page.screenshot({ path: 'tests/product/artifacts/pwa-ios-instructions.png', fullPage: true });
   } finally { await ios.close(); }
+  const ipad = await browser.newContext({ baseURL, viewport: { width: 768, height: 1024 } });
+  try {
+    await ipad.addInitScript(() => {
+      Object.defineProperty(navigator, 'platform', { get: () => 'MacIntel' });
+      Object.defineProperty(navigator, 'maxTouchPoints', { get: () => 5 });
+    });
+    const page = await ipad.newPage();
+    await page.goto('/painel-lojista/instalar/');
+    await page.getByRole('button', { name: 'Como adicionar Rebequi Vendas no iPhone/iPad', exact: true }).waitFor();
+    assert.equal(await page.locator('#android-instructions').isVisible(), false);
+    assert.equal(await page.locator('#ios-instructions').isVisible(), true);
+  } finally { await ipad.close(); }
 }

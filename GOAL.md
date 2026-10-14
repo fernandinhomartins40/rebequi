@@ -2,6 +2,13 @@
 
 ## PWAs separados — solicitação adicional
 
+### Clareza da instalação no iOS
+
+- [x] Destacar nome e ícone do aplicativo selecionado, com prévia de identificação para conferir na confirmação do Safari.
+- [x] Unificar título HTML, título Apple e nomes do manifesto; preservar IDs e destinos existentes.
+- [x] Separar instruções por plataforma e orientar escolher outro app antes de adicionar à Tela de Início.
+- [ ] Testar troca entre os três apps, ícones/metadados/instruções e publicar a melhoria.
+
 - [x] Conferir os PWAs existentes e os requisitos Android/iOS nas referências oficiais.
 - [x] Criar identidades, manifestos e ícones distintos para Cliente, Vendas e Entregas, preservando o app Entregas instalado.
 - [x] Criar página pública `/aplicativos/` com seleção e instaladores individuais, botão Android quando disponível e instruções Safari/iOS.
