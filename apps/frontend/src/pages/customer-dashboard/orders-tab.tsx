@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/contexts/CartContext';
 import { useToast } from '@/components/ui/use-toast';
-import { getCustomerOrderNextStep, getOrderStatusBadgeClass, getOrderStatusLabel } from '@/lib/order-ui';
+import { getCustomerOrderBadge, getCustomerOrderNextStep } from '@/lib/order-ui';
 import { formatCurrency } from '@/lib/sale-ui';
 import { fetchMyOrders } from '@/services/api/orders';
 import { fetchProductById } from '@/services/api/products';
@@ -82,7 +82,7 @@ export function OrdersTab() {
             <h3 className="break-words font-bold">Pedido {order.referenceCode}</h3>
             <p className="text-xs text-muted-foreground">{formatDateTime(order.createdAt)}</p>
           </div>
-          <Badge variant="outline" className={getOrderStatusBadgeClass(order.status)}>{getOrderStatusLabel(order.status, order.source)}</Badge>
+          <Badge variant="outline" className={getCustomerOrderBadge(order).className}>{getCustomerOrderBadge(order).label}</Badge>
         </div>
         {getCustomerOrderNextStep(order) ? <p className="rounded-lg bg-blue-50 p-3 text-sm text-slate-700">{getCustomerOrderNextStep(order)}</p> : null}
         {order.fulfillment ? <div className="rounded-lg bg-blue-50 p-3"><p className="text-sm font-semibold">{({ RECEIVED: 'Materiais recebidos', PARTIALLY_RECEIVED: 'Materiais recebidos parcialmente', LOADED: 'Materiais carregados', IN_TRANSIT: 'Entrega em andamento', AWAITING_DETAILS: 'Confirmando retirada ou entrega', PICKING: 'Em separação', CHECKING: 'Conferindo os materiais', READY: order.fulfillment.mode === 'PICKUP' ? 'Materiais preparados para retirada' : 'Preparando entrega', CANCELED: 'Operação cancelada', PAYMENT_PENDING: 'Aguardando confirmação de pagamento' } as Record<string, string>)[order.fulfillment.status] ?? 'Andamento em conferência'}</p><p className="mt-1 text-xs text-muted-foreground">Atualizado em {formatDateTime(order.fulfillment.updatedAt)}</p>{order.fulfillment.scheduledAt ? <p className="mt-1 text-xs">Agendamento confirmado: {formatDateTime(order.fulfillment.scheduledAt)}</p> : null}</div> : null}

@@ -1,5 +1,6 @@
 import { normalizeWhatsapp } from '@rebequi/shared/utils';
-import type { CustomerOrder, OrderStatus } from '@/types';
+import { OrderStatus } from '@rebequi/shared/types';
+import type { CustomerOrder } from '@/types';
 
 export function getOrderStatusLabel(status: OrderStatus, source?: string) {
   if (source === 'seller_assisted' && status === 'IN_RECOVERY') return 'Em atendimento';
@@ -34,6 +35,16 @@ export function getOrderStatusBadgeClass(status: OrderStatus) {
     default:
       return 'border-black/10 bg-slate-50 text-slate-700';
   }
+}
+
+export function getCustomerOrderBadge(order: Pick<CustomerOrder, 'status' | 'source' | 'fulfillment'>) {
+  const progress = order.fulfillment;
+  if (progress?.status === 'CANCELED') return { label: 'Venda cancelada', className: getOrderStatusBadgeClass(OrderStatus.CANCELED) };
+  if (progress?.status === 'PAYMENT_PENDING') return { label: 'Aguardando pagamento', className: getOrderStatusBadgeClass(OrderStatus.PENDING_WHATSAPP) };
+  if (progress?.status === 'RECEIVED') return { label: progress.mode === 'PICKUP' ? 'Retirado' : 'Entregue', className: getOrderStatusBadgeClass(OrderStatus.COMPLETED) };
+  if (progress?.status === 'PARTIALLY_RECEIVED') return { label: 'Recebimento parcial', className: getOrderStatusBadgeClass(OrderStatus.IN_RECOVERY) };
+  if (progress || order.status === OrderStatus.COMPLETED) return { label: 'Pedido confirmado', className: getOrderStatusBadgeClass(OrderStatus.WHATSAPP_REDIRECTED) };
+  return { label: getOrderStatusLabel(order.status, order.source), className: getOrderStatusBadgeClass(order.status) };
 }
 
 export function getCustomerOrderNextStep(order: Pick<CustomerOrder, 'status' | 'source' | 'fulfillment'>) {

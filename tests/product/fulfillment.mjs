@@ -147,6 +147,7 @@ export async function validateFulfillment({ owner, guest, admin, browser, baseUR
     await customerBrowser.addCookies((await owner.storageState()).cookies); const page = await customerBrowser.newPage(); await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`${baseURL}/painel-cliente?tab=orders&orderId=${checkout.order.id}`);
     const card = page.locator(`#customer-order-${checkout.order.id}`);
+    await card.getByText('Pedido confirmado', { exact: true }).waitFor();
     await card.getByText('Acompanhar etapas do pedido', { exact: true }).click();
     await card.getByText('Veículo saiu para entrega', { exact: true }).waitFor();
     if (customerHistory.totalPages > 1) {
