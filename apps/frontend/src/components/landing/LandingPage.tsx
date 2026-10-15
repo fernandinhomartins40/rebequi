@@ -621,6 +621,23 @@ function LandingBrands() {
     </section>
   );
 }
+function AppInstallBanner() {
+  return <section className="landing-app-banner" aria-labelledby="landing-app-title">
+    <div className="landing-app-copy">
+      <span className="landing-app-eyebrow">REBEQUI NO SEU CELULAR</span>
+      <h2 id="landing-app-title">Mais perto da sua obra.<br />A um toque de distância.</h2>
+      <p>Acompanhe pedidos, orçamentos e entregas pelo aplicativo. Escolha o seu e adicione à tela inicial.</p>
+      <a className="landing-app-cta" href="/aplicativos/">Escolher meu aplicativo <ArrowRight size={20} aria-hidden="true" /></a>
+      <span className="landing-app-platforms">Android e iPhone/iPad · Sem precisar da loja de aplicativos</span>
+      <span className="landing-app-audiences">Cliente · Vendas · Entregas</span>
+    </div>
+    <picture className="landing-app-art">
+      <source type="image/webp" srcSet="/brand/pwa-banner-480.webp 480w, /brand/pwa-banner-960.webp 960w" sizes="(max-width: 640px) 90vw, (max-width: 1024px) 44vw, 520px" />
+      <img src="/brand/pwa-banner-960.webp" width="960" height="640" loading="lazy" decoding="async" alt="Aplicativos Rebequi no celular, com atalhos para clientes, vendas e entregas" />
+    </picture>
+  </section>;
+}
+
 export function LandingFooter({
   showMobileCart = true,
 }: {
@@ -861,6 +878,7 @@ export function LandingPage() {
           </div>
           <Campaigns promotions={campaigns.data?.promotions ?? []} />
           <LandingServices />
+          <AppInstallBanner />
           <div className="landing-shelves">
             <ProductShelf
               title="Novidades"

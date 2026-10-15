@@ -1,5 +1,11 @@
 # Melhorias integradas: vendedores, entregas e API
 
+## Banner de instalação na landing page
+
+- [x] Criar CTA integrado ao padrão visual, com link direto para `/aplicativos/`, texto acessível e disposição responsiva.
+- [x] Gerar e otimizar arte original para celular, tablet e desktop (WebP 480/960 px, aproximadamente 13/31 KB).
+- [ ] Validar imagem, CTA, legibilidade e largura em navegador; publicar pela main e conferir produção.
+
 ## PWAs separados — solicitação adicional
 
 ### Clareza da instalação no iOS

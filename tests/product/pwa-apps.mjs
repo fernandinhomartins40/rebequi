@@ -9,6 +9,23 @@ export async function validatePwaApps({ browser, baseURL }) {
   const context = await browser.newContext({ baseURL, viewport: { width: 390, height: 844 } });
   try {
     const page = await context.newPage();
+    for (const width of [320, 390, 768, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto('/');
+      const banner = page.getByRole('region', { name: 'Mais perto da sua obra. A um toque de distância.' });
+      await banner.scrollIntoViewIfNeeded();
+      await banner.getByRole('img').waitFor();
+      await banner.getByRole('img').evaluate(image => image.decode());
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+      assert.ok(await banner.getByRole('img').evaluate(image => image.naturalWidth > 0));
+      const cta = banner.getByRole('link', { name: 'Escolher meu aplicativo' });
+      assert.equal(await cta.getAttribute('href'), '/aplicativos/');
+      assert.ok((await cta.boundingBox()).height >= 44);
+      await banner.screenshot({ path: `tests/product/artifacts/pwa-landing-banner-${width}.png` });
+      await cta.click();
+      await page.getByRole('heading', { name: 'Escolha seu aplicativo' }).waitFor();
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/aplicativos/');
     await page.getByRole('heading', { name: 'Escolha seu aplicativo' }).waitFor();
     assert.equal(await page.getByRole('link', { name: /^Instalar Rebequi/ }).count(), 3);
