@@ -1,5 +1,13 @@
 # Aplicativos Cliente, Vendas e Entregas
 
+## Instalador simplificado e ícones em imagem
+
+Cada instalador exibe uma única identidade (ícone, nome e descrição), um botão principal e o link Abrir sem instalar. A ajuda fica recolhida em Como instalar. No iOS, uma linha curta orienta Compartilhar → Adicionar à Tela de Início, e o botão abre as instruções mantendo a identificação do app. No Android/Chromium, o botão chama `prompt()` do evento `beforeinstallprompt` quando disponível: a confirmação do navegador é obrigatória; o site não instala silenciosamente. Convite indisponível, cancelamento e app instalado têm estados próprios, sem anunciar instalação concluída antes do evento `appinstalled`.
+
+Novas artes originais em imagem para Cliente, Vendas e Entregas, com nomes de arquivo versionados `icon-v2-*` para preservar compatibilidade e evitar ícones antigos em cache. Cada pasta `public/aplicativos/{cliente,vendedor,entregas}/` contém PNGs quadrados de 32, 48, 96, 152, 167, 180, 192, 512 e 1024 px; PNG maskable 512 separado com margem adicional; favicon ICO com 32/48 px; prévia WebP 256 px. O manifesto referencia PNGs 192/512 com purpose=any e o arquivo maskable 512 com purpose=maskable. Metadados Apple usam PNGs 152/167/180. IDs, start_url, escopos e acessos permanecem iguais. Navegadores/SO controlam quando instalações existentes atualizam seus ícones.
+
+Referências: [Google — convite de instalação](https://web.dev/learn/pwa/installation-prompt), [Google — ícones e área segura](https://web.dev/learn/pwa/web-app-manifest).
+
 Página pública de escolha: `/aplicativos/`. Também acessível pelo rodapé da loja e pelos links nos painéis de cliente/vendedor. No painel do motorista, o botão existente leva ao instalador de Entregas.
 
 | App | Instalador público | Início após instalação | Escopo |

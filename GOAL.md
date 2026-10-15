@@ -1,5 +1,12 @@
 # Melhorias integradas: vendedores, entregas e API
 
+## Instaladores mais simples e novos ícones em imagem
+
+- [x] Simplificar instaladores: identidade única, ação principal e ajuda recolhida, preservando a identificação no iOS.
+- [x] Manter convite nativo Android acionado por toque, com tratamento de aceitação/cancelamento e alternativa quando o navegador não oferece o convite. Instalação silenciosa não é permitida pela plataforma.
+- [x] Gerar três imagens originais e exportar PNGs para Android/iOS, maskable separado, favicon ICO e prévia WebP.
+- [ ] Validar ícones, metadados, estados de instalação e interfaces; publicar via main e conferir produção.
+
 ## Banner de instalação na landing page
 
 - [x] Criar CTA integrado ao padrão visual, com link direto para `/aplicativos/`, texto acessível e disposição responsiva.
