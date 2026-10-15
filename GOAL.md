@@ -73,3 +73,11 @@ Reutilizar essas estruturas. Não criar painel paralelo, conector fictício, dad
 - 38 testes integrados aprovados no PostgreSQL descartável, incluindo concorrência, reserva, venda/pagamento/cancelamento, isolamento de vendedores, recebimento e interface mobile; zero falhas. Também aprovados os testes existentes de migração, persistência, backup/restauração e rollback do deploy.
 - Pós-publicação: API `status=ok`, frontend `healthy`, ambos os contêineres saudáveis; tabela aditiva de recibos confirmada via SELECT. OpenAPI 1.1.0 com 14 caminhos disponível; nova consulta de entregas sem sessão retorna 401.
 - Três objetivos atendidos na aplicação. Dependência externa remanescente: identificar/homologar o ERP/PDV real e configurar o integrador com credencial emitida pelo proprietário, usando [o contrato documentado](docs/API_SINCRONIZACAO.md). Nenhuma credencial de teste emitida em produção.
+
+## Corre??o do convite de instala??o Android
+
+- [x] Consultar os tr?s manifestos publicados pelo protocolo do Chromium: nenhum erro de instalabilidade.
+- [x] Remover o cancelamento da promo??o autom?tica do navegador no evento beforeinstallprompt; manter o bot?o para solicitar o convite dispon?vel.
+- [x] Acrescentar regress?o para garantir que a promo??o nativa n?o seja bloqueada.
+- [ ] Validar build e fluxo dos tr?s instaladores; publicar pela main.
+- Limite: o navegador decide quando exibir a promo??o e exige confirma??o; instala??o silenciosa n?o ? permitida. Teste em Chromium n?o comprova instala??o em um aparelho Android f?sico.

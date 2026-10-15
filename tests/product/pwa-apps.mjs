@@ -59,7 +59,9 @@ export async function validatePwaApps({ browser, baseURL }) {
       assert.equal((await ico.body()).readUInt16LE(2), 1);
       const cdp = await context.newCDPSession(page);
       const inspected = await cdp.send('Page.getAppManifest');
-      assert.equal(inspected.errors.length, 0); assert.equal(JSON.parse(inspected.data).id, manifest.id); await cdp.detach();
+      assert.equal(inspected.errors.length, 0); assert.equal(JSON.parse(inspected.data).id, manifest.id);
+      assert.deepEqual((await cdp.send('Page.getInstallabilityErrors')).installabilityErrors, []);
+      await cdp.detach();
       const worker = await context.request.get(app.worker);
       assert.equal(worker.headers()['service-worker-allowed'], app.scope); assert.match(worker.headers()['cache-control'], /no-cache/);
       await page.evaluate(async scope => {
@@ -71,12 +73,14 @@ export async function validatePwaApps({ browser, baseURL }) {
       // Exercise both outcomes of the browser event; no native OS installation is claimed.
       for (const outcome of ['dismissed', 'accepted']) {
         await page.evaluate(outcome => {
-          const event = new Event('beforeinstallprompt');
+          const event = new Event('beforeinstallprompt', { cancelable: true });
           window.installPromptCalls = 0;
           Object.assign(event, { prompt: async () => { window.installPromptCalls++; }, userChoice: Promise.resolve({ outcome }) });
           window.dispatchEvent(event);
+          window.installPromotionBlocked = event.defaultPrevented;
         }, outcome);
         assert.equal(await page.evaluate(() => window.installPromptCalls), 0);
+        assert.equal(await page.evaluate(() => window.installPromotionBlocked), false);
         await page.getByRole('button', { name: `Instalar ${app.name}`, exact: true }).click();
         assert.equal(await page.evaluate(() => window.installPromptCalls), 1);
         await page.getByRole('status').filter({ hasText: outcome === 'accepted' ? 'Instalação solicitada' : 'Instalação cancelada' }).waitFor();
