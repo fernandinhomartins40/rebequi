@@ -4,19 +4,29 @@
 
 Cada instalador exibe uma única identidade (ícone, nome e descrição), um botão principal e o link Abrir sem instalar. A ajuda fica recolhida em Como instalar. No iOS, uma linha curta orienta Compartilhar → Adicionar à Tela de Início, e o botão abre as instruções mantendo a identificação do app. No Android/Chromium, o botão chama `prompt()` do evento `beforeinstallprompt` quando disponível: a confirmação do navegador é obrigatória; o site não instala silenciosamente. Convite indisponível, cancelamento e app instalado têm estados próprios, sem anunciar instalação concluída antes do evento `appinstalled`.
 
-Novas artes originais em imagem para Cliente, Vendas e Entregas, com nomes de arquivo versionados `icon-v2-*` para preservar compatibilidade e evitar ícones antigos em cache. Cada pasta `public/aplicativos/{cliente,vendedor,entregas}/` contém PNGs quadrados de 32, 48, 96, 152, 167, 180, 192, 512 e 1024 px; PNG maskable 512 separado com margem adicional; favicon ICO com 32/48 px; prévia WebP 256 px. O manifesto referencia PNGs 192/512 com purpose=any e o arquivo maskable 512 com purpose=maskable. Metadados Apple usam PNGs 152/167/180. IDs, start_url, escopos e acessos permanecem iguais. Navegadores/SO controlam quando instalações existentes atualizam seus ícones.
+Novas artes originais em imagem para Cliente, Vendas e Entregas, com nomes de arquivo versionados `icon-v2-*` para preservar compatibilidade e evitar ícones antigos em cache. Cada pasta `public/aplicativos/{cliente,vendedor,entregas}/` contém PNGs quadrados de 32, 48, 96, 152, 167, 180, 192, 512 e 1024 px; PNG maskable 512 separado com margem adicional; favicon ICO com 32/48 px; prévia WebP 256 px. O manifesto referencia PNGs 192/512 com purpose=any e o arquivo maskable 512 com purpose=maskable. Metadados Apple usam PNGs 152/167/180. Os IDs e acessos foram preservados; start_url e escopos foram separados conforme a migração abaixo. Navegadores/SO controlam quando instalações existentes atualizam seus ícones.
 
 Referências: [Google — convite de instalação](https://web.dev/learn/pwa/installation-prompt), [Google — ícones e área segura](https://web.dev/learn/pwa/web-app-manifest).
+
+## Instalação simultânea e migração do aplicativo antigo
+
+Os três apps usam escopos independentes: `/apps/cliente`, `/apps/vendas` e `/apps/entregas`. O PWA geral usa `/loja/`, com o ID original `/` preservado. Não há app abrangendo o escopo de outro. A configuração compartilhada fica em `apps/frontend/pwa-apps.json`; `BrowserRouter` usa o prefixo como `basename`, preservando telas, links, login e permissões existentes. A resposta HTML das rotas de cada app já contém o manifesto e o ícone Apple corretos, inclusive antes de autenticar.
+
+O aplicativo antigo instalado com escopo `/` pode bloquear os convites dos outros apps até o Chrome atualizar seu manifesto. Para migrar imediatamente, desinstale apenas essa instalação antiga, abra `/aplicativos/` diretamente no Chrome e instale os aplicativos desejados. Contas, pedidos, vendas e permissões permanecem no servidor. Não é necessário apagar os dados do navegador. O site não consegue remover ou alterar instantaneamente o registro de um PWA no dispositivo.
+
+Essa causa foi reproduzida em Chromium: após instalar o PWA geral antigo, os três instaladores deixaram de receber `beforeinstallprompt`, apesar de nenhum erro de instalabilidade. A documentação do Chrome descreve esse conflito para [escopos aninhados](https://web.dev/articles/building-multiple-pwas-on-the-same-domain).
+
+O teste `tests/product/pwa-coexistence.mjs` usa perfil descartável e instala o PWA geral corrigido e os três apps em sequência. Exige eventos reais (`isTrusted`), verifica o botão chamando `prompt()` e mantém os quatro apps instalados no mesmo perfil antes de removê-los ao finalizar. A confirmação humana é substituída por `PWA.install` do protocolo de testes do Chromium. O workflow roda esse teste com `xvfb-run`; isso verifica coexistência no Chromium, sem alegar download WebAPK ou instalação em Android físico.
 
 Página pública de escolha: `/aplicativos/`. Também acessível pelo rodapé da loja e pelos links nos painéis de cliente/vendedor. No painel do motorista, o botão existente leva ao instalador de Entregas.
 
 | App | Instalador público | Início após instalação | Escopo |
 | --- | --- | --- | --- |
-| Rebequi Cliente | `/painel-cliente/instalar/` | `/painel-cliente` | `/painel-cliente` |
-| Rebequi Vendas | `/painel-lojista/instalar/` | `/painel-lojista/painel/atendimentos` | `/painel-lojista` |
-| Rebequi Entregas | `/painel-lojista/painel/entregas/instalar/` | `/painel-lojista/painel/entregas` | `/painel-lojista/painel/entregas` |
+| Rebequi Cliente | `/apps/cliente/instalar/` | `/apps/cliente/painel-cliente` | `/apps/cliente` |
+| Rebequi Vendas | `/apps/vendas/instalar/` | `/apps/vendas/painel-lojista/painel/atendimentos` | `/apps/vendas` |
+| Rebequi Entregas | `/apps/entregas/instalar/` | `/apps/entregas/painel-lojista/painel/entregas` | `/apps/entregas` |
 
-Cada aplicativo possui manifesto, ID, ícones PNG/Apple, nome e service worker próprios. O ID e o endereço legado do manifesto de Entregas são preservados para instalações existentes. O worker de Entregas tem escopo mais específico que o de Vendas; não se substituem. O PWA de parceiros permanece intacto.
+Cada aplicativo possui manifesto, ID, ícones PNG/Apple, nome e service worker próprios. IDs e endereço legado do manifesto de Entregas são preservados. Os links antigos dos instaladores redirecionam para os novos. Os workers têm escopos independentes. O PWA de parceiros permanece intacto.
 
 Os instaladores são HTML públicos gerados no build, com manifesto correto desde o carregamento inicial. Não dependem de login ou troca dinâmica do manifesto da página de escolha. A confirmação de instalação sempre identifica o aplicativo selecionado.
 

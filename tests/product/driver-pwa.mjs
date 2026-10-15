@@ -3,12 +3,13 @@ export async function validateDriverPwa({ context, page, baseURL }) {
   const manifest = await context.request.get('/motoristas/manifest.webmanifest'); assert.equal(manifest.status(), 200);
   assert.match(manifest.headers()['content-type'], /application\/manifest\+json/);
   const worker = await context.request.get('/driver-sw.js'); assert.equal(worker.status(), 200);
-  assert.match(worker.headers()['cache-control'], /no-cache/); assert.equal(worker.headers()['service-worker-allowed'], '/painel-lojista/painel/entregas');
-  const config = await manifest.json(); assert.equal(config.start_url, '/painel-lojista/painel/entregas'); assert.equal(config.display, 'standalone');
-  await page.goto(`${baseURL}/painel-lojista/painel/entregas`);
+  assert.match(worker.headers()['cache-control'], /no-cache/); assert.equal(worker.headers()['service-worker-allowed'], '/apps/entregas');
+  const config = await manifest.json(); assert.equal(config.start_url, '/apps/entregas/painel-lojista/painel/entregas'); assert.equal(config.display, 'standalone');
+  assert.equal(config.id, '/painel-lojista/painel/entregas', 'Keep the installed driver app identity');
+  await page.goto(`${baseURL}/apps/entregas/painel-lojista/painel/entregas`);
   await page.getByRole('button', { name: 'Instalar aplicativo', exact: true }).waitFor();
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
-  assert.equal(await page.locator('link[rel="manifest"]').getAttribute('href'), '/motoristas/manifest.webmanifest');
+  assert.equal(await page.locator('link[rel="manifest"]').getAttribute('href'), '/aplicativos/entregas/manifest.webmanifest');
   await page.reload();
   await page.waitForFunction(() => navigator.serviceWorker.controller?.scriptURL.endsWith('/driver-sw.js'));
   const paths = await page.evaluate(async () => {
@@ -22,7 +23,7 @@ export async function validateDriverPwa({ context, page, baseURL }) {
   await context.setOffline(true);
   try {
     await page.getByText('Sem conexão. Mantenha esta tela aberta e reconecte-se para confirmar operações. Nada será enviado automaticamente.', { exact: true }).waitFor();
-    await page.goto(`${baseURL}/painel-lojista/painel/entregas`);
+    await page.goto(`${baseURL}/apps/entregas/painel-lojista/painel/entregas`);
     await page.getByRole('heading', { name: 'Você está sem conexão', exact: true }).waitFor();
     await page.getByText('Nenhum recebimento foi registrado por esta tela.', { exact: true }).waitFor();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
