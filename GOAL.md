@@ -98,6 +98,9 @@ Reutilizar essas estruturas. Não criar painel paralelo, conector fictício, dad
 - [x] Separar escopos de Cliente, Vendas e Entregas em /apps/cliente, /apps/vendas e /apps/entregas; reutilizar rotas, login e permissoes por basename.
 - [x] Limitar o PWA geral a /loja/, preservando seu id; manter os ids dos tres aplicativos e links antigos de instalacao.
 - [x] Manter o manifesto correto desde a resposta inicial, inclusive em login, e preservar o prefixo no redirecionamento apos login.
-- [ ] Validar coexistencia por instalacao real em perfil Chromium, login/recarga/offline e suite integrada.
-- [ ] Commit/push main, deploy pelo Actions e verificacao em producao.
+- [x] Validar coexistencia por instalacao real em perfil Chromium, login/recarga/offline e suite integrada.
+- [x] Commit/push main, deploy pelo Actions e verificacao em producao.
 - Migracao: o PWA antigo instalado com escopo / precisa ser atualizado pelo Chrome ou reinstalado uma vez; o site nao pode desinstalar nem alterar instantaneamente o registro local do aparelho. Os dados no servidor e permissoes permanecem os mesmos.
+
+- Publicado `56b6576` pelo workflow https://github.com/fernandinhomartins40/rebequi/actions/runs/38764158326 (sucesso). A primeira execucao bloqueou corretamente o deploy por expectativa legada do teste de Entregas, corrigida sem reduzir verificacoes de offline.
+- Pos-publicacao: release confirmado na VPS, tres conteineres saudaveis, API ok, links antigos redirecionando e testes de interface/login/recarga/offline/iOS aprovados. Coexistencia verificada no dominio de producao: loja, Cliente, Vendas e Entregas instalados no mesmo perfil descartavel do Chromium, com eventos reais e chamadas do convite pelos botoes. Nenhuma instalacao em aparelho Android fisico e alegada.
