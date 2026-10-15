@@ -14,6 +14,7 @@ import {
   RoleHomeRedirect,
 } from "@/components/auth/RouteGuards";
 import { DesignFrame } from "@/components/DesignFrame";
+import { getAppBasePath } from '@/lib/pwa-routing';
 import { lazy, Suspense, type ComponentType } from "react";
 const Index = lazy(() => import('./pages/Index'));
 const MerchantPanel = lazy(() => import('./pages/MerchantPanel'));
@@ -72,7 +73,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
+          <BrowserRouter basename={getAppBasePath() || '/'}>
             <DesignFrame>
               <Suspense fallback={<div role="status" className="flex min-h-screen items-center justify-center bg-slate-50">Carregando…</div>}><Routes>
                 <Route path="/parceiros/*" element={<PartnersPage />} />

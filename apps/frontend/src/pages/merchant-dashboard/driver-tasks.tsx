@@ -2,6 +2,7 @@ import { DeliveryNavigation } from './delivery-navigation';
 import { useState } from 'react';
 import { useQuery, useIsMutating } from '@tanstack/react-query';
 import { PwaControls } from '@/components/dashboard/PwaControls';
+import { activePwa, pwaApps } from '@/lib/pwa-routing';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { Link, useParams } from 'react-router-dom';
 import { getDriverTask, getDriverTasks } from '@/services/api/drivers';
@@ -12,6 +13,7 @@ import { ADMIN_BASE_PATH } from './config';
 import { DriverRuns } from './driver-runs';
 const LABELS: Record<string, string> = { RECEIVED: 'Materiais recebidos', PARTIALLY_RECEIVED: 'Materiais recebidos parcialmente', LOADED: 'Materiais carregados', IN_TRANSIT: 'Entrega em andamento', PICKING: 'Em separação', CHECKING: 'Em conferência', READY: 'Pronto para expedição' };
 export default function DriverTasks() {
+  const app = activePwa || pwaApps.find(app => app.key === 'entregas')!;
   const { taskId } = useParams(); const [page, setPage] = useState(1);
   const [editingRun, setEditingRun] = useState(false); const mutating = useIsMutating();
   const online = useOnlineStatus();
@@ -19,7 +21,7 @@ export default function DriverTasks() {
   const detail = useQuery({ queryKey: ['driver', 'task', taskId], queryFn: () => getDriverTask(taskId!), enabled: Boolean(taskId), retry: false });
   return <div className="space-y-4"><PageHeader title="Minhas entregas" description="Confira as tarefas atribuídas a você." />
     {!online ? <p role="status" className="rounded-xl bg-amber-50 p-3 text-sm">Sem conexão. Mantenha esta tela aberta e reconecte-se para confirmar operações. Nada será enviado automaticamente.</p> : null}
-    <PwaControls canUpdate={online && !taskId && !editingRun && !mutating} showInstall={!taskId && !editingRun} manifestPath="/motoristas/manifest.webmanifest" workerPath="/driver-sw.js" scope="/painel-lojista/painel/entregas" updateMessage="DRIVER_APPLY_UPDATE" installHref="/painel-lojista/painel/entregas/instalar/" />
+    <PwaControls canUpdate={online && !taskId && !editingRun && !mutating} showInstall={!taskId && !editingRun} manifestPath={`/aplicativos/${app.key}/manifest.webmanifest`} workerPath={app.worker} scope={app.scope} updateMessage={app.message} installHref={`${app.scope}/instalar/`} />
     {!taskId ? <DriverRuns onEditingChange={setEditingRun} /> : null}{taskId ? <><Button asChild variant="outline"><Link to={`${ADMIN_BASE_PATH}/entregas`}>Voltar para minhas entregas</Link></Button>{detail.isLoading ? <DashboardLoading /> : detail.isError ? <DashboardError message={detail.error.message} onRetry={() => detail.refetch()} /> : detail.data ? <section className="space-y-4 rounded-xl border bg-white p-4">
       <div><h2 className="font-bold">{detail.data.sale.referenceCode}</h2><p className="text-sm">{LABELS[detail.data.status] ?? 'Confira a etapa com a loja'}</p><p className="mt-1 break-words text-sm">{detail.data.sale.customerNameSnapshot || 'Cliente não informado'}</p></div>
       <div><h3 className="font-semibold">Endereço</h3><p className="break-words text-sm">{detail.data.address}</p><DeliveryNavigation address={detail.data.address} />{detail.data.scheduledAt ? <p className="mt-1 text-xs">Agendado: {new Date(detail.data.scheduledAt).toLocaleString('pt-BR')}</p> : <p className="text-xs text-muted-foreground">Sem agendamento confirmado.</p>}</div>

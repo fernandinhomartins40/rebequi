@@ -91,3 +91,13 @@ Reutilizar essas estruturas. Não criar painel paralelo, conector fictício, dad
 - [x] Validar primeira visita, evento antecipado/tardio e publicar.
 - O relato no Chrome Android foi confirmado pelo usu?rio; reprodu??o em aparelho f?sico permanece indispon?vel.
 - Publicado `75f2a3b`, [workflow 38674422981](https://github.com/fernandinhomartins40/rebequi/actions/runs/38674422981) aprovado; release e sa?de confirmadas. Verifica??es dos tr?s PWAs aprovadas tamb?m em produ??o, incluindo controle sem recarga na primeira visita, evento antes do m?dulo, evento tardio, alternativa manual e iOS. Evento real observado em Chromium vis?vel com emula??o Android; n?o equivale a valida??o em dispositivo f?sico.
+
+## PWAs instalados simultaneamente
+
+- [x] Reproduzir ausencia de beforeinstallprompt com o PWA geral ja instalado, usando instalacao real do Chromium em perfil descartavel.
+- [x] Separar escopos de Cliente, Vendas e Entregas em /apps/cliente, /apps/vendas e /apps/entregas; reutilizar rotas, login e permissoes por basename.
+- [x] Limitar o PWA geral a /loja/, preservando seu id; manter os ids dos tres aplicativos e links antigos de instalacao.
+- [x] Manter o manifesto correto desde a resposta inicial, inclusive em login, e preservar o prefixo no redirecionamento apos login.
+- [ ] Validar coexistencia por instalacao real em perfil Chromium, login/recarga/offline e suite integrada.
+- [ ] Commit/push main, deploy pelo Actions e verificacao em producao.
+- Migracao: o PWA antigo instalado com escopo / precisa ser atualizado pelo Chrome ou reinstalado uma vez; o site nao pode desinstalar nem alterar instantaneamente o registro local do aparelho. Os dados no servidor e permissoes permanecem os mesmos.

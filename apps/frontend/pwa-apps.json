@@ -1,0 +1,5 @@
+[
+  { "key": "cliente", "name": "Rebequi Cliente", "description": "Seus pedidos, orçamentos e entregas em um só lugar.", "scope": "/apps/cliente", "start": "/apps/cliente/painel-cliente", "id": "/aplicativos/cliente", "legacyScope": "/painel-cliente", "worker": "/customer-sw.js", "message": "CUSTOMER_APPLY_UPDATE" },
+  { "key": "vendedor", "name": "Rebequi Vendas", "description": "Atendimentos, clientes, pedidos e vendas da sua carteira.", "scope": "/apps/vendas", "start": "/apps/vendas/painel-lojista/painel/atendimentos", "id": "/aplicativos/vendedor", "legacyScope": "/painel-lojista", "worker": "/seller-sw.js", "message": "SELLER_APPLY_UPDATE" },
+  { "key": "entregas", "name": "Rebequi Entregas", "description": "Suas entregas, materiais e registros de recebimento.", "scope": "/apps/entregas", "start": "/apps/entregas/painel-lojista/painel/entregas", "id": "/painel-lojista/painel/entregas", "legacyScope": "/painel-lojista/painel/entregas", "worker": "/driver-sw.js", "message": "DRIVER_APPLY_UPDATE" }
+]

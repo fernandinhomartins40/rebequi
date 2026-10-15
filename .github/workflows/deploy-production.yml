@@ -181,7 +181,7 @@ jobs:
       - name: Install real deploy prerequisites for the rollback test
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq nginx certbot
+          sudo apt-get install -y -qq nginx certbot xvfb
       - uses: actions/setup-node@v4
         with:
           node-version: '22'

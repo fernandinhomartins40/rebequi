@@ -163,6 +163,7 @@ login
 
 # Browser and security flows use this runner's actual PostgreSQL and images.
 npm test --prefix tests/product
+xvfb-run -a node tests/product/pwa-coexistence.mjs http://127.0.0.1:3190
 
 curl -fsS --cookie "$TEST_DIR/cookies" --cookie-jar "$TEST_DIR/cookies" -X POST http://127.0.0.1:3190/api/auth/logout >/dev/null
 [[ $(curl -sS -o /dev/null -w '%{http_code}' --cookie "$TEST_DIR/cookies" http://127.0.0.1:3190/api/auth/me) == 401 ]]

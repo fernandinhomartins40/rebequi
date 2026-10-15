@@ -1,14 +1,20 @@
 import assert from 'node:assert/strict';
 
 const apps = [
-  { key: 'cliente', name: 'Rebequi Cliente', scope: '/painel-cliente', start: '/painel-cliente', worker: '/customer-sw.js', offline: '/aplicativos/cliente/offline.html' },
-  { key: 'vendedor', name: 'Rebequi Vendas', scope: '/painel-lojista', start: '/painel-lojista/painel/atendimentos', worker: '/seller-sw.js', offline: '/aplicativos/vendedor/offline.html' },
-  { key: 'entregas', name: 'Rebequi Entregas', scope: '/painel-lojista/painel/entregas', start: '/painel-lojista/painel/entregas', worker: '/driver-sw.js', offline: '/motoristas/offline.html' },
+  { key: 'cliente', name: 'Rebequi Cliente', scope: '/apps/cliente', start: '/apps/cliente/painel-cliente', worker: '/customer-sw.js', offline: '/aplicativos/cliente/offline.html' },
+  { key: 'vendedor', name: 'Rebequi Vendas', scope: '/apps/vendas', start: '/apps/vendas/painel-lojista/painel/atendimentos', worker: '/seller-sw.js', offline: '/aplicativos/vendedor/offline.html' },
+  { key: 'entregas', name: 'Rebequi Entregas', scope: '/apps/entregas', start: '/apps/entregas/painel-lojista/painel/entregas', worker: '/driver-sw.js', offline: '/motoristas/offline.html' },
 ];
 export async function validatePwaApps({ browser, baseURL }) {
   const context = await browser.newContext({ baseURL, viewport: { width: 390, height: 844 } });
   try {
     const page = await context.newPage();
+    const store = await (await context.request.get('/site.webmanifest')).json();
+    assert.equal(store.id, '/'); assert.equal(store.scope, '/loja/');
+    const scopes = [store.scope.replace(/\/$/, ''), '/parceiros', ...apps.map(app => app.scope)];
+    for (const scope of scopes) for (const other of scopes.filter(value => value !== scope)) {
+      assert.equal(scope.startsWith(other + '/'), false, `Overlapping PWA scopes: ${scope}, ${other}`);
+    }
     for (const width of [320, 390, 768, 1440]) {
       await page.setViewportSize({ width, height: 900 });
       await page.goto('/');
@@ -89,11 +95,17 @@ export async function validatePwaApps({ browser, baseURL }) {
       await page.getByRole('button', { name: `Instalar ${app.name}`, exact: true }).click();
       await page.getByRole('status').filter({ hasText: 'Aguardando o Chrome' }).waitFor();
       assert.equal(await page.locator('#install-help').getAttribute('open'), null);
-      await page.getByRole('status').filter({ hasText: 'O Chrome n?o disponibilizou o convite.' }).waitFor({ timeout: 12000 });
+      await page.getByRole('status').filter({ hasText: 'O Chrome não disponibilizou o convite.' }).waitFor({ timeout: 12000 });
       assert.notEqual(await page.locator('#install-help').getAttribute('open'), null);
       await page.evaluate(() => window.dispatchEvent(new Event('appinstalled')));
       assert.equal(await page.getByRole('button', { name: `Instalar ${app.name}`, exact: true }).count(), 0);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+      await page.goto(app.start);
+      await page.waitForURL(`**${app.scope}/${app.key === 'cliente' ? 'login' : 'painel-lojista'}`);
+      assert.equal(await page.locator('link[rel="manifest"]').getAttribute('href'), url);
+      // Authentication and a hard reload must stay in this app, with the existing screens.
+      await page.reload();
+      await page.getByLabel(/Senha/i).first().waitFor();
       await context.setOffline(true);
       try {
         await page.goto(app.start);
@@ -107,7 +119,7 @@ export async function validatePwaApps({ browser, baseURL }) {
       const prefix = "{const early=new Event('beforeinstallprompt',{cancelable:true});early.prompt=async()=>{window.earlyPromptCalled=true;};early.userChoice=Promise.resolve({outcome:'accepted'});window.dispatchEvent(early);}";
       await route.fulfill({ response, body: prefix + await response.text() });
     });
-    await earlyPage.goto('/painel-cliente/instalar/');
+    await earlyPage.goto('/apps/cliente/instalar/');
     await earlyPage.getByRole('button', { name: 'Instalar Rebequi Cliente', exact: true }).click();
     assert.equal(await earlyPage.evaluate(() => window.earlyPromptCalled), true);
     await earlyPage.close();
@@ -159,7 +171,7 @@ export async function validatePwaApps({ browser, baseURL }) {
       Object.defineProperty(navigator, 'maxTouchPoints', { get: () => 5 });
     });
     const page = await ipad.newPage();
-    await page.goto('/painel-lojista/instalar/');
+    await page.goto('/apps/vendas/instalar/');
     await page.getByRole('button', { name: 'Adicionar Rebequi Vendas', exact: true }).waitFor();
     assert.equal(await page.locator('#android-instructions').isVisible(), false);
     await page.getByRole('button', { name: 'Adicionar Rebequi Vendas', exact: true }).click();

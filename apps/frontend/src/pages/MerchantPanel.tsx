@@ -10,6 +10,7 @@ import { PasswordField } from '@/components/auth/PasswordField';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLoginPreferences } from '@/hooks/use-login-preferences';
 import { getDefaultRouteForRole } from '@/lib/auth-routing';
+import { getAppBasePath, withAppBasePath } from '@/lib/pwa-routing';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -82,7 +83,9 @@ const MerchantPanel = () => {
         description: 'Acesso interno liberado.',
       });
 
-      window.location.href = MERCHANT_PANEL_URL || getDefaultRouteForRole(user.role);
+      window.location.href = getAppBasePath()
+        ? withAppBasePath(getDefaultRouteForRole(user.role))
+        : MERCHANT_PANEL_URL || getDefaultRouteForRole(user.role);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erro ao autenticar';
       toast({
