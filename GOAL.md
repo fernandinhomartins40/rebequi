@@ -4,7 +4,9 @@
 
 - [x] Criar CTA integrado ao padrão visual, com link direto para `/aplicativos/`, texto acessível e disposição responsiva.
 - [x] Gerar e otimizar arte original para celular, tablet e desktop (WebP 480/960 px, aproximadamente 13/31 KB).
-- [ ] Validar imagem, CTA, legibilidade e largura em navegador; publicar pela main e conferir produção.
+- [x] Validar imagem, CTA, legibilidade e largura em navegador; publicar pela main e conferir produção.
+
+Banner publicado pelo commit `265b023`, [workflow 38659532928](https://github.com/fernandinhomartins40/rebequi/actions/runs/38659532928) aprovado em todas as etapas. Build, lint e tipos passaram; arte e CTA conferidos visualmente e em testes nas larguras 320/390/768/1440 px. Verificação pública repetida em produção confirmou imagem carregada, ausência de overflow e navegação para `/aplicativos/`. Arte original gerada com imagegen e versões WebP armazenadas no repositório.
 
 ## PWAs separados — solicitação adicional
 
