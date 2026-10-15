@@ -88,5 +88,6 @@ Reutilizar essas estruturas. Não criar painel paralelo, conector fictício, dad
 - [x] Capturar beforeinstallprompt no head, antes do carregamento do m?dulo do instalador.
 - [x] Reivindicar clientes na primeira ativa??o do service worker, sem for?ar atualiza??es pendentes.
 - [x] Aguardar disponibiliza??o do convite antes de mostrar alternativa manual; fechar instru??es se o evento chegar depois.
-- [ ] Validar primeira visita, evento antecipado/tardio e publicar.
+- [x] Validar primeira visita, evento antecipado/tardio e publicar.
 - O relato no Chrome Android foi confirmado pelo usu?rio; reprodu??o em aparelho f?sico permanece indispon?vel.
+- Publicado `75f2a3b`, [workflow 38674422981](https://github.com/fernandinhomartins40/rebequi/actions/runs/38674422981) aprovado; release e sa?de confirmadas. Verifica??es dos tr?s PWAs aprovadas tamb?m em produ??o, incluindo controle sem recarga na primeira visita, evento antes do m?dulo, evento tardio, alternativa manual e iOS. Evento real observado em Chromium vis?vel com emula??o Android; n?o equivale a valida??o em dispositivo f?sico.
