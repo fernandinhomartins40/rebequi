@@ -79,5 +79,6 @@ Reutilizar essas estruturas. Não criar painel paralelo, conector fictício, dad
 - [x] Consultar os tr?s manifestos publicados pelo protocolo do Chromium: nenhum erro de instalabilidade.
 - [x] Remover o cancelamento da promo??o autom?tica do navegador no evento beforeinstallprompt; manter o bot?o para solicitar o convite dispon?vel.
 - [x] Acrescentar regress?o para garantir que a promo??o nativa n?o seja bloqueada.
-- [ ] Validar build e fluxo dos tr?s instaladores; publicar pela main.
+- [x] Validar build e fluxo dos tr?s instaladores; publicar pela main.
 - Limite: o navegador decide quando exibir a promo??o e exige confirma??o; instala??o silenciosa n?o ? permitida. Teste em Chromium n?o comprova instala??o em um aparelho Android f?sico.
+- Publica??o `54c6dc4` confirmada em release.txt; [workflow 38673355598](https://github.com/fernandinhomartins40/rebequi/actions/runs/38673355598) aprovado. API saud?vel e verifica??es dos tr?s instaladores aprovadas em produ??o, incluindo preserva??o do evento nativo, ?cones, manifestos, bot?o e instru??es iOS.
