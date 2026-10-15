@@ -68,8 +68,9 @@ export async function validatePwaApps({ browser, baseURL }) {
         const registration = await navigator.serviceWorker.getRegistration(scope + '/instalar/');
         if (!registration?.active) await navigator.serviceWorker.ready;
       }, app.scope);
-      await page.reload();
       await page.waitForFunction(worker => navigator.serviceWorker.controller?.scriptURL.endsWith(worker), app.worker);
+      await page.getByRole('button', { name: `Instalar ${app.name}`, exact: true }).click();
+      await page.getByRole('status').filter({ hasText: 'Aguardando o Chrome' }).waitFor();
       // Exercise both outcomes of the browser event; no native OS installation is claimed.
       for (const outcome of ['dismissed', 'accepted']) {
         await page.evaluate(outcome => {
@@ -86,7 +87,9 @@ export async function validatePwaApps({ browser, baseURL }) {
         await page.getByRole('status').filter({ hasText: outcome === 'accepted' ? 'Instalação solicitada' : 'Instalação cancelada' }).waitFor();
       }
       await page.getByRole('button', { name: `Instalar ${app.name}`, exact: true }).click();
-      await page.getByRole('status').filter({ hasText: 'O convite depende do navegador.' }).waitFor();
+      await page.getByRole('status').filter({ hasText: 'Aguardando o Chrome' }).waitFor();
+      assert.equal(await page.locator('#install-help').getAttribute('open'), null);
+      await page.getByRole('status').filter({ hasText: 'O Chrome n?o disponibilizou o convite.' }).waitFor({ timeout: 12000 });
       assert.notEqual(await page.locator('#install-help').getAttribute('open'), null);
       await page.evaluate(() => window.dispatchEvent(new Event('appinstalled')));
       assert.equal(await page.getByRole('button', { name: `Instalar ${app.name}`, exact: true }).count(), 0);
@@ -97,6 +100,17 @@ export async function validatePwaApps({ browser, baseURL }) {
         await page.getByRole('heading', { name: 'Você está sem conexão', exact: true }).waitFor();
       } finally { await context.setOffline(false); }
     }
+    // Capture an event delivered after the head listener but before the installer module executes.
+    const earlyPage = await context.newPage();
+    await earlyPage.route('**/aplicativos/cliente/install.js', async route => {
+      const response = await route.fetch();
+      const prefix = "{const early=new Event('beforeinstallprompt',{cancelable:true});early.prompt=async()=>{window.earlyPromptCalled=true;};early.userChoice=Promise.resolve({outcome:'accepted'});window.dispatchEvent(early);}";
+      await route.fulfill({ response, body: prefix + await response.text() });
+    });
+    await earlyPage.goto('/painel-cliente/instalar/');
+    await earlyPage.getByRole('button', { name: 'Instalar Rebequi Cliente', exact: true }).click();
+    assert.equal(await earlyPage.evaluate(() => window.earlyPromptCalled), true);
+    await earlyPage.close();
     assert.equal(new Set(ids).size, 3);
     await page.goto('/aplicativos/');
     const registrations = await page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).map(registration => ({ scope: new URL(registration.scope).pathname, script: new URL(registration.active.scriptURL).pathname })));

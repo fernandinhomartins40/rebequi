@@ -82,3 +82,11 @@ Reutilizar essas estruturas. Não criar painel paralelo, conector fictício, dad
 - [x] Validar build e fluxo dos tr?s instaladores; publicar pela main.
 - Limite: o navegador decide quando exibir a promo??o e exige confirma??o; instala??o silenciosa n?o ? permitida. Teste em Chromium n?o comprova instala??o em um aparelho Android f?sico.
 - Publica??o `54c6dc4` confirmada em release.txt; [workflow 38673355598](https://github.com/fernandinhomartins40/rebequi/actions/runs/38673355598) aprovado. API saud?vel e verifica??es dos tr?s instaladores aprovadas em produ??o, incluindo preserva??o do evento nativo, ?cones, manifestos, bot?o e instru??es iOS.
+
+## Convite indispon?vel ao tocar no Chrome Android
+
+- [x] Capturar beforeinstallprompt no head, antes do carregamento do m?dulo do instalador.
+- [x] Reivindicar clientes na primeira ativa??o do service worker, sem for?ar atualiza??es pendentes.
+- [x] Aguardar disponibiliza??o do convite antes de mostrar alternativa manual; fechar instru??es se o evento chegar depois.
+- [ ] Validar primeira visita, evento antecipado/tardio e publicar.
+- O relato no Chrome Android foi confirmado pelo usu?rio; reprodu??o em aparelho f?sico permanece indispon?vel.

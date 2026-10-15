@@ -3,7 +3,7 @@ export function installPage(app) {
 }
 
 export function installerScript(app) {
-  return `const button=document.getElementById('install'),status=document.getElementById('status'),help=document.getElementById('install-help');let pending=null,asked=false;
+  return `const button=document.getElementById('install'),status=document.getElementById('status'),help=document.getElementById('install-help');let pending=window.rebequiInstallPrompt||null,asked=false,waitTimer;
 const isIos=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 if(isIos){document.getElementById('android-instructions').hidden=true;document.getElementById('ios-instructions').hidden=false;document.getElementById('ios-quick').hidden=false;button.textContent='Adicionar ${app.name}';}
 const standalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
@@ -11,7 +11,7 @@ if(standalone){button.hidden=true;status.textContent='Você está em um app inst
 // Preserve the browser's automatic installation promotion; retain the event for the explicit button.
 window.addEventListener('beforeinstallprompt',event=>{pending=event;if(asked&&!isIos)status.textContent='Instalação disponível. Toque em Instalar ${app.name}.';});
 window.addEventListener('appinstalled',()=>{pending=null;button.hidden=true;status.textContent='${app.name} instalado. Abra pelo ícone na tela inicial.';});
-button.addEventListener('click',async()=>{asked=true;if(isIos){help.open=true;status.textContent='No Safari, use Compartilhar → Adicionar à Tela de Início. Confira ${app.name} e seu ícone.';return;}if(!pending){help.open=true;status.textContent='O convite depende do navegador. Use o Chrome ou veja Como instalar.';return;}button.disabled=true;const event=pending;pending=null;try{await event.prompt();const choice=await event.userChoice;status.textContent=choice.outcome==='accepted'?'Instalação solicitada. Confirme no navegador.':'Instalação cancelada. Você pode tentar novamente pelo menu do navegador.';}catch{help.open=true;status.textContent='Não foi possível abrir o convite. Veja Como instalar.';}finally{button.disabled=false;}});
+button.addEventListener('click',async()=>{asked=true;if(isIos){help.open=true;status.textContent='No Safari, use Compartilhar → Adicionar à Tela de Início. Confira ${app.name} e seu ícone.';return;}if(!pending){clearTimeout(waitTimer);status.textContent='Aguardando o Chrome liberar a instala??o?';waitTimer=setTimeout(()=>{if(pending||button.hidden)return;help.open=true;status.textContent='O Chrome n?o disponibilizou o convite. No menu ?, procure Instalar aplicativo. Se aparecer Abrir aplicativo, ele j? est? instalado.';},8000);return;}button.disabled=true;const event=pending;pending=null;try{await event.prompt();const choice=await event.userChoice;status.textContent=choice.outcome==='accepted'?'Instalação solicitada. Confirme no navegador.':'Instalação cancelada. Você pode tentar novamente pelo menu do navegador.';}catch{help.open=true;status.textContent='Não foi possível abrir o convite. Veja Como instalar.';}finally{button.disabled=false;}});
 if('serviceWorker'in navigator)navigator.serviceWorker.register(${JSON.stringify(app.worker)},{scope:${JSON.stringify(app.scope)},updateViaCache:'none'}).catch(()=>{status.textContent='Verifique sua conexão ou veja Como instalar.';});`;
 }
 
