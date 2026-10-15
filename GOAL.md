@@ -5,7 +5,9 @@
 - [x] Simplificar instaladores: identidade única, ação principal e ajuda recolhida, preservando a identificação no iOS.
 - [x] Manter convite nativo Android acionado por toque, com tratamento de aceitação/cancelamento e alternativa quando o navegador não oferece o convite. Instalação silenciosa não é permitida pela plataforma.
 - [x] Gerar três imagens originais e exportar PNGs para Android/iOS, maskable separado, favicon ICO e prévia WebP.
-- [ ] Validar ícones, metadados, estados de instalação e interfaces; publicar via main e conferir produção.
+- [x] Validar ícones, metadados, estados de instalação e interfaces; publicar via main e conferir produção.
+
+Publicado no commit `6c3a813`, [workflow 38670241532](https://github.com/fernandinhomartins40/rebequi/actions/runs/38670241532) aprovado, com 39 testes integrados sem falhas. Build/lint/tipos aprovados; páginas compactas e ajuda recolhida conferidas visualmente. Testes públicos repetidos em produção validaram dimensões PNG, ICO, manifestos any/maskable, metadados Apple e estados de convite/instalação da interface, sem mutações comerciais. A instalação nativa em dispositivo físico Android/iOS não foi executada; o navegador exige gesto e confirmação, portanto instalação silenciosa não é oferecida.
 
 ## Banner de instalação na landing page
 
